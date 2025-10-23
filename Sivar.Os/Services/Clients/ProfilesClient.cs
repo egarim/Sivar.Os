@@ -1,7 +1,9 @@
-using Sivar.Core.Clients.Profiles;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -213,7 +215,7 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
         return new ProfileStatisticsDto();
     }
 
-    private ProfileDto MapToDto(Core.Entities.Profile profile)
+    private ProfileDto MapToDto(Profile profile)
     {
         return new ProfileDto
         {

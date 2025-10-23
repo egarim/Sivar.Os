@@ -1,8 +1,9 @@
-using Sivar.Core.Clients.Reactions;
-using Sivar.Core.DTOs;
-using Sivar.Core.Enums;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -107,7 +108,7 @@ public class ReactionsClient : BaseRepositoryClient, IReactionsClient
         return new List<ReactionActivityDto>();
     }
 
-    private ReactionDto MapToDto(Core.Entities.Reaction reaction)
+    private ReactionDto MapToDto(Reaction reaction)
     {
         return new ReactionDto
         {

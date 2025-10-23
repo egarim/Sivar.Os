@@ -2,6 +2,7 @@
 
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 

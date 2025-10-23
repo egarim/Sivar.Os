@@ -1,4 +1,3 @@
-
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
@@ -195,7 +194,7 @@ public class ProfileTypeService : IProfileTypeService
     /// </summary>
     public async Task<ProfileTypeDto?> GetPersonalProfileTypeAsync()
     {
-        var personalProfile = await _profileTypeRepository.GetByIdAsync(SeedData.PersonalProfileTypeId);
+        var personalProfile = await _profileTypeRepository.GetByNameAsync("PersonalProfile");
         return personalProfile != null ? MapToProfileTypeDto(personalProfile) : null;
     }
 

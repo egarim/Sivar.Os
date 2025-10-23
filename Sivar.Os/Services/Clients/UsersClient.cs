@@ -1,7 +1,9 @@
-using Sivar.Core.Clients.Users;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -158,7 +160,7 @@ public class UsersClient : BaseRepositoryClient, IUsersClient
         _logger.LogInformation("ReactivateUserAsync: {UserId}", userId);
     }
 
-    private UserDto MapToDto(Core.Entities.User user)
+    private UserDto MapToDto(User user)
     {
         return new UserDto
         {

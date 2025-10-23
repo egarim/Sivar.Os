@@ -1,4 +1,6 @@
-
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 
@@ -35,11 +37,12 @@ public class UserAuthenticationService : IUserAuthenticationService
             
             if (existingUser != null)
             {
-            // User exists - get their active profile
-            var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);                return new UserAuthenticationResult
+                // User exists - get their active profile
+                var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);                
+                return new UserAuthenticationResult
                 {
                     IsSuccess = true,
-                    User = existingUser,
+                    User = MapToDto(existingUser),
                     ActiveProfile = activeProfile,
                     IsNewUser = false
                 };
@@ -55,7 +58,7 @@ public class UserAuthenticationService : IUserAuthenticationService
             return new UserAuthenticationResult
             {
                 IsSuccess = true,
-                User = newUser,
+                User = MapToDto(newUser),
                 ActiveProfile = defaultProfile,
                 IsNewUser = true
             };
@@ -130,6 +133,29 @@ public class UserAuthenticationService : IUserAuthenticationService
             "administrator" or "admin" => UserRole.Administrator,
             "moderator" => UserRole.Administrator, // Map moderator to administrator since Moderator role doesn't exist
             _ => UserRole.RegisteredUser
+        };
+    }
+
+    /// <summary>
+    /// Maps User entity to UserDto
+    /// </summary>
+    private UserDto MapToDto(User user)
+    {
+        return new UserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            KeycloakId = user.KeycloakId,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            FullName = user.FullName,
+            Role = user.Role,
+            IsActive = user.IsActive,
+            PreferredLanguage = user.PreferredLanguage,
+            TimeZone = user.TimeZone,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt,
+            IsAdministrator = user.IsAdministrator
         };
     }
 }

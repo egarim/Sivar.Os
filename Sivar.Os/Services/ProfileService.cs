@@ -1,7 +1,8 @@
 using System.Text.Json;
 
-using Sivar.Os.Shared.Configuration;
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 
@@ -32,6 +33,31 @@ public class ProfileService : IProfileService
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
     }
 
+    #region Profile Type Helpers
+
+    /// <summary>
+    /// Gets a profile type ID by its name
+    /// </summary>
+    /// <param name="profileTypeName">Name of the profile type (e.g., "PersonalProfile")</param>
+    /// <returns>Profile type ID if found, null otherwise</returns>
+    private async Task<Guid?> GetProfileTypeIdByNameAsync(string profileTypeName)
+    {
+        var profileType = await _profileTypeRepository.GetByNameAsync(profileTypeName);
+        return profileType?.Id;
+    }
+
+    /// <summary>
+    /// Gets the default profile type ID (PersonalProfile)
+    /// </summary>
+    /// <returns>PersonalProfile type ID, or Guid.Empty if not found</returns>
+    private async Task<Guid> GetDefaultProfileTypeIdAsync()
+    {
+        var personalTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        return personalTypeId ?? Guid.Empty;
+    }
+
+    #endregion
+
     /// <summary>
     /// Gets the current user's personal profile
     /// </summary>
@@ -40,8 +66,12 @@ public class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(keycloakId))
             return null;
 
+        var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        if (personalProfileTypeId == null)
+            return null;
+
         var profiles = await _profileRepository.GetProfilesByKeycloakIdAsync(keycloakId);
-        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == SeedData.PersonalProfileTypeId);
+        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == personalProfileTypeId.Value);
 
         return personalProfile != null ? await MapToProfileDtoAsync(personalProfile) : null;
     }
@@ -68,11 +98,16 @@ public class ProfileService : IProfileService
         if (await UserHasPersonalProfileAsync(keycloakId))
             return null; // User already has a personal profile
 
+        // Get PersonalProfile type ID
+        var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        if (personalProfileTypeId == null)
+            return null; // PersonalProfile type not found
+
         // Create profile
         var profile = new Profile
         {
             UserId = user.Id,
-            ProfileTypeId = SeedData.PersonalProfileTypeId,
+            ProfileTypeId = personalProfileTypeId.Value,
             DisplayName = createDto.DisplayName,
             Bio = createDto.Bio,
             Avatar = createDto.Avatar,
@@ -97,9 +132,14 @@ public class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(keycloakId) || updateDto == null)
             return null;
 
+        // Get PersonalProfile type ID
+        var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        if (personalProfileTypeId == null)
+            return null;
+
         // Get user's personal profile
         var profiles = await _profileRepository.GetProfilesByKeycloakIdAsync(keycloakId);
-        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == SeedData.PersonalProfileTypeId);
+        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == personalProfileTypeId.Value);
 
         if (personalProfile == null)
             return null;
@@ -140,8 +180,12 @@ public class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(keycloakId))
             return false;
 
+        var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        if (personalProfileTypeId == null)
+            return false;
+
         var profiles = await _profileRepository.GetProfilesByKeycloakIdAsync(keycloakId);
-        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == SeedData.PersonalProfileTypeId);
+        var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == personalProfileTypeId.Value);
 
         if (personalProfile == null)
             return false;
@@ -304,7 +348,11 @@ public class ProfileService : IProfileService
         if (user == null)
             return false;
 
-        return await _profileRepository.UserHasProfileOfTypeAsync(user.Id, SeedData.PersonalProfileTypeId);
+        var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
+        if (personalProfileTypeId == null)
+            return false;
+
+        return await _profileRepository.UserHasProfileOfTypeAsync(user.Id, personalProfileTypeId.Value);
     }
 
     /// <summary>
@@ -363,7 +411,7 @@ public class ProfileService : IProfileService
         }
 
         // Determine profile type from metadata if not provided
-        var targetProfileTypeId = profileTypeId ?? DetermineProfileTypeFromMetadata(profileData.Metadata);
+        var targetProfileTypeId = profileTypeId ?? await DetermineProfileTypeFromMetadataAsync(profileData.Metadata);
 
         // Validate metadata if provided
         if (!string.IsNullOrWhiteSpace(profileData.Metadata))
@@ -533,7 +581,7 @@ public class ProfileService : IProfileService
             return null;
 
         // Determine profile type based on metadata content
-        var profileTypeId = DetermineProfileTypeFromMetadata(createDto.Metadata);
+        var profileTypeId = await DetermineProfileTypeFromMetadataAsync(createDto.Metadata);
         var profileType = await _profileTypeRepository.GetByIdAsync(profileTypeId);
         if (profileType == null)
             return null;
@@ -809,10 +857,10 @@ public class ProfileService : IProfileService
     /// <summary>
     /// Determines the appropriate profile type based on metadata content
     /// </summary>
-    private static Guid DetermineProfileTypeFromMetadata(string? metadata)
+    private async Task<Guid> DetermineProfileTypeFromMetadataAsync(string? metadata)
     {
         if (string.IsNullOrWhiteSpace(metadata))
-            return SeedData.PersonalProfileTypeId;
+            return await GetDefaultProfileTypeIdAsync();
 
         try
         {
@@ -826,7 +874,8 @@ public class ProfileService : IProfileService
                 root.TryGetProperty("memberCount", out _) ||
                 root.TryGetProperty("chapters", out _))
             {
-                return SeedData.OrganizationProfileTypeId;
+                var orgTypeId = await GetProfileTypeIdByNameAsync("OrganizationProfile");
+                return orgTypeId ?? await GetDefaultProfileTypeIdAsync();
             }
 
             // Business profile indicators  
@@ -837,16 +886,17 @@ public class ProfileService : IProfileService
                 root.TryGetProperty("revenue", out _) ||
                 root.TryGetProperty("employees", out _))
             {
-                return SeedData.BusinessProfileTypeId;
+                var businessTypeId = await GetProfileTypeIdByNameAsync("BusinessProfile");
+                return businessTypeId ?? await GetDefaultProfileTypeIdAsync();
             }
 
             // Default to personal profile
-            return SeedData.PersonalProfileTypeId;
+            return await GetDefaultProfileTypeIdAsync();
         }
         catch (JsonException)
         {
             // Invalid JSON - default to personal
-            return SeedData.PersonalProfileTypeId;
+            return await GetDefaultProfileTypeIdAsync();
         }
     }
 
@@ -862,10 +912,10 @@ public class ProfileService : IProfileService
             if (profileType == null)
                 return null;
 
-            // Return template based on profile type
-            if (profileTypeId == SeedData.PersonalProfileTypeId)
+            // Return template based on profile type name
+            return profileType.Name switch
             {
-                return new
+                "PersonalProfile" => new
                 {
                     interests = new string[] { },
                     skills = new string[] { },
@@ -882,11 +932,8 @@ public class ProfileService : IProfileService
                         company = "",
                         years = 0
                     }
-                };
-            }
-            else if (profileTypeId == SeedData.BusinessProfileTypeId)
-            {
-                return new
+                },
+                "BusinessProfile" => new
                 {
                     industry = "",
                     companySize = "",
@@ -896,11 +943,8 @@ public class ProfileService : IProfileService
                     employees = 0,
                     services = new string[] { },
                     markets = new string[] { }
-                };
-            }
-            else if (profileTypeId == SeedData.OrganizationProfileTypeId)
-            {
-                return new
+                },
+                "OrganizationProfile" => new
                 {
                     organizationType = "",
                     missionStatement = "",
@@ -909,11 +953,9 @@ public class ProfileService : IProfileService
                     chapters = new string[] { },
                     programs = new string[] { },
                     focus_areas = new string[] { }
-                };
-            }
-
-            // Generic template for unknown profile types
-            return new { };
+                },
+                _ => new { } // Generic template for unknown profile types
+            };
         }
         catch (Exception)
         {

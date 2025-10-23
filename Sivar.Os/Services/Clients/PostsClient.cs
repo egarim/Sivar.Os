@@ -1,8 +1,10 @@
-using Sivar.Core.Clients.Posts;
-using Sivar.Core.DTOs;
-using Sivar.Core.Enums;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -266,7 +268,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
                 Views = 0,
                 TotalReactions = 0,
                 TotalComments = 0,
-                ReactionsByType = new Dictionary<Core.Enums.ReactionType, int>(),
+                ReactionsByType = new Dictionary<ReactionType, int>(),
                 EngagementRate = 0.0
             };
 
@@ -307,7 +309,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// <summary>
     /// Maps a Post entity to PostDto
     /// </summary>
-    private PostDto MapPostToDto(Core.Entities.Post post)
+    private PostDto MapPostToDto(Post post)
     {
         return new PostDto
         {

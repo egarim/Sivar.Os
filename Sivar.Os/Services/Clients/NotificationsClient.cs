@@ -1,7 +1,8 @@
-using Sivar.Core.Clients.Notifications;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 

@@ -1,5 +1,7 @@
 
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 
@@ -449,7 +451,7 @@ public class ReactionService : IReactionService
     /// <summary>
     /// Maps a Reaction entity to ReactionDto
     /// </summary>
-    private async Task<ReactionDto?> MapToReactionDtoAsync(Core.Entities.Reaction reaction)
+    private async Task<ReactionDto?> MapToReactionDtoAsync(Reaction reaction)
     {
         if (reaction.Profile == null)
         {
@@ -474,7 +476,7 @@ public class ReactionService : IReactionService
     /// <summary>
     /// Maps a Reaction entity to ReactionWithProfileDto
     /// </summary>
-    private async Task<ReactionWithProfileDto?> MapToReactionWithProfileDtoAsync(Core.Entities.Reaction reaction)
+    private async Task<ReactionWithProfileDto?> MapToReactionWithProfileDtoAsync(Reaction reaction)
     {
         if (reaction.Profile == null)
         {
@@ -496,7 +498,7 @@ public class ReactionService : IReactionService
     /// <summary>
     /// Maps a Profile entity to ProfileDto (simplified version)
     /// </summary>
-    private ProfileDto MapToProfileDto(Core.Entities.Profile profile)
+    private ProfileDto MapToProfileDto(Profile profile)
     {
         // TODO: Use proper ProfileService mapping when available
         return new ProfileDto
@@ -512,7 +514,7 @@ public class ReactionService : IReactionService
     /// <summary>
     /// Maps a list of Profile entities to ProfileDtos
     /// </summary>
-    private List<ProfileDto> MapToProfileDtos(IEnumerable<Core.Entities.Profile> profiles)
+    private List<ProfileDto> MapToProfileDtos(IEnumerable<Profile> profiles)
     {
         var profileDtos = new List<ProfileDto>();
         foreach (var profile in profiles)

@@ -1,8 +1,5 @@
-using Sivar.Core.Clients.Files;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
-using Sivar.Os.Shared.Configuration;
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 

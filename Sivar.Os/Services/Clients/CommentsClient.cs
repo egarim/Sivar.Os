@@ -1,7 +1,10 @@
-using Sivar.Core.Clients.Comments;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -130,7 +133,7 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
         return new List<CommentActivityDto>();
     }
 
-    private CommentDto MapToDto(Core.Entities.Comment comment)
+    private CommentDto MapToDto(Comment comment)
     {
         return new CommentDto
         {

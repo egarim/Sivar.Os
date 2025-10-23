@@ -317,7 +317,7 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         {
             return new ReactionResult 
             { 
-                Action = Shared.Repositories.ReactionAction.NoChange, 
+                Action = ReactionAction.NoChange, 
                 Message = "Either postId or commentId must be provided" 
             };
         }
@@ -326,7 +326,7 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         {
             return new ReactionResult 
             { 
-                Action = Shared.Repositories.ReactionAction.NoChange, 
+                Action = ReactionAction.NoChange, 
                 Message = "Cannot react to both post and comment simultaneously" 
             };
         }
@@ -361,7 +361,7 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
 
             return new ReactionResult 
             { 
-                Action = Shared.Repositories.ReactionAction.Added, 
+                Action = ReactionAction.Added, 
                 Reaction = newReaction, 
                 Message = "Reaction added successfully" 
             };
@@ -374,7 +374,7 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
 
             return new ReactionResult 
             { 
-                Action = Shared.Repositories.ReactionAction.Removed, 
+                Action = ReactionAction.Removed, 
                 Message = "Reaction removed successfully" 
             };
         }
@@ -389,7 +389,7 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
 
             return new ReactionResult 
             { 
-                Action = Shared.Repositories.ReactionAction.Updated, 
+                Action = ReactionAction.Updated, 
                 Reaction = existingReaction, 
                 Message = "Reaction updated successfully" 
             };

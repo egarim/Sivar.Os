@@ -1,5 +1,3 @@
-
-
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
 
@@ -318,20 +316,9 @@ public interface IReactionRepository
 /// </summary>
 public class ReactionResult
 {
-    public ReactionAction Action { get; set; }
+    public Enums.ReactionAction Action { get; set; }
     public Reaction? Reaction { get; set; }
     public string Message { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Action taken during reaction toggle
-/// </summary>
-public enum ReactionAction
-{
-    Added,
-    Updated,
-    Removed,
-    NoChange
 }
 
 /// <summary>

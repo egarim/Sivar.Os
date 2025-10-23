@@ -1,5 +1,6 @@
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.DTOs.Metadata;
+using Sivar.Os.Shared.Entities;
 
 
 namespace Sivar.Os.Shared.Services;
@@ -15,7 +16,7 @@ public interface IProfileMetadataValidator
     /// <param name="metadata">JSON metadata string</param>
     /// <param name="profileType">Profile type entity</param>
     /// <returns>Validation result with any errors</returns>
-    Task<MetadataValidationResult> ValidateMetadataAsync(string? metadata, ProfileTypeDto profileType);
+    Task<MetadataValidationResult> ValidateMetadataAsync(string? metadata, ProfileType profileType);
 
     /// <summary>
     /// Validates strongly-typed personal profile metadata
@@ -43,7 +44,7 @@ public interface IProfileMetadataValidator
     /// </summary>
     /// <param name="profileType">Profile type entity</param>
     /// <returns>Default metadata JSON template</returns>
-    string GetDefaultMetadataTemplate(ProfileTypeDto profileType);
+    string GetDefaultMetadataTemplate(ProfileType profileType);
 
     /// <summary>
     /// Checks if a field is required for a specific profile type
@@ -51,14 +52,14 @@ public interface IProfileMetadataValidator
     /// <param name="fieldName">Field name to check</param>
     /// <param name="profileType">Profile type entity</param>
     /// <returns>True if field is required, false otherwise</returns>
-    bool IsFieldRequired(string fieldName, ProfileTypeDto profileType);
+    bool IsFieldRequired(string fieldName, ProfileType profileType);
 
     /// <summary>
     /// Gets validation rules for a specific profile type
     /// </summary>
     /// <param name="profileType">Profile type entity</param>
     /// <returns>Dictionary of field names and their validation rules</returns>
-    Dictionary<string, MetadataFieldRule> GetValidationRules(ProfileTypeDto profileType);
+    Dictionary<string, MetadataFieldRule> GetValidationRules(ProfileType profileType);
 }
 
 /// <summary>

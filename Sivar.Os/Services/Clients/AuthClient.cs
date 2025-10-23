@@ -1,7 +1,6 @@
-using Sivar.Core.Clients.Auth;
-using Sivar.Core.DTOs;
-using Sivar.Core.Interfaces;
-using Sivar.Core.Repositories;
+
+using Sivar.Os.Shared.Clients;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 

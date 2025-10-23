@@ -1,4 +1,4 @@
-
+using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 
 namespace Sivar.Os.Shared.Repositories;

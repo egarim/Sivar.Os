@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
 using Sivar.Os.Shared.Configuration;
 using Sivar.Os.Shared.Services;
 
