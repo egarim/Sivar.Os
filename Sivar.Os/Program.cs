@@ -9,11 +9,36 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.EntityFrameworkCore;
+using Sivar.Os.Data.Context;
+using Sivar.Os.Data.Repositories;
+using Sivar.Os.Shared.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+// --- Database Context ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Host=localhost;Port=5432;Database=sivaros;Username=postgres;Password=postgres";
+
+builder.Services.AddDbContext<SivarDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// --- Repository Registration ---
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<IProfileTypeRepository, ProfileTypeRepository>();
+builder.Services.AddScoped<IProfileFollowerRepository, ProfileFollowerRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
+builder.Services.AddScoped<IPostAttachmentRepository, PostAttachmentRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<IReactionRepository, ReactionRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 
 // --- Auth (Keycloak OIDC) ---
 var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080/realms/blazor-interactive";

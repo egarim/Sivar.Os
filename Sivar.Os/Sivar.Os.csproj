@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+    <ProjectReference Include="..\Sivar.Os.Data\Sivar.Os.Data.csproj" />
     <ProjectReference Include="..\Sivar.Os.Shared\Sivar.Os.Shared.csproj" />
     <ProjectReference Include="..\Sivar.Os.Client\Sivar.Os.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
@@ -17,7 +18,7 @@
 
 
 	<ItemGroup>
-		
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
 		<PackageReference Include="Microsoft.Extensions.AI" Version="9.0.1-preview.1.24570.5" />
 		<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.0.1-preview.1.24570.5" />
