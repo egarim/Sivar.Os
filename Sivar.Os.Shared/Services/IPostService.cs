@@ -1,5 +1,5 @@
 using Sivar.Os.Shared.DTOs;
-
+using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
 
 namespace Sivar.Os.Shared.Services;
@@ -112,5 +112,5 @@ public interface IPostService
     /// Gets all post entities that have vector embeddings (for internal use)
     /// </summary>
     /// <returns>List of post entities with their vector embeddings</returns>
-    Task<List<PostDto>> GetAllPostEntitiesWithEmbeddingsAsync();
+    Task<List<Post>> GetAllPostEntitiesWithEmbeddingsAsync();
 }
