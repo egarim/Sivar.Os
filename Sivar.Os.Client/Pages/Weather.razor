@@ -1,0 +1,65 @@
+﻿@page "/weather"
+@using Sivar.Os.Shared.Services
+@using System.Security.Claims
+@rendermode InteractiveAuto
+@inject IWeatherService WeatherService
+
+<PageTitle>Weather</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <MudText Typo="Typo.h3" GutterBottom="true">Weather forecast</MudText>
+        <MudText Typo="Typo.body1" Class="mb-8">This component demonstrates fetching data from the server.</MudText>
+
+        @if (forecasts == null)
+        {
+            <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+        }
+        else
+        {
+          <MudTable Items="forecasts" Hover="true" SortLabel="Sort By" Elevation="0" AllowUnsorted="false">
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<WeatherForecast, object>(x=>x.Date)">Date</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureC)">Temp. (C)</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureF)">Temp. (F)</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.Summary!)">Summary</MudTableSortLabel></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="forecast">
+                    <MudTd DataLabel="Date">@forecast.Date</MudTd>
+                    <MudTd DataLabel="Temp. (C)">@forecast.TemperatureC</MudTd>
+                    <MudTd DataLabel="Temp. (F)">@forecast.TemperatureF</MudTd>
+                    <MudTd DataLabel="Summary">@forecast.Summary</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+                </PagerContent>
+            </MudTable>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <MudAlert Severity="Severity.Warning" Class="mb-4">You need to be signed in to view the weather forecast.</MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/authentication/login">Sign In</MudButton>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Only load data if user is authenticated
+        // The AuthorizeView wrapper ensures we only render the data when authorized
+        // Simulate asynchronous loading to demonstrate a loading indicator
+        await Task.Delay(500);
+
+        try
+        {
+            forecasts = await WeatherService.GetForecastAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading weather: {ex.Message}");
+            forecasts = Array.Empty<WeatherForecast>();
+        }
+    }
+}

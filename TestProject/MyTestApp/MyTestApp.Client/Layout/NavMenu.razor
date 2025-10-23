@@ -1,0 +1,116 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@using MyTestApp.Shared.Services
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IAsyncDisposable
+
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
+    
+    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+
+    <MudDivider Class="my-2" />
+
+    @if (_isLoading)
+    {
+        <div style="padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            <MudText Typo="Typo.body2">Authenticating...</MudText>
+        </div>
+    }
+    else if (_isAuthenticated)
+    {
+        <MudText Typo="Typo.caption" Class="pa-3" Style="color: var(--mud-palette-text-secondary);">
+            Logged in as:
+        </MudText>
+        <MudText Typo="Typo.body2" Class="pa-3 font-weight-bold">
+            @if (string.IsNullOrEmpty(_userName))
+            {
+                <text>User</text>
+            }
+            else
+            {
+                <text>@_userName</text>
+            }
+        </MudText>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Logout" FullWidth="true" OnClick="Logout" Class="justify-start">
+            Logout
+        </MudButton>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Login" FullWidth="true" OnClick="Login" Class="justify-start">
+            Login
+        </MudButton>
+    }
+</MudNavMenu>
+
+@code {
+    private bool _isAuthenticated = false;
+    private bool _isLoading = true;
+    private string _userName = string.Empty;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cts = new CancellationTokenSource();
+        
+        // Initial auth state check
+        await RefreshAuthState();
+        
+        // Subscribe to auth state changes
+        if (AuthStateProvider is not null)
+        {
+            AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+    }
+
+    private async Task RefreshAuthState()
+    {
+        _isLoading = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            _isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+            _userName = user.Identity?.Name ?? string.Empty;
+            Console.WriteLine($"[NavMenu] Auth state refreshed: IsAuthenticated={_isAuthenticated}, Name='{_userName}' (type={user.Identity?.GetType().Name})");
+            Console.WriteLine($"[NavMenu] User identity type: {user.Identity?.AuthenticationType}");
+            Console.WriteLine($"[NavMenu] User claims: {string.Join(", ", user.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu] Error getting auth state: {ex.Message}");
+            _isAuthenticated = false;
+            _userName = string.Empty;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async void OnAuthenticationStateChanged(Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> task)
+    {
+        Console.WriteLine($"[NavMenu] AuthenticationStateChanged event received");
+        await RefreshAuthState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Login() => Nav.NavigateTo("/authentication/login", forceLoad: true);
+    
+    private void Logout() => Nav.NavigateTo("/authentication/logout", forceLoad: true);
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (AuthStateProvider is not null)
+        {
+            AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        }
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
