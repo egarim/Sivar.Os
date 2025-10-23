@@ -12,7 +12,7 @@ public class SavedResultConfiguration : IEntityTypeConfiguration<SavedResult>
     public void Configure(EntityTypeBuilder<SavedResult> builder)
     {
         // Table name
-        builder.ToTable("SavedResults");
+        builder.ToTable("Sivar_SavedResults");
 
         // Primary key
         builder.HasKey(sr => sr.Id);

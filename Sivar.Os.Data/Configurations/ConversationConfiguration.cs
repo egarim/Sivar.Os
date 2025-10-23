@@ -12,7 +12,7 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
     public void Configure(EntityTypeBuilder<Conversation> builder)
     {
         // Table name
-        builder.ToTable("Conversations");
+        builder.ToTable("Sivar_Conversations");
 
         // Primary key
         builder.HasKey(c => c.Id);

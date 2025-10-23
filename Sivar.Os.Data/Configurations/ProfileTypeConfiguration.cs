@@ -12,7 +12,7 @@ public class ProfileTypeConfiguration : IEntityTypeConfiguration<ProfileType>
     public void Configure(EntityTypeBuilder<ProfileType> builder)
     {
         // Table configuration
-        builder.ToTable("ProfileTypes");
+        builder.ToTable("Sivar_ProfileTypes");
 
         // Primary key
         builder.HasKey(pt => pt.Id);

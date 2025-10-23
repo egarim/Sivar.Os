@@ -15,7 +15,7 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
     public void Configure(EntityTypeBuilder<Profile> builder)
     {
         // Table configuration
-        builder.ToTable("Profiles");
+        builder.ToTable("Sivar_Profiles");
 
         // Primary key
         builder.HasKey(p => p.Id);

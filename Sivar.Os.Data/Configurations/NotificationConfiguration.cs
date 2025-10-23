@@ -12,7 +12,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
     public void Configure(EntityTypeBuilder<Notification> builder)
     {
         // Table name
-        builder.ToTable("Notifications");
+        builder.ToTable("Sivar_Notifications");
 
         // Primary key
         builder.HasKey(n => n.Id);

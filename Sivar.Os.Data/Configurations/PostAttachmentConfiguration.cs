@@ -11,7 +11,7 @@ public class PostAttachmentConfiguration : IEntityTypeConfiguration<PostAttachme
 {
     public void Configure(EntityTypeBuilder<PostAttachment> builder)
     {
-        builder.ToTable("PostAttachments");
+        builder.ToTable("Sivar_PostAttachments");
         
         // Primary key
         builder.HasKey(pa => pa.Id);

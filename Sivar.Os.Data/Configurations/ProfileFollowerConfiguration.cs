@@ -11,7 +11,7 @@ public class ProfileFollowerConfiguration : IEntityTypeConfiguration<ProfileFoll
 {
     public void Configure(EntityTypeBuilder<ProfileFollower> builder)
     {
-        builder.ToTable("ProfileFollowers");
+        builder.ToTable("Sivar_ProfileFollowers");
         
         builder.HasKey(pf => pf.Id);
 

@@ -13,7 +13,7 @@ public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
     public void Configure(EntityTypeBuilder<ChatMessage> builder)
     {
         // Table name
-        builder.ToTable("ChatMessages");
+        builder.ToTable("Sivar_ChatMessages");
 
         // Primary key
         builder.HasKey(m => m.Id);

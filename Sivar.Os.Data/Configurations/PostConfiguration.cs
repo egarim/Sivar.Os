@@ -11,7 +11,7 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 {
     public void Configure(EntityTypeBuilder<Post> builder)
     {
-        builder.ToTable("Posts");
+        builder.ToTable("Sivar_Posts");
         
         // Primary key
         builder.HasKey(p => p.Id);

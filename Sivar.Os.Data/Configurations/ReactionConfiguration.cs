@@ -11,7 +11,7 @@ public class ReactionConfiguration : IEntityTypeConfiguration<Reaction>
 {
     public void Configure(EntityTypeBuilder<Reaction> builder)
     {
-        builder.ToTable("Reactions");
+        builder.ToTable("Sivar_Reactions");
         
         // Primary key
         builder.HasKey(r => r.Id);

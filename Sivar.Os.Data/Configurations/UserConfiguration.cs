@@ -12,7 +12,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         // Table configuration
-        builder.ToTable("Users");
+        builder.ToTable("Sivar_Users");
 
         // Primary key
         builder.HasKey(u => u.Id);
