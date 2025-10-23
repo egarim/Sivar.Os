@@ -13,7 +13,7 @@ public class Notification : BaseEntity
     /// ID of the user who should receive this notification
     /// </summary>
     [Required]
-    public Guid UserId { get; set; }
+    public virtual Guid UserId { get; set; }
 
     /// <summary>
     /// User who should receive this notification
@@ -25,35 +25,35 @@ public class Notification : BaseEntity
     /// </summary>
     [Required]
     [StringLength(50)]
-    public string Type { get; set; } = string.Empty;
+    public virtual string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// Content/message of the notification
     /// </summary>
     [Required]
     [StringLength(500)]
-    public string Content { get; set; } = string.Empty;
+    public virtual string Content { get; set; } = string.Empty;
 
     /// <summary>
     /// Whether the notification has been read
     /// </summary>
-    public bool IsRead { get; set; } = false;
+    public virtual bool IsRead { get; set; } = false;
 
     /// <summary>
     /// ID of the related entity (Post, Comment, Profile, etc.)
     /// </summary>
-    public Guid? RelatedEntityId { get; set; }
+    public virtual Guid? RelatedEntityId { get; set; }
 
     /// <summary>
     /// Type of the related entity (for polymorphic relationships)
     /// </summary>
     [StringLength(50)]
-    public string? RelatedEntityType { get; set; }
+    public virtual string? RelatedEntityType { get; set; }
 
     /// <summary>
     /// ID of the user who triggered this notification (e.g., who followed, commented, etc.)
     /// </summary>
-    public Guid? TriggeredByUserId { get; set; }
+    public virtual Guid? TriggeredByUserId { get; set; }
 
     /// <summary>
     /// User who triggered this notification
@@ -64,17 +64,17 @@ public class Notification : BaseEntity
     /// Additional metadata as JSON (optional)
     /// </summary>
     [Column(TypeName = "text")]
-    public string? Metadata { get; set; }
+    public virtual string? Metadata { get; set; }
 
     /// <summary>
     /// When the notification was read (if applicable)
     /// </summary>
-    public DateTime? ReadAt { get; set; }
+    public virtual DateTime? ReadAt { get; set; }
 
     /// <summary>
     /// Priority level of the notification
     /// </summary>
-    public NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
+    public virtual NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
 
     /// <summary>
     /// Mark notification as read

@@ -10,52 +10,52 @@ public class User : BaseEntity
     /// <summary>
     /// User's email address (from Keycloak)
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public virtual string Email { get; set; } = string.Empty;
 
     /// <summary>
     /// Keycloak user identifier (sub claim from JWT)
     /// </summary>
-    public string KeycloakId { get; set; } = string.Empty;
+    public virtual string KeycloakId { get; set; } = string.Empty;
 
     /// <summary>
     /// User's first name (from Keycloak claims)
     /// </summary>
-    public string FirstName { get; set; } = string.Empty;
+    public virtual string FirstName { get; set; } = string.Empty;
 
     /// <summary>
     /// User's last name (from Keycloak claims)
     /// </summary>
-    public string LastName { get; set; } = string.Empty;
+    public virtual string LastName { get; set; } = string.Empty;
 
     /// <summary>
     /// User's role in the system
     /// </summary>
-    public UserRole Role { get; set; } = UserRole.RegisteredUser;
+    public virtual UserRole Role { get; set; } = UserRole.RegisteredUser;
 
     /// <summary>
     /// Indicates if the user is active in the system
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public virtual bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Date and time of user's last login
     /// </summary>
-    public DateTime? LastLoginAt { get; set; }
+    public virtual DateTime? LastLoginAt { get; set; }
 
     /// <summary>
     /// User's preferred language (ISO code, e.g., "en", "es")
     /// </summary>
-    public string PreferredLanguage { get; set; } = "en";
+    public virtual string PreferredLanguage { get; set; } = "en";
 
     /// <summary>
     /// User's timezone (e.g., "UTC", "America/New_York")
     /// </summary>
-    public string TimeZone { get; set; } = "UTC";
+    public virtual string TimeZone { get; set; } = "UTC";
 
     /// <summary>
     /// The ID of the user's currently active profile
     /// </summary>
-    public Guid? ActiveProfileId { get; set; }
+    public virtual Guid? ActiveProfileId { get; set; }
 
     /// <summary>
     /// Navigation property for the active profile

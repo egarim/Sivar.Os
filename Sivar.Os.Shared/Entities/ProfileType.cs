@@ -9,32 +9,32 @@ public class ProfileType : BaseEntity
     /// <summary>
     /// Unique name identifier for the profile type (e.g., "PersonalProfile")
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public virtual string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Display name for the profile type (e.g., "Personal Profile")
     /// </summary>
-    public string DisplayName { get; set; } = string.Empty;
+    public virtual string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
     /// Description of what this profile type is used for
     /// </summary>
-    public string Description { get; set; } = string.Empty;
+    public virtual string Description { get; set; } = string.Empty;
 
     /// <summary>
     /// Indicates if this profile type is currently available for creation
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public virtual bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Sort order for displaying profile types
     /// </summary>
-    public int SortOrder { get; set; } = 0;
+    public virtual int SortOrder { get; set; } = 0;
 
     /// <summary>
     /// Feature flags for this profile type (stored as JSON for flexibility)
     /// </summary>
-    public string FeatureFlags { get; set; } = "{}";
+    public virtual string FeatureFlags { get; set; } = "{}";
 
     /// <summary>
     /// Collection of profiles of this type

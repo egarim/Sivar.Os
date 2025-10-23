@@ -8,27 +8,27 @@ public class Location
     /// <summary>
     /// City name
     /// </summary>
-    public string City { get; set; } = string.Empty;
+    public virtual string City { get; set; } = string.Empty;
 
     /// <summary>
     /// State or province name
     /// </summary>
-    public string State { get; set; } = string.Empty;
+    public virtual string State { get; set; } = string.Empty;
 
     /// <summary>
     /// Country name
     /// </summary>
-    public string Country { get; set; } = string.Empty;
+    public virtual string Country { get; set; } = string.Empty;
 
     /// <summary>
     /// Latitude coordinate (optional)
     /// </summary>
-    public double? Latitude { get; set; }
+    public virtual double? Latitude { get; set; }
 
     /// <summary>
     /// Longitude coordinate (optional)
     /// </summary>
-    public double? Longitude { get; set; }
+    public virtual double? Longitude { get; set; }
 
     /// <summary>
     /// Creates a new Location instance

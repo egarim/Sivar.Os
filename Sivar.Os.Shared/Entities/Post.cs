@@ -14,37 +14,37 @@ public class Post : BaseEntity
     /// <summary>
     /// The profile that created this post
     /// </summary>
-    public Guid ProfileId { get; set; }
+    public virtual Guid ProfileId { get; set; }
     public virtual Profile Profile { get; set; } = null!;
 
     /// <summary>
     /// Type of post (determines available features)
     /// </summary>
-    public PostType PostType { get; set; } = PostType.General;
+    public virtual PostType PostType { get; set; } = PostType.General;
 
     /// <summary>
     /// Main content/text of the post
     /// </summary>
     [Required]
     [StringLength(5000, MinimumLength = 1, ErrorMessage = "Post content must be between 1 and 5000 characters")]
-    public string Content { get; set; } = string.Empty;
+    public virtual string Content { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional title for structured posts (products, services, events)
     /// </summary>
     [StringLength(200, ErrorMessage = "Title cannot exceed 200 characters")]
-    public string? Title { get; set; }
+    public virtual string? Title { get; set; }
 
     /// <summary>
     /// Location associated with this post (optional)
     /// </summary>
-    public Location? Location { get; set; }
+    public virtual Location? Location { get; set; }
 
     /// <summary>
     /// Pricing information for products/services (JSON)
     /// Structure: { "amount": decimal, "currency": "USD", "isNegotiable": bool }
     /// </summary>
-    public string? PricingInfo { get; set; }
+    public virtual string? PricingInfo { get; set; }
 
     /// <summary>
     /// Business-specific metadata (JSON)
@@ -52,17 +52,17 @@ public class Post : BaseEntity
     /// For Products: specifications, dimensions, warranty
     /// For Services: duration, requirements, availability
     /// </summary>
-    public string? BusinessMetadata { get; set; }
+    public virtual string? BusinessMetadata { get; set; }
 
     /// <summary>
     /// Availability status for products/services
     /// </summary>
-    public AvailabilityStatus? AvailabilityStatus { get; set; }
+    public virtual AvailabilityStatus? AvailabilityStatus { get; set; }
 
     /// <summary>
     /// Tags for categorization and search
     /// </summary>
-    public string Tags { get; set; } = "[]"; // JSON array of strings
+    public virtual string Tags { get; set; } = "[]"; // JSON array of strings
 
     /// <summary>
     /// Media attachments (images, videos, links)
@@ -82,59 +82,59 @@ public class Post : BaseEntity
     /// <summary>
     /// Number of times this post has been viewed
     /// </summary>
-    public int ViewCount { get; set; } = 0;
+    public virtual int ViewCount { get; set; } = 0;
 
     /// <summary>
     /// Number of times this post has been shared
     /// </summary>
-    public int ShareCount { get; set; } = 0;
+    public virtual int ShareCount { get; set; } = 0;
 
     /// <summary>
     /// Indicates if this post is pinned to the profile
     /// </summary>
-    public bool IsPinned { get; set; } = false;
+    public virtual bool IsPinned { get; set; } = false;
 
     /// <summary>
     /// Indicates if this post is featured/highlighted
     /// </summary>
-    public bool IsFeatured { get; set; } = false;
+    public virtual bool IsFeatured { get; set; } = false;
 
     /// <summary>
     /// Scheduled publication date (null for immediate posts)
     /// </summary>
-    public DateTime? ScheduledFor { get; set; }
+    public virtual DateTime? ScheduledFor { get; set; }
 
     /// <summary>
     /// Expiration date for time-sensitive posts (offers, events)
     /// </summary>
-    public DateTime? ExpiresAt { get; set; }
+    public virtual DateTime? ExpiresAt { get; set; }
 
     /// <summary>
     /// Language of the post content
     /// </summary>
     [StringLength(5)]
-    public string Language { get; set; } = "en";
+    public virtual string Language { get; set; } = "en";
 
     /// <summary>
     /// Vector embedding of the post content for semantic search
     /// Stored as JSON array of floats
     /// </summary>
-    public string? ContentEmbedding { get; set; }
+    public virtual string? ContentEmbedding { get; set; }
 
     /// <summary>
     /// Visibility level of the post
     /// </summary>
-    public VisibilityLevel Visibility { get; set; } = VisibilityLevel.Public;
+    public virtual VisibilityLevel Visibility { get; set; } = VisibilityLevel.Public;
 
     /// <summary>
     /// Indicates if this post has been edited after creation
     /// </summary>
-    public bool IsEdited { get; set; } = false;
+    public virtual bool IsEdited { get; set; } = false;
 
     /// <summary>
     /// Date and time when the post was last edited (null if never edited)
     /// </summary>
-    public DateTime? EditedAt { get; set; }
+    public virtual DateTime? EditedAt { get; set; }
 
     // Helper methods for business metadata
 

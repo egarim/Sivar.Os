@@ -10,7 +10,7 @@ public class Conversation : BaseEntity
     /// <summary>
     /// The profile that owns this conversation
     /// </summary>
-    public Guid ProfileId { get; set; }
+    public virtual Guid ProfileId { get; set; }
     public virtual Profile Profile { get; set; } = null!;
 
     /// <summary>
@@ -18,17 +18,17 @@ public class Conversation : BaseEntity
     /// </summary>
     [Required]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 200 characters")]
-    public string Title { get; set; } = string.Empty;
+    public virtual string Title { get; set; } = string.Empty;
 
     /// <summary>
     /// Timestamp of the last message in this conversation
     /// </summary>
-    public DateTime LastMessageAt { get; set; } = DateTime.UtcNow;
+    public virtual DateTime LastMessageAt { get; set; }
 
     /// <summary>
     /// Indicates if this conversation is currently active/selected
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public virtual bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Collection of messages in this conversation

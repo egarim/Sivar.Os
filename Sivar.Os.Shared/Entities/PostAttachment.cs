@@ -11,80 +11,80 @@ public class PostAttachment : BaseEntity
     /// <summary>
     /// The post this attachment belongs to
     /// </summary>
-    public Guid PostId { get; set; }
+    public virtual Guid PostId { get; set; }
     public virtual Post Post { get; set; } = null!;
 
     /// <summary>
     /// Type of attachment
     /// </summary>
-    public AttachmentType AttachmentType { get; set; }
+    public virtual AttachmentType AttachmentType { get; set; }
 
     /// <summary>
     /// File ID from the file storage service (for uploaded files)
     /// </summary>
     [StringLength(255)]
-    public string? FileId { get; set; }
+    public virtual string? FileId { get; set; }
 
     /// <summary>
     /// URL or path to the attachment
     /// </summary>
     [Required]
     [StringLength(1000)]
-    public string Url { get; set; } = string.Empty;
+    public virtual string Url { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional title or caption for the attachment
     /// </summary>
     [StringLength(500)]
-    public string? Title { get; set; }
+    public virtual string? Title { get; set; }
 
     /// <summary>
     /// Optional description or alt text
     /// </summary>
     [StringLength(1000)]
-    public string? Description { get; set; }
+    public virtual string? Description { get; set; }
 
     /// <summary>
     /// MIME type of the file
     /// </summary>
     [StringLength(100)]
-    public string? MimeType { get; set; }
+    public virtual string? MimeType { get; set; }
 
     /// <summary>
     /// File size in bytes (for uploaded files)
     /// </summary>
-    public long? FileSizeBytes { get; set; }
+    public virtual long? FileSizeBytes { get; set; }
 
     /// <summary>
     /// Original filename (for uploaded files)
     /// </summary>
     [StringLength(255)]
-    public string? OriginalFileName { get; set; }
+    public virtual string? OriginalFileName { get; set; }
 
     /// <summary>
     /// Thumbnail URL for images and videos
     /// </summary>
     [StringLength(1000)]
-    public string? ThumbnailUrl { get; set; }
+    public virtual string? ThumbnailUrl { get; set; }
 
     /// <summary>
     /// Display order for multiple attachments
     /// </summary>
-    public int DisplayOrder { get; set; } = 0;
+    public virtual int DisplayOrder { get; set; } = 0;
 
     /// <summary>
     /// Duration in seconds (for video/audio files)
     /// </summary>
-    public int? DurationSeconds { get; set; }
+    public virtual int? DurationSeconds { get; set; }
 
     /// <summary>
     /// Image dimensions (for images)
     /// </summary>
-    public int? Width { get; set; }
-    public int? Height { get; set; }
+    public virtual int? Width { get; set; }
+    public virtual int? Height { get; set; }
 
     /// <summary>
     /// External link metadata (for link attachments)
     /// </summary>
-    public string? LinkMetadata { get; set; } // JSON: { title, description, favicon, etc. }
+    public virtual string? LinkMetadata { get; set; } // JSON: { title, description, favicon, etc. }
 }

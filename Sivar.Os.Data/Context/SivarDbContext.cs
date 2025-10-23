@@ -10,7 +10,13 @@ namespace Sivar.Os.Data.Context;
 /// </summary>
 public class SivarDbContext : DbContext
 {
-    public SivarDbContext(DbContextOptions<SivarDbContext> options) : base(options)
+    static SivarDbContext()
+    {
+        // Enable legacy timestamp behavior for PostgreSQL
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+    }
+
+    public SivarDbContext(DbContextOptions options) : base(options)
     {
     }
 
@@ -162,6 +168,12 @@ public class SivarDbContext : DbContext
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    
+                    // Initialize Conversation.LastMessageAt
+                    if (entry.Entity is Conversation conversation && conversation.LastMessageAt == default)
+                    {
+                        conversation.LastMessageAt = DateTime.UtcNow;
+                    }
                     break;
 
                 case EntityState.Modified:

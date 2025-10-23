@@ -11,25 +11,25 @@ public class Reaction : BaseEntity
     /// <summary>
     /// The profile that made this reaction
     /// </summary>
-    public Guid ProfileId { get; set; }
+    public virtual Guid ProfileId { get; set; }
     public virtual Profile Profile { get; set; } = null!;
 
     /// <summary>
     /// The post this reaction is on (null if reacting to a comment)
     /// </summary>
-    public Guid? PostId { get; set; }
+    public virtual Guid? PostId { get; set; }
     public virtual Post? Post { get; set; }
 
     /// <summary>
     /// The comment this reaction is on (null if reacting to a post)
     /// </summary>
-    public Guid? CommentId { get; set; }
+    public virtual Guid? CommentId { get; set; }
     public virtual Comment? Comment { get; set; }
 
     /// <summary>
     /// Type of reaction
     /// </summary>
-    public ReactionType ReactionType { get; set; }
+    public virtual ReactionType ReactionType { get; set; }
 
     /// <summary>
     /// Validates that reaction is on either post or comment, not both

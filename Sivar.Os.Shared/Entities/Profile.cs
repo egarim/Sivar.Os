@@ -13,13 +13,13 @@ public class Profile : BaseEntity
     /// <summary>
     /// The user who owns this profile
     /// </summary>
-    public Guid UserId { get; set; }
+    public virtual Guid UserId { get; set; }
     public virtual User User { get; set; } = null!;
 
     /// <summary>
     /// The type of this profile
     /// </summary>
-    public Guid ProfileTypeId { get; set; }
+    public virtual Guid ProfileTypeId { get; set; }
     public virtual ProfileType ProfileType { get; set; } = null!;
 
     /// <summary>
@@ -27,92 +27,92 @@ public class Profile : BaseEntity
     /// </summary>
     [Required]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Display name must be between 1 and 100 characters")]
-    public string DisplayName { get; set; } = string.Empty;
+    public virtual string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
     /// Biography or description text for the profile
     /// </summary>
     [StringLength(2000, ErrorMessage = "Bio cannot exceed 2000 characters")]
-    public string Bio { get; set; } = string.Empty;
+    public virtual string Bio { get; set; } = string.Empty;
 
     /// <summary>
     /// File ID from file storage service for uploaded avatar images
     /// </summary>
     [StringLength(255)]
-    public string? AvatarFileId { get; set; }
+    public virtual string? AvatarFileId { get; set; }
 
     /// <summary>
     /// URL or path to the profile's avatar image
     /// </summary>
     [Url(ErrorMessage = "Avatar must be a valid URL")]
     [StringLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
-    public string Avatar { get; set; } = string.Empty;
+    public virtual string Avatar { get; set; } = string.Empty;
 
     /// <summary>
     /// Geographic location associated with the profile
     /// </summary>
-    public Location? Location { get; set; }
+    public virtual Location? Location { get; set; }
 
     /// <summary>
     /// Indicates if this is the user's currently active profile
     /// </summary>
-    public bool IsActive { get; set; } = false;
+    public virtual bool IsActive { get; set; } = false;
 
     /// <summary>
     /// Profile visibility level determining who can view the profile
     /// </summary>
-    public VisibilityLevel VisibilityLevel { get; set; } = VisibilityLevel.Public;
+    public virtual VisibilityLevel VisibilityLevel { get; set; } = VisibilityLevel.Public;
 
     /// <summary>
     /// Additional metadata stored as JSON for dynamic profile type-specific data
     /// </summary>
-    public string Metadata { get; set; } = "{}";
+    public virtual string Metadata { get; set; } = "{}";
 
     /// <summary>
     /// Profile view count for analytics
     /// </summary>
-    public int ViewCount { get; set; } = 0;
+    public virtual int ViewCount { get; set; } = 0;
 
     /// <summary>
     /// Tags associated with the profile for categorization and discovery
     /// </summary>
-    public List<string> Tags { get; set; } = new();
+    public virtual List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Social media links stored as JSON for flexibility
     /// </summary>
-    public string SocialMediaLinks { get; set; } = "{}";
+    public virtual string SocialMediaLinks { get; set; } = "{}";
 
     /// <summary>
     /// Website URL associated with the profile
     /// </summary>
     [Url(ErrorMessage = "Website must be a valid URL")]
     [StringLength(500, ErrorMessage = "Website URL cannot exceed 500 characters")]
-    public string Website { get; set; } = string.Empty;
+    public virtual string Website { get; set; } = string.Empty;
 
     /// <summary>
     /// Contact email for the profile (may differ from user's main email)
     /// </summary>
     [EmailAddress(ErrorMessage = "Contact email must be a valid email address")]
     [StringLength(256, ErrorMessage = "Contact email cannot exceed 256 characters")]
-    public string ContactEmail { get; set; } = string.Empty;
+    public virtual string ContactEmail { get; set; } = string.Empty;
 
     /// <summary>
     /// Contact phone number
     /// </summary>
     [Phone(ErrorMessage = "Contact phone must be a valid phone number")]
     [StringLength(20, ErrorMessage = "Contact phone cannot exceed 20 characters")]
-    public string ContactPhone { get; set; } = string.Empty;
+    public virtual string ContactPhone { get; set; } = string.Empty;
 
     /// <summary>
     /// Indicates whether to show contact information publicly
     /// </summary>
-    public bool ShowContactInfo { get; set; } = true;
+    public virtual bool ShowContactInfo { get; set; } = true;
 
     /// <summary>
     /// List of user IDs who are allowed to view this profile (when VisibilityLevel is Restricted)
     /// </summary>
-    public List<Guid> AllowedViewers { get; set; } = new();
+    public virtual List<Guid> AllowedViewers { get; set; } = new();
 
     /// <summary>
     /// Updates the view count
