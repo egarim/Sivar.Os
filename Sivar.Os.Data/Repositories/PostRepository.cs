@@ -1,0 +1,471 @@
+using Microsoft.EntityFrameworkCore;
+using Sivar.Os.Data.Context;
+using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
+using Sivar.Os.Shared.Repositories;
+using System.Text.Json;
+
+
+namespace Sivar.Os.Data.Repositories;
+
+/// <summary>
+/// Repository implementation for Post entity operations
+/// Provides specialized methods for activity stream functionality
+/// </summary>
+public class PostRepository : BaseRepository<Post>, IPostRepository
+{
+    public PostRepository(SivarDbContext context) : base(context)
+    {
+    }
+
+    /// <summary>
+    /// Gets posts by profile ID with pagination
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByProfileAsync(
+        Guid profileId, 
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.ProfileId == profileId);
+        
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts by post type with pagination
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByPostTypeAsync(
+        PostType postType, 
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.PostType == postType);
+        
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts within a geographic area with optional radius filtering
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByLocationAsync(
+        double latitude, 
+        double longitude, 
+        double? radiusKm = null,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.Location != null);
+
+        if (radiusKm.HasValue)
+        {
+            // Using Haversine formula approximation for distance calculation
+            // Note: For production, consider using spatial extensions like PostGIS
+            var radiusLat = radiusKm.Value / 111.0; // Rough conversion: 1 degree ≈ 111 km
+            var radiusLng = radiusKm.Value / (111.0 * Math.Cos(latitude * Math.PI / 180.0));
+
+            query = query.Where(p => 
+                p.Location!.Latitude != null &&
+                p.Location.Longitude != null &&
+                Math.Abs(p.Location.Latitude.Value - latitude) <= radiusLat &&
+                Math.Abs(p.Location.Longitude.Value - longitude) <= radiusLng);
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts that have location information
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetWithLocationAsync(
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.Location != null);
+        
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets activity feed for a profile with posts from followed profiles
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetActivityFeedAsync(
+        Guid profileId, 
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeOwnPosts = true,
+        bool includeRelated = true,
+        string? profileType = null)
+    {
+        // Get list of followed profile IDs (only active relationships)
+        var followedProfileIds = await _context.ProfileFollowers
+            .Where(pf => pf.FollowerProfileId == profileId && pf.IsActive)
+            .Select(pf => pf.FollowedProfileId)
+            .ToListAsync();
+
+        var query = GetQueryable().Where(p => followedProfileIds.Contains(p.ProfileId));
+
+        if (includeOwnPosts)
+        {
+            query = query.Union(GetQueryable().Where(p => p.ProfileId == profileId));
+        }
+
+        // Filter by profile type if specified
+        if (!string.IsNullOrEmpty(profileType))
+        {
+            query = query.Where(p => p.Profile.ProfileType.Name == profileType);
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts with specific availability status
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByAvailabilityStatusAsync(
+        AvailabilityStatus availabilityStatus,
+        PostType[]? postTypes = null,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.AvailabilityStatus == availabilityStatus);
+
+        if (postTypes != null && postTypes.Length > 0)
+        {
+            query = query.Where(p => postTypes.Contains(p.PostType));
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Searches posts by content, title, or tags
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> SearchPostsAsync(
+        string searchTerm,
+        PostType[]? postTypes = null,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return (Enumerable.Empty<Post>(), 0);
+
+        var query = GetQueryable().Where(p => 
+            p.Content.Contains(searchTerm) ||
+            (p.Title != null && p.Title.Contains(searchTerm)) ||
+            (p.Tags != null && p.Tags.Contains(searchTerm)));
+
+        if (postTypes != null && postTypes.Length > 0)
+        {
+            query = query.Where(p => postTypes.Contains(p.PostType));
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets featured posts
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetFeaturedPostsAsync(
+        PostType[]? postTypes = null,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.IsFeatured);
+
+        if (postTypes != null && postTypes.Length > 0)
+        {
+            query = query.Where(p => postTypes.Contains(p.PostType));
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts with pricing information
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetWithPricingAsync(
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        string? currency = null,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => p.PricingInfo != null);
+
+        // Note: For production, consider using JSON query extensions for better performance
+        if (minPrice.HasValue || maxPrice.HasValue || !string.IsNullOrEmpty(currency))
+        {
+            var posts = await query.ToListAsync();
+            var filteredPosts = posts.Where(p => 
+            {
+                if (string.IsNullOrEmpty(p.PricingInfo))
+                    return false;
+
+                try
+                {
+                    var pricing = JsonSerializer.Deserialize<Dictionary<string, object>>(p.PricingInfo);
+                    
+                    if (pricing == null)
+                        return false;
+
+                    if (currency != null && 
+                        (!pricing.TryGetValue("currency", out var currencyValue) || 
+                         currencyValue?.ToString() != currency))
+                        return false;
+
+                    if (minPrice.HasValue || maxPrice.HasValue)
+                    {
+                        if (!pricing.TryGetValue("amount", out var amountValue) ||
+                            !decimal.TryParse(amountValue?.ToString(), out var amount))
+                            return false;
+
+                        if (minPrice.HasValue && amount < minPrice.Value)
+                            return false;
+
+                        if (maxPrice.HasValue && amount > maxPrice.Value)
+                            return false;
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+
+            var totalCount = filteredPosts.Count();
+            var pagedResults = filteredPosts
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return (pagedResults, totalCount);
+        }
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var count = await query.CountAsync();
+        var results = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (results, count);
+    }
+
+    /// <summary>
+    /// Increments view count for a post
+    /// </summary>
+    public async Task<int> IncrementViewCountAsync(Guid postId)
+    {
+        var post = await GetByIdAsync(postId);
+        if (post == null)
+            throw new ArgumentException($"Post with ID {postId} not found");
+
+        post.ViewCount++;
+        await SaveChangesAsync();
+        return post.ViewCount;
+    }
+
+    /// <summary>
+    /// Increments share count for a post
+    /// </summary>
+    public async Task<int> IncrementShareCountAsync(Guid postId)
+    {
+        var post = await GetByIdAsync(postId);
+        if (post == null)
+            throw new ArgumentException($"Post with ID {postId} not found");
+
+        post.ShareCount++;
+        await SaveChangesAsync();
+        return post.ShareCount;
+    }
+
+    /// <summary>
+    /// Gets posts by multiple profile IDs
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByProfilesAsync(
+        IEnumerable<Guid> profileIds,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => profileIds.Contains(p.ProfileId));
+        
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets a post by ID with all related entities
+    /// </summary>
+    public async Task<Post?> GetWithRelatedAsync(Guid postId)
+    {
+        return await IncludeRelatedEntities(GetQueryable())
+            .FirstOrDefaultAsync(p => p.Id == postId);
+    }
+
+    /// <summary>
+    /// Gets posts created within a date range
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByDateRangeAsync(
+        DateTime startDate,
+        DateTime endDate,
+        int page = 1, 
+        int pageSize = 10, 
+        bool includeRelated = true)
+    {
+        var query = GetQueryable().Where(p => 
+            p.CreatedAt >= startDate && 
+            p.CreatedAt <= endDate);
+        
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets all posts that have vector embeddings for semantic search
+    /// </summary>
+    public async Task<List<Post>> GetAllWithEmbeddingsAsync()
+    {
+        return await GetQueryable()
+            .Where(p => !string.IsNullOrEmpty(p.ContentEmbedding))
+            .Include(p => p.Profile)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Helper method to include related entities in queries
+    /// </summary>
+    private IQueryable<Post> IncludeRelatedEntities(IQueryable<Post> query)
+    {
+        return query
+            .Include(p => p.Profile)
+            .Include(p => p.Comments)
+                .ThenInclude(c => c.Profile)
+            .Include(p => p.Reactions)
+                .ThenInclude(r => r.Profile)
+            .Include(p => p.Attachments);
+    }
+}
