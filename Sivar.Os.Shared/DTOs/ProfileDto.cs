@@ -1,5 +1,5 @@
+using Sivar.Os.Shared.DTOs.ValueObjects;
 using Sivar.Os.Shared.Enums;
-using Sivar.Os.Shared.ValueObjects;
 
 namespace Sivar.Os.Shared.DTOs;
 

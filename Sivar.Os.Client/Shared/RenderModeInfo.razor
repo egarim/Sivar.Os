@@ -1,0 +1,39 @@
+@inject NavigationManager Navigation
+
+<MudChip T="string"
+         Size="Size.Small" 
+         Variant="Variant.Filled" 
+         Color="@_chipColor" 
+         Icon="@_icon">
+    @_description
+</MudChip>
+
+@code {
+    private string _description = "Loading...";
+    private string _icon = Icons.Material.Filled.QuestionMark;
+    private Color _chipColor = Color.Default;
+
+    protected override void OnInitialized()
+    {
+        DetectRenderMode();
+    }
+
+    private void DetectRenderMode()
+    {
+        // Detect the current runtime environment
+        if (OperatingSystem.IsBrowser())
+        {
+            // Running in WebAssembly
+            _description = "?? WASM";
+            _icon = Icons.Material.Filled.Public;
+            _chipColor = Color.Success;
+        }
+        else
+        {
+            // Running on Server (could be prerender or interactive server)
+            _description = "??? Server";
+            _icon = Icons.Material.Filled.Cloud;
+            _chipColor = Color.Info;
+        }
+    }
+}

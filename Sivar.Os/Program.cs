@@ -118,9 +118,6 @@ builder.Services.AddScoped<IWeatherService>(sp =>
     return new ServerWeatherService();
 });
 
-// --- Render Mode Configuration Service ---
-builder.Services.AddScoped<RenderModeService>();
-
 // --- Auth state flow for Auto mode ---
 builder.Services.AddCascadingAuthenticationState();
 

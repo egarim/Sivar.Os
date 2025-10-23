@@ -1,4 +1,4 @@
-namespace Sivar.Os.Shared.ValueObjects;
+namespace Sivar.Os.Shared.DTOs.ValueObjects;
 
 /// <summary>
 /// Value object representing a geographic location
