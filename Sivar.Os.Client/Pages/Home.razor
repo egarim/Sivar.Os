@@ -129,6 +129,16 @@
         font-weight: 600;
     }
 
+    /* Header Icon Buttons */
+    .wireframe-landing .header .mud-icon-button {
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .header .mud-icon-button:hover {
+        color: var(--wire-primary);
+        background: var(--wire-hover);
+    }
+
     /* Main Layout */
     .wireframe-landing .main-layout {
         display: grid;
@@ -1619,7 +1629,12 @@
 <MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
     <Header @bind-ProfileType="@_profileType"
             UserName="Jordan Doe"
-            UserEmail="jordan.doe@example.com" />
+            UserEmail="jordan.doe@example.com"
+            ShowThemeToggle="true"
+            ShowLogout="true"
+            ThemeIcon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Outlined.DarkMode)"
+            OnThemeToggle="@HandleThemeToggle"
+            OnLogout="@HandleLogout" />
 
     <div class="main-layout">
         <!-- Left spacer (empty on mobile) -->
@@ -1694,6 +1709,10 @@
 </MudContainer>
 
 @code {
+    // Layout reference
+    [CascadingParameter]
+    private LandingLayout? _layout { get; set; }
+
     // Profile & UI State
     private string _profileType = "personal";
     private bool _bodyClassApplied;
@@ -1960,6 +1979,17 @@
     private void ViewAllSuggestions()
     {
         // Navigate to suggestions page
+    }
+
+    // Theme & Authentication Methods
+    private void HandleThemeToggle()
+    {
+        _layout?.ToggleDarkMode();
+    }
+
+    private void HandleLogout()
+    {
+        Navigation.NavigateTo("/authentication/logout", forceLoad: true);
     }
 
     // AI Chat Methods

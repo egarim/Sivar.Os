@@ -18,6 +18,22 @@
             <div class="user-email">@UserEmail</div>
         </div>
         <div class="user-avatar">@UserInitials</div>
+        
+        @if (ShowThemeToggle)
+        {
+            <MudIconButton Icon="@ThemeIcon" 
+                           Color="Color.Inherit" 
+                           OnClick="@OnThemeToggle"
+                           Title="Toggle theme" />
+        }
+        
+        @if (ShowLogout)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" 
+                           Color="Color.Inherit" 
+                           OnClick="@OnLogout"
+                           Title="Logout" />
+        }
     </div>
 </div>
 
@@ -51,4 +67,34 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> ProfileTypeChanged { get; set; }
+
+    /// <summary>
+    /// Show theme toggle button
+    /// </summary>
+    [Parameter]
+    public bool ShowThemeToggle { get; set; } = false;
+
+    /// <summary>
+    /// Show logout button
+    /// </summary>
+    [Parameter]
+    public bool ShowLogout { get; set; } = false;
+
+    /// <summary>
+    /// Icon for theme toggle button
+    /// </summary>
+    [Parameter]
+    public string ThemeIcon { get; set; } = Icons.Material.Outlined.DarkMode;
+
+    /// <summary>
+    /// Callback when theme toggle is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnThemeToggle { get; set; }
+
+    /// <summary>
+    /// Callback when logout is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnLogout { get; set; }
 }

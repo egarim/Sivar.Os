@@ -6,11 +6,13 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudMainContent Style="padding: 0;">
-        @Body
-    </MudMainContent>
-</MudLayout>
+<CascadingValue Value="this">
+    <MudLayout>
+        <MudMainContent Style="padding: 0;">
+            @Body
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -21,6 +23,20 @@
 @code {
     private bool _isDarkMode = false;
     private MudTheme? _theme = null;
+
+    public bool IsDarkMode => _isDarkMode;
+
+    public void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        StateHasChanged();
+    }
+
+    public string DarkLightModeButtonIcon => _isDarkMode switch
+    {
+        true => Icons.Material.Rounded.AutoMode,
+        false => Icons.Material.Outlined.DarkMode,
+    };
 
     protected override void OnInitialized()
     {
