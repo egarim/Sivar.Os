@@ -25,12 +25,27 @@ public class AuthenticationController : ControllerBase
         return Challenge(authenticationProperties, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
+    [HttpGet("register")]
+    public IActionResult Register(string returnUrl = "/")
+    {
+        // Keycloak registration URL - redirect to Keycloak's registration page
+        // The user will be redirected to Keycloak, register, then return to the app
+        var authenticationProperties = new AuthenticationProperties
+        {
+            RedirectUri = string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl,
+            // Add a parameter to tell Keycloak to show the registration page
+            Items = { ["prompt"] = "create" }
+        };
+        
+        return Challenge(authenticationProperties, OpenIdConnectDefaults.AuthenticationScheme);
+    }
+
     [HttpGet("logout")]
     public IActionResult Logout()
     {
         var authenticationProperties = new AuthenticationProperties
         {
-            RedirectUri = "/"
+            RedirectUri = "/welcome"
         };
 
         return SignOut(authenticationProperties, 
@@ -43,7 +58,7 @@ public class AuthenticationController : ControllerBase
     {
         var authenticationProperties = new AuthenticationProperties
         {
-            RedirectUri = "/"
+            RedirectUri = "/welcome"
         };
 
         return SignOut(authenticationProperties, 
@@ -60,7 +75,7 @@ public class AuthenticationController : ControllerBase
 
     if (isAuth)
         {
-            var identity = User.Identity;
+            var identity = User?.Identity;
             var userName = identity?.Name ?? "<unknown>";
             var claims = User?.Claims?.Select(c => (object)new { c.Type, c.Value }).ToList() ?? new List<object>();
             var claimCount = claims.Count;

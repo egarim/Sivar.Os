@@ -1,0 +1,414 @@
+@page "/login"
+@layout LandingLayout
+@using MudBlazor
+@inject NavigationManager Navigation
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+        padding: 24px;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 450px;
+        padding: 48px;
+        animation: slideUp 0.6s ease-out;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .login-logo {
+        font-size: 36px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 12px;
+    }
+
+    .login-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a27;
+        margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-input {
+        padding: 14px 16px;
+        font-size: 15px;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-input.error {
+        border-color: #ff3f5f;
+    }
+
+    .error-message {
+        color: #ff3f5f;
+        font-size: 13px;
+        margin-top: -16px;
+    }
+
+    .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: -8px;
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .forgot-link {
+        color: #667eea;
+        font-size: 14px;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+
+    .submit-btn {
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 8px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 32px 0;
+        color: #999;
+        font-size: 14px;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e8e8e8;
+    }
+
+    .social-auth {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .social-btn {
+        padding: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .social-btn:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+        transform: translateY(-2px);
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e8e8e8;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .login-footer a {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .login-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateX(-4px);
+    }
+
+    /* Background Decoration */
+    .bg-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        animation: float 20s ease-in-out infinite;
+    }
+
+    .bg-circle-1 {
+        width: 400px;
+        height: 400px;
+        top: -200px;
+        right: -200px;
+        animation-delay: 0s;
+    }
+
+    .bg-circle-2 {
+        width: 300px;
+        height: 300px;
+        bottom: -150px;
+        left: -150px;
+        animation-delay: 7s;
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+        }
+        33% {
+            transform: translate(30px, -30px) scale(1.1);
+        }
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .login-card {
+            padding: 32px 24px;
+        }
+
+        .back-link {
+            position: static;
+            margin-bottom: 24px;
+            display: inline-flex;
+        }
+
+        .login-container {
+            display: block;
+            padding: 24px;
+        }
+    }
+</style>
+
+<div class="login-container">
+    <!-- Background Decoration -->
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+
+    <a href="/" class="back-link">
+        <span>←</span>
+        <span>Back to Home</span>
+    </a>
+
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">SivarOS</div>
+            <div class="login-title">Welcome Back</div>
+            <div class="login-subtitle">Sign in to continue to your account</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <div class="login-form">
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" 
+                       class="form-input @(_showErrors && string.IsNullOrEmpty(_email) ? "error" : "")" 
+                       placeholder="Enter your email" 
+                       @bind="_email" 
+                       @bind:event="oninput" />
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" 
+                       class="form-input @(_showErrors && string.IsNullOrEmpty(_password) ? "error" : "")" 
+                       placeholder="Enter your password" 
+                       @bind="_password"
+                       @bind:event="oninput"
+                       @onkeypress="HandleKeyPress" />
+            </div>
+
+            <div class="form-options">
+                <label class="form-checkbox">
+                    <input type="checkbox" @bind="_rememberMe" />
+                    <span>Remember me</span>
+                </label>
+                <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+            </div>
+
+            <button class="submit-btn" @onclick="HandleLogin" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </button>
+        </div>
+
+        <div class="divider">or continue with</div>
+
+        <div class="social-auth">
+            <button class="social-btn" @onclick="@(() => HandleSocialAuth("google"))">
+                <span>🔍</span>
+                <span>Continue with Google</span>
+            </button>
+            <button class="social-btn" @onclick="@(() => HandleSocialAuth("microsoft"))">
+                <span>🪟</span>
+                <span>Continue with Microsoft</span>
+            </button>
+        </div>
+
+        <div class="login-footer">
+            Don't have an account? <a href="/signup">Sign up</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private bool _rememberMe = false;
+    private bool _isLoading = false;
+    private bool _showErrors = false;
+    private string _errorMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Redirect immediately to Keycloak login
+        Navigation.NavigateTo("/authentication/login", forceLoad: true);
+    }
+
+    private async Task HandleLogin()
+    {
+        // This method is no longer needed as we redirect to Keycloak
+        // But keeping it in case user somehow accesses the page
+        Navigation.NavigateTo("/authentication/login", forceLoad: true);
+    }
+
+    private void HandleSocialAuth(string provider)
+    {
+        // Redirect to Keycloak which handles social providers
+        Navigation.NavigateTo("/authentication/login", forceLoad: true);
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+}

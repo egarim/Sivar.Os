@@ -1,0 +1,462 @@
+@page "/welcome"
+@layout LandingLayout
+@using MudBlazor
+@inject NavigationManager Navigation
+
+<style>
+    .landing-container {
+        min-height: 100vh;
+        display: flex;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Left Section - Branding */
+    .landing-left {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .branding-content {
+        max-width: 600px;
+        color: white;
+        animation: fadeInLeft 0.8s ease-out;
+    }
+
+    .brand-logo {
+        font-size: 72px;
+        font-weight: 800;
+        margin-bottom: 24px;
+        letter-spacing: -2px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .brand-tagline {
+        font-size: 32px;
+        font-weight: 300;
+        line-height: 1.4;
+        margin-bottom: 32px;
+        opacity: 0.95;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .brand-description {
+        font-size: 18px;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 48px;
+    }
+
+    /* Right Section - Auth */
+    .landing-right {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        background: white;
+        position: relative;
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .auth-container {
+        width: 100%;
+        max-width: 450px;
+        animation: fadeInRight 0.8s ease-out;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+
+    .auth-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: #1a1a27;
+        margin-bottom: 12px;
+    }
+
+    .auth-subtitle {
+        font-size: 16px;
+        color: #666;
+    }
+
+    .auth-tabs {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 32px;
+        border-bottom: 2px solid #e8e8e8;
+    }
+
+    .auth-tab {
+        flex: 1;
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #999;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        bottom: -2px;
+    }
+
+    .auth-tab:hover {
+        color: #667eea;
+    }
+
+    .auth-tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-input {
+        padding: 14px 16px;
+        font-size: 15px;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .submit-btn {
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 8px;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 32px 0;
+        color: #999;
+        font-size: 14px;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e8e8e8;
+    }
+
+    .social-auth {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .social-btn {
+        padding: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .social-btn:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+        transform: translateY(-2px);
+    }
+
+    .forgot-password {
+        text-align: right;
+        margin-top: -8px;
+    }
+
+    .forgot-password a {
+        color: #667eea;
+        font-size: 14px;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .forgot-password a:hover {
+        text-decoration: underline;
+    }
+
+    /* Background Decoration */
+    .bg-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        animation: float 20s ease-in-out infinite;
+    }
+
+    .bg-circle-1 {
+        width: 300px;
+        height: 300px;
+        top: -100px;
+        left: -100px;
+        animation-delay: 0s;
+    }
+
+    .bg-circle-2 {
+        width: 200px;
+        height: 200px;
+        bottom: -50px;
+        right: 100px;
+        animation-delay: 7s;
+    }
+
+    .bg-circle-3 {
+        width: 150px;
+        height: 150px;
+        top: 50%;
+        left: 20%;
+        animation-delay: 3s;
+    }
+
+    /* Animations */
+    @@keyframes fadeInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes fadeInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+        }
+        33% {
+            transform: translate(30px, -30px) scale(1.1);
+        }
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+    }
+
+    /* Responsive */
+    @@media (max-width: 968px) {
+        .landing-container {
+            flex-direction: column;
+        }
+
+        .landing-left,
+        .landing-right {
+            padding: 40px 24px;
+        }
+
+        .brand-logo {
+            font-size: 48px;
+        }
+
+        .brand-tagline {
+            font-size: 24px;
+        }
+
+        .auth-container {
+            max-width: 100%;
+        }
+    }
+</style>
+
+<div class="landing-container">
+    <!-- Background Decoration -->
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+
+    <!-- Left Section - Branding -->
+    <div class="landing-left">
+        <div class="branding-content">
+            <div class="brand-logo">SivarOS</div>
+            <div class="brand-tagline">An operating system for countries</div>
+            <div class="brand-description">
+                Empowering nations with modern infrastructure, digital governance, 
+                and citizen-centric services. Building the future of connected communities.
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Section - Authentication -->
+    <div class="landing-right">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-title">Welcome</div>
+                <div class="auth-subtitle">Join the future of digital governance</div>
+            </div>
+
+            <div class="auth-tabs">
+                <button class="auth-tab @(_activeTab == "signin" ? "active" : "")" 
+                        @onclick="@(() => _activeTab = "signin")">
+                    Sign In
+                </button>
+                <button class="auth-tab @(_activeTab == "signup" ? "active" : "")" 
+                        @onclick="@(() => _activeTab = "signup")">
+                    Sign Up
+                </button>
+            </div>
+
+            @if (_activeTab == "signin")
+            {
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" placeholder="Enter your email" @bind="_email" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" placeholder="Enter your password" @bind="_password" />
+                    </div>
+                    <div class="forgot-password">
+                        <a href="#">Forgot password?</a>
+                    </div>
+                    <button class="submit-btn" @onclick="HandleSignIn">Sign In</button>
+                </div>
+            }
+            else
+            {
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-input" placeholder="Enter your full name" @bind="_fullName" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" placeholder="Enter your email" @bind="_email" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" placeholder="Create a password" @bind="_password" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-input" placeholder="Confirm your password" @bind="_confirmPassword" />
+                    </div>
+                    <label class="form-checkbox">
+                        <input type="checkbox" @bind="_agreeToTerms" />
+                        <span>I agree to the Terms of Service and Privacy Policy</span>
+                    </label>
+                    <button class="submit-btn" @onclick="HandleSignUp">Create Account</button>
+                </div>
+            }
+
+            <div class="divider">or continue with</div>
+
+            <div class="social-auth">
+                <button class="social-btn" @onclick="@(() => HandleSocialAuth("google"))">
+                    <span>🔍</span>
+                    <span>Continue with Google</span>
+                </button>
+                <button class="social-btn" @onclick="@(() => HandleSocialAuth("microsoft"))">
+                    <span>🪟</span>
+                    <span>Continue with Microsoft</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _activeTab = "signin";
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string _confirmPassword = string.Empty;
+    private string _fullName = string.Empty;
+    private bool _agreeToTerms = false;
+
+    private void HandleSignIn()
+    {
+        // Redirect to Keycloak login via the authentication controller
+        Navigation.NavigateTo("/authentication/login?returnUrl=/", forceLoad: true);
+    }
+
+    private void HandleSignUp()
+    {
+        // Redirect to Keycloak registration via the authentication controller
+        Navigation.NavigateTo("/authentication/register?returnUrl=/", forceLoad: true);
+    }
+
+    private void HandleSocialAuth(string provider)
+    {
+        // Keycloak handles social auth providers, so redirect to login
+        // Configure social providers in Keycloak admin console
+        Navigation.NavigateTo("/authentication/login?returnUrl=/", forceLoad: true);
+    }
+}

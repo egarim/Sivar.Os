@@ -1,8 +1,30 @@
 ﻿<CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
-            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    @{
+                        var returnUrl = System.Net.WebUtility.UrlEncode(routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
+                            .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                            .FirstOrDefault()?.Template ?? "/");
+                        Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+                            <div style="font-size: 24px; font-weight: 600;">Authenticating...</div>
+                        </div>
+                    </div>
+                </Authorizing>
+            </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    [Microsoft.AspNetCore.Components.Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+}

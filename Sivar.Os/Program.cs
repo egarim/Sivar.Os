@@ -159,7 +159,16 @@ builder.Services.AddAuthentication(options =>
                 return Task.CompletedTask;
             }
 
-            context.Response.Redirect(context.RedirectUri);
+            // For regular requests, redirect to welcome page if trying to access root
+            // or redirect to authentication/login with returnUrl
+            if (context.Request.Path == "/" || context.Request.Path == "")
+            {
+                context.Response.Redirect("/welcome");
+            }
+            else
+            {
+                context.Response.Redirect(context.RedirectUri);
+            }
             return Task.CompletedTask;
         },
         OnRedirectToAccessDenied = context =>
@@ -200,9 +209,19 @@ builder.Services.AddAuthentication(options =>
     // Handle post-logout redirect
     options.Events = new OpenIdConnectEvents
     {
+        OnRedirectToIdentityProvider = context =>
+        {
+            // Check if this is a registration request
+            if (context.Properties.Items.TryGetValue("prompt", out var prompt) && prompt == "create")
+            {
+                // Add kc_action parameter to show Keycloak registration page
+                context.ProtocolMessage.SetParameter("kc_action", "REGISTER");
+            }
+            return Task.CompletedTask;
+        },
         OnSignedOutCallbackRedirect = context =>
         {
-            context.Response.Redirect("/");
+            context.Response.Redirect("/welcome");
             context.HandleResponse();
             return Task.CompletedTask;
         }
