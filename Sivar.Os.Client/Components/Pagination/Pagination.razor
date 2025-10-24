@@ -1,0 +1,48 @@
+@* Pagination component *@
+
+<div class="pagination">
+    <button class="pagination-btn" @onclick="OnPrevious" disabled="@(CurrentPage == 1)">Previous</button>
+    <div class="pagination-info">
+        <div class="page-indicator">Page <span id="current-page">@CurrentPage</span> of @PageCount</div>
+        <div class="posts-info">@TotalItems total @ItemName</div>
+    </div>
+    <button class="pagination-btn" @onclick="OnNext" disabled="@(CurrentPage == PageCount)">Next</button>
+</div>
+
+@code {
+    /// <summary>
+    /// Current page number
+    /// </summary>
+    [Parameter]
+    public int CurrentPage { get; set; } = 1;
+
+    /// <summary>
+    /// Total number of pages
+    /// </summary>
+    [Parameter]
+    public int PageCount { get; set; } = 1;
+
+    /// <summary>
+    /// Total number of items
+    /// </summary>
+    [Parameter]
+    public int TotalItems { get; set; }
+
+    /// <summary>
+    /// Name of items being paginated (e.g. "posts", "items")
+    /// </summary>
+    [Parameter]
+    public string ItemName { get; set; } = "items";
+
+    /// <summary>
+    /// Callback when next button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnNext { get; set; }
+
+    /// <summary>
+    /// Callback when previous button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnPrevious { get; set; }
+}

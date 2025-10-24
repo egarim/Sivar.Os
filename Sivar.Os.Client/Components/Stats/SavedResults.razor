@@ -1,0 +1,45 @@
+@using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Components.Shared
+
+@* SavedResults component *@
+
+<div class="saved-results-section">
+    <div class="saved-results-header">
+        <h5>Saved insights</h5>
+        <button class="clear-saved-btn" @onclick="OnClear">Clear all</button>
+    </div>
+    
+    @if (!SavedItems.Any())
+    {
+        <EmptyState Icon="⭐" Text="No saved results yet" SubText="Pin AI replies to revisit them later." Size="small" />
+    }
+    else
+    {
+        @foreach (var result in SavedItems)
+        {
+            <SavedResultItem 
+                Item="@result"
+                OnRemove="@(() => OnRemove.InvokeAsync(result.Id))" />
+        }
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of saved items
+    /// </summary>
+    [Parameter]
+    public List<Sivar.Os.Client.Pages.SavedResultItem> SavedItems { get; set; } = new();
+
+    /// <summary>
+    /// Callback when clear all is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClear { get; set; }
+
+    /// <summary>
+    /// Callback when an item is removed
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnRemove { get; set; }
+}

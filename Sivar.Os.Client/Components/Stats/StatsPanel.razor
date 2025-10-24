@@ -1,0 +1,51 @@
+@using Sivar.Os.Client.Pages
+
+@* StatsPanel component *@
+
+<aside class="stats-panel">
+    <h3>Your summary</h3>
+    @foreach (var stat in Stats)
+    {
+        <StatItem Label="@stat.Label" Value="@stat.Value" />
+    }
+
+    @if (ShowSavedResults)
+    {
+        <SavedResults 
+            SavedItems="@SavedItems"
+            OnClear="@OnClearSaved"
+            OnRemove="@OnRemoveSaved" />
+    }
+</aside>
+
+@code {
+    /// <summary>
+    /// List of stat items to display
+    /// </summary>
+    [Parameter]
+    public List<Sivar.Os.Client.Pages.StatItem> Stats { get; set; } = new();
+
+    /// <summary>
+    /// List of saved result items
+    /// </summary>
+    [Parameter]
+    public List<Sivar.Os.Client.Pages.SavedResultItem> SavedItems { get; set; } = new();
+
+    /// <summary>
+    /// Whether to show saved results section
+    /// </summary>
+    [Parameter]
+    public bool ShowSavedResults { get; set; } = true;
+
+    /// <summary>
+    /// Callback when clear all saved items is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClearSaved { get; set; }
+
+    /// <summary>
+    /// Callback when a saved item is removed
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnRemoveSaved { get; set; }
+}

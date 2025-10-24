@@ -1,0 +1,85 @@
+@using MudBlazor
+
+@* PostFooter component *@
+
+<footer class="post-footer">
+    <div class="post-actions-buttons">
+        <button class="action-btn @(Liked ? "active" : "")" @onclick="OnLike">
+            <MudIcon Icon="@(Liked ? Icons.Material.Filled.Favorite : Icons.Material.Outlined.FavoriteBorder)" Size="Size.Small" />
+            <span>@Likes</span>
+        </button>
+        <button class="action-btn" @onclick="OnComment">
+            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
+            <span>@Comments</span>
+        </button>
+        <button class="action-btn" @onclick="OnShare">
+            <MudIcon Icon="@Icons.Material.Outlined.Share" Size="Size.Small" />
+            <span>@Shares</span>
+        </button>
+    </div>
+    <div class="post-actions-buttons">
+        <button class="action-btn" @onclick="OnSave">
+            <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
+            Save
+        </button>
+        <button class="action-btn" @onclick="OnMore">
+            <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
+        </button>
+    </div>
+</footer>
+
+@code {
+    /// <summary>
+    /// Number of likes
+    /// </summary>
+    [Parameter]
+    public int Likes { get; set; }
+
+    /// <summary>
+    /// Number of comments
+    /// </summary>
+    [Parameter]
+    public int Comments { get; set; }
+
+    /// <summary>
+    /// Number of shares
+    /// </summary>
+    [Parameter]
+    public int Shares { get; set; }
+
+    /// <summary>
+    /// Whether the post is liked
+    /// </summary>
+    [Parameter]
+    public bool Liked { get; set; }
+
+    /// <summary>
+    /// Callback when like is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnLike { get; set; }
+
+    /// <summary>
+    /// Callback when comment is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnComment { get; set; }
+
+    /// <summary>
+    /// Callback when share is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnShare { get; set; }
+
+    /// <summary>
+    /// Callback when save is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    /// <summary>
+    /// Callback when more is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnMore { get; set; }
+}

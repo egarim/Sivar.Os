@@ -1,0 +1,47 @@
+@using Sivar.Os.Client.Pages
+
+@* WhoToFollowSidebar component for displaying user suggestions *@
+
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h3>Who to follow</h3>
+        <p class="sidebar-subtitle">Curated for @ProfileTypeTitle</p>
+    </div>
+    @foreach (var user in SuggestedUsers)
+    {
+        <UserCard 
+            Name="@user.Name"
+            Bio="@user.Bio"
+            Initials="@user.Initials"
+            IsFollowing="@user.IsFollowing"
+            OnFollowToggle="@(() => OnFollowToggle.InvokeAsync(user))"
+            OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.Name))" />
+    }
+    <div class="sidebar-footnote">Suggestions refresh daily based on activity.</div>
+</aside>
+
+@code {
+    /// <summary>
+    /// List of suggested users to display
+    /// </summary>
+    [Parameter]
+    public List<UserSample> SuggestedUsers { get; set; } = new();
+
+    /// <summary>
+    /// Profile type title for customization message
+    /// </summary>
+    [Parameter]
+    public string ProfileTypeTitle { get; set; } = "Personal Profile";
+
+    /// <summary>
+    /// Callback when follow button is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback<UserSample> OnFollowToggle { get; set; }
+
+    /// <summary>
+    /// Callback when user name is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnUserNameClick { get; set; }
+}

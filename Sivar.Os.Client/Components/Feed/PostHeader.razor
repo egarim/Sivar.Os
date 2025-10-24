@@ -1,0 +1,59 @@
+@using Sivar.Os.Client.Components.Shared
+
+@* PostHeader component *@
+
+<header class="post-header">
+    <Avatar Initials="@AuthorInitials" Size="large" IsClickable="true" OnClick="@OnAuthorClick" CssClass="post-avatar" />
+    <div class="post-author-info">
+        <div class="post-author-name clickable" @onclick="OnAuthorClick">@Author</div>
+        <div class="post-time">@Time.ToString("MMM dd, yyyy h:mm tt")</div>
+    </div>
+    <div class="post-header-tags">
+        <span class="post-visibility">@Visibility</span>
+        <span class="post-type-badge @Type">@TypeLabel</span>
+    </div>
+</header>
+
+@code {
+    /// <summary>
+    /// Author name
+    /// </summary>
+    [Parameter]
+    public string Author { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Author initials
+    /// </summary>
+    [Parameter]
+    public string AuthorInitials { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Post time
+    /// </summary>
+    [Parameter]
+    public DateTime Time { get; set; }
+
+    /// <summary>
+    /// Post visibility (Public, Team, etc.)
+    /// </summary>
+    [Parameter]
+    public string Visibility { get; set; } = "Public";
+
+    /// <summary>
+    /// Post type (general, product, service, etc.)
+    /// </summary>
+    [Parameter]
+    public string Type { get; set; } = "general";
+
+    /// <summary>
+    /// Display label for the post type
+    /// </summary>
+    [Parameter]
+    public string TypeLabel { get; set; } = "General";
+
+    /// <summary>
+    /// Callback when author is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAuthorClick { get; set; }
+}

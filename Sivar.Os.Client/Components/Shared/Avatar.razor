@@ -1,0 +1,47 @@
+@* Avatar component for displaying user initials *@
+
+<div class="@AvatarClass" @onclick="OnClick" style="@AvatarStyle">
+    @Initials
+</div>
+
+@code {
+    /// <summary>
+    /// The initials to display in the avatar
+    /// </summary>
+    [Parameter]
+    public string Initials { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Size of the avatar (small: 32px, medium: 40px, large: 44px)
+    /// </summary>
+    [Parameter]
+    public string Size { get; set; } = "medium";
+
+    /// <summary>
+    /// Whether the avatar should be clickable
+    /// </summary>
+    [Parameter]
+    public bool IsClickable { get; set; }
+
+    /// <summary>
+    /// Callback when avatar is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    private string AvatarClass => $"avatar {Size} {(IsClickable ? "clickable" : "")} {CssClass}".Trim();
+
+    private string AvatarStyle => Size switch
+    {
+        "small" => "width: 32px; height: 32px; font-size: 12px;",
+        "medium" => "width: 40px; height: 40px; font-size: 14px;",
+        "large" => "width: 44px; height: 44px; font-size: 16px;",
+        _ => "width: 40px; height: 40px; font-size: 14px;"
+    };
+}

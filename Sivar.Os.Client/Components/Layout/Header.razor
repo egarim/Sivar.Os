@@ -1,0 +1,54 @@
+@using MudBlazor
+
+@* Header component for the wireframe landing page *@
+
+<div class="header">
+    <div class="logo">Sivar Social</div>
+    <div class="header-center">
+        <span class="profile-type-label">Profile type</span>
+        <select class="profile-type-switcher" @bind="ProfileType">
+            <option value="personal">Personal profile</option>
+            <option value="business">Business page</option>
+            <option value="product">Product showcase</option>
+        </select>
+    </div>
+    <div class="user-info">
+        <div class="user-details">
+            <div class="user-name">@UserName</div>
+            <div class="user-email">@UserEmail</div>
+        </div>
+        <div class="user-avatar">@UserInitials</div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// User's display name
+    /// </summary>
+    [Parameter]
+    public string UserName { get; set; } = "Jordan Doe";
+
+    /// <summary>
+    /// User's email address
+    /// </summary>
+    [Parameter]
+    public string UserEmail { get; set; } = "jordan.doe@example.com";
+
+    /// <summary>
+    /// User's initials for avatar
+    /// </summary>
+    [Parameter]
+    public string UserInitials { get; set; } = "JD";
+
+    /// <summary>
+    /// Currently selected profile type
+    /// </summary>
+    [Parameter]
+    public string ProfileType { get; set; } = "personal";
+
+    /// <summary>
+    /// Callback when profile type changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ProfileTypeChanged { get; set; }
+}

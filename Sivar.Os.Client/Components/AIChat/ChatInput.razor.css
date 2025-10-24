@@ -1,0 +1,4 @@
+.chat-input-container {
+    padding: 16px;
+    border-top: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}

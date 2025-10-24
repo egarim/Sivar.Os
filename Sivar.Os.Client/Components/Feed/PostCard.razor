@@ -1,0 +1,100 @@
+@using Sivar.Os.Client.Pages
+
+@* PostCard component for displaying a complete post *@
+
+<article class="post-card">
+    <PostHeader 
+        Author="@Post.Author"
+        AuthorInitials="@Post.AuthorInitials"
+        Time="@Post.Time"
+        Visibility="@Post.Visibility"
+        Type="@Post.Type"
+        TypeLabel="@TypeLabel"
+        OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Author))" />
+
+    <div class="post-content">@Post.Content</div>
+
+    @if (!string.IsNullOrEmpty(Post.ImageUrl))
+    {
+        <div class="post-image">
+            <img src="@Post.ImageUrl" alt="Post image" />
+        </div>
+    }
+
+    <PostMetadata MetadataItems="@Post.Metadata" />
+
+    <PostReactions Reactions="@Post.Reactions" OnReactionToggle="@((reaction) => OnReactionToggle.InvokeAsync((Post, reaction)))" />
+
+    <PostFooter 
+        Likes="@Post.Likes"
+        Comments="@Post.Comments"
+        Shares="@Post.Shares"
+        Liked="@Post.Liked"
+        OnLike="@(() => OnLike.InvokeAsync(Post))"
+        OnComment="@(() => OnCommentClick.InvokeAsync(Post))"
+        OnShare="@(() => OnShare.InvokeAsync(Post))"
+        OnSave="@(() => OnSave.InvokeAsync(Post))"
+        OnMore="@(() => OnMore.InvokeAsync(Post))" />
+
+    <PostComments 
+        Comments="@Post.CommentsList"
+        ShowComments="@Post.ShowComments"
+        OnToggleComments="@(() => OnCommentClick.InvokeAsync(Post))"
+        OnCommentAuthorClick="@((author) => OnAuthorClick.InvokeAsync(author))" />
+</article>
+
+@code {
+    /// <summary>
+    /// The post to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public PostSample Post { get; set; } = null!;
+
+    /// <summary>
+    /// Display label for post type
+    /// </summary>
+    [Parameter]
+    public string TypeLabel { get; set; } = "General";
+
+    /// <summary>
+    /// Callback when like button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostSample> OnLike { get; set; }
+
+    /// <summary>
+    /// Callback when comment button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostSample> OnCommentClick { get; set; }
+
+    /// <summary>
+    /// Callback when share button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostSample> OnShare { get; set; }
+
+    /// <summary>
+    /// Callback when save button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostSample> OnSave { get; set; }
+
+    /// <summary>
+    /// Callback when more button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostSample> OnMore { get; set; }
+
+    /// <summary>
+    /// Callback when author name/avatar is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Callback when a reaction is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback<(PostSample Post, PostReaction Reaction)> OnReactionToggle { get; set; }
+}

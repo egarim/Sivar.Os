@@ -1,0 +1,160 @@
+@using Sivar.Os.Client.Pages
+@using MudBlazor
+
+@* AIChatPanel component - Main chat interface *@
+
+<MudDrawer Anchor="Anchor.Right"
+           Open="@IsOpen"
+           Elevation="8"
+           Width="520px"
+           ClipMode="DrawerClipMode.Always"
+           Class="ai-chat-drawer">
+    <div class="ai-chat-panel @(ShowHistory ? "with-history" : "")">
+        <ChatHistory 
+            IsOpen="@ShowHistory"
+            Conversations="@Conversations"
+            CurrentConversationId="@CurrentConversationId"
+            OnClose="@OnToggleHistory"
+            OnNewConversation="@OnNewConversation"
+            OnConversationSelect="@OnConversationSelect" />
+
+        <div class="chat-main-container">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <button class="history-toggle-btn" @onclick="OnToggleHistory" title="Toggle conversation history">
+                        <MudIcon Icon="@Icons.Material.Filled.Menu" Size="Size.Medium" />
+                    </button>
+                    <div class="chat-header-info">
+                        <div class="chat-ai-avatar">🤖</div>
+                        <div class="chat-header-text">
+                            <h4>Sivar AI Assistant</h4>
+                            <p>Always here to help you explore</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-close-btn" @onclick="OnClose">
+                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                    </button>
+                </div>
+            </div>
+
+            <ChatMessages 
+                Messages="@Messages"
+                IsTyping="@IsTyping"
+                OnQuickAction="@OnQuickAction"
+                OnResultView="@OnResultView"
+                OnResultSave="@OnResultSave"
+                OnResultFollow="@OnResultFollow" />
+
+            <ChatInput 
+                InputText="@InputText"
+                InputTextChanged="@InputTextChanged"
+                OnSend="@OnSendMessage" />
+        </div>
+    </div>
+</MudDrawer>
+
+@code {
+    /// <summary>
+    /// Whether the chat panel is open
+    /// </summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    /// <summary>
+    /// Whether the history sidebar is shown
+    /// </summary>
+    [Parameter]
+    public bool ShowHistory { get; set; }
+
+    /// <summary>
+    /// List of conversations
+    /// </summary>
+    [Parameter]
+    public List<Conversation> Conversations { get; set; } = new();
+
+    /// <summary>
+    /// Current conversation ID
+    /// </summary>
+    [Parameter]
+    public string CurrentConversationId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// List of messages in current conversation
+    /// </summary>
+    [Parameter]
+    public List<Sivar.Os.Client.Pages.ChatMessage> Messages { get; set; } = new();
+
+    /// <summary>
+    /// Whether AI is typing
+    /// </summary>
+    [Parameter]
+    public bool IsTyping { get; set; }
+
+    /// <summary>
+    /// Current input text
+    /// </summary>
+    [Parameter]
+    public string InputText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when input text changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> InputTextChanged { get; set; }
+
+    /// <summary>
+    /// Callback when panel is closed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// Callback when history toggle is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnToggleHistory { get; set; }
+
+    /// <summary>
+    /// Callback when new conversation is started
+    /// </summary>
+    [Parameter]
+    public EventCallback OnNewConversation { get; set; }
+
+    /// <summary>
+    /// Callback when conversation is selected
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnConversationSelect { get; set; }
+
+    /// <summary>
+    /// Callback when message is sent
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendMessage { get; set; }
+
+    /// <summary>
+    /// Callback when quick action is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnQuickAction { get; set; }
+
+    /// <summary>
+    /// Callback when result view is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultView { get; set; }
+
+    /// <summary>
+    /// Callback when result save is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultSave { get; set; }
+
+    /// <summary>
+    /// Callback when result follow is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultFollow { get; set; }
+}

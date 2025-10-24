@@ -1,0 +1,3388 @@
+@page "/wireframe-landing"
+@using System
+@using System.Linq
+@using System.Threading.Tasks
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<style>
+    /* Hide scroll to top button on this page */
+    .mud-scroll-to-top {
+        display: none !important;
+    }
+    
+    /* Mobile-friendly touch targets */
+    @@media (max-width: 768px) {
+        .wireframe-landing button,
+        .wireframe-landing .action-btn,
+        .wireframe-landing .post-option,
+        .wireframe-landing .post-type-option {
+            min-height: 44px; /* Apple's recommended touch target size */
+        }
+    }
+
+    /* Use MudBlazor's CSS variables that adapt to theme automatically */
+    .wireframe-landing {
+        --wire-bg: var(--mud-palette-background-gray, #f5f7fa);
+        --wire-surface: var(--mud-palette-surface, #ffffff);
+        --wire-border: var(--mud-palette-lines-default, #e1e8ed);
+        --wire-text-primary: var(--mud-palette-text-primary, #14171a);
+        --wire-text-secondary: var(--mud-palette-text-secondary, #657786);
+        --wire-primary: var(--mud-palette-primary, #1da1f2);
+        --wire-hover: var(--mud-palette-action-default-hover, #f0f4f8);
+    }
+
+    .wire-container.wireframe-landing {
+        background: var(--wire-bg);
+        min-height: 100vh;
+        padding: 0 !important;
+        max-width: none !important;
+    }
+
+    .wireframe-landing .header {
+        background: var(--wire-surface);
+        border-bottom: 1px solid var(--wire-border);
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .wireframe-landing .logo {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .header-center {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .wireframe-landing .profile-type-label {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .profile-type-switcher {
+        padding: 6px 12px;
+        border: 1px solid var(--wire-border);
+        border-radius: 6px;
+        background: var(--wire-surface);
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .wireframe-landing .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .wireframe-landing .user-details {
+        text-align: right;
+    }
+
+    .wireframe-landing .user-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .user-email {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--wire-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .wireframe-landing .main-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr 300px;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .wireframe-landing .sidebar,
+    .wireframe-landing .stats-panel {
+        background: var(--wire-surface);
+        border: 1px solid var(--wire-border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .wireframe-landing .sidebar-header h3,
+    .wireframe-landing .stats-panel h3 {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .sidebar-subtitle {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        margin-bottom: 16px;
+    }
+
+    .wireframe-landing .user-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+
+    .wireframe-landing .user-card:hover {
+        background: var(--wire-hover);
+    }
+
+    .wireframe-landing .small-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--wire-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .user-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wireframe-landing .user-card-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .wireframe-landing .user-card-name.clickable:hover {
+        color: var(--wire-primary);
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    .wireframe-landing .user-card-bio {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .wireframe-landing .follow-btn {
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        border: none;
+    }
+
+    .wireframe-landing .follow-btn.follow {
+        background: var(--wire-primary);
+        color: white;
+    }
+
+    .wireframe-landing .follow-btn.follow:hover {
+        background: #1a8cd8;
+    }
+
+    .wireframe-landing .follow-btn.following {
+        background: transparent;
+        color: var(--wire-text-secondary);
+        border: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .follow-btn.following:hover {
+        background: #fff0f0;
+        border-color: #ff6b6b;
+        color: #ff6b6b;
+    }
+
+    .wireframe-landing .sidebar-footnote {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        text-align: center;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .feed {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .wireframe-landing .feed-header h2 {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .feed-subtitle {
+        font-size: 14px;
+        color: var(--wire-text-secondary);
+        margin: 0;
+    }
+
+    .wireframe-landing .post-composer {
+        background: var(--wire-surface);
+        border: 1px solid var(--wire-border);
+        border-radius: 12px;
+        padding: 20px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .wireframe-landing .composer-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .wireframe-landing .composer-title h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .composer-profile-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .post-type-selector {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .wireframe-landing .post-type-option {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        background: transparent;
+        border: 1px solid var(--wire-border);
+        color: var(--wire-text-secondary);
+        transition: all 0.2s;
+        position: relative;
+    }
+
+    .wireframe-landing .post-type-option:hover {
+        background: var(--wire-hover);
+    }
+
+    .wireframe-landing .post-type-option.active {
+        background: var(--wire-primary);
+        color: white;
+        border-color: var(--wire-primary);
+    }
+
+    .wireframe-landing .post-type-option .tooltip {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--wire-text-primary);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        white-space: nowrap;
+        margin-bottom: 8px;
+        z-index: 10;
+    }
+
+    .wireframe-landing .post-type-option:hover .tooltip {
+        display: block;
+    }
+
+    .wireframe-landing .post-input {
+        width: 100%;
+        min-height: 80px;
+        padding: 12px;
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+        margin-bottom: 12px;
+    }
+
+    .wireframe-landing .post-input:focus {
+        outline: none;
+        border-color: var(--wire-primary);
+    }
+
+    .wireframe-landing .post-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .wireframe-landing .post-options {
+        display: flex;
+        gap: 8px;
+    }
+
+    .wireframe-landing .post-option {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid var(--wire-border);
+        color: var(--wire-text-secondary);
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .post-option:hover {
+        background: var(--wire-hover);
+        border-color: var(--wire-primary);
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .post-btn {
+        padding: 8px 24px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--wire-primary);
+        color: white;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .post-btn:hover:not(:disabled) {
+        background: #1a8cd8;
+    }
+
+    .wireframe-landing .post-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .wireframe-landing .post-card {
+        background: var(--wire-surface);
+        border: 1px solid var(--wire-border);
+        border-radius: 12px;
+        padding: 20px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+
+    .wireframe-landing .post-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .wireframe-landing .post-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--wire-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .post-avatar.clickable {
+        cursor: pointer;
+    }
+
+    .wireframe-landing .post-avatar.clickable:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .wireframe-landing .post-author-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wireframe-landing .post-author-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .post-author-name.clickable:hover {
+        color: var(--wire-primary);
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    .wireframe-landing .post-time {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .post-header-tags {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .post-visibility {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--wire-hover);
+        color: var(--wire-text-secondary);
+        font-weight: 500;
+    }
+
+    .wireframe-landing .post-type-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .wireframe-landing .post-type-badge.general {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .wireframe-landing .post-type-badge.product {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .wireframe-landing .post-type-badge.service {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .wireframe-landing .post-type-badge.event {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .wireframe-landing .post-type-badge.job {
+        background: #fce4ec;
+        color: #c2185b;
+    }
+
+    .wireframe-landing .post-content {
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--wire-text-primary);
+        margin-bottom: 12px;
+    }
+
+    .wireframe-landing .post-image {
+        width: 100%;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .wireframe-landing .post-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
+        max-height: 500px;
+    }
+
+    .wireframe-landing .post-metadata {
+        background: var(--wire-hover);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .wireframe-landing .post-metadata-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+    }
+
+    .wireframe-landing .post-metadata-row:not(:last-child) {
+        border-bottom: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .post-metadata-label {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        font-weight: 500;
+    }
+
+    .wireframe-landing .post-metadata-value {
+        font-size: 12px;
+        color: var(--wire-text-primary);
+        font-weight: 600;
+    }
+
+    .wireframe-landing .post-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .post-actions-buttons {
+        display: flex;
+        gap: 16px;
+    }
+
+    .wireframe-landing .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .action-btn:hover {
+        background: var(--wire-hover);
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .action-btn span {
+        font-weight: 600;
+    }
+
+    /* Post Reactions */
+    .wireframe-landing .post-reactions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 0;
+        border-top: 1px solid var(--wire-border);
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .wireframe-landing .reaction-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background: var(--wire-bg);
+        border: 1px solid var(--wire-border);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .wireframe-landing .reaction-pill:hover {
+        background: var(--wire-hover);
+        border-color: var(--wire-primary);
+        transform: translateY(-2px);
+    }
+
+    .wireframe-landing .reaction-pill.active {
+        background: rgba(25, 118, 210, 0.1);
+        border-color: var(--wire-primary);
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .reaction-emoji {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .wireframe-landing .reaction-count {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .reaction-pill.active .reaction-count {
+        color: var(--wire-primary);
+    }
+
+    /* Post Comments Section */
+    .wireframe-landing .post-comments-section {
+        border-top: 1px solid var(--wire-border);
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+
+    .wireframe-landing .comments-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: var(--wire-bg);
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--wire-text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 12px;
+    }
+
+    .wireframe-landing .comments-toggle:hover {
+        background: var(--wire-hover);
+        border-color: var(--wire-primary);
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .wireframe-landing .comment-item {
+        display: flex;
+        gap: 10px;
+        padding: 10px;
+        background: var(--wire-bg);
+        border-radius: 8px;
+        border: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .comment-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--wire-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        flex-shrink: 0;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .comment-avatar.clickable {
+        cursor: pointer;
+    }
+
+    .wireframe-landing .comment-avatar.clickable:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .wireframe-landing .comment-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wireframe-landing .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .wireframe-landing .comment-author {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .comment-author.clickable {
+        cursor: pointer;
+    }
+
+    .wireframe-landing .comment-author.clickable:hover {
+        color: var(--wire-primary);
+        text-decoration: underline;
+    }
+
+    .wireframe-landing .comment-time {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        opacity: 0.8;
+    }
+
+    .wireframe-landing .comment-text {
+        font-size: 14px;
+        color: var(--wire-text-primary);
+        line-height: 1.5;
+        margin-bottom: 6px;
+    }
+
+    .wireframe-landing .comment-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .wireframe-landing .comment-like {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .comment-like:hover {
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .comment-like-count {
+        font-weight: 600;
+    }
+
+    .wireframe-landing .pagination {
+        background: var(--wire-surface);
+        border: 1px solid var(--wire-border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .wireframe-landing .pagination-info {
+        text-align: center;
+    }
+
+    .wireframe-landing .page-indicator,
+    .wireframe-landing .posts-info {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .page-indicator {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .wireframe-landing #current-page {
+        color: var(--wire-primary);
+    }
+
+    .wireframe-landing .pagination-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--wire-primary);
+        color: white;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .wireframe-landing .pagination-btn:hover:not(:disabled) {
+        background: #1a8cd8;
+    }
+
+    .wireframe-landing .pagination-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .wireframe-landing .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+    }
+
+    .wireframe-landing .stat-item:not(:last-of-type) {
+        border-bottom: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .stat-label {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .stat-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .saved-results-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid var(--wire-border);
+    }
+
+    .wireframe-landing .saved-results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 0 2px;
+    }
+
+    .wireframe-landing .saved-results-header h5 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--wire-text-primary);
+        letter-spacing: -0.2px;
+    }
+
+    .wireframe-landing .clear-saved-btn {
+        font-size: 12px;
+        color: var(--wire-primary);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .wireframe-landing .clear-saved-btn:hover {
+        text-decoration: underline;
+    }
+
+    .wireframe-landing .saved-result-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        background: white;
+        border: 2px solid var(--wire-border);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .wireframe-landing .saved-result-item:hover {
+        border-color: var(--wire-primary);
+        transform: translateX(3px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .wireframe-landing .saved-result-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: var(--wire-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .saved-result-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wireframe-landing .saved-result-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+
+    .wireframe-landing .saved-result-type {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        opacity: 0.8;
+    }
+
+    .wireframe-landing .quick-action-btn {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--wire-primary);
+        color: white;
+        border: none;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .quick-action-btn:hover {
+        background: #1a8cd8;
+    }
+
+    .wireframe-landing .quick-action-btn.secondary {
+        background: transparent;
+        color: var(--wire-text-secondary);
+        border: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .quick-action-btn.secondary:hover {
+        background: var(--wire-hover);
+        border-color: var(--wire-primary);
+        color: var(--wire-primary);
+    }
+
+    .ai-chat-drawer {
+        width: 400px !important;
+    }
+
+    .wireframe-landing .ai-chat-panel {
+        height: 100%;
+        display: flex;
+        position: relative;
+    }
+
+    .wireframe-landing .chat-history-sidebar {
+        width: 280px;
+        background: #f7f7f7;
+        border-right: 1px solid var(--wire-border);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .wireframe-landing .chat-history-sidebar.active {
+        display: flex;
+    }
+
+    .wireframe-landing .ai-chat-panel.with-history {
+        width: 700px !important;
+        max-width: calc(100vw - 48px);
+    }
+
+    .wireframe-landing .chat-history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .chat-history-header h4 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .history-close-btn {
+        background: transparent;
+        border: none;
+        font-size: 20px;
+        color: var(--wire-text-secondary);
+        cursor: pointer;
+        padding: 5px;
+        transition: all 0.2s ease;
+    }
+
+    .wireframe-landing .history-close-btn:hover {
+        color: var(--wire-text-primary);
+        transform: scale(1.1);
+    }
+
+    .wireframe-landing .new-chat-btn {
+        margin: 10px;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .wireframe-landing .new-chat-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .wireframe-landing .chat-history-list {
+        padding: 8px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .wireframe-landing .conversation-item {
+        background: white;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .wireframe-landing .conversation-item:hover {
+        border-color: var(--wire-primary);
+        transform: translateX(3px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .wireframe-landing .conversation-item.active {
+        border-color: var(--wire-primary);
+        background: #f0f3ff;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+
+    .wireframe-landing .conversation-item-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
+    .wireframe-landing .conversation-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.3;
+    }
+
+    .wireframe-landing .conversation-time {
+        font-size: 11px;
+        color: var(--wire-text-secondary);
+        white-space: nowrap;
+        margin-left: 6px;
+        opacity: 0.8;
+    }
+
+    .wireframe-landing .conversation-preview {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        overflow: hidden;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 5px;
+    }
+
+    .wireframe-landing .conversation-meta {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .wireframe-landing .conversation-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        padding: 3px 8px;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .wireframe-landing .chat-history-item {
+        padding: 12px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .wireframe-landing .chat-history-item:hover {
+        background: var(--wire-surface);
+    }
+
+    .wireframe-landing .chat-history-item.active {
+        background: var(--wire-surface);
+        font-weight: 600;
+    }
+
+    .wireframe-landing .new-chat-btn {
+        margin: 8px;
+        width: calc(100% - 16px);
+    }
+
+    .wireframe-landing .chat-main-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--wire-surface);
+    }
+
+    .wireframe-landing .chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .wireframe-landing .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .wireframe-landing .history-toggle-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        line-height: 1;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .history-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.35);
+        transform: scale(1.08);
+    }
+
+    .wireframe-landing .history-toggle-btn:active {
+        transform: scale(0.95);
+    }
+
+    .wireframe-landing .chat-header-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .wireframe-landing .chat-ai-avatar {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .wireframe-landing .chat-header-text h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .wireframe-landing .chat-header-text p {
+        margin: 0;
+        font-size: 11px;
+        opacity: 0.9;
+    }
+
+    .wireframe-landing .chat-header-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .wireframe-landing .chat-close-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px;
+        line-height: 1;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .wireframe-landing .chat-close-btn:hover {
+        transform: scale(1.2);
+    }
+
+    .wireframe-landing .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .wireframe-landing .empty-history {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        padding: 40px 20px;
+    }
+
+    .wireframe-landing .empty-history-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .wireframe-landing .empty-history-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        margin-bottom: 8px;
+    }
+
+    .wireframe-landing .empty-history-subtext {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .chat-message {
+        display: flex;
+        gap: 12px;
+        animation: slideIn 0.3s ease;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .wireframe-landing .chat-message.user {
+        flex-direction: row-reverse;
+    }
+
+    .wireframe-landing .chat-message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .wireframe-landing .chat-message.ai .chat-message-avatar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .wireframe-landing .chat-message.user .chat-message-avatar {
+        background: var(--wire-primary);
+        color: white;
+    }
+
+    .wireframe-landing .chat-message-bubble {
+        max-width: 75%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .wireframe-landing .chat-message.ai .chat-message-bubble {
+        background: var(--wire-hover);
+        color: var(--wire-text-primary);
+        border-bottom-left-radius: 4px;
+    }
+
+    .wireframe-landing .chat-message.user .chat-message-bubble {
+        background: var(--wire-primary);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .wireframe-landing .chat-result-card {
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid var(--wire-border);
+        margin-top: 8px;
+        max-width: 75%;
+    }
+
+    .wireframe-landing .chat-result-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .wireframe-landing .chat-result-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .wireframe-landing .chat-result-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .wireframe-landing .chat-result-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wireframe-landing .chat-result-name {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 2px;
+        color: var(--wire-text-primary);
+    }
+
+    .wireframe-landing .chat-result-type {
+        font-size: 11px;
+        color: var(--wire-text-secondary);
+    }
+
+    .wireframe-landing .chat-result-description {
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        line-height: 1.4;
+        margin-bottom: 8px;
+    }
+
+    .wireframe-landing .chat-result-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .wireframe-landing .chat-result-btn {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .wireframe-landing .chat-result-btn.primary {
+        background: var(--wire-primary);
+        color: white;
+    }
+
+    .wireframe-landing .chat-result-btn.primary:hover {
+        opacity: 0.9;
+    }
+
+    .wireframe-landing .chat-result-btn.secondary {
+        background: var(--wire-hover);
+        color: var(--wire-text-primary);
+        border: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .chat-result-btn.secondary:hover {
+        background: var(--wire-border);
+    }
+
+    .wireframe-landing .chat-quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 5px;
+    }
+
+    .wireframe-landing .chat-quick-actions .quick-action-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: #f0f3ff;
+        color: #667eea;
+        border: 1px solid #667eea;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .wireframe-landing .chat-quick-actions .quick-action-btn:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .wireframe-landing .chat-input-container {
+        padding: 16px;
+        border-top: 1px solid var(--wire-border);
+    }
+
+    .wireframe-landing .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 8px 0;
+    }
+
+    .wireframe-landing .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--wire-text-secondary);
+        border-radius: 50%;
+        animation: typing-dot 1.4s infinite;
+    }
+
+    .wireframe-landing .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .wireframe-landing .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @@keyframes typing-dot {
+        0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.5;
+        }
+        30% {
+            transform: translateY(-10px);
+            opacity: 1;
+        }
+    }
+
+    .wireframe-landing .ai-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        cursor: pointer;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s;
+        z-index: 999;
+    }
+
+    .wireframe-landing .ai-fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    @@media (max-width: 1200px) {
+        .wireframe-landing .main-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .wireframe-landing .sidebar,
+        .wireframe-landing .stats-panel {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .wireframe-landing .header {
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+        }
+        
+        .wireframe-landing .logo {
+            font-size: 18px;
+        }
+        
+        .wireframe-landing .header-center {
+            order: 3;
+            width: 100%;
+        }
+        
+        .wireframe-landing .profile-type-switcher {
+            width: 100%;
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+        
+        .wireframe-landing .user-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
+        
+        .wireframe-landing .user-name {
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .user-email {
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .main-layout {
+            padding: 8px;
+            gap: 12px;
+        }
+        
+        .wireframe-landing .feed {
+            padding: 12px;
+        }
+        
+        .wireframe-landing .feed h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        
+        /* Post Composer Mobile */
+        .wireframe-landing .post-composer {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .wireframe-landing .composer-title {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .wireframe-landing .composer-title h3 {
+            font-size: 14px;
+        }
+        
+        .wireframe-landing .composer-profile-indicator {
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .post-type-selector {
+            gap: 4px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .wireframe-landing .post-type-selector::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .wireframe-landing .post-type-option {
+            padding: 6px 10px;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .wireframe-landing .post-input {
+            font-size: 14px;
+            padding: 10px;
+            min-height: 70px;
+            margin-bottom: 10px;
+        }
+        
+        .wireframe-landing .post-actions {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+        
+        .wireframe-landing .post-options {
+            width: 100%;
+            justify-content: flex-start;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .wireframe-landing .post-options::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .wireframe-landing .post-option {
+            padding: 6px 10px;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .wireframe-landing .post-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        /* Post Card Mobile */
+        .wireframe-landing .post-card {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .wireframe-landing .post-header {
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .wireframe-landing .post-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
+        
+        .wireframe-landing .post-author-name {
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .post-time {
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .post-visibility {
+            font-size: 9px;
+            padding: 3px 6px;
+        }
+        
+        .wireframe-landing .post-type-badge {
+            font-size: 9px;
+            padding: 3px 6px;
+            margin-left: 0;
+            margin-top: 4px;
+        }
+        
+        .wireframe-landing .post-content {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .wireframe-landing .post-image {
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+        
+        .wireframe-landing .post-image img {
+            max-height: 300px;
+        }
+        
+        .wireframe-landing .post-metadata {
+            padding: 8px 10px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-landing .post-metadata-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            margin-bottom: 6px;
+        }
+        
+        .wireframe-landing .post-metadata-label {
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .post-metadata-value {
+            font-size: 11px;
+        }
+        
+        .wireframe-landing .post-footer {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            padding-top: 10px;
+        }
+        
+        .wireframe-landing .post-actions-buttons {
+            width: 100%;
+            justify-content: space-between;
+            gap: 4px;
+        }
+        
+        .wireframe-landing .action-btn {
+            padding: 6px 8px;
+            font-size: 12px;
+            gap: 4px;
+        }
+        
+        .wireframe-landing .action-btn span {
+            display: none; /* Hide text labels on mobile, keep only icons */
+        }
+        
+        /* Reactions & Comments Mobile */
+        .wireframe-landing .post-reactions {
+            padding: 10px 0;
+            gap: 6px;
+        }
+        
+        .wireframe-landing .reaction-pill {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .wireframe-landing .reaction-emoji {
+            font-size: 14px;
+        }
+        
+        .wireframe-landing .reaction-count {
+            font-size: 12px;
+        }
+        
+        .wireframe-landing .comments-toggle {
+            font-size: 12px;
+            padding: 7px 10px;
+        }
+        
+        .wireframe-landing .comment-item {
+            padding: 8px;
+            gap: 8px;
+        }
+        
+        .wireframe-landing .comment-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+        }
+        
+        .wireframe-landing .comment-author {
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .comment-time {
+            font-size: 11px;
+        }
+        
+        .wireframe-landing .comment-text {
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .comment-like {
+            font-size: 11px;
+        }
+        
+        /* Pagination Mobile */
+        .wireframe-landing .pagination {
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+        }
+        
+        .wireframe-landing .pagination-btn {
+            width: 100%;
+            min-width: auto;
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .page-indicator {
+            font-size: 14px;
+        }
+        
+        .wireframe-landing .posts-info {
+            font-size: 11px;
+        }
+        
+        .ai-chat-drawer {
+            width: 100% !important;
+        }
+        
+        /* Chat Panel Mobile Adjustments */
+        .wireframe-landing .ai-chat-panel {
+            width: 100% !important;
+            height: 100vh !important;
+            bottom: 0 !important;
+            right: 0 !important;
+            border-radius: 0 !important;
+        }
+        
+        .wireframe-landing .ai-chat-panel.with-history {
+            width: 100% !important;
+        }
+        
+        .wireframe-landing .chat-history-sidebar {
+            width: 240px;
+        }
+    }
+    
+    /* Extra small devices (phones in portrait) */
+    @@media (max-width: 480px) {
+        .wireframe-landing .header {
+            padding: 10px;
+        }
+        
+        .wireframe-landing .logo {
+            font-size: 16px;
+        }
+        
+        .wireframe-landing .feed {
+            padding: 8px;
+        }
+        
+        .wireframe-landing .post-composer {
+            padding: 10px;
+        }
+        
+        .wireframe-landing .composer-title h3 {
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .post-type-selector {
+            gap: 3px;
+        }
+        
+        .wireframe-landing .post-type-option {
+            padding: 5px 8px;
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .post-input {
+            padding: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .post-card {
+            padding: 10px;
+        }
+        
+        .wireframe-landing .post-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 13px;
+        }
+        
+        .wireframe-landing .post-metadata {
+            padding: 6px 8px;
+            font-size: 10px;
+        }
+        
+        .wireframe-landing .action-btn {
+            padding: 5px 6px;
+            font-size: 11px;
+        }
+        
+        .wireframe-landing .chat-history-sidebar {
+            width: 180px;
+        }
+        
+        .wireframe-landing .chat-history-sidebar.active {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        }
+    }
+    
+    /* Container adjustments for mobile */
+    @@media (max-width: 768px) {
+        .wireframe-landing .wire-container {
+            padding: 0 !important;
+        }
+        
+        .wireframe-landing .main-layout {
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
+    <div class="header">
+        <div class="logo">Sivar Social</div>
+        <div class="header-center">
+            <span class="profile-type-label">Profile type</span>
+            <select class="profile-type-switcher" @bind="_profileType">
+                <option value="personal">Personal profile</option>
+                <option value="business">Business page</option>
+                <option value="product">Product showcase</option>
+            </select>
+        </div>
+        <div class="user-info">
+            <div class="user-details">
+                <div class="user-name">Jordan Doe</div>
+                <div class="user-email">jordan.doe@example.com</div>
+            </div>
+            <div class="user-avatar">JD</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Who to follow</h3>
+                <p class="sidebar-subtitle">Curated for @_profileTypeTitle</p>
+            </div>
+            @foreach (var user in _suggestedUsers)
+            {
+                <div class="user-card @(user.IsFollowing ? "following" : string.Empty)">
+                    <div class="small-avatar">@user.Initials</div>
+                    <div class="user-card-info">
+                        <div class="user-card-name clickable">@user.Name</div>
+                        <div class="user-card-bio">@user.Bio</div>
+                    </div>
+                    <button class="follow-btn @(user.IsFollowing ? "following" : "follow")" @onclick="() => ToggleFollow(user)">
+                        @(user.IsFollowing ? "Following" : "Follow")
+                    </button>
+                </div>
+            }
+            <div class="sidebar-footnote">Suggestions refresh daily based on activity.</div>
+        </aside>
+
+        <section class="feed">
+            <div class="feed-header">
+                <h2>Activity Stream</h2>
+                <p class="feed-subtitle">Latest updates from your network</p>
+            </div>
+
+            <div class="post-composer">
+                <div class="composer-title">
+                    <h3>Create post</h3>
+                    <span class="composer-profile-indicator">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                        Posting as @_profileTypeTitle
+                    </span>
+                </div>
+                <div class="post-type-selector">
+                    @foreach (var option in _postTypeOptions)
+                    {
+                        <button type="button" class="post-type-option @(option.Id == _newPostType ? "active" : null)" @onclick="() => SelectPostType(option.Id)">
+                            <MudIcon Icon="@option.Icon" Size="Size.Small" />
+                            @option.Label
+                            <span class="tooltip">@option.Tooltip</span>
+                        </button>
+                    }
+                </div>
+                <textarea class="post-input" placeholder="What's happening?" @bind="_newPostText"></textarea>
+                <div class="post-actions">
+                    <div class="post-options">
+                        @foreach (var option in _composerAttachmentOptions)
+                        {
+                            <button type="button" class="post-option @(option.Id == _activeAttachment ? "active" : null)" @onclick="() => ToggleAttachment(option.Id)">
+                                <MudIcon Icon="@option.Icon" Size="Size.Small" />
+                                @option.Label
+                            </button>
+                        }
+                    </div>
+                    <button class="post-btn" disabled="@string.IsNullOrWhiteSpace(_newPostText)" @onclick="CreatePost">Publish</button>
+                </div>
+
+                @if (_activeAttachment == "schedule")
+                {
+                    <div class="post-form-fields active">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Event date</label>
+                                <input type="date" @bind="_scheduledDate" />
+                            </div>
+                            <div class="form-group">
+                                <label>Event time</label>
+                                <input type="time" @bind="_scheduledTime" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" placeholder="Virtual, HQ, etc." @bind="_scheduledLocation" />
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (!_pagedPosts.Any())
+            {
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text">No posts yet</div>
+                    <div class="empty-state-subtext">Create the first post to start the conversation.</div>
+                </div>
+            }
+            else
+            {
+                @foreach (var post in _pagedPosts)
+                {
+                    <article class="post-card">
+                        <header class="post-header">
+                            <div class="post-avatar clickable" @onclick="() => NavigateToProfile(post.Author)">@post.AuthorInitials</div>
+                            <div class="post-author-info">
+                                <div class="post-author-name clickable" @onclick="() => NavigateToProfile(post.Author)">@post.Author</div>
+                                <div class="post-time">@post.Time.ToString("MMM dd, yyyy h:mm tt")</div>
+                            </div>
+                            <div class="post-header-tags">
+                                <span class="post-visibility">@post.Visibility</span>
+                                <span class="post-type-badge @post.Type">@_postTypeLabels[post.Type]</span>
+                            </div>
+                        </header>
+
+                        <div class="post-content">@post.Content</div>
+
+                        @if (!string.IsNullOrEmpty(post.ImageUrl))
+                        {
+                            <div class="post-image">
+                                <img src="@post.ImageUrl" alt="Post image" />
+                            </div>
+                        }
+
+                        @if (post.Metadata.Any())
+                        {
+                            <div class="post-metadata">
+                                @foreach (var meta in post.Metadata)
+                                {
+                                    <div class="post-metadata-row">
+                                        <div class="post-metadata-label">@meta.Label</div>
+                                        <div class="post-metadata-value">@meta.Value</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @* Reactions Section *@
+                        @if (post.Reactions != null && post.Reactions.Any())
+                        {
+                            <div class="post-reactions">
+                                @foreach (var reaction in post.Reactions)
+                                {
+                                    <div class="reaction-pill @(reaction.IsActive ? "active" : "")" @onclick="() => ToggleReaction(post, reaction)">
+                                        <span class="reaction-emoji">@reaction.Emoji</span>
+                                        <span class="reaction-count">@reaction.Count</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <footer class="post-footer">
+                            <div class="post-actions-buttons">
+                                <button class="action-btn @(post.Liked ? "active" : null)" @onclick="() => ToggleLike(post)">
+                                    <MudIcon Icon="@(post.Liked ? Icons.Material.Filled.Favorite : Icons.Material.Outlined.FavoriteBorder)" Size="Size.Small" />
+                                    <span>@post.Likes</span>
+                                </button>
+                                <button class="action-btn" @onclick="() => ToggleComments(post)">
+                                    <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
+                                    <span>@post.Comments</span>
+                                </button>
+                                <button class="action-btn">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Share" Size="Size.Small" />
+                                    <span>@post.Shares</span>
+                                </button>
+                            </div>
+                            <div class="post-actions-buttons">
+                                <button class="action-btn">
+                                    <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
+                                    Save
+                                </button>
+                                <button class="action-btn">
+                                    <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
+                                </button>
+                            </div>
+                        </footer>
+
+                        @* Comments Section *@
+                        @if (post.CommentsList != null && post.CommentsList.Any())
+                        {
+                            <div class="post-comments-section">
+                                <button class="comments-toggle" @onclick="() => ToggleComments(post)">
+                                    <MudIcon Icon="@(post.ShowComments ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" />
+                                    @(post.ShowComments ? "Hide" : "Show") @post.CommentsList.Count comment@(post.CommentsList.Count != 1 ? "s" : "")
+                                </button>
+                                
+                                @if (post.ShowComments)
+                                {
+                                    <div class="comments-list">
+                                        @foreach (var comment in post.CommentsList)
+                                        {
+                                            <div class="comment-item">
+                                                <div class="comment-avatar clickable" @onclick="() => NavigateToProfile(comment.Author)">@comment.AuthorInitials</div>
+                                                <div class="comment-content">
+                                                    <div class="comment-header">
+                                                        <span class="comment-author clickable" @onclick="() => NavigateToProfile(comment.Author)">@comment.Author</span>
+                                                        <span class="comment-time">@comment.Time.ToString("MMM dd, h:mm tt")</span>
+                                                    </div>
+                                                    <div class="comment-text">@comment.Text</div>
+                                                    @if (comment.Likes > 0)
+                                                    {
+                                                        <div class="comment-actions">
+                                                            <div class="comment-like">
+                                                                <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" />
+                                                                <span class="comment-like-count">@comment.Likes</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            }
+
+            <div class="pagination">
+                <button class="pagination-btn" @onclick="PreviousPage" disabled="@(_currentPage == 1)">Previous</button>
+                <div class="pagination-info">
+                    <div class="page-indicator">Page <span id="current-page">@_currentPage</span> of @_pageCount</div>
+                    <div class="posts-info">@_posts.Count total posts</div>
+                </div>
+                <button class="pagination-btn" @onclick="NextPage" disabled="@(_currentPage == _pageCount)">Next</button>
+            </div>
+        </section>
+
+        <aside class="stats-panel">
+            <h3>Your summary</h3>
+            @foreach (var stat in _statsItems)
+            {
+                <div class="stat-item">
+                    <div class="stat-label">@stat.Label</div>
+                    <div class="stat-value">@stat.Value</div>
+                </div>
+            }
+
+            <div class="saved-results-section">
+                <div class="saved-results-header">
+                    <h5>Saved insights</h5>
+                    <button class="clear-saved-btn" @onclick="ClearSavedResults">Clear all</button>
+                </div>
+                @if (!_savedResults.Any())
+                {
+                    <div class="empty-state small">
+                        <div class="empty-state-icon">⭐</div>
+                        <div class="empty-state-text">No saved results yet</div>
+                        <div class="empty-state-subtext">Pin AI replies to revisit them later.</div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var result in _savedResults)
+                    {
+                        <div class="saved-result-item">
+                            <div class="saved-result-avatar">@result.Initials</div>
+                            <div class="saved-result-info">
+                                <div class="saved-result-name">@result.Title</div>
+                                <div class="saved-result-type">@result.Type</div>
+                            </div>
+                            <button class="quick-action-btn secondary" @onclick="() => RemoveSavedResult(result.Id)">Remove</button>
+                        </div>
+                    }
+                }
+            </div>
+        </aside>
+    </div>
+
+    <MudDrawer Anchor="Anchor.Right"
+               Open="@_chatOpen"
+               Elevation="8"
+               Width="520px"
+               ClipMode="DrawerClipMode.Always"
+               Class="ai-chat-drawer">
+        <div class="ai-chat-panel @( _historyOpen ? "with-history" : null)">
+            <div class="chat-history-sidebar @( _historyOpen ? "active" : null )">
+                <div class="chat-history-header">
+                    <h4>Conversations</h4>
+                    <button class="history-close-btn" @onclick="ToggleHistory">→</button>
+                </div>
+                <button class="new-chat-btn" @onclick="StartNewConversation">➕ New Conversation</button>
+                <div class="chat-history-list">
+                    @if (!_conversations.Any())
+                    {
+                        <div class="empty-history">
+                            <div class="empty-history-icon">💬</div>
+                            <div class="empty-history-text">No conversations yet.<br/>Start chatting to see history!</div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var conversation in _conversations)
+                        {
+                            <div class="conversation-item @(conversation.Id == _currentConversationId ? "active" : null)" @onclick="() => LoadConversation(conversation.Id)">
+                                <div class="conversation-item-header">
+                                    <div class="conversation-title">@conversation.Title</div>
+                                    <div class="conversation-time">@GetTimeAgo(conversation.LastUpdated)</div>
+                                </div>
+                                <div class="conversation-preview">@conversation.Preview</div>
+                                @if (conversation.MessageCount > 0 || conversation.ResultCount > 0)
+                                {
+                                    <div class="conversation-meta">
+                                        @if (conversation.MessageCount > 0)
+                                        {
+                                            <span class="conversation-badge">💬 @conversation.MessageCount msgs</span>
+                                        }
+                                        @if (conversation.ResultCount > 0)
+                                        {
+                                            <span class="conversation-badge">📄 @conversation.ResultCount results</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+                
+                @if (_savedResults.Any())
+                {
+                    <div class="saved-results-section">
+                        <div class="saved-results-header">
+                            <h5>📌 Saved Results</h5>
+                            <button class="clear-saved-btn" @onclick="ClearSavedResults">Clear</button>
+                        </div>
+                        @foreach (var result in _savedResults)
+                        {
+                            <div class="saved-result-item">
+                                <div class="saved-result-avatar">@result.Initials</div>
+                                <div class="saved-result-info">
+                                    <div class="saved-result-name">@result.Title</div>
+                                    <div class="saved-result-type">@result.Type</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="chat-main-container">
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <button class="history-toggle-btn" @onclick="ToggleHistory" title="Toggle conversation history">
+                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="Size.Medium" />
+                        </button>
+                        <div class="chat-header-info">
+                            <div class="chat-ai-avatar">🤖</div>
+                            <div class="chat-header-text">
+                                <h4>Sivar AI Assistant</h4>
+                                <p>Always here to help you explore</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-close-btn" @onclick="ToggleChat">
+                            <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    @if (!_chatMessages.Any())
+                    {
+                        <div class="empty-history">
+                            <div class="empty-history-icon">💬</div>
+                            <div class="empty-history-text">No messages yet</div>
+                            <div class="empty-history-subtext">Start a conversation with the AI</div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var message in _chatMessages)
+                        {
+                            <div class="chat-message @(message.Sender == "user" ? "user" : "ai")">
+                                <div class="chat-message-avatar">@((message.Sender == "user") ? "👤" : "🤖")</div>
+                                <div class="chat-message-content">
+                                    @if (message.MessageType == "result-card" && message.ResultCard != null)
+                                    {
+                                        <div class="chat-result-card">
+                                            <div class="chat-result-header">
+                                                <div class="chat-result-avatar">@message.ResultCard.Avatar</div>
+                                                <div class="chat-result-info">
+                                                    <div class="chat-result-name">@message.ResultCard.Name</div>
+                                                    <div class="chat-result-type">@message.ResultCard.Type</div>
+                                                </div>
+                                            </div>
+                                            <div class="chat-result-description">@message.ResultCard.Description</div>
+                                            <div class="chat-result-actions">
+                                                <button class="chat-result-btn primary" @onclick="() => {}">
+                                                    👁️ View Profile
+                                                </button>
+                                                <button class="chat-result-btn secondary" @onclick="() => {}">
+                                                    📌 Save
+                                                </button>
+                                                <button class="chat-result-btn secondary" @onclick="() => {}">
+                                                    ➕ Follow
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="chat-bubble" style="white-space: pre-line;">@message.Text</div>
+                                        @if (message.QuickActions != null && message.QuickActions.Any())
+                                        {
+                                            <div class="chat-quick-actions">
+                                                @foreach (var action in message.QuickActions)
+                                                {
+                                                    <button class="quick-action-btn" @onclick="async () => await SendQuickPrompt(action)">@action</button>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    <div class="chat-message-time">@message.Time.ToString("t")</div>
+                                </div>
+                            </div>
+                        }
+                    }
+
+                    @if (_typing)
+                    {
+                        <div class="chat-message ai typing">
+                            <div class="chat-message-avatar">🤖</div>
+                            <div class="chat-message-content">
+                                <div class="chat-bubble">
+                                    <div class="typing-indicator">
+                                        <span class="typing-dot"></span>
+                                        <span class="typing-dot"></span>
+                                        <span class="typing-dot"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="chat-input-container">
+                    <MudTextField @bind-Value="_chatInput" Placeholder="Ask me anything..." Immediate="true" OnKeyDown="OnChatKeyDown" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Send" OnAdornmentClick="SendChat" />
+                </div>
+            </div>
+        </div>
+    </MudDrawer>
+
+    <button class="ai-fab" aria-label="Open AI Chat" @onclick="ToggleChat">
+        🤖
+    </button>
+</MudContainer>
+
+@code {
+#nullable enable
+    private string _profileType = "personal";
+    private string _newPostText = string.Empty;
+    private string _newPostType = "general";
+    private string? _activeAttachment;
+    private DateTime? _scheduledDate;
+    private TimeOnly? _scheduledTime;
+    private string _scheduledLocation = string.Empty;
+    private bool _chatOpen;
+    private string _chatInput = string.Empty;
+    private bool _bodyClassApplied;
+
+    private readonly List<UserSample> _suggestedUsers = new();
+    private readonly List<PostTypeOption> _postTypeOptions = new();
+    private readonly Dictionary<string, string> _postTypeLabels = new();
+    private readonly List<ComposerAttachmentOption> _composerAttachmentOptions = new();
+    private readonly List<PostSample> _posts = new();
+    private readonly List<StatItem> _statsItems = new();
+    private readonly List<SavedResultItem> _savedResults = new();
+    private readonly List<string> _quickPrompts = new();
+    private readonly StatsSummary _stats = new();
+    private readonly Random _random = new();
+
+    private int _currentPage = 1;
+    private int _pageSize = 3;
+
+    private IEnumerable<PostSample> _pagedPosts => _posts.Skip((_currentPage - 1) * _pageSize).Take(_pageSize);
+    private int _pageCount => Math.Max(1, (int)Math.Ceiling((double)_posts.Count / _pageSize));
+    private string _profileTypeTitle => _profileType switch
+    {
+        "business" => "Business Page",
+        "product" => "Product Profile",
+        _ => "Personal Profile"
+    };
+
+    private readonly List<Conversation> _conversations = new();
+    private readonly Dictionary<string, List<ChatMessage>> _conversationMessages = new();
+    private List<ChatMessage> _chatMessages = new();
+    private string _currentConversationId = string.Empty;
+    private bool _historyOpen;
+    private bool _typing;
+
+    protected override void OnInitialized()
+    {
+        SeedPostTypes();
+        SeedComposerOptions();
+        SeedUsers();
+        SeedPosts();
+        SeedStats();
+        SeedSavedResults();
+        SeedQuickPrompts();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (_bodyClassApplied)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "document.body.classList.add('wireframe-landing-page')");
+            _bodyClassApplied = true;
+        }
+        catch
+        {
+            // Ignore failures until the circuit is interactive.
+        }
+    }
+
+    private void SeedPostTypes()
+    {
+        _postTypeOptions.AddRange(new[]
+        {
+            new PostTypeOption("general", "General", Icons.Material.Filled.Article, "Share updates with everyone."),
+            new PostTypeOption("product", "Product", Icons.Material.Filled.Storefront, "Highlight new features or releases."),
+            new PostTypeOption("service", "Service", Icons.Material.Filled.HeadsetMic, "Promote a service offering."),
+            new PostTypeOption("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
+            new PostTypeOption("job", "Job", Icons.Material.Filled.Work, "Share an open role with the community.")
+        });
+
+        foreach (var option in _postTypeOptions)
+        {
+            _postTypeLabels[option.Id] = option.Label;
+        }
+    }
+
+    private void SeedComposerOptions()
+    {
+        _composerAttachmentOptions.AddRange(new[]
+        {
+            new ComposerAttachmentOption("media", "Add media", Icons.Material.Outlined.Image),
+            new ComposerAttachmentOption("schedule", "Schedule", Icons.Material.Outlined.EventAvailable),
+            new ComposerAttachmentOption("poll", "Poll", Icons.Material.Outlined.Poll),
+            new ComposerAttachmentOption("ai-draft", "AI draft", Icons.Material.Outlined.AutoAwesome)
+        });
+    }
+
+    private void SeedUsers()
+    {
+        _suggestedUsers.AddRange(new[]
+        {
+            new UserSample("Alice Doe", "Product Designer", false),
+            new UserSample("Bob Smith", "Frontend Engineer", true),
+            new UserSample("Carol Lee", "CTO", false),
+            new UserSample("Diego Martin", "Growth Marketer", false)
+        });
+    }
+
+    private void SeedPosts()
+    {
+        _posts.AddRange(new[]
+        {
+            new PostSample
+            {
+                Author = "Alice Doe",
+                Content = "We launched a new feature today that helps teams orchestrate releases in half the time.",
+                Type = "product",
+                Visibility = "Public",
+                Time = DateTime.Now.AddHours(-1),
+                Likes = 42,
+                Comments = 9,
+                Shares = 3,
+                ImageUrl = "https://picsum.photos/800/600?random=1",
+                Metadata =
+                {
+                    new PostMetadataItem("Campaign", "Spring Launch"),
+                    new PostMetadataItem("Status", "Rolling out to 25% of users"),
+                    new PostMetadataItem("Owner", "Lifecycle squad")
+                },
+                Reactions =
+                {
+                    new PostReaction("👍", 28) { IsActive = true },
+                    new PostReaction("🎉", 12),
+                    new PostReaction("❤️", 8),
+                    new PostReaction("🚀", 5)
+                },
+                CommentsList =
+                {
+                    new PostComment("Sarah Johnson", "This is exactly what we needed! Can't wait to try it out.", DateTime.Now.AddMinutes(-45)) { Likes = 3 },
+                    new PostComment("Mike Chen", "Amazing work team! How does this integrate with the existing workflow?", DateTime.Now.AddMinutes(-30)) { Likes = 1 },
+                    new PostComment("Alice Doe", "@Mike Chen It integrates seamlessly! Check out the docs for more details.", DateTime.Now.AddMinutes(-15)) { Likes = 2 }
+                }
+            },
+            new PostSample
+            {
+                Author = "Bob Smith",
+                Content = "Looking for feedback on the updated settings layout. What do you think about the new navigation?",
+                Type = "general",
+                Visibility = "Team",
+                Time = DateTime.Now.AddHours(-3),
+                Likes = 18,
+                Comments = 5,
+                Shares = 1,
+                ImageUrl = "https://picsum.photos/800/600?random=2",
+                Metadata =
+                {
+                    new PostMetadataItem("Design phase", "Hi-fi prototype"),
+                    new PostMetadataItem("Call to action", "Comment with suggestions")
+                },
+                Reactions =
+                {
+                    new PostReaction("👍", 12),
+                    new PostReaction("🤔", 6),
+                    new PostReaction("👏", 4)
+                },
+                CommentsList =
+                {
+                    new PostComment("Emily Davis", "Love the cleaner layout! Much easier to find what I need.", DateTime.Now.AddHours(-2)) { Likes = 4 },
+                    new PostComment("Tom Wilson", "The navigation feels more intuitive now. Great improvement!", DateTime.Now.AddHours(-1).AddMinutes(-30)) { Likes = 2 }
+                }
+            },
+            new PostSample
+            {
+                Author = "Carol Lee",
+                Content = "We're hiring a senior engineer to lead our AI experience work. Remote friendly!",
+                Type = "job",
+                Visibility = "Public",
+                Time = DateTime.Now.AddDays(-1),
+                Likes = 63,
+                Comments = 17,
+                Shares = 11,
+                ImageUrl = "https://picsum.photos/800/600?random=3",
+                Metadata =
+                {
+                    new PostMetadataItem("Team", "Applied AI"),
+                    new PostMetadataItem("Location", "Hybrid · North America"),
+                    new PostMetadataItem("Link", "jobs.example.com/ai-lead")
+                }
+            },
+            new PostSample
+            {
+                Author = "David Chen",
+                Content = "Just finished the quarterly planning session. Excited about what we're building next quarter! 🚀",
+                Type = "general",
+                Visibility = "Public",
+                Time = DateTime.Now.AddHours(-5),
+                Likes = 24,
+                Comments = 3,
+                Shares = 2
+            },
+            new PostSample
+            {
+                Author = "Emma Wilson",
+                Content = "Check out our new office space! Modern, bright, and perfect for collaboration.",
+                Type = "general",
+                Visibility = "Public",
+                Time = DateTime.Now.AddHours(-8),
+                Likes = 89,
+                Comments = 23,
+                Shares = 8,
+                ImageUrl = "https://picsum.photos/800/600?random=4",
+                Reactions =
+                {
+                    new PostReaction("❤️", 35),
+                    new PostReaction("😍", 28),
+                    new PostReaction("👍", 18),
+                    new PostReaction("🔥", 8)
+                },
+                CommentsList =
+                {
+                    new PostComment("James Brown", "Wow! This looks amazing! 😍", DateTime.Now.AddHours(-7).AddMinutes(-30)) { Likes = 12 },
+                    new PostComment("Lisa Taylor", "The natural lighting is incredible. Great choice!", DateTime.Now.AddHours(-6)) { Likes = 8 },
+                    new PostComment("Emma Wilson", "Thanks everyone! We're so excited to be here. Come visit anytime!", DateTime.Now.AddHours(-5).AddMinutes(-45)) { Likes = 15 },
+                    new PostComment("David Park", "Is there a tour available? Would love to see it in person.", DateTime.Now.AddHours(-4)) { Likes = 5 }
+                }
+            },
+            new PostSample
+            {
+                Author = "Frank Martinez",
+                Content = "Reminder: Team standup at 10 AM tomorrow. Please have your updates ready!",
+                Type = "general",
+                Visibility = "Team",
+                Time = DateTime.Now.AddHours(-12),
+                Likes = 12,
+                Comments = 6,
+                Shares = 0
+            },
+            new PostSample
+            {
+                Author = "Grace Kim",
+                Content = "Behind the scenes of our latest product photoshoot. Can't wait to share the final results! 📸",
+                Type = "product",
+                Visibility = "Public",
+                Time = DateTime.Now.AddDays(-2),
+                Likes = 156,
+                Comments = 34,
+                Shares = 19,
+                ImageUrl = "https://picsum.photos/800/600?random=5",
+                Metadata =
+                {
+                    new PostMetadataItem("Campaign", "Product Launch Q4"),
+                    new PostMetadataItem("Photographer", "Studio Alpha")
+                }
+            }
+        });
+    }
+
+    private void SeedStats()
+    {
+        _stats.Followers = 1289;
+        _stats.Following = 312;
+        _stats.Reach = 48;
+        _stats.ResponseRate = 92;
+
+        RefreshStats();
+    }
+
+    private void SeedSavedResults()
+    {
+        _savedResults.AddRange(new[]
+        {
+            new SavedResultItem("Launch checklist", "AI summary"),
+            new SavedResultItem("Customer quotes", "Pinned reply")
+        });
+    }
+
+    private void SeedQuickPrompts()
+    {
+        // Quick prompts are now shown in the welcome message with QuickActions
+    }
+
+    private void RefreshStats()
+    {
+        _statsItems.Clear();
+        _statsItems.Add(new StatItem("New followers", $"{_stats.Followers:N0}"));
+        _statsItems.Add(new StatItem("Following", $"{_stats.Following:N0}"));
+        _statsItems.Add(new StatItem("Reach this week", $"{_stats.Reach}%"));
+        _statsItems.Add(new StatItem("Response rate", $"{_stats.ResponseRate}%"));
+    }
+
+    private void ToggleFollow(UserSample user)
+    {
+        user.IsFollowing = !user.IsFollowing;
+        _stats.Following += user.IsFollowing ? 1 : -1;
+        if (_stats.Following < 0)
+        {
+            _stats.Following = 0;
+        }
+
+        RefreshStats();
+    }
+
+    private void SelectPostType(string id) => _newPostType = id;
+
+    private void ToggleAttachment(string id) => _activeAttachment = _activeAttachment == id ? null : id;
+
+    private void CreatePost()
+    {
+        if (string.IsNullOrWhiteSpace(_newPostText))
+        {
+            return;
+        }
+
+        var post = new PostSample
+        {
+            Author = "You",
+            Content = _newPostText.Trim(),
+            Type = _newPostType,
+            Visibility = _profileTypeTitle,
+            Time = DateTime.Now,
+            Likes = 0,
+            Comments = 0,
+            Shares = 0
+        };
+
+        if (_activeAttachment == "schedule")
+        {
+            var date = _scheduledDate?.ToString("yyyy-MM-dd") ?? "TBD";
+            var time = _scheduledTime?.ToString("HH:mm") ?? "All day";
+            var location = string.IsNullOrWhiteSpace(_scheduledLocation) ? "Online" : _scheduledLocation.Trim();
+
+            post.Metadata.Add(new PostMetadataItem("Event date", date));
+            post.Metadata.Add(new PostMetadataItem("Time", time));
+            post.Metadata.Add(new PostMetadataItem("Location", location));
+        }
+
+        _posts.Insert(0, post);
+        _newPostText = string.Empty;
+        _activeAttachment = null;
+    _scheduledDate = null;
+    _scheduledTime = null;
+        _scheduledLocation = string.Empty;
+        _currentPage = 1;
+    }
+
+    private void ToggleLike(PostSample post)
+    {
+        post.Liked = !post.Liked;
+        post.Likes += post.Liked ? 1 : -1;
+        if (post.Likes < 0)
+        {
+            post.Likes = 0;
+        }
+    }
+
+    private void ToggleComments(PostSample post)
+    {
+        post.ShowComments = !post.ShowComments;
+    }
+
+    private void ToggleReaction(PostSample post, PostReaction reaction)
+    {
+        if (reaction.IsActive)
+        {
+            reaction.IsActive = false;
+            reaction.Count--;
+            if (reaction.Count < 0)
+            {
+                reaction.Count = 0;
+            }
+        }
+        else
+        {
+            // Deactivate all other reactions for this post
+            if (post.Reactions != null)
+            {
+                foreach (var r in post.Reactions.Where(r => r.IsActive))
+                {
+                    r.IsActive = false;
+                    r.Count--;
+                    if (r.Count < 0)
+                    {
+                        r.Count = 0;
+                    }
+                }
+            }
+            
+            reaction.IsActive = true;
+            reaction.Count++;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage < _pageCount)
+        {
+            _currentPage++;
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+        }
+    }
+
+    private void ClearSavedResults() => _savedResults.Clear();
+
+    private void RemoveSavedResult(string id)
+    {
+        var item = _savedResults.FirstOrDefault(s => s.Id == id);
+        if (item != null)
+        {
+            _savedResults.Remove(item);
+        }
+    }
+
+    private void NavigateToProfile(string authorName)
+    {
+        // Create a URL-friendly profile slug from the author name
+        var profileSlug = authorName.ToLower().Replace(" ", "-");
+        
+        // Navigate to the profile page (you can customize this URL pattern)
+        Navigation.NavigateTo($"/profile/{profileSlug}");
+    }
+
+    private void ToggleChat() => _chatOpen = !_chatOpen;
+
+    private async Task SendChat()
+    {
+        if (string.IsNullOrWhiteSpace(_chatInput))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_currentConversationId))
+        {
+            StartNewConversation();
+        }
+
+        var message = new ChatMessage("user", _chatInput.Trim());
+        AddMessage(_currentConversationId, message);
+
+        _chatInput = string.Empty;
+        _typing = true;
+        StateHasChanged();
+        await ScrollChatToBottom();
+
+        var aiText = await GetMockResponseAsync(message.Text);
+        
+        // Handle special search responses with result cards
+        if (aiText == "PIZZA_SEARCH")
+        {
+            var aiMessage = new ChatMessage("ai", "Great! I found some pizza places near you. Here are the top results:");
+            AddMessage(_currentConversationId, aiMessage);
+            await Task.Delay(300);
+            
+            var pizza1 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("pizza1", "🍕", "Tony's Pizza Palace", 
+                    "🏢 Business Profile • Italian Restaurant", 
+                    "Authentic Italian pizza made with fresh ingredients. Open daily 11AM-10PM. Delivery available!")
+            };
+            AddMessage(_currentConversationId, pizza1);
+            await Task.Delay(300);
+            
+            var pizza2 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("pizza2", "🍕", "Pizza Express Downtown", 
+                    "🏢 Business Profile • Fast Food", 
+                    "Quick service pizza restaurant. Great for lunch breaks! Special: 2 for 1 on Tuesdays.")
+            };
+            AddMessage(_currentConversationId, pizza2);
+            await Task.Delay(300);
+            
+            var followUp = new ChatMessage("ai", "Would you like to see their menus or find more restaurants?");
+            AddMessage(_currentConversationId, followUp);
+        }
+        else if (aiText == "TECH_SEARCH")
+        {
+            var aiMessage = new ChatMessage("ai", "I found several tech companies in your network:");
+            AddMessage(_currentConversationId, aiMessage);
+            await Task.Delay(300);
+            
+            var tech1 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("tech1", "💻", "TechVision Solutions", 
+                    "🏢 Business Profile • Software Development", 
+                    "Leading software development company specializing in AI and cloud solutions. Currently hiring!")
+            };
+            AddMessage(_currentConversationId, tech1);
+            await Task.Delay(300);
+            
+            var tech2 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("tech2", "🚀", "Innovation Labs", 
+                    "🏛️ Organization Profile • Tech Incubator", 
+                    "Supporting startups and tech entrepreneurs. Check out our upcoming events and mentorship programs.")
+            };
+            AddMessage(_currentConversationId, tech2);
+        }
+        else if (aiText == "EVENT_SEARCH")
+        {
+            var aiMessage = new ChatMessage("ai", "Here are upcoming events you might be interested in:");
+            AddMessage(_currentConversationId, aiMessage);
+            await Task.Delay(300);
+            
+            var event1 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("event1", "🎉", "Tech Innovation Summit 2024", 
+                    "🎉 Event • March 15, 2024", 
+                    "Annual gathering of tech leaders and innovators. Network, learn, and grow! Free admission.")
+            };
+            AddMessage(_currentConversationId, event1);
+        }
+        else if (aiText == "JOB_SEARCH")
+        {
+            var aiMessage = new ChatMessage("ai", "I found some job openings that match common interests:");
+            AddMessage(_currentConversationId, aiMessage);
+            await Task.Delay(300);
+            
+            var job1 = new ChatMessage("ai", "", "result-card")
+            {
+                ResultCard = new ChatResultCard("job1", "💼", "Senior Full-Stack Developer", 
+                    "💼 Job Posting • Full-Time, Remote", 
+                    "TechVision Solutions is hiring! $120k-$180k. 5+ years experience with React and Node.js required.")
+            };
+            AddMessage(_currentConversationId, job1);
+        }
+        else
+        {
+            var aiMessage = new ChatMessage("ai", aiText);
+            AddMessage(_currentConversationId, aiMessage);
+        }
+
+        _typing = false;
+        UpdateConversationPreview(_currentConversationId);
+        await InvokeAsync(StateHasChanged);
+        await ScrollChatToBottom();
+    }
+
+    private async Task SendQuickPrompt(string prompt)
+    {
+        _chatInput = prompt;
+        await SendChat();
+    }
+
+    private void StartNewConversation()
+    {
+        var conversation = new Conversation($"Conversation {_conversations.Count + 1}");
+        _conversations.Insert(0, conversation);
+        _conversationMessages[conversation.Id] = new List<ChatMessage>();
+        LoadConversation(conversation.Id);
+    }
+
+    private void LoadConversation(string id)
+    {
+        _currentConversationId = id;
+        if (!_conversationMessages.ContainsKey(id))
+        {
+            _conversationMessages[id] = new List<ChatMessage>();
+        }
+
+        _chatMessages = _conversationMessages[id];
+        if (!_chatMessages.Any())
+        {
+            var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
+
+🔍 Find profiles and businesses
+📰 Search posts and content
+🍕 Discover local services
+👥 Explore activity streams
+
+Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+            {
+                QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+            };
+            _chatMessages.Add(welcome);
+        }
+
+        UpdateConversationPreview(id);
+        _ = ScrollChatToBottom();
+    }
+
+    private void AddMessage(string conversationId, ChatMessage message)
+    {
+        if (!_conversationMessages.ContainsKey(conversationId))
+        {
+            _conversationMessages[conversationId] = new List<ChatMessage>();
+        }
+
+        _conversationMessages[conversationId].Add(message);
+
+        if (_currentConversationId == conversationId)
+        {
+            _chatMessages = _conversationMessages[conversationId];
+        }
+    }
+
+    private void UpdateConversationPreview(string id)
+    {
+        var conversation = _conversations.FirstOrDefault(c => c.Id == id);
+        if (conversation is null)
+        {
+            return;
+        }
+
+        if (_conversationMessages.TryGetValue(id, out var messages) && messages.Any())
+        {
+            var last = messages.Last();
+            var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
+            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}…" : previewText;
+            conversation.LastUpdated = last.Time;
+            conversation.MessageCount = messages.Count;
+            conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
+            
+            // Update title if it's still the default
+            if (conversation.Title.StartsWith("Conversation ") && messages.Count > 2)
+            {
+                var firstUserMessage = messages.FirstOrDefault(m => m.Sender == "user");
+                if (firstUserMessage != null)
+                {
+                    var titleText = firstUserMessage.Text.Length > 30 ? $"{firstUserMessage.Text[..27]}..." : firstUserMessage.Text;
+                    conversation.Title = titleText;
+                }
+            }
+        }
+    }
+
+    private void ToggleHistory() => _historyOpen = !_historyOpen;
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var seconds = (DateTime.Now - date).TotalSeconds;
+        
+        if (seconds < 60) return "Just now";
+        if (seconds < 3600) return $"{Math.Floor(seconds / 60)}m ago";
+        if (seconds < 86400) return $"{Math.Floor(seconds / 3600)}h ago";
+        if (seconds < 604800) return $"{Math.Floor(seconds / 86400)}d ago";
+        return date.ToShortDateString();
+    }
+
+    private async Task OnChatKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !args.ShiftKey)
+        {
+            await SendChat();
+        }
+    }
+
+    private async Task ScrollChatToBottom()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "document.getElementById('chatMessages')?.scrollTo(0, document.getElementById('chatMessages').scrollHeight)");
+        }
+        catch
+        {
+            // ignore when DOM is unavailable (e.g. during prerendering)
+        }
+    }
+
+    private async Task<string> GetMockResponseAsync(string userText)
+    {
+        await Task.Delay(600 + _random.Next(300));
+
+        if (string.IsNullOrWhiteSpace(userText))
+        {
+            return _cannedReplies[_random.Next(_cannedReplies.Length)];
+        }
+
+        var lower = userText.ToLowerInvariant();
+
+        // Pizza search - returns special handling flag
+        if (lower.Contains("pizza") || lower.Contains("🍕"))
+        {
+            return "PIZZA_SEARCH";
+        }
+
+        // Tech companies search
+        if (lower.Contains("tech") || lower.Contains("company") || lower.Contains("companies") || lower.Contains("💼"))
+        {
+            return "TECH_SEARCH";
+        }
+
+        // Events search
+        if (lower.Contains("event") || lower.Contains("🎉"))
+        {
+            return "EVENT_SEARCH";
+        }
+
+        // Jobs search
+        if (lower.Contains("job") || lower.Contains("jobs") || lower.Contains("hiring"))
+        {
+            return "JOB_SEARCH";
+        }
+
+        if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
+        {
+            return "Sure — what specifically do you need help with?";
+        }
+
+        if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
+        {
+            return "Sorry to hear that. Can you share the steps to reproduce?";
+        }
+
+        if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
+        {
+            return "For design feedback, consider spacing, contrast, and alignment — need a checklist?";
+        }
+
+        if (lower.Contains("yes") || lower.Contains("ok") || lower.Contains("thanks"))
+        {
+            return _cannedReplies[_random.Next(_cannedReplies.Length)];
+        }
+
+        var shortEcho = userText.Length > 70 ? $"{userText[..67]}…" : userText;
+        return $"You said: \"{shortEcho}\" — I can expand on that if you'd like.";
+    }
+
+    private readonly string[] _cannedReplies =
+    {
+        "Thanks — I noted that. Anything else you'd like to add?",
+        "Interesting, tell me more about that.",
+        "I'll keep that in mind. Want me to summarize it?",
+        "Here's a suggestion: try simplifying the flow and testing again.",
+        "Noted. I've saved that idea to your session.",
+        "Could you clarify what you meant by that?"
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_bodyClassApplied)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "document.body.classList.remove('wireframe-landing-page')");
+        }
+        catch
+        {
+            // ignore cleanup failures
+        }
+    }
+
+    private class UserSample
+    {
+        public UserSample(string name, string bio, bool following)
+        {
+            Name = name;
+            Bio = bio;
+            IsFollowing = following;
+        }
+
+        public string Name { get; }
+        public string Bio { get; }
+        public bool IsFollowing { get; set; }
+        public string Initials => string.Join(string.Empty, Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private class PostTypeOption
+    {
+        public PostTypeOption(string id, string label, string icon, string tooltip)
+        {
+            Id = id;
+            Label = label;
+            Icon = icon;
+            Tooltip = tooltip;
+        }
+
+        public string Id { get; }
+        public string Label { get; }
+        public string Icon { get; }
+        public string Tooltip { get; }
+    }
+
+    private class ComposerAttachmentOption
+    {
+        public ComposerAttachmentOption(string id, string label, string icon)
+        {
+            Id = id;
+            Label = label;
+            Icon = icon;
+        }
+
+        public string Id { get; }
+        public string Label { get; }
+        public string Icon { get; }
+    }
+
+    private class PostSample
+    {
+        public string Author { get; set; } = string.Empty;
+        public string AuthorInitials => string.Join(string.Empty, Author.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+        public string Content { get; set; } = string.Empty;
+        public string Type { get; set; } = "general";
+        public string Visibility { get; set; } = "Public";
+        public DateTime Time { get; set; } = DateTime.Now;
+        public List<PostMetadataItem> Metadata { get; } = new();
+        public int Likes { get; set; }
+        public int Comments { get; set; }
+        public int Shares { get; set; }
+        public bool Liked { get; set; }
+        public string? ImageUrl { get; set; }
+        public List<PostComment> CommentsList { get; } = new();
+        public List<PostReaction> Reactions { get; } = new();
+        public bool ShowComments { get; set; }
+    }
+
+    private class PostComment
+    {
+        public PostComment(string author, string text, DateTime time)
+        {
+            Author = author;
+            Text = text;
+            Time = time;
+        }
+
+        public string Author { get; }
+        public string AuthorInitials => string.Join(string.Empty, Author.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+        public string Text { get; }
+        public DateTime Time { get; }
+        public int Likes { get; set; }
+    }
+
+    private class PostReaction
+    {
+        public PostReaction(string emoji, int count)
+        {
+            Emoji = emoji;
+            Count = count;
+        }
+
+        public string Emoji { get; }
+        public int Count { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    private class PostMetadataItem
+    {
+        public PostMetadataItem(string label, string value)
+        {
+            Label = label;
+            Value = value;
+        }
+
+        public string Label { get; }
+        public string Value { get; }
+    }
+
+    private class StatItem
+    {
+        public StatItem(string label, string value)
+        {
+            Label = label;
+            Value = value;
+        }
+
+        public string Label { get; }
+        public string Value { get; }
+    }
+
+    private class SavedResultItem
+    {
+        public SavedResultItem(string title, string type)
+        {
+            Title = title;
+            Type = type;
+            Id = Guid.NewGuid().ToString();
+        }
+
+        public string Id { get; }
+        public string Title { get; }
+        public string Type { get; }
+        public string Initials => string.Join(string.Empty, Title.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private class StatsSummary
+    {
+        public int Followers { get; set; }
+        public int Following { get; set; }
+        public int Reach { get; set; }
+        public int ResponseRate { get; set; }
+    }
+
+    private class Conversation
+    {
+        public Conversation(string title)
+        {
+            Title = title;
+            Id = Guid.NewGuid().ToString();
+        }
+
+        public string Id { get; }
+        public string Title { get; set; }
+        public string Preview { get; set; } = "Start a conversation";
+        public DateTime LastUpdated { get; set; } = DateTime.Now;
+        public int MessageCount { get; set; }
+        public int ResultCount { get; set; }
+    }
+
+    private class ChatMessage
+    {
+        public ChatMessage(string sender, string text, string? messageType = null)
+        {
+            Sender = sender;
+            Text = text;
+            MessageType = messageType ?? "text";
+        }
+
+        public string Sender { get; }
+        public string Text { get; }
+        public string MessageType { get; } // "text", "result-card", "welcome"
+        public DateTime Time { get; set; } = DateTime.Now;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public ChatResultCard? ResultCard { get; set; }
+        public List<string>? QuickActions { get; set; }
+    }
+
+    private class ChatResultCard
+    {
+        public ChatResultCard(string id, string avatar, string name, string type, string description)
+        {
+            Id = id;
+            Avatar = avatar;
+            Name = name;
+            Type = type;
+            Description = description;
+        }
+
+        public string Id { get; }
+        public string Avatar { get; }
+        public string Name { get; }
+        public string Type { get; }
+        public string Description { get; }
+    }
+}

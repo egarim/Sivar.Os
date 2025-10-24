@@ -1,0 +1,26 @@
+@using Sivar.Os.Client.Pages
+
+@* SavedResultItem component *@
+
+<div class="saved-result-item">
+    <div class="saved-result-avatar">@Item.Initials</div>
+    <div class="saved-result-info">
+        <div class="saved-result-name">@Item.Title</div>
+        <div class="saved-result-type">@Item.Type</div>
+    </div>
+    <button class="quick-action-btn secondary" @onclick="OnRemove">Remove</button>
+</div>
+
+@code {
+    /// <summary>
+    /// The saved result item to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Sivar.Os.Client.Pages.SavedResultItem Item { get; set; } = null!;
+
+    /// <summary>
+    /// Callback when remove is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnRemove { get; set; }
+}

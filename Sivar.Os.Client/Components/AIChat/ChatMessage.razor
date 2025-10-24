@@ -1,0 +1,68 @@
+@using Sivar.Os.Client.Pages
+
+@* ChatMessage component *@
+
+<div class="chat-message @(IsUser ? "user" : "ai")">
+    <div class="chat-message-avatar">@(IsUser ? "👤" : "🤖")</div>
+    <div class="chat-message-content">
+        @if (Message.MessageType == "result-card" && Message.ResultCard != null)
+        {
+            <ChatResultCard 
+                ResultCard="@Message.ResultCard"
+                OnView="@OnResultView"
+                OnSave="@OnResultSave"
+                OnFollow="@OnResultFollow" />
+        }
+        else
+        {
+            <div class="chat-bubble" style="white-space: pre-line;">@Message.Text</div>
+            @if (Message.QuickActions != null && Message.QuickActions.Any())
+            {
+                <div class="chat-quick-actions">
+                    @foreach (var action in Message.QuickActions)
+                    {
+                        <button class="quick-action-btn" @onclick="() => OnQuickAction.InvokeAsync(action)">@action</button>
+                    }
+                </div>
+            }
+        }
+        <div class="chat-message-time">@Message.Time.ToString("t")</div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The chat message to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Sivar.Os.Client.Pages.ChatMessage Message { get; set; } = null!;
+
+    /// <summary>
+    /// Whether this is a user message
+    /// </summary>
+    private bool IsUser => Message.Sender == "user";
+
+    /// <summary>
+    /// Callback when quick action is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnQuickAction { get; set; }
+
+    /// <summary>
+    /// Callback when result view is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultView { get; set; }
+
+    /// <summary>
+    /// Callback when result save is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultSave { get; set; }
+
+    /// <summary>
+    /// Callback when result follow is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultFollow { get; set; }
+}

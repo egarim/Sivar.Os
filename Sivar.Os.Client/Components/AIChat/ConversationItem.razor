@@ -1,0 +1,58 @@
+@using Sivar.Os.Client.Pages
+
+@* ConversationItem component *@
+
+<div class="conversation-item @(IsActive ? "active" : "")" @onclick="OnClick">
+    <div class="conversation-item-header">
+        <div class="conversation-title">@Conversation.Title</div>
+        <div class="conversation-time">@TimeAgo</div>
+    </div>
+    <div class="conversation-preview">@Conversation.Preview</div>
+    @if (Conversation.MessageCount > 0 || Conversation.ResultCount > 0)
+    {
+        <div class="conversation-meta">
+            @if (Conversation.MessageCount > 0)
+            {
+                <span class="conversation-badge">💬 @Conversation.MessageCount msgs</span>
+            }
+            @if (Conversation.ResultCount > 0)
+            {
+                <span class="conversation-badge">📄 @Conversation.ResultCount results</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// The conversation to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Conversation Conversation { get; set; } = null!;
+
+    /// <summary>
+    /// Whether this conversation is active
+    /// </summary>
+    [Parameter]
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Callback when conversation is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private string TimeAgo
+    {
+        get
+        {
+            var seconds = (DateTime.Now - Conversation.LastUpdated).TotalSeconds;
+            
+            if (seconds < 60) return "Just now";
+            if (seconds < 3600) return $"{Math.Floor(seconds / 60)}m ago";
+            if (seconds < 86400) return $"{Math.Floor(seconds / 3600)}h ago";
+            if (seconds < 604800) return $"{Math.Floor(seconds / 86400)}d ago";
+            return Conversation.LastUpdated.ToShortDateString();
+        }
+    }
+}

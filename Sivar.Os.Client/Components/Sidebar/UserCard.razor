@@ -1,0 +1,52 @@
+@using Sivar.Os.Client.Pages
+
+@* UserCard component for displaying a single user suggestion *@
+
+<div class="user-card @(IsFollowing ? "following" : string.Empty)">
+    <div class="small-avatar">@Initials</div>
+    <div class="user-card-info">
+        <div class="user-card-name clickable" @onclick="OnNameClick">@Name</div>
+        <div class="user-card-bio">@Bio</div>
+    </div>
+    <button class="follow-btn @(IsFollowing ? "following" : "follow")" @onclick="OnFollowToggle">
+        @(IsFollowing ? "Following" : "Follow")
+    </button>
+</div>
+
+@code {
+    /// <summary>
+    /// User's display name
+    /// </summary>
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User's bio/description
+    /// </summary>
+    [Parameter]
+    public string Bio { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User's initials
+    /// </summary>
+    [Parameter]
+    public string Initials { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the user is currently being followed
+    /// </summary>
+    [Parameter]
+    public bool IsFollowing { get; set; }
+
+    /// <summary>
+    /// Callback when follow button is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback OnFollowToggle { get; set; }
+
+    /// <summary>
+    /// Callback when name is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnNameClick { get; set; }
+}

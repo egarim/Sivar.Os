@@ -1,0 +1,19 @@
+.feed-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--mud-palette-text-primary, #14171a);
+}
+
+.feed-subtitle {
+    font-size: 14px;
+    color: var(--mud-palette-text-secondary, #657786);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .feed-header h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+}

@@ -1,0 +1,20 @@
+@* FeedHeader component *@
+
+<div class="feed-header">
+    <h2>@Title</h2>
+    <p class="feed-subtitle">@Subtitle</p>
+</div>
+
+@code {
+    /// <summary>
+    /// Main title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Activity Stream";
+
+    /// <summary>
+    /// Subtitle text
+    /// </summary>
+    [Parameter]
+    public string Subtitle { get; set; } = "Latest updates from your network";
+}

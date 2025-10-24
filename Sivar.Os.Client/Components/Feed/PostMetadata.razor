@@ -1,0 +1,24 @@
+@using Sivar.Os.Client.Pages
+
+@* PostMetadata component for displaying post metadata *@
+
+@if (MetadataItems != null && MetadataItems.Any())
+{
+    <div class="post-metadata">
+        @foreach (var meta in MetadataItems)
+        {
+            <div class="post-metadata-row">
+                <div class="post-metadata-label">@meta.Label</div>
+                <div class="post-metadata-value">@meta.Value</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// List of metadata items to display
+    /// </summary>
+    [Parameter]
+    public List<PostMetadataItem>? MetadataItems { get; set; }
+}

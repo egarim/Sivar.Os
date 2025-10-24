@@ -1,0 +1,38 @@
+@* Empty state component for displaying when no content is available *@
+
+<div class="empty-state @SizeClass">
+    <div class="empty-state-icon">@Icon</div>
+    <div class="empty-state-text">@Text</div>
+    @if (!string.IsNullOrEmpty(SubText))
+    {
+        <div class="empty-state-subtext">@SubText</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Icon or emoji to display
+    /// </summary>
+    [Parameter]
+    public string Icon { get; set; } = "📭";
+
+    /// <summary>
+    /// Main text to display
+    /// </summary>
+    [Parameter]
+    public string Text { get; set; } = "No items";
+
+    /// <summary>
+    /// Optional subtext
+    /// </summary>
+    [Parameter]
+    public string? SubText { get; set; }
+
+    /// <summary>
+    /// Size of the empty state (normal or small)
+    /// </summary>
+    [Parameter]
+    public string Size { get; set; } = "normal";
+
+    private string SizeClass => Size == "small" ? "small" : "";
+}

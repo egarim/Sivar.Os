@@ -1,0 +1,66 @@
+@using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Components.Shared
+
+@* ChatHistory component *@
+
+<div class="chat-history-sidebar @(IsOpen ? "active" : "")">
+    <div class="chat-history-header">
+        <h4>Conversations</h4>
+        <button class="history-close-btn" @onclick="OnClose">→</button>
+    </div>
+    <button class="new-chat-btn" @onclick="OnNewConversation">➕ New Conversation</button>
+    <div class="chat-history-list">
+        @if (!Conversations.Any())
+        {
+            <EmptyState Icon="💬" Text="No conversations yet." SubText="Start chatting to see history!" Size="normal" />
+        }
+        else
+        {
+            @foreach (var conversation in Conversations)
+            {
+                <ConversationItem 
+                    Conversation="@conversation"
+                    IsActive="@(conversation.Id == CurrentConversationId)"
+                    OnClick="@(() => OnConversationSelect.InvokeAsync(conversation.Id))" />
+            }
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Whether the history sidebar is open
+    /// </summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    /// <summary>
+    /// List of conversations
+    /// </summary>
+    [Parameter]
+    public List<Conversation> Conversations { get; set; } = new();
+
+    /// <summary>
+    /// Currently selected conversation ID
+    /// </summary>
+    [Parameter]
+    public string CurrentConversationId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when close button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// Callback when new conversation is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnNewConversation { get; set; }
+
+    /// <summary>
+    /// Callback when conversation is selected
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnConversationSelect { get; set; }
+}

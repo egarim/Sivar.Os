@@ -1,0 +1,74 @@
+@using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Components.Shared
+
+@* CommentItem component for displaying a single comment *@
+
+<div class="comment-item">
+    <Avatar Initials="@AuthorInitials" Size="small" IsClickable="@IsClickable" OnClick="@OnAuthorClick" CssClass="comment-avatar" />
+    <div class="comment-content">
+        <div class="comment-header">
+            <span class="comment-author @(IsClickable ? "clickable" : "")" @onclick="OnAuthorClick">@Author</span>
+            <span class="comment-time">@Time.ToString("MMM dd, h:mm tt")</span>
+        </div>
+        <div class="comment-text">@Text</div>
+        @if (Likes > 0)
+        {
+            <div class="comment-actions">
+                <div class="comment-like" @onclick="OnLikeClick">
+                    <MudBlazor.MudIcon Icon="@MudBlazor.Icons.Material.Filled.Favorite" Size="MudBlazor.Size.Small" />
+                    <span class="comment-like-count">@Likes</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Comment author
+    /// </summary>
+    [Parameter]
+    public string Author { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Author initials
+    /// </summary>
+    [Parameter]
+    public string AuthorInitials { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Comment text
+    /// </summary>
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Comment time
+    /// </summary>
+    [Parameter]
+    public DateTime Time { get; set; }
+
+    /// <summary>
+    /// Number of likes
+    /// </summary>
+    [Parameter]
+    public int Likes { get; set; }
+
+    /// <summary>
+    /// Whether author name/avatar is clickable
+    /// </summary>
+    [Parameter]
+    public bool IsClickable { get; set; } = true;
+
+    /// <summary>
+    /// Callback when author is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Callback when like is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnLikeClick { get; set; }
+}

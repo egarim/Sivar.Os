@@ -1,0 +1,20 @@
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+}
+
+.stat-item:not(:last-of-type) {
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--mud-palette-text-secondary, #657786);
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary, #14171a);
+}

@@ -1,0 +1,175 @@
+@using Sivar.Os.Client.Pages
+@using MudBlazor
+
+@* PostComposer component for creating new posts *@
+
+<div class="post-composer">
+    <div class="composer-title">
+        <h3>Create post</h3>
+        <span class="composer-profile-indicator">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+            Posting as @ProfileTypeTitle
+        </span>
+    </div>
+    
+    <div class="post-type-selector">
+        @foreach (var option in PostTypeOptions)
+        {
+            <button type="button" 
+                    class="post-type-option @(option.Id == SelectedType ? "active" : null)" 
+                    @onclick="() => SelectedTypeChanged.InvokeAsync(option.Id)">
+                <MudIcon Icon="@option.Icon" Size="Size.Small" />
+                @option.Label
+                <span class="tooltip">@option.Tooltip</span>
+            </button>
+        }
+    </div>
+    
+    <textarea class="post-input" 
+              placeholder="What's happening?" 
+              @bind="PostText"
+              @bind:event="oninput"></textarea>
+    
+    <div class="post-actions">
+        <div class="post-options">
+            @foreach (var option in AttachmentOptions)
+            {
+                <button type="button" 
+                        class="post-option @(option.Id == ActiveAttachment ? "active" : null)" 
+                        @onclick="() => OnAttachmentToggle.InvokeAsync(option.Id)">
+                    <MudIcon Icon="@option.Icon" Size="Size.Small" />
+                    @option.Label
+                </button>
+            }
+        </div>
+        <button class="post-btn" 
+                disabled="@string.IsNullOrWhiteSpace(PostText)" 
+                @onclick="OnPublish">
+            Publish
+        </button>
+    </div>
+
+    @if (ActiveAttachment == "schedule")
+    {
+        <div class="post-form-fields active">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Event date</label>
+                    <input type="date" @bind="ScheduledDate" />
+                </div>
+                <div class="form-group">
+                    <label>Event time</label>
+                    <input type="time" @bind="ScheduledTime" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" placeholder="Virtual, HQ, etc." @bind="ScheduledLocation" />
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Profile type title
+    /// </summary>
+    [Parameter]
+    public string ProfileTypeTitle { get; set; } = "Personal Profile";
+
+    /// <summary>
+    /// Available post type options
+    /// </summary>
+    [Parameter]
+    public List<PostTypeOption> PostTypeOptions { get; set; } = new();
+
+    /// <summary>
+    /// Available attachment options
+    /// </summary>
+    [Parameter]
+    public List<ComposerAttachmentOption> AttachmentOptions { get; set; } = new();
+
+    /// <summary>
+    /// Currently selected post type
+    /// </summary>
+    [Parameter]
+    public string SelectedType { get; set; } = "general";
+
+    /// <summary>
+    /// Callback when selected type changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> SelectedTypeChanged { get; set; }
+
+    /// <summary>
+    /// Post text content
+    /// </summary>
+    [Parameter]
+    public string PostText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when post text changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> PostTextChanged { get; set; }
+
+    /// <summary>
+    /// Currently active attachment
+    /// </summary>
+    [Parameter]
+    public string? ActiveAttachment { get; set; }
+
+    /// <summary>
+    /// Scheduled date for event posts
+    /// </summary>
+    [Parameter]
+    public DateTime? ScheduledDate { get; set; }
+
+    /// <summary>
+    /// Callback when scheduled date changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<DateTime?> ScheduledDateChanged { get; set; }
+
+    /// <summary>
+    /// Scheduled time for event posts
+    /// </summary>
+    [Parameter]
+    public TimeOnly? ScheduledTime { get; set; }
+
+    /// <summary>
+    /// Callback when scheduled time changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<TimeOnly?> ScheduledTimeChanged { get; set; }
+
+    /// <summary>
+    /// Scheduled location for event posts
+    /// </summary>
+    [Parameter]
+    public string ScheduledLocation { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when scheduled location changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ScheduledLocationChanged { get; set; }
+
+    /// <summary>
+    /// Callback when post type is selected
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnPostTypeSelect { get; set; }
+
+    /// <summary>
+    /// Callback when attachment is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnAttachmentToggle { get; set; }
+
+    /// <summary>
+    /// Callback when publish button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnPublish { get; set; }
+}

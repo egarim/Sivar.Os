@@ -1,0 +1,42 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+
+@* ChatInput component *@
+
+<div class="chat-input-container">
+    <MudTextField @bind-Value="InputText" 
+                  Placeholder="Ask me anything..." 
+                  Immediate="true" 
+                  OnKeyDown="HandleKeyDown" 
+                  Adornment="Adornment.End" 
+                  AdornmentIcon="@Icons.Material.Filled.Send" 
+                  OnAdornmentClick="() => OnSend.InvokeAsync()" />
+</div>
+
+@code {
+    /// <summary>
+    /// The input text
+    /// </summary>
+    [Parameter]
+    public string InputText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when input text changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> InputTextChanged { get; set; }
+
+    /// <summary>
+    /// Callback when send button is clicked or Enter is pressed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSend { get; set; }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !args.ShiftKey)
+        {
+            await OnSend.InvokeAsync();
+        }
+    }
+}

@@ -1,0 +1,13 @@
+@* AIFloatingButton component *@
+
+<button class="ai-fab" aria-label="Open AI Chat" @onclick="OnClick">
+    🤖
+</button>
+
+@code {
+    /// <summary>
+    /// Callback when button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}

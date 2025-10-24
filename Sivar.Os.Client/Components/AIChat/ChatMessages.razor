@@ -1,0 +1,77 @@
+@using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Components.Shared
+
+@* ChatMessages component *@
+
+<div class="chat-messages" id="chatMessages">
+    @if (!Messages.Any())
+    {
+        <EmptyState Icon="💬" Text="No messages yet" SubText="Start a conversation with the AI" Size="normal" />
+    }
+    else
+    {
+        @foreach (var message in Messages)
+        {
+            <ChatMessage 
+                Message="@message"
+                OnQuickAction="@OnQuickAction"
+                OnResultView="@OnResultView"
+                OnResultSave="@OnResultSave"
+                OnResultFollow="@OnResultFollow" />
+        }
+    }
+
+    @if (IsTyping)
+    {
+        <div class="chat-message ai typing">
+            <div class="chat-message-avatar">🤖</div>
+            <div class="chat-message-content">
+                <div class="chat-bubble">
+                    <div class="typing-indicator">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of chat messages
+    /// </summary>
+    [Parameter]
+    public List<Sivar.Os.Client.Pages.ChatMessage> Messages { get; set; } = new();
+
+    /// <summary>
+    /// Whether the AI is typing
+    /// </summary>
+    [Parameter]
+    public bool IsTyping { get; set; }
+
+    /// <summary>
+    /// Callback when quick action is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnQuickAction { get; set; }
+
+    /// <summary>
+    /// Callback when result view is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultView { get; set; }
+
+    /// <summary>
+    /// Callback when result save is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultSave { get; set; }
+
+    /// <summary>
+    /// Callback when result follow is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResultFollow { get; set; }
+}

@@ -1,0 +1,56 @@
+@using Sivar.Os.Client.Pages
+@using MudBlazor
+
+@* PostComments component *@
+
+@if (Comments != null && Comments.Any())
+{
+    <div class="post-comments-section">
+        <button class="comments-toggle" @onclick="OnToggleComments">
+            <MudIcon Icon="@(ShowComments ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" />
+            @(ShowComments ? "Hide" : "Show") @Comments.Count comment@(Comments.Count != 1 ? "s" : "")
+        </button>
+        
+        @if (ShowComments)
+        {
+            <div class="comments-list">
+                @foreach (var comment in Comments)
+                {
+                    <CommentItem 
+                        Author="@comment.Author"
+                        AuthorInitials="@comment.AuthorInitials"
+                        Text="@comment.Text"
+                        Time="@comment.Time"
+                        Likes="@comment.Likes"
+                        OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Author))" />
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// List of comments
+    /// </summary>
+    [Parameter]
+    public List<PostComment>? Comments { get; set; }
+
+    /// <summary>
+    /// Whether comments are shown
+    /// </summary>
+    [Parameter]
+    public bool ShowComments { get; set; }
+
+    /// <summary>
+    /// Callback when toggle comments button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnToggleComments { get; set; }
+
+    /// <summary>
+    /// Callback when comment author is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnCommentAuthorClick { get; set; }
+}

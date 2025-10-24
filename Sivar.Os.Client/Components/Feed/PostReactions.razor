@@ -1,0 +1,30 @@
+@using Sivar.Os.Client.Pages
+
+@* PostReactions component *@
+
+@if (Reactions != null && Reactions.Any())
+{
+    <div class="post-reactions">
+        @foreach (var reaction in Reactions)
+        {
+            <div class="reaction-pill @(reaction.IsActive ? "active" : "")" @onclick="() => OnReactionToggle.InvokeAsync(reaction)">
+                <span class="reaction-emoji">@reaction.Emoji</span>
+                <span class="reaction-count">@reaction.Count</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// List of reactions
+    /// </summary>
+    [Parameter]
+    public List<PostReaction>? Reactions { get; set; }
+
+    /// <summary>
+    /// Callback when reaction is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostReaction> OnReactionToggle { get; set; }
+}
