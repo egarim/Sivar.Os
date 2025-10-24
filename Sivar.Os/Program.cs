@@ -16,6 +16,8 @@ using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 using Sivar.Server.Library.Services;
+using Microsoft.Extensions.AI;
+using OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +48,23 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 
+// --- AI Client Registration (Ollama) ---
+// Register IChatClient for ChatService
+builder.Services.AddScoped<IChatClient>(sp =>
+{
+    var endpoint = "http://127.0.0.1:11434/";
+ var modelId = "phi3:latest";
+  return GetChatClientOllamaImp(endpoint, modelId);
+});
+
+// Register IEmbeddingGenerator for VectorEmbeddingService
+builder.Services.AddScoped<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+{
+    var endpoint = "http://127.0.0.1:11434/";
+    var modelId = "all-minilm:latest"; // Common embedding model for Ollama
+    return new OllamaEmbeddingGenerator(endpoint, modelId: modelId);
+});
+
 // --- Service Registration ---
 builder.Services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -68,8 +87,35 @@ builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>(
 builder.Services.AddScoped<ChatFunctionService>();
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
 
+// Configure ChatServiceOptions
+builder.Services.Configure<ChatServiceOptions>(options =>
+{
+    options.Provider = "ollama";
+    options.MaxTokens = 2000;
+    options.Temperature = 0.7;
+    options.MaxMessagesPerConversation = 1000;
+    options.Ollama = new ChatServiceOptions.OllamaSettings
+    {
+        Endpoint = "http://127.0.0.1:11434",
+        ModelId = "phi3:latest"
+    };
+});
 
- builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+// Configure VectorEmbeddingOptions
+builder.Services.Configure<VectorEmbeddingOptions>(options =>
+{
+    options.Provider = "Ollama";
+    options.MaxTextLength = 8000;
+    options.BatchSize = 10;
+    options.MinimumSimilarityThreshold = 0.1f;
+    options.Ollama = new OllamaOptions
+    {
+   Endpoint = "http://127.0.0.1:11434",
+        ModelId = "all-minilm:latest"
+    };
+});
+
+builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
 
 // --- Client Registration (Sivar.Os.Services.Clients) ---
 builder.Services.AddScoped<IAuthClient, AuthClient>();
@@ -228,3 +274,20 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Sivar.Os.Client._Imports).Assembly);
 
 app.Run();
+
+// --- Helper Methods for AI Client Creation ---
+static IChatClient GetChatClientOpenAiImp(string ApiKey, string ModelId)
+{
+    OpenAIClient openAIClient = new OpenAIClient(ApiKey);
+
+    return new OpenAIChatClient(openAIClient, ModelId)
+ .AsBuilder()
+     .Build();
+}
+
+static IChatClient GetChatClientOllamaImp(string endpoint, string modelId)
+{
+    return new OllamaChatClient(endpoint, modelId: modelId)
+     .AsBuilder()
+        .Build();
+}
