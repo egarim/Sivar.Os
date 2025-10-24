@@ -120,6 +120,12 @@
     public string? ActiveAttachment { get; set; }
 
     /// <summary>
+    /// Callback when active attachment changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ActiveAttachmentChanged { get; set; }
+
+    /// <summary>
     /// Scheduled date for event posts
     /// </summary>
     [Parameter]

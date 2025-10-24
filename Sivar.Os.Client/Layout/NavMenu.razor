@@ -1,14 +1,21 @@
-﻿@using Microsoft.AspNetCore.Components
+﻿@* SIMPLIFIED NAVMENU - AUTHENTICATION CODE COMMENTED OUT FOR TESTING *@
+@* 
+@using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @implements IAsyncDisposable
+*@
 
 <MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
     <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
     <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+</MudNavMenu>
+
+@* 
+ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
 
     <MudDivider Class="my-2" />
 
@@ -44,7 +51,6 @@
             Login
         </MudButton>
     }
-</MudNavMenu>
 
 @code {
     private bool _isAuthenticated = false;
@@ -112,3 +118,4 @@
         _cts?.Dispose();
     }
 }
+*@
