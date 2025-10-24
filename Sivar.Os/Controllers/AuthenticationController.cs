@@ -45,7 +45,7 @@ public class AuthenticationController : ControllerBase
     {
         var authenticationProperties = new AuthenticationProperties
         {
-            RedirectUri = "/welcome"
+            RedirectUri = "/"
         };
 
         return SignOut(authenticationProperties, 
@@ -58,7 +58,7 @@ public class AuthenticationController : ControllerBase
     {
         var authenticationProperties = new AuthenticationProperties
         {
-            RedirectUri = "/welcome"
+            RedirectUri = "/"
         };
 
         return SignOut(authenticationProperties, 

@@ -217,10 +217,20 @@ builder.Services.AddAuthentication(options =>
                 // Add kc_action parameter to show Keycloak registration page
                 context.ProtocolMessage.SetParameter("kc_action", "REGISTER");
             }
+            
+            // Handle logout redirect - use root URL which is already registered in Keycloak
+            if (context.ProtocolMessage.RequestType == OpenIdConnectRequestType.Logout)
+            {
+                // Override the post_logout_redirect_uri to use the root path
+                var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
+                context.ProtocolMessage.PostLogoutRedirectUri = baseUrl + "/";
+            }
+            
             return Task.CompletedTask;
         },
         OnSignedOutCallbackRedirect = context =>
         {
+            // Redirect to welcome page after successful logout
             context.Response.Redirect("/welcome");
             context.HandleResponse();
             return Task.CompletedTask;
@@ -281,6 +291,25 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Handle post-logout redirect from root to welcome
+app.Use(async (context, next) =>
+{
+    // If user is not authenticated and trying to access root, redirect to welcome
+    if (context.Request.Path == "/" && 
+        context.Request.Query.ContainsKey("logout") == false &&
+        !context.User.Identity?.IsAuthenticated == true)
+    {
+        // Check if this looks like a post-logout scenario (no referer or coming from Keycloak)
+        var referer = context.Request.Headers.Referer.ToString();
+        if (string.IsNullOrEmpty(referer) || referer.Contains("keycloak") || referer.Contains("localhost:8080"))
+        {
+            context.Response.Redirect("/welcome");
+            return;
+        }
+    }
+    await next();
+});
 
 app.UseAntiforgery();
 
