@@ -1,0 +1,27 @@
+<div class="profile-actions">
+    <MudButton Variant="Variant.Filled" 
+               Color="Color.Primary" 
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               Class="action-button primary"
+               OnClick="OnFollowClick">
+        @FollowButtonText
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" 
+               Color="Color.Default"
+               StartIcon="@Icons.Material.Filled.Message"
+               Class="action-button secondary"
+               OnClick="OnMessageClick">
+        Message
+    </MudButton>
+</div>
+
+@code {
+    [Parameter]
+    public string FollowButtonText { get; set; } = "Follow";
+
+    [Parameter]
+    public EventCallback OnFollowClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnMessageClick { get; set; }
+}

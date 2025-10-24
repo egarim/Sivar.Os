@@ -1,0 +1,21 @@
+@using Sivar.Os.Client.Pages
+
+<div class="profile-stats">
+    <div class="stat">
+        <MudText Typo="Typo.h5" Class="stat-value">@Stats.Posts</MudText>
+        <MudText Typo="Typo.body2" Class="stat-label">Posts</MudText>
+    </div>
+    <div class="stat">
+        <MudText Typo="Typo.h5" Class="stat-value">@Stats.Followers</MudText>
+        <MudText Typo="Typo.body2" Class="stat-label">Followers</MudText>
+    </div>
+    <div class="stat">
+        <MudText Typo="Typo.h5" Class="stat-value">@Stats.Following</MudText>
+        <MudText Typo="Typo.body2" Class="stat-label">Following</MudText>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Sivar.Os.Client.Pages.ProfileStats Stats { get; set; } = new();
+}

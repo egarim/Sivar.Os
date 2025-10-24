@@ -1,0 +1,19 @@
+<MudPaper Elevation="0" Class="profile-header-bar">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" 
+               Variant="Variant.Outlined" 
+               Color="Color.Default" 
+               Size="Size.Small"
+               Class="back-button" 
+               OnClick="OnBackClick">
+        Back to Feed
+    </MudButton>
+    <MudText Typo="Typo.h6" Class="page-title">@Title</MudText>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Profile";
+
+    [Parameter]
+    public EventCallback OnBackClick { get; set; }
+}

@@ -1,0 +1,8 @@
+<MudPaper Elevation="1" Class="profile-card">
+    @ChildContent
+</MudPaper>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

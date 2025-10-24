@@ -1,0 +1,342 @@
+@page "/profile/{ProfileSlug}"
+@using MudBlazor
+@using Sivar.Os.Client.Pages
+@inject NavigationManager Navigation
+
+<style>
+    /* Use MudBlazor's CSS variables that adapt to theme automatically */
+    .profile-page {
+        --wire-bg: var(--mud-palette-background-gray, #f5f7fa);
+        --wire-surface: var(--mud-palette-surface, #ffffff);
+        --wire-border: var(--mud-palette-lines-default, #dfe3e8);
+        --wire-hover: var(--mud-palette-action-default-hover, #f0f2f5);
+        --wire-primary: var(--mud-palette-primary, #1976d2);
+        --wire-primary-hover: var(--mud-palette-primary-darken, #1565c0);
+        --wire-text-primary: var(--mud-palette-text-primary, #1a1a1a);
+        --wire-text-secondary: var(--mud-palette-text-secondary, #6c757d);
+        --wire-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --wire-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .profile-page {
+        min-height: 100vh;
+        background: var(--wire-bg);
+        padding: 0;
+    }
+
+    /* Header matching wireframe */
+    .profile-page .profile-header-bar {
+        background: var(--wire-surface);
+        border-bottom: 1px solid var(--wire-border);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: var(--wire-shadow);
+        border-radius: 0 !important;
+    }
+
+    .profile-page .profile-header-bar .page-title {
+        font-weight: 600;
+        letter-spacing: -0.3px;
+    }
+
+    .profile-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+
+    /* Profile Card */
+    .profile-page .profile-card {
+        background: var(--wire-surface);
+        border: 1px solid var(--wire-border);
+        border-radius: 12px;
+        padding: 32px;
+        margin-bottom: 20px;
+    }
+
+    .profile-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--wire-border);
+    }
+
+    .profile-page .profile-avatar {
+        background: linear-gradient(135deg, var(--wire-primary), #42a5f5) !important;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        flex-shrink: 0;
+    }
+
+    .profile-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .profile-page .profile-name {
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+
+    .profile-page .profile-username {
+        margin-bottom: 16px;
+    }
+
+    .profile-stats {
+        display: flex;
+        gap: 32px;
+        margin-top: 16px;
+    }
+
+    .stat {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .profile-page .stat-value {
+        line-height: 1.2;
+    }
+
+    .profile-page .stat-label {
+        margin-top: 2px;
+    }
+
+    .profile-section {
+        margin-bottom: 0;
+    }
+
+    .profile-page .profile-section-title {
+        margin: 0 0 12px 0;
+        letter-spacing: -0.2px;
+    }
+
+    .profile-page .profile-bio {
+        line-height: 1.6;
+    }
+
+    /* Coming Soon Card */
+    .profile-page .coming-soon-card {
+        border-radius: 12px;
+        margin-top: 20px;
+    }
+
+    .profile-page .coming-soon-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .profile-page .coming-soon-icon {
+        font-size: 20px;
+    }
+
+    .profile-page .coming-soon-subtext {
+        line-height: 1.5;
+        margin-left: 28px;
+        margin-top: 4px;
+    }
+
+    /* Action Buttons */
+    .profile-page .profile-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 768px) {
+        .profile-container {
+            padding: 16px;
+        }
+
+        .profile-card {
+            padding: 20px;
+        }
+
+        .profile-main {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 40px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+        }
+
+        .profile-stats {
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .stat {
+            align-items: center;
+        }
+
+        .profile-header-bar {
+            padding: 12px 16px;
+        }
+
+        .profile-header-bar .page-title {
+            font-size: 16px;
+        }
+
+        .coming-soon-card {
+            padding: 16px 20px;
+        }
+
+        .coming-soon-subtext {
+            margin-left: 0;
+            margin-top: 8px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            font-size: 32px;
+        }
+
+        .profile-stats {
+            flex-direction: row;
+            gap: 16px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+        }
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="profile-page">
+    <ProfileHeader Title="Profile" OnBackClick="GoBack" />
+
+    <div class="profile-container">
+        <ProfileCard>
+            <ProfileMain 
+                DisplayName="@profileData.DisplayName"
+                Username="@profileData.Username"
+                Initials="@profileData.Initials"
+                Stats="@profileData.Stats"
+                FollowButtonText="Follow"
+                OnFollowClick="HandleFollow"
+                OnMessageClick="HandleMessage" />
+
+            <MudDivider />
+
+            <ProfileAbout Bio="@profileData.Bio" />
+        </ProfileCard>
+
+        <ComingSoonAlert 
+            Title="Profile Features Coming Soon"
+            Message="Full profile details, activity feed, and customization options will be available soon." />
+    </div>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string ProfileSlug { get; set; } = string.Empty;
+
+    private ProfileData profileData = new();
+
+    protected override void OnInitialized()
+    {
+        profileData = new ProfileData
+        {
+            ProfileSlug = ProfileSlug,
+            DisplayName = GetDisplayName(),
+            Username = ProfileSlug,
+            Initials = GetInitials(),
+            Bio = GetBio(),
+            Stats = new ProfileStats
+            {
+                Posts = GetRandomStat(42, 156),
+                Followers = GetRandomStat(500, 2500),
+                Following = GetRandomStat(150, 850)
+            }
+        };
+    }
+
+    private string GetDisplayName()
+    {
+        // Convert slug back to display name
+        return string.Join(" ", ProfileSlug.Split('-')
+            .Select(word => char.ToUpper(word[0]) + word.Substring(1)));
+    }
+
+    private string GetInitials()
+    {
+        var parts = ProfileSlug.Split('-');
+        if (parts.Length >= 2)
+        {
+            return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}";
+        }
+        return parts.Length > 0 ? char.ToUpper(parts[0][0]).ToString() : "U";
+    }
+
+    private string GetBio()
+    {
+        var bios = new Dictionary<string, string>
+        {
+            { "alice-doe", "Product manager passionate about building tools that help teams collaborate better. Love hiking, coffee, and solving complex problems." },
+            { "bob-smith", "Senior UX Designer focused on creating intuitive and delightful user experiences. Always learning, always designing." },
+            { "carol-lee", "Tech recruiter helping connect amazing talent with great opportunities. Building the future of work, one hire at a time." },
+            { "david-chen", "Software engineer specializing in distributed systems and cloud architecture. Coffee enthusiast and open-source contributor." },
+            { "emma-wilson", "Marketing lead with a passion for storytelling and brand building. Creating meaningful connections through content." },
+            { "frank-martinez", "Engineering manager leading high-performing teams. Advocate for work-life balance and continuous improvement." },
+            { "grace-kim", "Content creator and photographer capturing moments that matter. Sharing stories through visuals." },
+            { "sarah-johnson", "Data scientist turning numbers into insights. Machine learning enthusiast and problem solver." },
+            { "mike-chen", "Full-stack developer building scalable web applications. Tech blogger and mentor." },
+            { "emily-davis", "Product designer crafting user-centered experiences. Passionate about accessibility and inclusive design." },
+            { "tom-wilson", "DevOps engineer automating all the things. Cloud infrastructure and CI/CD enthusiast." },
+            { "james-brown", "Entrepreneur building the next generation of productivity tools. Always innovating." },
+            { "lisa-taylor", "Business analyst bridging the gap between business and technology. Data-driven decision maker." },
+            { "david-park", "Solutions architect designing enterprise systems. Helping organizations scale and succeed." }
+        };
+
+        return bios.ContainsKey(ProfileSlug) 
+            ? bios[ProfileSlug] 
+            : "Professional dedicated to making a difference through technology and innovation.";
+    }
+
+    private int GetRandomStat(int min, int max)
+    {
+        // Generate consistent "random" value based on profile slug
+        var hash = ProfileSlug.GetHashCode();
+        var seed = Math.Abs(hash);
+        return min + (seed % (max - min));
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/wireframe-landing");
+    }
+
+    private void HandleFollow()
+    {
+        // TODO: Implement follow logic
+    }
+
+    private void HandleMessage()
+    {
+        // TODO: Implement message logic
+    }
+}

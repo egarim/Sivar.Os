@@ -1,0 +1,39 @@
+@using Sivar.Os.Client.Pages
+
+<div class="profile-main">
+    <MudAvatar Size="Size.Large" Class="profile-avatar" Style="width: 120px; height: 120px; font-size: 48px;">
+        @Initials
+    </MudAvatar>
+    <div class="profile-details">
+        <MudText Typo="Typo.h4" Class="profile-name">@DisplayName</MudText>
+        <MudText Typo="Typo.body1" Class="profile-username">@("@" + Username)</MudText>
+        <ProfileStats Stats="@Stats" />
+        <ProfileActions 
+            FollowButtonText="@FollowButtonText"
+            OnFollowClick="OnFollowClick"
+            OnMessageClick="OnMessageClick" />
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Username { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Initials { get; set; } = string.Empty;
+
+    [Parameter]
+    public Sivar.Os.Client.Pages.ProfileStats Stats { get; set; } = new();
+
+    [Parameter]
+    public string FollowButtonText { get; set; } = "Follow";
+
+    [Parameter]
+    public EventCallback OnFollowClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnMessageClick { get; set; }
+}

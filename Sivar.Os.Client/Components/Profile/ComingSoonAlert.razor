@@ -1,0 +1,17 @@
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="coming-soon-card">
+    <div class="coming-soon-header">
+        <MudIcon Icon="@Icons.Material.Filled.Rocket" Class="coming-soon-icon" />
+        <MudText Typo="Typo.subtitle1" Class="coming-soon-text">@Title</MudText>
+    </div>
+    <MudText Typo="Typo.body2" Class="coming-soon-subtext">
+        @Message
+    </MudText>
+</MudAlert>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Profile Features Coming Soon";
+
+    [Parameter]
+    public string Message { get; set; } = "Full profile details, activity feed, and customization options will be available soon.";
+}
