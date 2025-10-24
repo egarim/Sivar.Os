@@ -1,23 +1,29 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using MudBlazor.Services;
 using Sivar.Os.Client.Pages;
 using Sivar.Os.Client.Services;
 using Sivar.Os.Components;
-using Sivar.Os.Services;
-using Sivar.Os.Shared.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
-using Microsoft.EntityFrameworkCore;
 using Sivar.Os.Data.Context;
 using Sivar.Os.Data.Repositories;
+using Sivar.Os.Services;
+using Sivar.Os.Services.Clients;
+using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
+using Sivar.Server.Library.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+// Add memory cache for rate limiting
+builder.Services.AddMemoryCache();
 
 // --- Database Context ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -39,6 +45,44 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
+
+// --- Service Registration ---
+builder.Services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IProfileTypeService, ProfileTypeService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IReactionService, ReactionService>();
+builder.Services.AddScoped<IProfileFollowerService, ProfileFollowerService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ISavedResultService, SavedResultService>();
+
+// --- Utility Services Registration ---
+builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
+builder.Services.AddScoped<IFileUploadValidator, FileUploadValidator>();
+builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>();
+
+// --- AI & Vector Services Registration ---
+builder.Services.AddScoped<ChatFunctionService>();
+builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
+
+
+ builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+
+// --- Client Registration (Sivar.Os.Services.Clients) ---
+builder.Services.AddScoped<IAuthClient, AuthClient>();
+builder.Services.AddScoped<IUsersClient, UsersClient>();
+builder.Services.AddScoped<IProfilesClient, ProfilesClient>();
+builder.Services.AddScoped<IProfileTypesClient, ProfileTypesClient>();
+builder.Services.AddScoped<IPostsClient, PostsClient>();
+builder.Services.AddScoped<ICommentsClient, CommentsClient>();
+builder.Services.AddScoped<IReactionsClient, ReactionsClient>();
+builder.Services.AddScoped<IFollowersClient, FollowersClient>();
+builder.Services.AddScoped<INotificationsClient, NotificationsClient>();
+builder.Services.AddScoped<ISivarChatClient, ChatClient>();
+builder.Services.AddScoped<IFilesClient, FilesClient>();
 
 // --- Auth (Keycloak OIDC) ---
 var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080/realms/blazor-interactive";

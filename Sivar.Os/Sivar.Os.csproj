@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+   
     <ProjectReference Include="..\Sivar.Os.Data\Sivar.Os.Data.csproj" />
     <ProjectReference Include="..\Sivar.Os.Shared\Sivar.Os.Shared.csproj" />
     <ProjectReference Include="..\Sivar.Os.Client\Sivar.Os.Client.csproj" />
@@ -20,14 +21,22 @@
 	<ItemGroup>
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.AI" Version="9.0.1-preview.1.24570.5" />
-		<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.0.1-preview.1.24570.5" />
-		<PackageReference Include="Microsoft.Extensions.AI.Ollama" Version="9.0.1-preview.1.24570.5" />
-		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.0.1-preview.1.24570.5" />
+	
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.9.0" />
-		<PackageReference Include="System.Numerics.Tensors" Version="9.0.0" />
+		<PackageReference Include="System.Numerics.Tensors" Version="9.0.10" />
 	</ItemGroup>
+	<!--Microsoft.Extensions.AI-->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.AI" Version="9.0.1-preview.1.24570.5" />
+		<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.0.1-preview.1.24570.5" />
 
+		<!--Tensors for proximity search-->
+		<PackageReference Include="System.Numerics.Tensors" Version="9.0.0" />
+		<!-- Ollama Implementation -->
+		<PackageReference Include="Microsoft.Extensions.AI.Ollama" Version="9.0.1-preview.1.24570.5" />
+		<!-- OpenAi Implementation -->
+		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.0.1-preview.1.24570.5" />
+	</ItemGroup>
 
 </Project>
