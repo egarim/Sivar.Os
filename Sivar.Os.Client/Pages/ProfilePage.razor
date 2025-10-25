@@ -1,6 +1,10 @@
 @page "/profile/{ProfileSlug}"
+@layout LandingLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using MudBlazor
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Components.Layout
+@using Sivar.Os.Client.Components.Profile
 @inject NavigationManager Navigation
 
 <style>
@@ -327,7 +331,7 @@
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/wireframe-landing");
+        Navigation.NavigateTo("/");
     }
 
     private void HandleFollow()

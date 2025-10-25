@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace Sivar.Os.Shared.Entities;
 
 /// <summary>
@@ -39,7 +41,7 @@ public class ProfileType : BaseEntity
     /// <summary>
     /// Collection of profiles of this type
     /// </summary>
-    public virtual ICollection<Profile> Profiles { get; set; } = new List<Profile>();
+    public virtual ICollection<Profile> Profiles { get; set; } = new ObservableCollection<Profile>();
 
     /// <summary>
     /// Checks if a specific feature is enabled for this profile type

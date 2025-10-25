@@ -1904,7 +1904,9 @@
 
     private void ViewProfile(string author)
     {
-        // Navigate to profile or show profile modal
+        // Convert author name to URL-friendly slug (e.g., "Alice Doe" -> "alice-doe")
+        var profileSlug = author.ToLower().Replace(" ", "-");
+        Navigation.NavigateTo($"/profile/{profileSlug}");
     }
 
     private void LikeComment(PostSample post, PostComment comment)

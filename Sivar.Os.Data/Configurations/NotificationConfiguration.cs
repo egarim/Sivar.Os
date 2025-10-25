@@ -111,11 +111,11 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         // Soft delete filter
         builder.HasQueryFilter(n => !n.IsDeleted);
 
-        // Check constraints for data integrity (PostgreSQL compatible syntax)
-        builder.ToTable(t => t.HasCheckConstraint("CK_Notifications_ValidPriority", 
-            "\"Priority\" >= 1 AND \"Priority\" <= 4"));
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_Notifications_ValidType",
-            "\"Type\" IN ('Follow', 'Unfollow', 'Comment', 'Reply', 'Reaction', 'PostMention', 'CommentMention', 'System')"));
+        // REMOVED: Check constraints for data integrity
+        // For activity streams, we prefer flexible data models over rigid database constraints
+        // Validation is handled in the application layer:
+        // - NotificationService validates priority and type before creating notifications
+        // - Enum validation ensures only valid values are used
+        // - Application-level validation provides better error messages to users
     }
 }

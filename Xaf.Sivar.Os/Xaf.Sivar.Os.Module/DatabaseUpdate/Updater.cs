@@ -9,6 +9,7 @@ using DevExpress.Persistent.BaseImpl.EF;
 using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using Microsoft.Extensions.DependencyInjection;
 using Xaf.Sivar.Os.Module.BusinessObjects;
+using Sivar.Os.Shared.Entities;
 
 namespace Xaf.Sivar.Os.Module.DatabaseUpdate
 {
@@ -65,8 +66,13 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
                 });
             }
 
-            ObjectSpace.CommitChanges(); //This line persists created object(s).
+            ObjectSpace.CommitChanges(); //This line persists created object(s);
 #endif
+
+            // Seed profile types (runs in both DEBUG and RELEASE)
+            SeedProfileTypes();
+
+            ObjectSpace.CommitChanges(); //This line persists created object(s);
         }
         public override void UpdateDatabaseBeforeUpdateSchema()
         {
@@ -102,6 +108,89 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
                 defaultRole.AddTypePermissionsRecursively<ModelDifferenceAspect>(SecurityOperations.Create, SecurityPermissionState.Allow);
             }
             return defaultRole;
+        }
+
+        void SeedProfileTypes()
+        {
+            var personalProfileId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var businessProfileId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            var organizationProfileId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+            var now = DateTime.UtcNow;
+
+            // Personal Profile Type
+            var personalProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == personalProfileId);
+            if (personalProfileType == null)
+            {
+                personalProfileType = ObjectSpace.CreateObject<ProfileType>();
+                personalProfileType.Id = personalProfileId;
+                personalProfileType.Name = "PersonalProfile";
+                personalProfileType.DisplayName = "Personal Profile";
+                personalProfileType.Description = "A personal profile for individual users to share their information, interests, and bio.";
+                personalProfileType.IsActive = true;
+                personalProfileType.SortOrder = 1;
+                personalProfileType.FeatureFlags = @"{
+                ""AllowsDisplayName"": true,
+     ""AllowsBio"": true,
+   ""AllowsAvatar"": true,
+         ""AllowsLocation"": true,
+     ""AllowsBookings"": false,
+             ""AllowsProducts"": false,
+         ""AllowsContactInfo"": true,
+    ""MaxBioLength"": 1000
+     }";
+                personalProfileType.CreatedAt = now;
+                personalProfileType.UpdatedAt = now;
+            }
+
+            // Business Profile Type
+            var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileId);
+            if (businessProfileType == null)
+            {
+                businessProfileType = ObjectSpace.CreateObject<ProfileType>();
+                businessProfileType.Id = businessProfileId;
+                businessProfileType.Name = "BusinessProfile";
+                businessProfileType.DisplayName = "Business Profile";
+                businessProfileType.Description = "A business profile for companies and professional services.";
+                businessProfileType.IsActive = true;
+                businessProfileType.SortOrder = 2;
+                businessProfileType.FeatureFlags = @"{
+       ""AllowsDisplayName"": true,
+  ""AllowsBio"": true,
+        ""AllowsAvatar"": true,
+""AllowsLocation"": true,
+     ""AllowsBookings"": true,
+   ""AllowsProducts"": true,
+       ""AllowsContactInfo"": true,
+          ""MaxBioLength"": 2000
+            }";
+                businessProfileType.CreatedAt = now;
+                businessProfileType.UpdatedAt = now;
+            }
+
+            // Organization Profile Type
+            var organizationProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == organizationProfileId);
+            if (organizationProfileType == null)
+            {
+                organizationProfileType = ObjectSpace.CreateObject<ProfileType>();
+                organizationProfileType.Id = organizationProfileId;
+                organizationProfileType.Name = "OrganizationProfile";
+                organizationProfileType.DisplayName = "Organization Profile";
+                organizationProfileType.Description = "An organization profile for groups, non-profits, and institutions.";
+                organizationProfileType.IsActive = true;
+                organizationProfileType.SortOrder = 3;
+                organizationProfileType.FeatureFlags = @"{
+                ""AllowsDisplayName"": true,
+              ""AllowsBio"": true,
+                   ""AllowsAvatar"": true,
+                      ""AllowsLocation"": true,
+                ""AllowsBookings"": false,
+                      ""AllowsProducts"": false,
+                        ""AllowsContactInfo"": true,
+                   ""MaxBioLength"": 2000
+            }";
+                organizationProfileType.CreatedAt = now;
+                organizationProfileType.UpdatedAt = now;
+            }
         }
     }
 }

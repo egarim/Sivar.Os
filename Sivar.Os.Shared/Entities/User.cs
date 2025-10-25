@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Sivar.Os.Shared.Enums;
 
 namespace Sivar.Os.Shared.Entities;
@@ -65,7 +66,7 @@ public class User : BaseEntity
     /// <summary>
     /// Collection of profiles owned by this user
     /// </summary>
-    public virtual ICollection<Profile> Profiles { get; set; } = new List<Profile>();
+    public virtual ICollection<Profile> Profiles { get; set; } = new ObservableCollection<Profile>();
 
     /// <summary>
     /// Full name derived from first and last names

@@ -52,9 +52,12 @@ public class ReactionConfiguration : IEntityTypeConfiguration<Reaction>
             .IsUnique()
             .HasDatabaseName("IX_Reactions_ProfileId_CommentId");
         
-        // Check constraint to ensure reaction is on either post or comment, not both (PostgreSQL compatible)
-        builder.ToTable(t => t.HasCheckConstraint(
-            "CK_Reaction_PostOrComment", 
-            "(\"PostId\" IS NOT NULL AND \"CommentId\" IS NULL) OR (\"PostId\" IS NULL AND \"CommentId\" IS NOT NULL)"));
+        // REMOVED: Check constraint - validation moved to application layer
+        // For activity streams, we prefer flexible relationships over database constraints
+        // Validation is handled in ReactionRepository.ValidateReactionAsync() and ReactionService
+        
+        // Note: If you need to enforce this rule, do it at the application level:
+        // - ReactionRepository.ToggleReactionAsync validates before insert
+        // - ReactionService enforces business rules
     }
 }

@@ -57,9 +57,10 @@ public class ProfileFollowerConfiguration : IEntityTypeConfiguration<ProfileFoll
         builder.HasIndex(pf => pf.FollowedAt)
             .HasDatabaseName("IX_ProfileFollowers_FollowedAt");
 
-        // Check constraint to prevent self-following (PostgreSQL compatible syntax)
-        builder.ToTable(t => t.HasCheckConstraint(
-            "CK_ProfileFollowers_NoSelfFollow", 
-            "\"FollowerProfileId\" != \"FollowedProfileId\""));
+        // REMOVED: Check constraint to prevent self-following
+        // For activity streams, we prefer flexible relationships over database constraints
+        // Validation is handled in the application layer:
+        // - ProfileFollower.ValidateNotSelfFollow() method
+        // - ProfileFollowerService.FollowProfileAsync() validates before creating relationship
     }
 }

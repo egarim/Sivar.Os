@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Sivar.Os.Shared.DTOs.ValueObjects;
@@ -67,17 +68,17 @@ public class Post : BaseEntity
     /// <summary>
     /// Media attachments (images, videos, links)
     /// </summary>
-    public virtual ICollection<PostAttachment> Attachments { get; set; } = new List<PostAttachment>();
+    public virtual ICollection<PostAttachment> Attachments { get; set; } = new ObservableCollection<PostAttachment>();
 
     /// <summary>
     /// Comments on this post
     /// </summary>
-    public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public virtual ICollection<Comment> Comments { get; set; } = new ObservableCollection<Comment>();
 
     /// <summary>
     /// Reactions (likes, etc.) on this post
     /// </summary>
-    public virtual ICollection<Reaction> Reactions { get; set; } = new List<Reaction>();
+    public virtual ICollection<Reaction> Reactions { get; set; } = new ObservableCollection<Reaction>();
 
     /// <summary>
     /// Number of times this post has been viewed

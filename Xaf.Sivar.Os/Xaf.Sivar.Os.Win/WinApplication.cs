@@ -43,6 +43,7 @@ namespace Xaf.Sivar.Os.Win
 #else
             if (System.Diagnostics.Debugger.IsAttached)
             {
+                
                 e.Updater.Update();
                 e.Handled = true;
             }
