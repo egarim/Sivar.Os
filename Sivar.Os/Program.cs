@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using MudBlazor.Services;
+using OpenAI;
 using Sivar.Os.Client.Pages;
 using Sivar.Os.Client.Services;
 using Sivar.Os.Components;
@@ -12,12 +14,12 @@ using Sivar.Os.Data.Context;
 using Sivar.Os.Data.Repositories;
 using Sivar.Os.Services;
 using Sivar.Os.Services.Clients;
+using Sivar.Os.Shared;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 using Sivar.Server.Library.Services;
-using Microsoft.Extensions.AI;
-using OpenAI;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,10 @@ builder.Services.AddMudServices();
 
 // Add memory cache for rate limiting
 builder.Services.AddMemoryCache();
+
+// --- JWT Claim Mapping Configuration ---
+// MUST be set BEFORE AddAuthentication to prevent WS-Fed claim URI wrapping
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // --- Database Context ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -130,6 +136,9 @@ builder.Services.AddScoped<INotificationsClient, NotificationsClient>();
 builder.Services.AddScoped<ISivarChatClient, ChatClient>();
 builder.Services.AddScoped<IFilesClient, FilesClient>();
 
+// Register the aggregate SivarClient
+builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();
+
 // --- Auth (Keycloak OIDC) ---
 var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080/realms/blazor-interactive";
 var metadata = builder.Configuration["Keycloak:MetadataAddress"] ?? $"{authority}/.well-known/openid-configuration";
@@ -140,6 +149,9 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+
+    //TODO : Check if needed to disable claim mapping
+    //JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 })
 .AddCookie(options =>
 {
@@ -200,11 +212,24 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.SaveTokens = true;
     options.GetClaimsFromUserInfoEndpoint = true;
+    
+    // ⭐ CRITICAL: Prevent WS-Fed claim URI wrapping
+    // This ensures claims like "email" stay as "email" instead of becoming
+    // "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+    options.MapInboundClaims = false;
+    
     options.Scope.Clear();
     options.Scope.Add("openid");
     options.Scope.Add("profile");
     options.Scope.Add("email");
-    options.TokenValidationParameters.ValidateIssuer = false; // For dev with http
+    
+    // Configure token validation parameters for proper claim handling
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        NameClaimType = "preferred_username",
+        RoleClaimType = "roles",
+        ValidateIssuer = false // For dev with http
+    };
     
     // Handle post-logout redirect
     options.Events = new OpenIdConnectEvents
@@ -227,6 +252,66 @@ builder.Services.AddAuthentication(options =>
             }
             
             return Task.CompletedTask;
+        },
+        OnTokenValidated = async context =>
+        {
+            // After successful Keycloak authentication, create user and profile in our database
+            var keycloakId = context.Principal?.FindFirst("sub")?.Value;
+            var email = context.Principal?.FindFirst("email")?.Value 
+                     ?? context.Principal?.FindFirst("preferred_username")?.Value;
+            var firstName = context.Principal?.FindFirst("given_name")?.Value ?? "";
+            var lastName = context.Principal?.FindFirst("family_name")?.Value ?? "";
+            
+            if (!string.IsNullOrEmpty(keycloakId))
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+                
+                try
+                {
+                    // Get the user authentication service
+                    var authService = context.HttpContext.RequestServices
+                        .GetRequiredService<IUserAuthenticationService>();
+                    
+                    var authInfo = new UserAuthenticationInfo
+                    {
+                        Email = email ?? "",
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Role = "RegisteredUser"
+                    };
+                    
+                    // Create user and default profile if needed
+                    var result = await authService.AuthenticateUserAsync(keycloakId, authInfo);
+                    
+                    if (result.IsSuccess)
+                    {
+                        if (result.IsNewUser)
+                        {
+                            logger.LogInformation(
+                                "New user {Email} created with ID {UserId} and profile {ProfileId}",
+                                email, result.User?.Id, result.ActiveProfile?.Id);
+                        }
+                        else
+                        {
+                            logger.LogInformation(
+                                "Existing user {Email} authenticated with profile {ProfileId}",
+                                email, result.ActiveProfile?.Id);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogError(
+                            "Failed to authenticate user {Email}: {Error}", 
+                            email, result.ErrorMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, 
+                        "Exception during user authentication for {Email}", email);
+                }
+            }
         },
         OnSignedOutCallbackRedirect = context =>
         {

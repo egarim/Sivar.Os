@@ -16,4 +16,9 @@ public interface IAuthClient
     /// Get current authentication status
     /// </summary>
     Task<object> GetStatusAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Authenticate user and create user/profile if needed after Keycloak login
+    /// </summary>
+    Task<UserAuthenticationResult> AuthenticateUserAsync(string keycloakId, UserAuthenticationInfo authInfo, CancellationToken cancellationToken = default);
 }

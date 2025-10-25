@@ -23,4 +23,9 @@ public class AuthClient : BaseClient, IAuthClient
     {
         return await GetAsync<object>($"{BaseRoute}/status", cancellationToken);
     }
+
+    public async Task<UserAuthenticationResult> AuthenticateUserAsync(string keycloakId, UserAuthenticationInfo authInfo, CancellationToken cancellationToken = default)
+    {
+        return await PostAsync<UserAuthenticationResult>($"authentication/authenticate/{keycloakId}", authInfo, cancellationToken);
+    }
 }

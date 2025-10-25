@@ -78,4 +78,40 @@ public class AuthClient : BaseRepositoryClient, IAuthClient
             return new { isAuthenticated = false, error = "Status check failed" };
         }
     }
+
+    /// <summary>
+    /// Authenticate user and create user/profile if needed after Keycloak login
+    /// </summary>
+    public async Task<UserAuthenticationResult> AuthenticateUserAsync(string keycloakId, UserAuthenticationInfo authInfo, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Authenticating user via client: KeycloakId={KeycloakId}, Email={Email}",
+                keycloakId, authInfo.Email);
+
+            var result = await _userAuthenticationService.AuthenticateUserAsync(keycloakId, authInfo);
+
+            if (result.IsSuccess && result.IsNewUser)
+            {
+                _logger.LogInformation(
+                    "New user created via client: UserId={UserId}, Email={Email}",
+                    result.User?.Id, authInfo.Email);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error authenticating user via client: KeycloakId={KeycloakId}, Email={Email}",
+                keycloakId, authInfo.Email);
+            
+            return new UserAuthenticationResult
+            {
+                IsSuccess = false,
+                ErrorMessage = "An error occurred while authenticating the user"
+            };
+        }
+    }
 }

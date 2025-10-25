@@ -13,9 +13,15 @@
 @using Sivar.Os.Client.Components.Stats
 @using Sivar.Os.Client.Components.Pagination
 @using Sivar.Os.Client.Components.AIChat
+@using Sivar.Os.Client.Layout
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.Services
+@using Sivar.Os.Shared
+@using System.Security.Claims
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISivarClient SivarClient
 @implements IAsyncDisposable
 
 <style>
@@ -1759,7 +1765,169 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Ensure user and profile are created after Keycloak login
+        await EnsureUserAndProfileCreatedAsync();
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Fallback approach: ensure user and profile are created after successful Keycloak login
+    /// This is called on home page load after authentication
+    /// </summary>
+    private async Task EnsureUserAndProfileCreatedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (!user.Identity?.IsAuthenticated ?? true)
+            {
+                return; // User not authenticated, nothing to do
+            }
+
+            // Extract Keycloak claims using helper method
+            var (keycloakId, email, firstName, lastName) = ExtractKeycloakClaims(user);
+
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                Console.WriteLine("[Home] Missing required claim 'sub' (subject identifier)");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(email))
+            {
+                Console.WriteLine("[Home] Missing required claim 'email' or 'preferred_username'");
+                return;
+            }
+
+            Console.WriteLine("[Home] Attempting to create user/profile if needed");
+
+            // Call authentication service via SivarClient
+            var authInfo = new UserAuthenticationInfo
+            {
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName,
+                Role = "RegisteredUser"
+            };
+
+            var result = await SivarClient.Auth.AuthenticateUserAsync(keycloakId, authInfo);
+            
+            if (result.IsSuccess)
+            {
+                if (result.IsNewUser)
+                {
+                    Console.WriteLine($"[Home] New user and profile created for {email}");
+                }
+                else
+                {
+                    Console.WriteLine($"[Home] Existing user authenticated: {email}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[Home] Authentication failed for {email}: {result.ErrorMessage}");
+                Console.WriteLine($"[Home] IsSuccess: {result.IsSuccess}, IsNewUser: {result.IsNewUser}");
+                Console.WriteLine($"[Home] User ID: {result.User?.Id}, Profile ID: {result.ActiveProfile?.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error ensuring user/profile created: {ex.Message}");
+            // Don't throw - this is a best-effort operation
+        }
+    }
+
+    /// <summary>
+    /// Helper method to extract and log Keycloak claims for debugging
+    /// </summary>
+    private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
+    {
+        Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
+        foreach (var claim in user.Claims)
+        {
+            Console.WriteLine($"  {claim.Type}: {claim.Value}");
+        }
+
+        string? keycloakId = user.FindFirst("sub")?.Value
+                          ?? user.FindFirst("user_id")?.Value
+                          ?? user.FindFirst("id")?.Value;
+
+        string? email = user.FindFirst("email")?.Value
+                     ?? user.FindFirst("preferred_username")?.Value
+                     ?? user.FindFirst("upn")?.Value;
+
+        string firstName = user.FindFirst("given_name")?.Value
+                        ?? user.FindFirst("firstName")?.Value
+                        ?? user.FindFirst("name")?.Value
+                        ?? "";
+
+        string lastName = user.FindFirst("family_name")?.Value
+                       ?? user.FindFirst("lastName")?.Value
+                       ?? user.FindFirst("surname")?.Value
+                       ?? "";
+
+        Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+        return (keycloakId, email, firstName, lastName);
+    }
+
+    
+    
+    // private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
+    // {
+    //     Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
+    //     foreach (var claim in user.Claims)
+    //     {
+    //         Console.WriteLine($"  {claim.Type}: {claim.Value}");
+    //     }
+
+    //     // Standard OIDC claims
+    //     var keycloakId = user.FindFirst("sub")?.Value; // Subject - unique user identifier
+    //     var email = user.FindFirst("email")?.Value 
+    //              ?? user.FindFirst("preferred_username")?.Value; // Fallback to username
+    //     var firstName = user.FindFirst("given_name")?.Value ?? "";
+    //     var lastName = user.FindFirst("family_name")?.Value ?? "";
+
+    //     // Log what we extracted
+    //     Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+
+    //     return (keycloakId, email, firstName, lastName);
+    // }
+
+    /// <summary>
+    /// Temporary debugging method - call this from browser console to see current claims
+    /// </summary>
+    [JSInvokable]
+    public void DebugCurrentClaims()
+    {
+        try
+        {
+            var authState = AuthStateProvider.GetAuthenticationStateAsync().Result;
+            var user = authState.User;
+            
+            Console.WriteLine("[Home] === DEBUG: Current User Claims ===");
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                Console.WriteLine($"Authenticated: YES");
+                Console.WriteLine($"Name: {user.Identity.Name}");
+                Console.WriteLine($"Authentication Type: {user.Identity.AuthenticationType}");
+                Console.WriteLine("Claims:");
+                foreach (var claim in user.Claims)
+                {
+                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Authenticated: NO");
+            }
+            Console.WriteLine("[Home] === END DEBUG ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Debug error: {ex.Message}");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1769,6 +1937,10 @@
             try
             {
                 await JS.InvokeVoidAsync("eval", "document.body.classList.add('wireframe-landing-page')");
+                
+                // Register debug method for browser console access
+                await JS.InvokeVoidAsync("eval", "window.homePageDebug = () => DotNet.invokeMethodAsync('Home', 'DebugCurrentClaims')");
+                
                 _bodyClassApplied = true;
             }
             catch

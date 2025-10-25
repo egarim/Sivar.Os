@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Controllers;
 
@@ -9,10 +10,14 @@ namespace Sivar.Os.Controllers;
 public class AuthenticationController : ControllerBase
 {
     private readonly ILogger<AuthenticationController> _logger;
+    private readonly IUserAuthenticationService _userAuthenticationService;
 
-    public AuthenticationController(ILogger<AuthenticationController> logger)
+    public AuthenticationController(
+        ILogger<AuthenticationController> logger,
+        IUserAuthenticationService userAuthenticationService)
     {
         _logger = logger;
+        _userAuthenticationService = userAuthenticationService;
     }
     [HttpGet("login")]
     public IActionResult Login(string returnUrl = "/")
@@ -90,5 +95,70 @@ public class AuthenticationController : ControllerBase
 
             _logger.LogInformation("User NOT authenticated in GetProfile response.");
         return Ok(new { isAuthenticated = false });
+    }
+
+    /// <summary>
+    /// Authenticate user and auto-create user/profile if needed after Keycloak login
+    /// This endpoint is called from the client-side Home page as a fallback approach
+    /// </summary>
+    [HttpPost("authenticate/{keycloakId}")]
+    public async Task<IActionResult> AuthenticateUser(string keycloakId, [FromBody] UserAuthenticationInfo authInfo)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Authenticating user: KeycloakId={KeycloakId}, Email={Email}, Name={FirstName} {LastName}",
+                keycloakId, authInfo.Email, authInfo.FirstName, authInfo.LastName);
+
+            var result = await _userAuthenticationService.AuthenticateUserAsync(keycloakId, authInfo);
+
+            if (result.IsSuccess)
+            {
+                if (result.IsNewUser)
+                {
+                    _logger.LogInformation(
+                        "New user created: UserId={UserId}, ProfileId={ProfileId}, Email={Email}",
+                        result.User?.Id, result.ActiveProfile?.Id, authInfo.Email);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Existing user authenticated: UserId={UserId}, Email={Email}",
+                        result.User?.Id, authInfo.Email);
+                }
+
+                return Ok(new
+                {
+                    result.IsSuccess,
+                    result.IsNewUser,
+                    UserId = result.User?.Id,
+                    ProfileId = result.ActiveProfile?.Id
+                });
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "User authentication failed: KeycloakId={KeycloakId}, Error={Error}",
+                    keycloakId, result.ErrorMessage);
+                
+                return BadRequest(new
+                {
+                    result.IsSuccess,
+                    result.ErrorMessage
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error authenticating user: KeycloakId={KeycloakId}, Email={Email}",
+                keycloakId, authInfo.Email);
+            
+            return StatusCode(500, new
+            {
+                IsSuccess = false,
+                ErrorMessage = "An error occurred while authenticating the user"
+            });
+        }
     }
 }
