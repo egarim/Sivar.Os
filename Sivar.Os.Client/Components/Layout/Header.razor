@@ -14,10 +14,25 @@
     </div>
     <div class="user-info">
         <div class="user-details">
-            <div class="user-name">@UserName</div>
-            <div class="user-email">@UserEmail</div>
+            @if (IsLoading)
+            {
+                <MudSkeleton SkeletonType="SkeletonType.Text" Width="80px" Height="16px" Class="mb-2" />
+                <MudSkeleton SkeletonType="SkeletonType.Text" Width="120px" Height="14px" />
+            }
+            else
+            {
+                <div class="user-name">@UserName</div>
+                <div class="user-email">@UserEmail</div>
+            }
         </div>
-        <div class="user-avatar">@UserInitials</div>
+        @if (IsLoading)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="40px" Height="40px" />
+        }
+        else
+        {
+            <div class="user-avatar">@UserInitials</div>
+        }
         
         @if (ShowThemeToggle)
         {
@@ -45,16 +60,34 @@
     public string UserName { get; set; } = "Jordan Doe";
 
     /// <summary>
+    /// Callback when user name changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> UserNameChanged { get; set; }
+
+    /// <summary>
     /// User's email address
     /// </summary>
     [Parameter]
     public string UserEmail { get; set; } = "jordan.doe@example.com";
 
     /// <summary>
+    /// Callback when user email changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> UserEmailChanged { get; set; }
+
+    /// <summary>
     /// User's initials for avatar
     /// </summary>
     [Parameter]
     public string UserInitials { get; set; } = "JD";
+
+    /// <summary>
+    /// Whether the user data is still loading
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; } = true;
 
     /// <summary>
     /// Currently selected profile type

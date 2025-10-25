@@ -1,4 +1,5 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.DTOs
 @using MudBlazor
 
 @* PostComments component *@
@@ -17,12 +18,12 @@
                 @foreach (var comment in Comments)
                 {
                     <CommentItem 
-                        Author="@comment.Author"
-                        AuthorInitials="@comment.AuthorInitials"
-                        Text="@comment.Text"
-                        Time="@comment.Time"
-                        Likes="@comment.Likes"
-                        OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Author))" />
+                        Author="@comment.Profile?.DisplayName"
+                        AuthorInitials="@GetInitials(comment.Profile?.DisplayName)"
+                        Text="@comment.Content"
+                        Time="@comment.CreatedAt"
+                        Likes="@(comment.ReactionSummary?.TotalReactions ?? 0)"
+                        OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Profile?.DisplayName ?? string.Empty))" />
                 }
             </div>
         }
@@ -34,7 +35,7 @@
     /// List of comments
     /// </summary>
     [Parameter]
-    public List<PostComment>? Comments { get; set; }
+    public List<CommentDto>? Comments { get; set; }
 
     /// <summary>
     /// Whether comments are shown
@@ -53,4 +54,10 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnCommentAuthorClick { get; set; }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
 }

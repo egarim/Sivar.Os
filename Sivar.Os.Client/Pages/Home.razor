@@ -17,6 +17,8 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.Services
 @using Sivar.Os.Shared
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
 @using System.Security.Claims
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
@@ -1634,8 +1636,10 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
     <Header @bind-ProfileType="@_profileType"
-            UserName="Jordan Doe"
-            UserEmail="jordan.doe@example.com"
+            @bind-UserName="@_userName"
+            @bind-UserEmail="@_userEmail"
+            UserInitials="@GetUserInitials()"
+            IsLoading="@_isUserLoading"
             ShowThemeToggle="true"
             ShowLogout="true"
             ThemeIcon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Outlined.DarkMode)"
@@ -1660,7 +1664,7 @@
                           @bind-ScheduledDate="@_scheduledDate"
                           @bind-ScheduledTime="@_scheduledTime"
                           @bind-ScheduledLocation="@_scheduledLocation"
-                          OnPublish="@(() => HandlePostSubmit())" />
+                          OnPublish="@(() => HandlePostSubmitAsync())" />
 
             @foreach (var post in _posts)
             {
@@ -1722,6 +1726,13 @@
     // Profile & UI State
     private string _profileType = "personal";
     private bool _bodyClassApplied;
+    
+    // Header - User Info
+    private string _userName = "Loading...";
+    private string _userEmail = "Loading...";
+    private bool _isUserLoading = true;
+    private Guid _currentUserId;
+    private Guid _currentProfileId;
 
     // Post Composer
     private string _selectedPostType = "general";
@@ -1734,7 +1745,7 @@
     private List<ComposerAttachmentOption> _attachmentOptions = new();
 
     // Feed & Pagination
-    private List<PostSample> _posts = new();
+    private List<PostDto> _posts = new();
     private int _currentPage = 1;
     private int _totalPages = 12;
 
@@ -1750,7 +1761,7 @@
     private List<SavedResultItem> _savedResults = new();
 
     // Who to Follow
-    private List<UserSample> _suggestedUsers = new();
+    private List<ProfileDto> _suggestedUsers = new();
 
     // AI Chat State
     private bool _chatOpen;
@@ -1767,7 +1778,21 @@
     {
         // Ensure user and profile are created after Keycloak login
         await EnsureUserAndProfileCreatedAsync();
-        await Task.CompletedTask;
+        
+        // Load current user info
+        await LoadCurrentUserAsync();
+        
+        // Load profile types
+        await LoadProfileTypesAsync();
+        
+        // Load initial feed posts
+        await LoadFeedPostsAsync();
+        
+        // Load user statistics
+        await LoadUserStatsAsync();
+        
+        // Notify Blazor that component state has changed so it re-renders with loaded data
+        StateHasChanged();
     }
 
     /// <summary>
@@ -1980,47 +2005,11 @@
 
     private void InitializeSampleData()
     {
-        _suggestedUsers = new List<UserSample>
+        _suggestedUsers = new List<ProfileDto>
         {
-            new("Alice Johnson", "Designer & art enthusiast 🎨", false),
-            new("Bob Smith", "Software engineer", false),
-            new("Carol White", "Marketing professional", false)
-        };
-
-        _posts = new List<PostSample>
-        {
-            new()
-            {
-                Author = "Sarah Chen",
-                Content = "Just launched our new app! Check it out and let me know what you think. 🚀",
-                Type = "product",
-                Time = DateTime.Now.AddHours(-2),
-                Likes = 42,
-                Comments = 8,
-                Shares = 5,
-                Metadata = { new("Status", "Available"), new("Price", "Free") },
-                Reactions = { new("👍", 15), new("🎉", 12), new("🔥", 10), new("❤️", 5) },
-                CommentsList =
-                {
-                    new("Mike Ross", "This looks amazing! Can't wait to try it.", DateTime.Now.AddHours(-1)) { Likes = 3 },
-                    new("Emma Wilson", "Love the UI design!", DateTime.Now.AddMinutes(-30)) { Likes = 2 }
-                }
-            },
-            new()
-            {
-                Author = "David Martinez",
-                Content = "Looking for recommendations on local pizza places. Any favorites? 🍕",
-                Type = "general",
-                Time = DateTime.Now.AddHours(-4),
-                Likes = 23,
-                Comments = 15,
-                Shares = 2,
-                Reactions = { new("🍕", 8), new("👍", 7), new("😋", 6) },
-                CommentsList =
-                {
-                    new("Lisa Anderson", "Try Joe's Pizza on 5th street!", DateTime.Now.AddHours(-3)) { Likes = 5 }
-                }
-            }
+            new() { Id = Guid.NewGuid(), DisplayName = "Alice Johnson", Bio = "Designer & art enthusiast 🎨", Avatar = "AJ" },
+            new() { Id = Guid.NewGuid(), DisplayName = "Bob Smith", Bio = "Software engineer", Avatar = "BS" },
+            new() { Id = Guid.NewGuid(), DisplayName = "Carol White", Bio = "Marketing professional", Avatar = "CW" }
         };
 
         // Initialize first conversation
@@ -2034,40 +2023,28 @@
     {
         if (string.IsNullOrWhiteSpace(_postText)) return;
 
-        var newPost = new PostSample
-        {
-            Author = "Jordan Doe",
-            Content = _postText,
-            Type = _selectedPostType,
-            Time = DateTime.Now,
-            Likes = 0,
-            Comments = 0,
-            Shares = 0
-        };
-
-        _posts.Insert(0, newPost);
-        _postText = string.Empty;
+        // This will now be handled by HandlePostSubmitAsync API call
+        // Remove the old mock implementation
     }
 
-    private void ToggleLike(PostSample post)
+    private void ToggleLike(PostDto post)
     {
-        post.Liked = !post.Liked;
-        post.Likes += post.Liked ? 1 : -1;
+        // This will be handled by API reaction toggle
     }
 
-    private void ToggleComments(PostSample post)
+    private void ToggleComments(PostDto post)
     {
-        post.ShowComments = !post.ShowComments;
+        // Comments will be loaded from API
     }
 
-    private void SharePost(PostSample post)
+    private void SharePost(PostDto post)
     {
-        post.Shares++;
+        // This will be handled by API
     }
 
-    private void SavePost(PostSample post)
+    private void SavePost(PostDto post)
     {
-        var savedItem = new SavedResultItem($"Post by {post.Author}", "Post");
+        var savedItem = new SavedResultItem($"Post by {post.Profile?.DisplayName}", "Post");
         if (!_savedResults.Any(r => r.Title == savedItem.Title))
         {
             _savedResults.Add(savedItem);
@@ -2081,9 +2058,9 @@
         Navigation.NavigateTo($"/profile/{profileSlug}");
     }
 
-    private void LikeComment(PostSample post, PostComment comment)
+    private void LikeComment(PostDto post, PostComment comment)
     {
-        comment.Likes++;
+        // This will be handled by API
     }
 
     // Pagination
@@ -2136,18 +2113,9 @@
     }
 
     // Who to Follow
-    private void ToggleFollow(UserSample user)
+    private void ToggleFollow(ProfileDto user)
     {
-        user.IsFollowing = !user.IsFollowing;
-
-        if (user.IsFollowing)
-        {
-            _stats.Following++;
-        }
-        else
-        {
-            _stats.Following--;
-        }
+        // This will be handled by API follow/unfollow
     }
 
     private void ViewAllSuggestions()
@@ -2496,6 +2464,249 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         catch
         {
             // ignore cleanup failures
+        }
+    }
+
+    // ============================================
+    // PHASE 1: LOAD REAL DATA FROM API
+    // ============================================
+
+    /// <summary>
+    /// Load current user info from API
+    /// </summary>
+    private async Task LoadCurrentUserAsync()
+    {
+        try
+        {
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] 📍 START: LoadCurrentUserAsync");
+            Console.WriteLine("[HOME-CLIENT] Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+            
+            _isUserLoading = true;
+            StateHasChanged();
+            
+            // Load user information
+            Console.WriteLine("[HOME-CLIENT] 🔄 Calling SivarClient.Users.GetMeAsync()...");
+            var userDto = await SivarClient.Users.GetMeAsync();
+            
+            if (userDto != null)
+            {
+                _userName = $"{userDto.FirstName} {userDto.LastName}".Trim();
+                _userEmail = userDto.Email ?? "no-email";
+                _currentUserId = userDto.Id;
+                
+                Console.WriteLine("[HOME-CLIENT] ✅ User DTO Received:");
+                Console.WriteLine($"[HOME-CLIENT]   - ID: {userDto.Id}");
+                Console.WriteLine($"[HOME-CLIENT]   - First Name: {userDto.FirstName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Last Name: {userDto.LastName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Email: {userDto.Email}");
+                Console.WriteLine($"[HOME-CLIENT]   - Full Name: {_userName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Combined Email: {_userEmail}");
+                
+                // Also load the active profile to get profile-specific data
+                Console.WriteLine("[HOME-CLIENT] 🔄 Calling SivarClient.Profiles.GetMyActiveProfileAsync()...");
+                try
+                {
+                    var activeProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+                    
+                    if (activeProfile != null)
+                    {
+                        // Use profile's display name if available, otherwise use user's full name
+                        if (!string.IsNullOrWhiteSpace(activeProfile.DisplayName))
+                        {
+                            _userName = activeProfile.DisplayName;
+                        }
+                        
+                        _currentProfileId = activeProfile.Id;
+                        
+                        Console.WriteLine("[HOME-CLIENT] ✅ Active Profile DTO Received:");
+                        Console.WriteLine($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
+                        Console.WriteLine($"[HOME-CLIENT]   - DisplayName: {activeProfile.DisplayName}");
+                        Console.WriteLine($"[HOME-CLIENT]   - Avatar: {activeProfile.Avatar}");
+                        Console.WriteLine($"[HOME-CLIENT]   - LocationDisplay: {activeProfile.LocationDisplay}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[HOME-CLIENT] ⚠️  Active Profile DTO is NULL!");
+                    }
+                }
+                catch (Exception profileEx)
+                {
+                    Console.WriteLine($"[HOME-CLIENT] ⚠️  Error loading active profile (non-fatal): {profileEx.Message}");
+                    // Continue with user data even if profile loading fails
+                }
+                
+                // Update UI with user data
+                _isUserLoading = false;
+                StateHasChanged();
+                
+                Console.WriteLine("[HOME-CLIENT] ✅ StateHasChanged() called");
+                Console.WriteLine("[HOME-CLIENT] ✅ User loaded successfully!");
+            }
+            else
+            {
+                Console.WriteLine("[HOME-CLIENT] ⚠️  User DTO is NULL!");
+                _isUserLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[HOME-CLIENT] ❌ ERROR in LoadCurrentUserAsync:");
+            Console.WriteLine($"[HOME-CLIENT]   Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[HOME-CLIENT]   Message: {ex.Message}");
+            Console.WriteLine($"[HOME-CLIENT]   Stack Trace: {ex.StackTrace}");
+            
+            _userName = "Error Loading";
+            _userEmail = "Check console";
+            _isUserLoading = false;
+            StateHasChanged();
+        }
+        finally
+        {
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] 📍 END: LoadCurrentUserAsync");
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+        }
+    }
+
+    /// <summary>
+    /// Get user initials from display name for avatar
+    /// </summary>
+    private string GetUserInitials()
+    {
+        if (string.IsNullOrEmpty(_userName)) return "?";
+        var parts = _userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
+        return $"{parts[0][0]}{parts[parts.Length - 1][0]}".ToUpper();
+    }
+
+    /// <summary>
+    /// Load available profile types from API
+    /// </summary>
+    private async Task LoadProfileTypesAsync()
+    {
+        try
+        {
+            Console.WriteLine("[Home] Loading profile types...");
+            var profileTypes = await SivarClient.ProfileTypes.GetActiveProfileTypesAsync();
+            
+            if (profileTypes != null && profileTypes.Any())
+            {
+                Console.WriteLine($"[Home] Loaded {profileTypes.Count()} profile types");
+                // Profile type dropdown can be updated here if needed
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error loading profile types: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Load feed posts from API
+    /// </summary>
+    private async Task LoadFeedPostsAsync()
+    {
+        try
+        {
+            Console.WriteLine($"[Home] Loading feed posts (page {_currentPage})...");
+            var posts = await SivarClient.Posts.GetFeedPostsAsync(pageSize: 10, pageNumber: _currentPage);
+            
+            if (posts != null && posts.Any())
+            {
+                // Use PostDto directly - no mapping needed!
+                _posts = posts.ToList();
+                
+                Console.WriteLine($"[Home] Loaded {_posts.Count} posts");
+                _totalPages = (int)Math.Ceiling(_posts.Count / 10.0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error loading feed posts: {ex.Message}");
+            // Keep empty list as fallback
+        }
+    }
+
+    /// <summary>
+    /// Load user statistics from API
+    /// </summary>
+    private async Task LoadUserStatsAsync()
+    {
+        try
+        {
+            Console.WriteLine("[Home] Loading user statistics...");
+            
+            // Get follower stats
+            var followerStats = await SivarClient.Followers.GetStatsAsync();
+            
+            if (followerStats != null)
+            {
+                _stats = new StatsSummary
+                {
+                    Followers = followerStats.FollowersCount,
+                    Following = followerStats.FollowingCount,
+                    Reach = 0,  // Will be calculated from posts
+                    ResponseRate = 100  // Default to 100%
+                };
+                Console.WriteLine($"[Home] Stats loaded: {_stats.Followers} followers, {_stats.Following} following");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error loading user statistics: {ex.Message}");
+            // Keep default mock values as fallback
+        }
+    }
+
+    /// <summary>
+    /// Handle post submission - create new post via API
+    /// </summary>
+    private async Task HandlePostSubmitAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_postText))
+            {
+                Console.WriteLine("[Home] Post text is empty, skipping submit");
+                return;
+            }
+
+            Console.WriteLine("[Home] Submitting new post...");
+
+            // Convert string to PostType enum
+            var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
+                ? pt 
+                : PostType.General;
+            
+            var createPostDto = new CreatePostDto
+            {
+                Content = _postText,
+                PostType = postType,
+                Visibility = VisibilityLevel.Public
+            };
+
+            var newPost = await SivarClient.Posts.CreatePostAsync(createPostDto);
+            
+            if (newPost != null)
+            {
+                Console.WriteLine($"[Home] Post created successfully: {newPost.Id}");
+                
+                // Clear form
+                _postText = string.Empty;
+                _selectedPostType = "general";
+                _activeAttachment = null;
+                
+                // Reload feed to show new post
+                await LoadFeedPostsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error submitting post: {ex.Message}");
         }
     }
 }

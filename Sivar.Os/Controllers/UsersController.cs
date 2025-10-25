@@ -215,14 +215,39 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Placeholder method to extract Keycloak ID from JWT token
-    /// TODO: Implement actual JWT token parsing when Keycloak is integrated
+    /// Extracts Keycloak ID from JWT token or mock header
     /// </summary>
     private string GetKeycloakIdFromRequest()
     {
-        // For development/testing purposes, return a mock value
-        // In production, this would extract the "sub" claim from the JWT token
-        return "mock-keycloak-user-id";
+        // Check for mock authentication header (for integration tests)
+        if (Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
+        {
+            return keycloakIdHeader.ToString();
+        }
+
+        // Check if user is authenticated via JWT Bearer token
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            // Try to get the "sub" (subject) claim - the standard Keycloak user ID claim
+            var keycloakIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                               ?? User.FindFirst("sub")?.Value
+                               ?? User.FindFirst("user_id")?.Value;
+            
+            if (!string.IsNullOrEmpty(keycloakIdClaim))
+            {
+                _logger.LogInformation($"[UsersController] Extracted Keycloak ID from JWT: {keycloakIdClaim}");
+                return keycloakIdClaim;
+            }
+        }
+
+        // Only return fallback if we have mock auth header (X-Mock-Auth) indicating this is a test scenario
+        if (Request.Headers.ContainsKey("X-Mock-Auth"))
+        {
+            return "mock-keycloak-user-id";
+        }
+
+        // No authentication found
+        return null!;
     }
 
     /// <summary>
@@ -237,19 +262,53 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Placeholder method to create user DTO from Keycloak claims
-    /// TODO: Implement actual claim parsing when Keycloak is integrated
+    /// Creates user DTO from Keycloak claims in JWT token
     /// </summary>
     private CreateUserFromKeycloakDto CreateUserDtoFromKeycloakClaims()
     {
-        // For development/testing purposes, return mock data
-        // In production, this would extract claims from JWT token
+        if (User?.Identity?.IsAuthenticated != true)
+        {
+            // Fallback for unauthenticated requests
+            return new CreateUserFromKeycloakDto
+            {
+                KeycloakId = "mock-keycloak-user-id",
+                Email = "test@example.com",
+                FirstName = "Test",
+                LastName = "User",
+                Role = UserRole.RegisteredUser,
+                PreferredLanguage = "en"
+            };
+        }
+
+        // Extract claims from JWT token
+        var keycloakId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                      ?? User.FindFirst("sub")?.Value
+                      ?? User.FindFirst("user_id")?.Value
+                      ?? "unknown-id";
+
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                 ?? User.FindFirst("email")?.Value
+                 ?? User.FindFirst("preferred_username")?.Value
+                 ?? "user@example.com";
+
+        var firstName = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+                     ?? User.FindFirst("given_name")?.Value
+                     ?? User.FindFirst("firstName")?.Value
+                     ?? "";
+
+        var lastName = User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value
+                    ?? User.FindFirst("family_name")?.Value
+                    ?? User.FindFirst("lastName")?.Value
+                    ?? "";
+
+        _logger.LogInformation($"[UsersController] Creating user from Keycloak claims: KeycloakId={keycloakId}, Email={email}, FirstName={firstName}, LastName={lastName}");
+
         return new CreateUserFromKeycloakDto
         {
-            KeycloakId = "mock-keycloak-user-id",
-            Email = "test@example.com",
-            FirstName = "Test",
-            LastName = "User",
+            KeycloakId = keycloakId,
+            Email = email,
+            FirstName = firstName,
+            LastName = lastName,
             Role = UserRole.RegisteredUser,
             PreferredLanguage = "en"
         };

@@ -1,4 +1,5 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.DTOs
 
 @* WhoToFollowSidebar component for displaying user suggestions *@
 
@@ -10,12 +11,12 @@
     @foreach (var user in SuggestedUsers)
     {
         <UserCard 
-            Name="@user.Name"
+            Name="@user.DisplayName"
             Bio="@user.Bio"
-            Initials="@user.Initials"
-            IsFollowing="@user.IsFollowing"
+            Initials="@GetInitials(user.DisplayName)"
+            IsFollowing="false"
             OnFollowToggle="@(() => OnFollowToggle.InvokeAsync(user))"
-            OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.Name))" />
+            OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.DisplayName ?? string.Empty))" />
     }
     <div class="sidebar-footnote">Suggestions refresh daily based on activity.</div>
 </aside>
@@ -25,7 +26,7 @@
     /// List of suggested users to display
     /// </summary>
     [Parameter]
-    public List<UserSample> SuggestedUsers { get; set; } = new();
+    public List<ProfileDto> SuggestedUsers { get; set; } = new();
 
     /// <summary>
     /// Profile type title for customization message
@@ -37,11 +38,17 @@
     /// Callback when follow button is toggled
     /// </summary>
     [Parameter]
-    public EventCallback<UserSample> OnFollowToggle { get; set; }
+    public EventCallback<ProfileDto> OnFollowToggle { get; set; }
 
     /// <summary>
     /// Callback when user name is clicked
     /// </summary>
     [Parameter]
     public EventCallback<string> OnUserNameClick { get; set; }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
 }

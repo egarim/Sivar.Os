@@ -1,35 +1,37 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.DTOs
 
 @* PostCard component for displaying a complete post *@
 
 <article class="post-card">
     <PostHeader 
-        Author="@Post.Author"
-        AuthorInitials="@Post.AuthorInitials"
-        Time="@Post.Time"
-        Visibility="@Post.Visibility"
-        Type="@Post.Type"
-        TypeLabel="@TypeLabel"
-        OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Author))" />
+        Author="@Post.Profile?.DisplayName"
+        AuthorInitials="@GetInitials(Post.Profile?.DisplayName)"
+        Time="@Post.CreatedAt"
+        Visibility="@Post.Visibility.ToString()"
+        Type="@Post.PostType.ToString()"
+        TypeLabel="@Post.PostType.ToString()"
+        OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Profile?.DisplayName ?? string.Empty))" />
 
     <div class="post-content">@Post.Content</div>
 
-    @if (!string.IsNullOrEmpty(Post.ImageUrl))
+    @if (Post.Attachments?.Count > 0)
     {
         <div class="post-image">
-            <img src="@Post.ImageUrl" alt="Post image" />
+            @foreach (var attachment in Post.Attachments.Take(1))
+            {
+                <img src="@attachment.FilePath" alt="Post attachment" />
+            }
         </div>
     }
 
-    <PostMetadata MetadataItems="@Post.Metadata" />
-
-    <PostReactions Reactions="@Post.Reactions" OnReactionToggle="@((reaction) => OnReactionToggle.InvokeAsync((Post, reaction)))" />
+    <PostReactions ReactionSummary="@Post.ReactionSummary" />
 
     <PostFooter 
-        Likes="@Post.Likes"
-        Comments="@Post.Comments"
-        Shares="@Post.Shares"
-        Liked="@Post.Liked"
+        Likes="@(Post.ReactionSummary?.TotalReactions ?? 0)"
+        Comments="@Post.CommentCount"
+        Shares="0"
+        Liked="@(Post.ReactionSummary?.UserReaction.HasValue ?? false)"
         OnLike="@(() => OnLike.InvokeAsync(Post))"
         OnComment="@(() => OnCommentClick.InvokeAsync(Post))"
         OnShare="@(() => OnShare.InvokeAsync(Post))"
@@ -37,8 +39,8 @@
         OnMore="@(() => OnMore.InvokeAsync(Post))" />
 
     <PostComments 
-        Comments="@Post.CommentsList"
-        ShowComments="@Post.ShowComments"
+        Comments="@Post.Comments"
+        ShowComments="false"
         OnToggleComments="@(() => OnCommentClick.InvokeAsync(Post))"
         OnCommentAuthorClick="@((author) => OnAuthorClick.InvokeAsync(author))" />
 </article>
@@ -48,7 +50,7 @@
     /// The post to display
     /// </summary>
     [Parameter, EditorRequired]
-    public PostSample Post { get; set; } = null!;
+    public PostDto Post { get; set; } = null!;
 
     /// <summary>
     /// Display label for post type
@@ -60,31 +62,31 @@
     /// Callback when like button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback<PostSample> OnLike { get; set; }
+    public EventCallback<PostDto> OnLike { get; set; }
 
     /// <summary>
     /// Callback when comment button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback<PostSample> OnCommentClick { get; set; }
+    public EventCallback<PostDto> OnCommentClick { get; set; }
 
     /// <summary>
     /// Callback when share button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback<PostSample> OnShare { get; set; }
+    public EventCallback<PostDto> OnShare { get; set; }
 
     /// <summary>
     /// Callback when save button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback<PostSample> OnSave { get; set; }
+    public EventCallback<PostDto> OnSave { get; set; }
 
     /// <summary>
     /// Callback when more button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback<PostSample> OnMore { get; set; }
+    public EventCallback<PostDto> OnMore { get; set; }
 
     /// <summary>
     /// Callback when author name/avatar is clicked
@@ -92,9 +94,9 @@
     [Parameter]
     public EventCallback<string> OnAuthorClick { get; set; }
 
-    /// <summary>
-    /// Callback when a reaction is toggled
-    /// </summary>
-    [Parameter]
-    public EventCallback<(PostSample Post, PostReaction Reaction)> OnReactionToggle { get; set; }
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
 }
