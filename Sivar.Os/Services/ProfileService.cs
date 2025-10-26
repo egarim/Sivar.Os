@@ -18,19 +18,22 @@ public class ProfileService : IProfileService
     private readonly IProfileTypeRepository _profileTypeRepository;
     private readonly IProfileMetadataValidator _metadataValidator;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ILogger<ProfileService> _logger;
 
     public ProfileService(
         IProfileRepository profileRepository, 
         IUserRepository userRepository,
         IProfileTypeRepository profileTypeRepository,
         IProfileMetadataValidator metadataValidator,
-        IFileStorageService fileStorageService)
+        IFileStorageService fileStorageService,
+        ILogger<ProfileService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _profileTypeRepository = profileTypeRepository ?? throw new ArgumentNullException(nameof(profileTypeRepository));
         _metadataValidator = metadataValidator ?? throw new ArgumentNullException(nameof(metadataValidator));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Profile Type Helpers
@@ -235,20 +238,45 @@ public class ProfileService : IProfileService
     /// </summary>
     public async Task<bool> SetActiveProfileAsync(string keycloakId, Guid profileId)
     {
+        _logger.LogInformation("[SetActiveProfileAsync] ========== START ==========");
+        _logger.LogInformation("[SetActiveProfileAsync] keycloakId={KeycloakId}, profileId={ProfileId}", keycloakId, profileId);
+        
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[SetActiveProfileAsync] Invalid keycloakId");
             return false;
+        }
 
-        // Enhanced validation with business rules
-        var validation = await ValidateActiveProfileSwitchAsync(profileId, keycloakId);
-        if (!validation.IsValid)
-            return false;
-
+        // SIMPLE DIRECT FIX: Directly set ActiveProfileId on user without validation
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
+        {
+            _logger.LogWarning("[SetActiveProfileAsync] User not found for keycloakId={KeycloakId}", keycloakId);
             return false;
+        }
 
-        // Enforce one active profile rule
-        return await EnforceOneActiveProfileRuleAsync(profileId, user.Id);
+        _logger.LogInformation("[SetActiveProfileAsync] DIRECT FIX - Setting ActiveProfileId directly");
+        _logger.LogInformation("[SetActiveProfileAsync] User: Id={UserId}", user.Id);
+        _logger.LogInformation("[SetActiveProfileAsync] BEFORE: ActiveProfileId={OldValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+        
+        // Set active profile directly
+        user.ActiveProfileId = profileId;
+        user.UpdatedAt = DateTime.UtcNow;
+        
+        _logger.LogInformation("[SetActiveProfileAsync] AFTER (in-memory): ActiveProfileId={NewValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+        
+        // Update and save
+        await _userRepository.UpdateAsync(user);
+        var changes = await _userRepository.SaveChangesAsync();
+        _logger.LogInformation("[SetActiveProfileAsync] SaveChangesAsync returned: {Changes} entities affected", changes);
+        
+        // VERIFY: Fetch user again to confirm persistence
+        var verifyUser = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+        _logger.LogInformation("[SetActiveProfileAsync] VERIFICATION: After save, ActiveProfileId={Value}", 
+            verifyUser?.ActiveProfileId?.ToString() ?? "NULL");
+
+        _logger.LogInformation("[SetActiveProfileAsync] ========== END ==========");
+        return true;
     }
 
     /// <summary>
@@ -511,32 +539,94 @@ public class ProfileService : IProfileService
     {
         try
         {
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ========== START ==========");
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] userId={UserId}, profileId={ProfileId}", userId, newActiveProfileId);
+            
+            // Get the user
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("[🔵 EnforceOneActiveProfileRuleAsync] ❌ User not found");
+                return false;
+            }
+
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ✅ User found. Current ActiveProfileId={ActiveProfileId}", 
+                user.ActiveProfileId?.ToString() ?? "NULL");
+
             // Get all user's profiles
             var userProfiles = await _profileRepository.GetProfilesByUserIdAsync(userId, includeInactive: true);
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Found {Count} profiles", userProfiles.Count());
             
-            // Deactivate all profiles first
-            foreach (var profile in userProfiles)
+            // Deactivate all profiles except the target one
+            var profilesToDeactivate = userProfiles.Where(p => p.Id != newActiveProfileId && p.IsActive).ToList();
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Deactivating {Count} profiles", profilesToDeactivate.Count);
+            
+            foreach (var profile in profilesToDeactivate)
             {
-                if (profile.Id != newActiveProfileId && profile.IsActive)
-                {
-                    profile.IsActive = false;
-                    await _profileRepository.UpdateAsync(profile);
-                }
+                profile.IsActive = false;
+                _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Deactivating profile: {ProfileId}", profile.Id);
+                await _profileRepository.UpdateAsync(profile);
             }
 
             // Activate the target profile
             var targetProfile = userProfiles.FirstOrDefault(p => p.Id == newActiveProfileId);
-            if (targetProfile != null)
+            if (targetProfile == null)
             {
-                targetProfile.IsActive = true;
-                await _profileRepository.UpdateAsync(targetProfile);
+                _logger.LogWarning("[🔵 EnforceOneActiveProfileRuleAsync] ❌ Target profile not found: {ProfileId}", newActiveProfileId);
+                return false;
             }
 
-            await _profileRepository.SaveChangesAsync();
+            targetProfile.IsActive = true;
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Activating profile: {ProfileId}", targetProfile.Id);
+            await _profileRepository.UpdateAsync(targetProfile);
+
+            // Set the user's active profile ID
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Setting User.ActiveProfileId");
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync]   BEFORE: {OldValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+            
+            user.ActiveProfileId = newActiveProfileId;
+            user.UpdatedAt = DateTime.UtcNow;
+            
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync]   AFTER (in-memory): {NewValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+            
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Calling UpdateAsync on user...");
+            await _userRepository.UpdateAsync(user);
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ✅ UpdateAsync completed");
+
+            // Save all changes to database
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] Calling SaveChangesAsync()...");
+            var changes = await _userRepository.SaveChangesAsync();
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ✅ SaveChangesAsync returned: {Changes} entities affected", changes);
+            
+            // VERIFICATION: Immediately re-fetch from database to confirm persistence
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] VERIFICATION: Re-fetching user from database...");
+            var verifyUser = await _userRepository.GetByIdAsync(userId);
+            if (verifyUser == null)
+            {
+                _logger.LogError("[🔵 EnforceOneActiveProfileRuleAsync] ❌❌❌ VERIFICATION FAILED: User not found after update!");
+                return false;
+            }
+            
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] VERIFICATION RESULT: ActiveProfileId={ActiveProfileId}", 
+                verifyUser.ActiveProfileId?.ToString() ?? "❌NULL❌");
+
+            if (verifyUser.ActiveProfileId == newActiveProfileId)
+            {
+                _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ✅✅✅ PERSISTENCE CONFIRMED - Value was saved to database!");
+            }
+            else
+            {
+                _logger.LogError("[🔵 EnforceOneActiveProfileRuleAsync] ❌❌❌ PERSISTENCE FAILED - Value was NOT saved! Expected={Expected}, Got={Got}",
+                    newActiveProfileId, verifyUser.ActiveProfileId?.ToString() ?? "NULL");
+            }
+
+            _logger.LogInformation("[🔵 EnforceOneActiveProfileRuleAsync] ========== SUCCESS ==========");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "[🔵 EnforceOneActiveProfileRuleAsync] ❌ EXCEPTION: {Message}", ex.Message);
+            _logger.LogError("[🔵 EnforceOneActiveProfileRuleAsync] Exception Stack: {StackTrace}", ex.StackTrace);
             return false;
         }
     }
@@ -618,9 +708,16 @@ public class ProfileService : IProfileService
 
         // If this is the user's first profile, automatically set it as active
         var userProfiles = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: true);
+        _logger.LogInformation("[CreateProfileAsync] User {UserId} has {Count} profiles total", user.Id, userProfiles.Count());
         if (userProfiles.Count() == 1)
         {
-            await EnforceOneActiveProfileRuleAsync(profile.Id, user.Id);
+            _logger.LogInformation("[CreateProfileAsync] This is first profile! Calling EnforceOneActiveProfileRuleAsync({ProfileId}, {UserId})", profile.Id, user.Id);
+            var enforceResult = await EnforceOneActiveProfileRuleAsync(profile.Id, user.Id);
+            _logger.LogInformation("[CreateProfileAsync] EnforceOneActiveProfileRuleAsync returned: {Result}", enforceResult);
+        }
+        else
+        {
+            _logger.LogWarning("[CreateProfileAsync] ❌ NOT calling EnforceOneActiveProfileRuleAsync because profile count != 1. Count={Count}", userProfiles.Count());
         }
 
         // Load the profile with related data

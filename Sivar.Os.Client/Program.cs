@@ -20,12 +20,13 @@ builder.Services.AddMudServices();
 builder.Services.AddTransient<UnauthorizedRedirectHandler>();
 
 // Configure HttpClient for WASM to include browser credentials (cookies) on every request
-// and use the UnauthorizedRedirectHandler to intercept 401s
+// The BaseAddress being set to the same origin means cookies will be included by default in Blazor
 builder.Services.AddScoped(sp =>
 {
-	var js = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
-	// For Blazor WASM the platform provides the underlying message handler; create a plain HttpClient.
-	return new HttpClient() { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+	var httpClient = new HttpClient() { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+	// Add header to indicate this is an XMLHttpRequest (helps with CORS and auth detection)
+	httpClient.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+	return httpClient;
 });
 
 // Register ApiClient wrapper that centralizes 401 handling

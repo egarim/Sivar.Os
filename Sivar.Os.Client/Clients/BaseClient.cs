@@ -40,7 +40,12 @@ public abstract class BaseClient
     /// </summary>
     protected async Task<TResponse> PostAsync<TResponse>(string endpoint, object? content = null, CancellationToken cancellationToken = default)
     {
-        var jsonContent = content != null ? JsonContent.Create(content, options: JsonOptions) : null;
+        HttpContent? jsonContent = null;
+        if (content != null)
+        {
+            var jsonString = JsonSerializer.Serialize(content, JsonOptions);
+            jsonContent = new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json");
+        }
         var response = await HttpClient.PostAsync(endpoint, jsonContent, cancellationToken);
         return await HandleResponseAsync<TResponse>(response);
     }
@@ -50,7 +55,12 @@ public abstract class BaseClient
     /// </summary>
     protected async Task PostAsync(string endpoint, object? content = null, CancellationToken cancellationToken = default)
     {
-        var jsonContent = content != null ? JsonContent.Create(content, options: JsonOptions) : null;
+        HttpContent? jsonContent = null;
+        if (content != null)
+        {
+            var jsonString = JsonSerializer.Serialize(content, JsonOptions);
+            jsonContent = new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json");
+        }
         var response = await HttpClient.PostAsync(endpoint, jsonContent, cancellationToken);
         await EnsureSuccessAsync(response);
     }
@@ -60,7 +70,8 @@ public abstract class BaseClient
     /// </summary>
     protected async Task<TResponse> PutAsync<TResponse>(string endpoint, object content, CancellationToken cancellationToken = default)
     {
-        var jsonContent = JsonContent.Create(content, options: JsonOptions);
+        var jsonString = JsonSerializer.Serialize(content, JsonOptions);
+        var jsonContent = new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json");
         var response = await HttpClient.PutAsync(endpoint, jsonContent, cancellationToken);
         return await HandleResponseAsync<TResponse>(response);
     }
@@ -70,7 +81,12 @@ public abstract class BaseClient
     /// </summary>
     protected async Task PutAsync(string endpoint, object? content = null, CancellationToken cancellationToken = default)
     {
-        var jsonContent = content != null ? JsonContent.Create(content, options: JsonOptions) : null;
+        HttpContent? jsonContent = null;
+        if (content != null)
+        {
+            var jsonString = JsonSerializer.Serialize(content, JsonOptions);
+            jsonContent = new StringContent(jsonString, System.Text.Encoding.UTF8, "application/json");
+        }
         var response = await HttpClient.PutAsync(endpoint, jsonContent, cancellationToken);
         await EnsureSuccessAsync(response);
     }
@@ -104,6 +120,11 @@ public abstract class BaseClient
             return JsonSerializer.Deserialize<T>(content, JsonOptions)!;
         }
 
+        // Log detailed error information for debugging
+        var errorContent = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"[BaseClient] API Error: {response.StatusCode} {response.ReasonPhrase}");
+        Console.WriteLine($"[BaseClient] Response Content: {errorContent}");
+        
         await ThrowApiExceptionAsync(response);
         return default!;
     }

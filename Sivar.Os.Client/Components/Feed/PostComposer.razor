@@ -30,8 +30,7 @@
     
     <textarea class="post-input" 
               placeholder="What's happening?" 
-              @bind="PostText"
-              @bind:event="oninput"></textarea>
+              @oninput="@((ChangeEventArgs e) => HandlePostTextInputAsync(e))"></textarea>
 
     @* Advanced Options Section *@
     <div class="composer-advanced-section">
@@ -510,6 +509,32 @@
         TagsInput = string.Join(", ", PostTags);
         LocationCity = PostLocation?.City ?? string.Empty;
         BusinessMetadata = PostBusinessMetadata;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Keep local state in sync when parent updates
+        SelectedLanguage = PostLanguage;
+        SelectedVisibility = PostVisibility;
+        LocationCity = PostLocation?.City ?? string.Empty;
+        BusinessMetadata = PostBusinessMetadata;
+    }
+
+    /// <summary>
+    /// Handle post text input change
+    /// </summary>
+    private async Task HandlePostTextInputAsync(ChangeEventArgs e)
+    {
+        var newText = e.Value?.ToString() ?? string.Empty;
+        PostText = newText;
+        Console.WriteLine($"[PostComposer] Text input event - value: '{newText}' (length={newText.Length})");
+        await PostTextChanged.InvokeAsync(newText);
+    }
+
+    private async Task HandlePostTextChange(ChangeEventArgs e)
+    {
+        var newText = e.Value?.ToString() ?? string.Empty;
+        await PostTextChanged.InvokeAsync(newText);
     }
 
     #endregion

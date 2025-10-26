@@ -1,15 +1,18 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.DTOs
 
 @* PostReactions component *@
 
-@if (Reactions != null && Reactions.Any())
+@if (ReactionSummary != null && ReactionSummary.ReactionCounts?.Count > 0)
 {
     <div class="post-reactions">
-        @foreach (var reaction in Reactions)
+        @foreach (var reaction in ReactionSummary.ReactionCounts)
         {
-            <div class="reaction-pill @(reaction.IsActive ? "active" : "")" @onclick="() => OnReactionToggle.InvokeAsync(reaction)">
-                <span class="reaction-emoji">@reaction.Emoji</span>
-                <span class="reaction-count">@reaction.Count</span>
+            var isActive = ReactionSummary.UserReaction == reaction.Key;
+            <div class="reaction-pill @(isActive ? "active" : "")" @onclick="() => OnReactionToggle.InvokeAsync(reaction.Key)">
+                <span class="reaction-emoji">@GetReactionEmoji(reaction.Key)</span>
+                <span class="reaction-count">@reaction.Value</span>
             </div>
         }
     </div>
@@ -17,14 +20,32 @@
 
 @code {
     /// <summary>
-    /// List of reactions
+    /// Post reaction summary with counts and user's reaction
     /// </summary>
     [Parameter]
-    public List<PostReaction>? Reactions { get; set; }
+    public PostReactionSummaryDto? ReactionSummary { get; set; }
 
     /// <summary>
     /// Callback when reaction is toggled
     /// </summary>
     [Parameter]
-    public EventCallback<PostReaction> OnReactionToggle { get; set; }
+    public EventCallback<ReactionType> OnReactionToggle { get; set; }
+
+    /// <summary>
+    /// Map reaction types to emojis
+    /// </summary>
+    private static string GetReactionEmoji(ReactionType reactionType)
+    {
+        return reactionType switch
+        {
+            ReactionType.Like => "👍",
+            ReactionType.Love => "❤️",
+            ReactionType.Laugh => "😂",
+            ReactionType.Wow => "😮",
+            ReactionType.Sad => "😢",
+            ReactionType.Angry => "😠",
+            ReactionType.Care => "🤗",
+            _ => "👍"
+        };
+    }
 }

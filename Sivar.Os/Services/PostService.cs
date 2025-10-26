@@ -55,19 +55,56 @@ public class PostService : IPostService
         if (string.IsNullOrWhiteSpace(keycloakId) || createPostDto == null)
             return null;
 
+        _logger.LogInformation("[CreatePostAsync] START - KeycloakId={keycloakId}, ProfileIdFromRequest={profileId}", 
+            keycloakId, createPostDto.ProfileId);
+
         // Get user
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user == null || !user.ActiveProfileId.HasValue)
+        _logger.LogInformation("[CreatePostAsync] Retrieved user: UserId={userId}, ActiveProfileId={activeProfileId}", 
+            user?.Id.ToString() ?? "NULL", 
+            user?.ActiveProfileId.ToString() ?? "NULL");
+        
+        if (user == null)
+        {
+            _logger.LogWarning("[CreatePostAsync] User not found for keycloakId={keycloakId}", keycloakId);
             return null;
+        }
 
-        // Get the active profile using a query that ignores filters (FindAsync respects global query filters)
-        var activeProfile = await _profileRepository.GetByIdIgnoringFiltersAsync(user.ActiveProfileId.Value);
-        if (activeProfile == null)
+        // Use ProfileId from request (sent by client) - this is the authoritative source
+        if (createPostDto.ProfileId == Guid.Empty)
+        {
+            _logger.LogWarning("[CreatePostAsync] ProfileId from request is empty");
             return null;
+        }
+
+        _logger.LogInformation("[CreatePostAsync] Using ProfileId from request: {profileId}", createPostDto.ProfileId);
+
+        // Get the profile using the ID sent by client
+        var activeProfile = await _profileRepository.GetByIdIgnoringFiltersAsync(createPostDto.ProfileId);
+        _logger.LogInformation("[CreatePostAsync] Profile lookup result: ProfileId={profileId}, FoundProfile={found}, UserId={userId}", 
+            createPostDto.ProfileId, 
+            activeProfile != null ? "YES" : "NO",
+            activeProfile?.UserId.ToString() ?? "NULL");
+
+        if (activeProfile == null)
+        {
+            _logger.LogWarning("[CreatePostAsync] Profile not found: {profileId}", createPostDto.ProfileId);
+            return null;
+        }
+
+        // Verify that this profile belongs to the current user
+        if (activeProfile.UserId != user.Id)
+        {
+            _logger.LogWarning("[CreatePostAsync] Profile {profileId} belongs to UserId={profileUserId}, not current user {userId}", 
+                createPostDto.ProfileId, activeProfile.UserId, user.Id);
+            return null;
+        }
 
         // Validate content
         if (string.IsNullOrWhiteSpace(createPostDto.Content))
             return null;
+
+        _logger.LogInformation("[CreatePostAsync] Content validated: Length={length}", createPostDto.Content.Length);
 
         // Create post entity
         var post = new Post
@@ -99,11 +136,16 @@ public class PostService : IPostService
 
         try
         {
+            _logger.LogInformation("[CreatePostAsync] Saving post: PostId={postId}, ProfileId={profileId}", 
+                post.Id, post.ProfileId);
+
             // Vector embedding generation disabled until service is properly configured
             // TODO: Enable when vector embedding service is available
 
             await _postRepository.AddAsync(post);
             await _postRepository.SaveChangesAsync();
+
+            _logger.LogInformation("[CreatePostAsync] Post saved successfully: PostId={postId}", post.Id);
 
             // Process attachments if provided
             if (createPostDto.Attachments?.Any() == true)

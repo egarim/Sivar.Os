@@ -17,6 +17,7 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
+@using Sivar.Os.Client.Clients
 @using Sivar.Os.Shared.Services
 @using Sivar.Os.Shared
 @using Sivar.Os.Shared.DTOs
@@ -1660,7 +1661,8 @@
 
             <PostComposer ProfileTypeTitle="@GetProfileTypeTitle()"
                           @bind-SelectedType="@_selectedPostType"
-                          @bind-PostText="@_postText"
+                          PostText="@_postText"
+                          PostTextChanged="@HandlePostTextInputChanged"
                           @bind-ActiveAttachment="@_activeAttachment"
                           @bind-ScheduledDate="@_scheduledDate"
                           @bind-ScheduledTime="@_scheduledTime"
@@ -2748,44 +2750,28 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     }
 
     /// <summary>
+    /// Handle post text input change from PostComposer
+    /// </summary>
+    private Task HandlePostTextInputChanged(string text)
+    {
+        _postText = text;
+        Console.WriteLine($"[Home] PostTextChanged invoked - _postText='{_postText}' (length={_postText?.Length ?? 0})");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Handle post submission - create new post via API
     /// </summary>
     private async Task HandlePostSubmitAsync()
     {
         try
         {
-            // HARDCODED TEST: If post text is empty or contains only whitespace, create a test post
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
+            
+            // Validate post content
             if (string.IsNullOrWhiteSpace(_postText))
             {
-                Console.WriteLine("[Home] Post text is empty, creating HARDCODED TEST post...");
-                
-                // Create hardcoded test post
-                var testPostDto = new CreatePostDto
-                {
-                    Content = $"🧪 HARDCODED TEST POST - Created at {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n\nThis is an automatically injected test post to verify the complete post creation workflow end-to-end.",
-                    PostType = PostType.General,
-                    Visibility = VisibilityLevel.Public,
-                    Language = "en",
-                    Tags = new() { "test", "debug", "workflow-verification" },
-                    Location = null,
-                    BusinessMetadata = null,
-                    Attachments = new()
-                };
-                
-                Console.WriteLine("[Home] Submitting HARDCODED test post with content: " + testPostDto.Content.Substring(0, 50) + "...");
-                
-                var testPost = await SivarClient.Posts.CreatePostAsync(testPostDto);
-                
-                if (testPost != null)
-                {
-                    Console.WriteLine($"[Home] HARDCODED TEST POST created successfully: {testPost.Id}");
-                    
-                    // Add new post to beginning of feed (most recent first)
-                    _posts.Insert(0, testPost);
-                    
-                    // Keep the UI reactive
-                    StateHasChanged();
-                }
+                Console.WriteLine("[Home] Post text is empty - cannot submit");
                 return;
             }
 
@@ -2796,9 +2782,10 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 ? pt 
                 : PostType.General;
             
-            // Build CreatePostDto with all fields from PostComposer
+            // Build CreatePostDto with all fields from PostComposer - INCLUDE ProfileId from active profile
             var createPostDto = new CreatePostDto
             {
+                ProfileId = _currentProfileId,  // Send active profile ID to server
                 Content = _postText,
                 PostType = postType,
                 Visibility = _postVisibility,
@@ -2840,9 +2827,17 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 StateHasChanged();
             }
         }
+        catch (SivarApiException apiEx)
+        {
+            Console.WriteLine($"[Home] ❌ API Error submitting post:");
+            Console.WriteLine($"[Home]   Status: {apiEx.StatusCode}");
+            Console.WriteLine($"[Home]   Reason: {apiEx.ReasonPhrase}");
+            Console.WriteLine($"[Home]   Details: {apiEx.Content}");
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error submitting post: {ex.Message}");
+            Console.WriteLine($"[Home] ❌ Error submitting post: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[Home] Stack Trace: {ex.StackTrace}");
         }
     }
 }

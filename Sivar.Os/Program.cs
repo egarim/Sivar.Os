@@ -351,8 +351,14 @@ builder.Services.AddScoped<IWeatherService>(sp =>
 // --- Auth state flow for Auto mode ---
 builder.Services.AddCascadingAuthenticationState();
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers with JSON serialization configuration for enum handling
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

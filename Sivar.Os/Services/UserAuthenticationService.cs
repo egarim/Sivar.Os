@@ -38,7 +38,26 @@ public class UserAuthenticationService : IUserAuthenticationService
             if (existingUser != null)
             {
                 // User exists - get their active profile
-                var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);                
+                var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+                
+                // If no active profile is set, try to find and set the first available profile
+                if (activeProfile == null && existingUser.ActiveProfileId == null)
+                {
+                    _logger.LogInformation("[AuthenticateUserAsync] Existing user has no active profile. Attempting to find and set one.");
+                    
+                    var userProfiles = await _profileService.GetMyProfilesAsync(keycloakId);
+                    if (userProfiles?.Any() == true)
+                    {
+                        var firstProfile = userProfiles.FirstOrDefault();
+                        if (firstProfile != null)
+                        {
+                            _logger.LogInformation("[AuthenticateUserAsync] Setting first profile as active: {ProfileId}", firstProfile.Id);
+                            await _profileService.SetActiveProfileAsync(keycloakId, firstProfile.Id);
+                            activeProfile = firstProfile;
+                        }
+                    }
+                }
+                
                 return new UserAuthenticationResult
                 {
                     IsSuccess = true,
@@ -110,11 +129,15 @@ public class UserAuthenticationService : IUserAuthenticationService
         try
         {
             var profile = await _profileService.CreateProfileAsync(createDto, user.KeycloakId);
+            _logger.LogInformation("Created default profile: ProfileId={ProfileId} for user {KeycloakId}", 
+                profile?.Id, user.KeycloakId);
             
             // Set as active profile
             if (profile != null)
             {
-                await _profileService.SetActiveProfileAsync(user.KeycloakId, profile.Id);
+                var setActiveResult = await _profileService.SetActiveProfileAsync(user.KeycloakId, profile.Id);
+                _logger.LogInformation("SetActiveProfileAsync result: {Result} for KeycloakId={KeycloakId}, ProfileId={ProfileId}",
+                    setActiveResult, user.KeycloakId, profile.Id);
             }
             
             return profile;

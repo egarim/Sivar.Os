@@ -8,6 +8,11 @@ namespace Sivar.Os.Shared.DTOs;
 public record CreatePostDto
 {
     /// <summary>
+    /// ID of the profile creating the post (sent from client)
+    /// </summary>
+    public Guid ProfileId { get; init; }
+
+    /// <summary>
     /// Content of the post
     /// </summary>
     public string Content { get; init; } = string.Empty;
