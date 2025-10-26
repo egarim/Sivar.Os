@@ -1796,26 +1796,55 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize sample data
-        InitializeSampleData();
+        try
+        {
+            Console.WriteLine("[Home] ==================== OnInitializedAsync START ====================");
+            
+            // Initialize sample data
+            InitializeSampleData();
 
-        // Ensure user and profile are created after Keycloak login
-        await EnsureUserAndProfileCreatedAsync();
-        
-        // Load current user info
-        await LoadCurrentUserAsync();
-        
-        // Load profile types
-        await LoadProfileTypesAsync();
-        
-        // Load initial feed posts
-        await LoadFeedPostsAsync();
-        
-        // Load user statistics
-        await LoadUserStatsAsync();
-        
-        // Notify Blazor that component state has changed so it re-renders with loaded data
-        StateHasChanged();
+            // Ensure user and profile are created after Keycloak login
+            Console.WriteLine("[Home] Step 1: Ensuring user and profile are created");
+            await EnsureUserAndProfileCreatedAsync();
+            
+            // Load current user info
+            Console.WriteLine("[Home] Step 2: Loading current user info");
+            await LoadCurrentUserAsync();
+            
+            // Verify active profile is set
+            Console.WriteLine($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
+            if (_currentProfileId == Guid.Empty)
+            {
+                Console.WriteLine("[Home] ⚠️ WARNING: Active profile ID is empty, attempting to load profiles");
+                await LoadProfileTypesAsync();
+            }
+            
+            // Load initial feed posts
+            Console.WriteLine("[Home] Step 3: Loading feed posts");
+            await LoadFeedPostsAsync();
+            
+            // If no posts loaded, try loading sample data
+            if (!_posts.Any())
+            {
+                Console.WriteLine("[Home] ⚠️ No posts loaded from API, attempting to load sample data");
+                await LoadSampleDataAsync();
+                await LoadFeedPostsAsync();
+            }
+            
+            // Load user statistics
+            Console.WriteLine("[Home] Step 4: Loading user statistics");
+            await LoadUserStatsAsync();
+            
+            Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Posts loaded: {_posts.Count} ====================");
+            
+            // Notify Blazor that component state has changed so it re-renders with loaded data
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] ❌ Error in OnInitializedAsync: {ex.Message}");
+            Console.WriteLine($"[Home] Stack trace: {ex.StackTrace}");
+        }
     }
 
     /// <summary>
@@ -1826,11 +1855,14 @@
     {
         try
         {
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] START");
+            
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             
             if (!user.Identity?.IsAuthenticated ?? true)
             {
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ⚠️ User not authenticated");
                 return; // User not authenticated, nothing to do
             }
 
@@ -1839,17 +1871,17 @@
 
             if (string.IsNullOrEmpty(keycloakId))
             {
-                Console.WriteLine("[Home] Missing required claim 'sub' (subject identifier)");
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ❌ Missing required claim 'sub' (subject identifier)");
                 return;
             }
 
             if (string.IsNullOrEmpty(email))
             {
-                Console.WriteLine("[Home] Missing required claim 'email' or 'preferred_username'");
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ❌ Missing required claim 'email' or 'preferred_username'");
                 return;
             }
 
-            Console.WriteLine("[Home] Attempting to create user/profile if needed");
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] Calling authentication service");
 
             // Call authentication service via SivarClient
             var authInfo = new UserAuthenticationInfo
@@ -1864,25 +1896,37 @@
             
             if (result.IsSuccess)
             {
+                _currentUserId = result.User?.Id ?? Guid.Empty;
+                _currentProfileId = result.ActiveProfile?.Id ?? Guid.Empty;
+                
                 if (result.IsNewUser)
                 {
-                    Console.WriteLine($"[Home] New user and profile created for {email}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ✓ New user and profile created");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
                 else
                 {
-                    Console.WriteLine($"[Home] Existing user authenticated: {email}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ✓ Existing user authenticated");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
             }
             else
             {
-                Console.WriteLine($"[Home] Authentication failed for {email}: {result.ErrorMessage}");
-                Console.WriteLine($"[Home] IsSuccess: {result.IsSuccess}, IsNewUser: {result.IsNewUser}");
-                Console.WriteLine($"[Home] User ID: {result.User?.Id}, Profile ID: {result.ActiveProfile?.Id}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ❌ Authentication failed: {result.ErrorMessage}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsSuccess: {result.IsSuccess}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsNewUser: {result.IsNewUser}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {result.User?.Id}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {result.ActiveProfile?.Id}");
             }
+            
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] END");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error ensuring user/profile created: {ex.Message}");
+            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ❌ Error: {ex.Message}");
+            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] Stack trace: {ex.StackTrace}");
             // Don't throw - this is a best-effort operation
         }
     }
@@ -2694,27 +2738,129 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine($"[Home] Loading feed posts (page {_currentPage})...");
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] START - Current profile: {_currentProfileId}, Page: {_currentPage}");
+            
+            if (_currentProfileId == Guid.Empty)
+            {
+                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ Profile ID is empty, cannot load feed");
+                _posts = new List<PostDto>();
+                StateHasChanged();
+                return;
+            }
+            
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetFeedPostsAsync with pageSize=10, pageNumber={_currentPage}");
             var feedDto = await SivarClient.Posts.GetFeedPostsAsync(pageSize: 10, pageNumber: _currentPage);
+            
+            if (feedDto == null)
+            {
+                Console.WriteLine("[Home.LoadFeedPostsAsync] ❌ Feed DTO is null");
+                _posts = new List<PostDto>();
+                _totalPages = 0;
+                StateHasChanged();
+                return;
+            }
+            
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] Feed DTO received - Posts count: {feedDto.Posts?.Count ?? 0}, Total: {feedDto.TotalCount}, Pages: {feedDto.TotalPages}");
             
             if (feedDto?.Posts != null && feedDto.Posts.Any())
             {
                 _posts = feedDto.Posts;
                 _totalPages = feedDto.TotalPages;
                 
-                Console.WriteLine($"[Home] Loaded {_posts.Count} posts (Page {feedDto.Page + 1} of {feedDto.TotalPages})");
+                Console.WriteLine($"[Home.LoadFeedPostsAsync] ✓ Successfully loaded {_posts.Count} posts (Page {feedDto.Page + 1} of {feedDto.TotalPages})");
             }
             else
             {
-                Console.WriteLine("[Home] No posts found in feed");
+                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ No posts found in feed");
                 _posts = new List<PostDto>();
-                _totalPages = 0;
+                _totalPages = feedDto?.TotalPages ?? 0;
             }
+            
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error loading feed posts: {ex.Message}");
-            // Keep empty list as fallback
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] ❌ Error loading feed posts: {ex.Message}");
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] Stack trace: {ex.StackTrace}");
+            _posts = new List<PostDto>();
+            _totalPages = 0;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Load sample/test data if no posts exist - helps with development and testing
+    /// </summary>
+    private async Task LoadSampleDataAsync()
+    {
+        try
+        {
+            Console.WriteLine("[Home.LoadSampleDataAsync] Attempting to create sample posts for development");
+            
+            if (_currentProfileId == Guid.Empty)
+            {
+                Console.WriteLine("[Home.LoadSampleDataAsync] ⚠️ Cannot create sample data - profile ID is empty");
+                return;
+            }
+            
+            var samplePosts = new List<CreatePostDto>
+            {
+                new()
+                {
+                    Content = "🎉 Welcome to Sivar! This is a sample post to help you get started. Feel free to create your own posts and engage with the community!",
+                    ProfileId = _currentProfileId,
+                    PostType = Sivar.Os.Shared.Enums.PostType.General,
+                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
+                    Tags = new List<string> { "welcome", "getting-started" }
+                },
+                new()
+                {
+                    Content = "💼 Looking to collaborate on exciting projects? Let's connect and build something amazing together!",
+                    ProfileId = _currentProfileId,
+                    PostType = Sivar.Os.Shared.Enums.PostType.Service,
+                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
+                    Tags = new List<string> { "collaboration", "business" }
+                },
+                new()
+                {
+                    Content = "🚀 Just launched a new feature! Check out the latest updates and let me know what you think.",
+                    ProfileId = _currentProfileId,
+                    PostType = Sivar.Os.Shared.Enums.PostType.Product,
+                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
+                    Tags = new List<string> { "product", "launch" }
+                }
+            };
+            
+            int successCount = 0;
+            foreach (var samplePost in samplePosts)
+            {
+                try
+                {
+                    Console.WriteLine($"[Home.LoadSampleDataAsync] Creating sample post: {samplePost.Content[..50]}...");
+                    var createdPost = await SivarClient.Posts.CreatePostAsync(samplePost);
+                    
+                    if (createdPost != null)
+                    {
+                        successCount++;
+                        Console.WriteLine($"[Home.LoadSampleDataAsync] ✓ Sample post created: {createdPost.Id}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Home.LoadSampleDataAsync] ⚠️ Failed to create sample post - returned null");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Home.LoadSampleDataAsync] ⚠️ Error creating sample post: {ex.Message}");
+                }
+            }
+            
+            Console.WriteLine($"[Home.LoadSampleDataAsync] Created {successCount}/{samplePosts.Count} sample posts");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home.LoadSampleDataAsync] ❌ Error loading sample data: {ex.Message}");
+            // Don't throw - this is optional
         }
     }
 
