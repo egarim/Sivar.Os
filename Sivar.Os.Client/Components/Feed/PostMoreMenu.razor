@@ -1,0 +1,123 @@
+@using MudBlazor
+@using Sivar.Os.Client.Components.Feed
+
+@* PostMoreMenu component for post actions *@
+
+<div class="post-more-menu">
+    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        @if (IsPostOwner)
+        {
+            <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => OnEdit.InvokeAsync())">
+                Edit Post
+            </MudMenuItem>
+            
+            <MudMenuItem Icon="@Icons.Material.Outlined.BarChart" OnClick="@(() => OnViewAnalytics.InvokeAsync())">
+                View Analytics
+            </MudMenuItem>
+            
+            <MudDivider />
+            
+            <MudMenuItem Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => OnDelete.InvokeAsync())" Class="text-danger">
+                Delete Post
+            </MudMenuItem>
+        }
+        else
+        {
+            <MudMenuItem Icon="@Icons.Material.Outlined.Share" OnClick="@(() => OnShare.InvokeAsync())">
+                Share
+            </MudMenuItem>
+            
+            <MudMenuItem Icon="@Icons.Material.Outlined.Flag" OnClick="@(() => OnReport.InvokeAsync())">
+                Report Post
+            </MudMenuItem>
+        }
+
+        @if (!IsPostOwner)
+        {
+            <MudDivider />
+        }
+        
+        @if (!string.IsNullOrEmpty(PostLink))
+        {
+            <MudMenuItem Icon="@Icons.Material.Outlined.Link" OnClick="@(() => CopyLinkToClipboard())">
+                Copy Link
+            </MudMenuItem>
+        }
+    </MudMenu>
+</div>
+
+<style>
+    .post-more-menu {
+        display: inline-block;
+    }
+
+    :deep(.mud-menu-item.text-danger) {
+        color: #dc3545 !important;
+    }
+
+    :deep(.mud-menu-item.text-danger:hover) {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// Whether the current user is the post owner
+    /// </summary>
+    [Parameter]
+    public bool IsPostOwner { get; set; }
+
+    /// <summary>
+    /// Link to the post (for sharing/copying)
+    /// </summary>
+    [Parameter]
+    public string? PostLink { get; set; }
+
+    /// <summary>
+    /// Callback when edit is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when delete is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when view analytics is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewAnalytics { get; set; }
+
+    /// <summary>
+    /// Callback when share is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnShare { get; set; }
+
+    /// <summary>
+    /// Callback when report is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnReport { get; set; }
+
+    /// <summary>
+    /// Callback when copy link is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCopyLink { get; set; }
+
+    /// <summary>
+    /// Copy link to clipboard (placeholder for JS interop)
+    /// </summary>
+    private async Task CopyLinkToClipboard()
+    {
+        if (!string.IsNullOrEmpty(PostLink))
+        {
+            // TODO: Implement JS interop to copy to clipboard
+            await OnCopyLink.InvokeAsync();
+        }
+    }
+}

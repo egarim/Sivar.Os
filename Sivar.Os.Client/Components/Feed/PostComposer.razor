@@ -1,5 +1,8 @@
-@using Sivar.Os.Client.Pages
 @using MudBlazor
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Client
+@using Sivar.Os.Client.Shared
 
 @* PostComposer component for creating new posts *@
 
@@ -29,6 +32,79 @@
               placeholder="What's happening?" 
               @bind="PostText"
               @bind:event="oninput"></textarea>
+
+    @* Advanced Options Section *@
+    <div class="composer-advanced-section">
+        <details>
+            <summary class="advanced-toggle">
+                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" />
+                Advanced Options
+            </summary>
+            
+            @* Visibility Level *@
+            <div class="form-group">
+                <label>Visibility</label>
+                <select class="form-control" @onchange="HandleVisibilityChange">
+                    <option value="">Select visibility...</option>
+                    @foreach (VisibilityLevel visibility in Enum.GetValues(typeof(VisibilityLevel)))
+                    {
+                        <option value="@visibility" selected="@(SelectedVisibility == visibility)">
+                            @GetVisibilityLabel(visibility)
+                        </option>
+                    }
+                </select>
+                <small class="form-text">@GetVisibilityDescription(SelectedVisibility)</small>
+            </div>
+
+            @* Language Selection *@
+            <div class="form-group">
+                <label>Language</label>
+                <select class="form-control" @bind="SelectedLanguage">
+                    <option value="en">English</option>
+                    <option value="es">Español (Spanish)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="de">Deutsch (German)</option>
+                    <option value="pt">Português (Portuguese)</option>
+                </select>
+            </div>
+
+            @* Tags *@
+            <div class="form-group">
+                <label>Tags (comma-separated)</label>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="e.g., technology, startup, event"
+                       @bind="TagsInput"
+                       @bind:event="oninput" />
+                <small class="form-text">Add up to 10 tags</small>
+            </div>
+
+            @* Location *@
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="City, Country or Virtual"
+                       @bind="LocationCity"
+                       @bind:event="oninput" />
+                <small class="form-text">Where is this post about?</small>
+            </div>
+
+            @* Business Metadata (for business profiles) *@
+            @if (IsBusinessProfile)
+            {
+                <div class="form-group">
+                    <label>Business Metadata (Optional)</label>
+                    <textarea class="form-control" 
+                              placeholder="Additional business information (JSON format)"
+                              @bind="BusinessMetadata"
+                              @bind:event="oninput"
+                              rows="3"></textarea>
+                    <small class="form-text">For structured business data</small>
+                </div>
+            }
+        </details>
+    </div>
     
     <div class="post-actions">
         <div class="post-options">
@@ -43,11 +119,28 @@
             }
         </div>
         <button class="post-btn" 
-                disabled="@string.IsNullOrWhiteSpace(PostText)" 
+                disabled="@(string.IsNullOrWhiteSpace(PostText) || IsSubmitting)" 
                 @onclick="OnPublish">
-            Publish
+            @if (IsSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Class="me-2" Indeterminate="true" />
+                <span>Publishing...</span>
+            }
+            else
+            {
+                <span>Publish</span>
+            }
         </button>
     </div>
+
+    @* Validation Messages *@
+    @if (!string.IsNullOrWhiteSpace(ValidationMessage))
+    {
+        <div class="alert alert-warning" role="alert">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Class="me-2" />
+            @ValidationMessage
+        </div>
+    }
 
     @if (ActiveAttachment == "schedule")
     {
@@ -70,7 +163,92 @@
     }
 </div>
 
+<style>
+    .composer-advanced-section {
+        margin: 12px 0;
+        border-top: 1px solid var(--wire-border);
+    }
+
+    .advanced-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--wire-text-secondary);
+        user-select: none;
+    }
+
+    .advanced-toggle:hover {
+        background: var(--wire-hover);
+        color: var(--wire-text-primary);
+    }
+
+    details[open] .advanced-toggle {
+        color: var(--wire-primary);
+    }
+
+    details > div:not(.advanced-toggle) {
+        padding: 0 12px 12px;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--wire-text-primary);
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--wire-border);
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--wire-primary);
+        box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.1);
+    }
+
+    .form-text {
+        display: block;
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+        margin-top: 4px;
+    }
+
+    .alert {
+        padding: 12px;
+        border-radius: 6px;
+        margin: 12px 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
+    .me-2 {
+        margin-right: 8px;
+    }
+</style>
+
 @code {
+    #region Parameters
+
     /// <summary>
     /// Profile type title
     /// </summary>
@@ -81,13 +259,26 @@
     /// Available post type options
     /// </summary>
     [Parameter]
-    public List<PostTypeOption> PostTypeOptions { get; set; } = new();
+    public List<PostTypeOption> PostTypeOptions { get; set; } = new()
+    {
+        new("general", "General", Icons.Material.Filled.Article, "Share updates with everyone."),
+        new("product", "Product", Icons.Material.Filled.Storefront, "Highlight new features or releases."),
+        new("service", "Service", Icons.Material.Filled.HeadsetMic, "Promote a service offering."),
+        new("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
+        new("job", "Job", Icons.Material.Filled.Work, "Share an open role with the community.")
+    };
 
     /// <summary>
     /// Available attachment options
     /// </summary>
     [Parameter]
-    public List<ComposerAttachmentOption> AttachmentOptions { get; set; } = new();
+    public List<ComposerAttachmentOption> AttachmentOptions { get; set; } = new()
+    {
+        new("media", "Add media", Icons.Material.Outlined.Image),
+        new("schedule", "Schedule", Icons.Material.Outlined.EventAvailable),
+        new("poll", "Poll", Icons.Material.Outlined.Poll),
+        new("ai-draft", "AI draft", Icons.Material.Outlined.AutoAwesome)
+    };
 
     /// <summary>
     /// Currently selected post type
@@ -178,4 +369,148 @@
     /// </summary>
     [Parameter]
     public EventCallback OnPublish { get; set; }
+
+    #endregion
+
+    #region State Management
+
+    /// <summary>
+    /// Selected visibility level for the post
+    /// </summary>
+    private VisibilityLevel SelectedVisibility { get; set; } = VisibilityLevel.Public;
+
+    /// <summary>
+    /// Callback when visibility changes (two-way binding)
+    /// </summary>
+    [Parameter]
+    public VisibilityLevel PostVisibility { get; set; } = VisibilityLevel.Public;
+
+    [Parameter]
+    public EventCallback<VisibilityLevel> PostVisibilityChanged { get; set; }
+
+    /// <summary>
+    /// Selected language for the post
+    /// </summary>
+    private string SelectedLanguage { get; set; } = "en";
+
+    [Parameter]
+    public string PostLanguage { get; set; } = "en";
+
+    [Parameter]
+    public EventCallback<string> PostLanguageChanged { get; set; }
+
+    /// <summary>
+    /// Tags as comma-separated input string
+    /// </summary>
+    private string TagsInput { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Tags list for the post
+    /// </summary>
+    [Parameter]
+    public List<string> PostTags { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<string>> PostTagsChanged { get; set; }
+
+    /// <summary>
+    /// Location city/name
+    /// </summary>
+    private string LocationCity { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Location object for the post
+    /// </summary>
+    [Parameter]
+    public LocationDto PostLocation { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<LocationDto> PostLocationChanged { get; set; }
+
+    /// <summary>
+    /// Business metadata for business profiles
+    /// </summary>
+    private string BusinessMetadata { get; set; } = string.Empty;
+
+    [Parameter]
+    public string PostBusinessMetadata { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> PostBusinessMetadataChanged { get; set; }
+
+    /// <summary>
+    /// Is this a business profile
+    /// </summary>
+    [Parameter]
+    public bool IsBusinessProfile { get; set; }
+
+    /// <summary>
+    /// Is the post being submitted
+    /// </summary>
+    private bool IsSubmitting { get; set; }
+
+    /// <summary>
+    /// Validation message if any
+    /// </summary>
+    private string ValidationMessage { get; set; } = string.Empty;
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Handle visibility level change
+    /// </summary>
+    private async Task HandleVisibilityChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<VisibilityLevel>(e.Value?.ToString(), out var visibility))
+        {
+            SelectedVisibility = visibility;
+            await PostVisibilityChanged.InvokeAsync(visibility);
+        }
+    }
+
+    /// <summary>
+    /// Get human-readable label for visibility level
+    /// </summary>
+    private string GetVisibilityLabel(VisibilityLevel visibility)
+    {
+        return visibility switch
+        {
+            VisibilityLevel.Public => "Public",
+            VisibilityLevel.Private => "Private (Only me)",
+            VisibilityLevel.Restricted => "Restricted",
+            VisibilityLevel.ConnectionsOnly => "Connections Only",
+            _ => "Unknown"
+        };
+    }
+
+    /// <summary>
+    /// Get description for visibility level
+    /// </summary>
+    private string GetVisibilityDescription(VisibilityLevel visibility)
+    {
+        return visibility switch
+        {
+            VisibilityLevel.Public => "Everyone can see this post",
+            VisibilityLevel.Private => "Only you can see this post",
+            VisibilityLevel.Restricted => "Only specific people can see this post",
+            VisibilityLevel.ConnectionsOnly => "Only your followers can see this post",
+            _ => ""
+        };
+    }
+
+    /// <summary>
+    /// Handle tags input change
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        SelectedLanguage = PostLanguage;
+        SelectedVisibility = PostVisibility;
+        TagsInput = string.Join(", ", PostTags);
+        LocationCity = PostLocation?.City ?? string.Empty;
+        BusinessMetadata = PostBusinessMetadata;
+    }
+
+    #endregion
 }

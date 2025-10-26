@@ -393,13 +393,22 @@ public class CommentsController : ControllerBase
             return keycloakIdHeader.ToString();
         }
 
-        // Check if user is authenticated via mock middleware
+        // Check if user is authenticated via claims
         if (User?.Identity?.IsAuthenticated == true)
         {
             var subClaim = User.FindFirst("sub")?.Value;
             if (!string.IsNullOrEmpty(subClaim))
             {
                 return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = User.FindFirst("user_id")?.Value 
+                           ?? User.FindFirst("id")?.Value 
+                           ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                return userIdClaim;
             }
         }
 

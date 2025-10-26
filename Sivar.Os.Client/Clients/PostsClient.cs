@@ -32,24 +32,24 @@ public class PostsClient : BaseClient, IPostsClient
         await DeleteAsync($"api/posts/{postId}", cancellationToken);
     }
 
-    public async Task<IEnumerable<PostDto>> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<IEnumerable<PostDto>>($"api/posts/feed?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+        return await GetAsync<PostFeedDto>($"api/posts/feed?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
     }
 
-    public async Task<IEnumerable<PostDto>> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<IEnumerable<PostDto>>($"api/posts/profile/{profileId}?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+        return await GetAsync<PostFeedDto>($"api/posts/profile/{profileId}?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
     }
 
-    public async Task<IEnumerable<PostDto>> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<IEnumerable<PostDto>>($"api/posts/search?query={Uri.EscapeDataString(query)}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+        return await GetAsync<PostFeedDto>($"api/posts/search?query={Uri.EscapeDataString(query)}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
     }
 
-    public async Task<IEnumerable<PostDto>> GetTrendingPostsAsync(int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetTrendingPostsAsync(int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<IEnumerable<PostDto>>($"api/posts/trending?limit={pageSize}", cancellationToken);
+        return await GetAsync<PostFeedDto>($"api/posts/trending?limit={pageSize}", cancellationToken);
     }
 
     public async Task<PostAnalyticsDto> GetPostAnalyticsAsync(Guid postId, CancellationToken cancellationToken = default)

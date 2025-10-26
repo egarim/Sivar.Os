@@ -1,0 +1,40 @@
+@using MudBlazor
+@using Sivar.Os.Client.Components.Shared
+
+@* Delete Confirmation Dialog Component *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudText>@Message</MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Confirm">
+            Delete
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private dynamic Dialog { get; set; } = null!;
+
+    [Parameter]
+    public string Title { get; set; } = "Confirm";
+
+    [Parameter]
+    public string Message { get; set; } = "Are you sure?";
+
+    private void Cancel()
+    {
+        Dialog?.Cancel();
+    }
+
+    private void Confirm()
+    {
+        Dialog?.Close(DialogResult.Ok(true));
+    }
+}

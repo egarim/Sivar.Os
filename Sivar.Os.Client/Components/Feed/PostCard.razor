@@ -32,11 +32,18 @@
         Comments="@Post.CommentCount"
         Shares="0"
         Liked="@(Post.ReactionSummary?.UserReaction.HasValue ?? false)"
+        IsPostOwner="@IsCurrentUserOwner"
+        PostLink="@GetPostLink()"
         OnLike="@(() => OnLike.InvokeAsync(Post))"
         OnComment="@(() => OnCommentClick.InvokeAsync(Post))"
         OnShare="@(() => OnShare.InvokeAsync(Post))"
         OnSave="@(() => OnSave.InvokeAsync(Post))"
-        OnMore="@(() => OnMore.InvokeAsync(Post))" />
+        OnMore="@(() => OnMore.InvokeAsync(Post))"
+        OnEdit="@(() => OnEdit.InvokeAsync(Post))"
+        OnDelete="@(() => OnDelete.InvokeAsync(Post))"
+        OnViewAnalytics="@(() => OnViewAnalytics.InvokeAsync(Post))"
+        OnReport="@(() => OnReport.InvokeAsync(Post))"
+        OnCopyLink="@(() => OnCopyLink.InvokeAsync(Post))" />
 
     <PostComments 
         Comments="@Post.Comments"
@@ -57,6 +64,22 @@
     /// </summary>
     [Parameter]
     public string TypeLabel { get; set; } = "General";
+
+    /// <summary>
+    /// Current user ID for ownership check
+    /// </summary>
+    [Parameter]
+    public Guid CurrentUserId { get; set; }
+
+    /// <summary>
+    /// Whether the current user is the post owner
+    /// </summary>
+    private bool IsCurrentUserOwner => Post?.Profile?.Id == CurrentUserId;
+
+    /// <summary>
+    /// Get the link to the post (for sharing/copying)
+    /// </summary>
+    private string GetPostLink() => $"/posts/{Post?.Id}";
 
     /// <summary>
     /// Callback when like button is clicked
@@ -93,6 +116,36 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Callback when edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when view analytics button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnViewAnalytics { get; set; }
+
+    /// <summary>
+    /// Callback when report button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnReport { get; set; }
+
+    /// <summary>
+    /// Callback when copy link button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnCopyLink { get; set; }
 
     private string GetInitials(string? name)
     {

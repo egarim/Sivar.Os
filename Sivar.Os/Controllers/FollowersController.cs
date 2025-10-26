@@ -9,7 +9,7 @@ namespace Sivar.Os.Controllers;
 /// Controller for managing profile follower relationships
 /// </summary>
 [ApiController]
-[Route("api/profiles/{profileId:guid}")]
+[Route("api/[controller]")]
 public class FollowersController : ControllerBase
 {
     private readonly IProfileFollowerService _followerService;
@@ -30,10 +30,10 @@ public class FollowersController : ControllerBase
     }
 
     /// <summary>
-    /// Get all followers of a profile
+    /// Get all followers of the current user's active profile
     /// </summary>
     [HttpGet("followers")]
-    public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetFollowers(Guid profileId)
+    public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetFollowers()
     {
         try
         {
@@ -47,21 +47,24 @@ public class FollowersController : ControllerBase
                 currentUserProfileId = currentUserProfile?.Id;
             }
 
-            var followers = await _followerService.GetFollowersAsync(profileId, currentUserProfileId);
+            if (currentUserProfileId == null)
+                return BadRequest("User must have an active profile");
+
+            var followers = await _followerService.GetFollowersAsync(currentUserProfileId.Value, currentUserProfileId);
             return Ok(followers);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting followers for profile {ProfileId}", profileId);
+            _logger.LogError(ex, "Error getting followers");
             return StatusCode(500, "An error occurred while retrieving followers");
         }
     }
 
     /// <summary>
-    /// Get all profiles that a profile is following
+    /// Get all profiles that the current user is following
     /// </summary>
     [HttpGet("following")]
-    public async Task<ActionResult<IEnumerable<FollowingProfileDto>>> GetFollowing(Guid profileId)
+    public async Task<ActionResult<IEnumerable<FollowingProfileDto>>> GetFollowing()
     {
         try
         {
@@ -75,21 +78,24 @@ public class FollowersController : ControllerBase
                 currentUserProfileId = currentUserProfile?.Id;
             }
 
-            var following = await _followerService.GetFollowingAsync(profileId, currentUserProfileId);
+            if (currentUserProfileId == null)
+                return BadRequest("User must have an active profile");
+
+            var following = await _followerService.GetFollowingAsync(currentUserProfileId.Value, currentUserProfileId);
             return Ok(following);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting following for profile {ProfileId}", profileId);
+            _logger.LogError(ex, "Error getting following");
             return StatusCode(500, "An error occurred while retrieving following");
         }
     }
 
     /// <summary>
-    /// Get follower statistics for a profile
+    /// Get follower statistics for the current user's active profile
     /// </summary>
     [HttpGet("stats")]
-    public async Task<ActionResult<FollowerStatsDto>> GetFollowerStats(Guid profileId)
+    public async Task<ActionResult<FollowerStatsDto>> GetFollowerStats()
     {
         try
         {
@@ -103,12 +109,15 @@ public class FollowersController : ControllerBase
                 currentUserProfileId = currentUserProfile?.Id;
             }
 
-            var stats = await _followerService.GetFollowerStatsAsync(profileId, currentUserProfileId);
+            if (currentUserProfileId == null)
+                return BadRequest("User must have an active profile");
+
+            var stats = await _followerService.GetFollowerStatsAsync(currentUserProfileId.Value, currentUserProfileId);
             return Ok(stats);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting follower stats for profile {ProfileId}", profileId);
+            _logger.LogError(ex, "Error getting follower stats");
             return StatusCode(500, "An error occurred while retrieving follower statistics");
         }
     }
@@ -117,7 +126,7 @@ public class FollowersController : ControllerBase
     /// Follow a profile
     /// </summary>
     [HttpPost("follow")]
-    public async Task<ActionResult<FollowResultDto>> FollowProfile(Guid profileId, [FromBody] FollowActionDto followAction)
+    public async Task<ActionResult<FollowResultDto>> FollowProfile([FromBody] FollowActionDto followAction)
     {
         try
         {
@@ -167,7 +176,7 @@ public class FollowersController : ControllerBase
     /// Unfollow a profile
     /// </summary>
     [HttpDelete("follow/{profileToUnfollowId:guid}")]
-    public async Task<ActionResult<FollowResultDto>> UnfollowProfile(Guid profileId, Guid profileToUnfollowId)
+    public async Task<ActionResult<FollowResultDto>> UnfollowProfile(Guid profileToUnfollowId)
     {
         try
         {
@@ -203,7 +212,7 @@ public class FollowersController : ControllerBase
     /// Check if current user is following a profile
     /// </summary>
     [HttpGet("following/{targetProfileId:guid}/status")]
-    public async Task<ActionResult<bool>> IsFollowing(Guid profileId, Guid targetProfileId)
+    public async Task<ActionResult<bool>> IsFollowing(Guid targetProfileId)
     {
         try
         {
@@ -230,20 +239,113 @@ public class FollowersController : ControllerBase
     }
 
     /// <summary>
-    /// Get mutual followers between two profiles
+    /// Get mutual followers between current user and another profile
     /// </summary>
     [HttpGet("mutual/{otherProfileId:guid}")]
-    public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetMutualFollowers(Guid profileId, Guid otherProfileId)
+    public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetMutualFollowers(Guid otherProfileId)
     {
         try
         {
-            var mutualFollowers = await _followerService.GetMutualFollowersAsync(profileId, otherProfileId);
+            var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            if (string.IsNullOrEmpty(currentUserKeycloakId))
+                return BadRequest("User must be authenticated");
+
+            var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
+            if (currentUserProfile == null)
+                return BadRequest("User must have an active profile");
+
+            var mutualFollowers = await _followerService.GetMutualFollowersAsync(currentUserProfile.Id, otherProfileId);
             return Ok(mutualFollowers);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting mutual followers for profiles {ProfileId1} and {ProfileId2}", profileId, otherProfileId);
+            _logger.LogError(ex, "Error getting mutual followers for profile {ProfileId}", otherProfileId);
             return StatusCode(500, "An error occurred while retrieving mutual followers");
+        }
+    }
+
+    // ============================================
+    // Profile-Scoped Endpoints (for specific profiles)
+    // ============================================
+
+    /// <summary>
+    /// Get all followers of a specific profile
+    /// </summary>
+    [HttpGet("profiles/{profileId:guid}/followers")]
+    public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetFollowersForProfile(Guid profileId)
+    {
+        try
+        {
+            var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            Guid? currentUserProfileId = null;
+            
+            if (!string.IsNullOrEmpty(currentUserKeycloakId))
+            {
+                var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
+                currentUserProfileId = currentUserProfile?.Id;
+            }
+
+            var followers = await _followerService.GetFollowersAsync(profileId, currentUserProfileId);
+            return Ok(followers);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting followers for profile {ProfileId}", profileId);
+            return StatusCode(500, "An error occurred while retrieving followers");
+        }
+    }
+
+    /// <summary>
+    /// Get all profiles that a specific profile is following
+    /// </summary>
+    [HttpGet("profiles/{profileId:guid}/following")]
+    public async Task<ActionResult<IEnumerable<FollowingProfileDto>>> GetFollowingForProfile(Guid profileId)
+    {
+        try
+        {
+            var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            Guid? currentUserProfileId = null;
+            
+            if (!string.IsNullOrEmpty(currentUserKeycloakId))
+            {
+                var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
+                currentUserProfileId = currentUserProfile?.Id;
+            }
+
+            var following = await _followerService.GetFollowingAsync(profileId, currentUserProfileId);
+            return Ok(following);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting following for profile {ProfileId}", profileId);
+            return StatusCode(500, "An error occurred while retrieving following");
+        }
+    }
+
+    /// <summary>
+    /// Get follower statistics for a specific profile
+    /// </summary>
+    [HttpGet("profiles/{profileId:guid}/stats")]
+    public async Task<ActionResult<FollowerStatsDto>> GetFollowerStatsForProfile(Guid profileId)
+    {
+        try
+        {
+            var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            Guid? currentUserProfileId = null;
+            
+            if (!string.IsNullOrEmpty(currentUserKeycloakId))
+            {
+                var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
+                currentUserProfileId = currentUserProfile?.Id;
+            }
+
+            var stats = await _followerService.GetFollowerStatsAsync(profileId, currentUserProfileId);
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting follower stats for profile {ProfileId}", profileId);
+            return StatusCode(500, "An error occurred while retrieving follower statistics");
         }
     }
 
@@ -262,6 +364,15 @@ public class FollowersController : ControllerBase
             if (!string.IsNullOrEmpty(subClaim))
             {
                 return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = User.FindFirst("user_id")?.Value 
+                           ?? User.FindFirst("id")?.Value 
+                           ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                return userIdClaim;
             }
         }
 

@@ -60,39 +60,95 @@ public class PostsController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=== POST CREATE REQUEST RECEIVED ===");
+            _logger.LogInformation($"[CreatePost] POST request received at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
+            
+            // Extract Keycloak ID with detailed logging
+            _logger.LogInformation("[CreatePost] Step 1: Extracting Keycloak ID from request");
+            _logger.LogInformation($"[CreatePost] User.Identity?.IsAuthenticated = {User?.Identity?.IsAuthenticated}");
+            _logger.LogInformation($"[CreatePost] Available claims count = {User?.Claims.Count()}");
+            
+            foreach (var claim in User?.Claims ?? Enumerable.Empty<System.Security.Claims.Claim>())
+            {
+                _logger.LogInformation($"[CreatePost] Claim: {claim.Type} = {claim.Value}");
+            }
+            
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation($"[CreatePost] Extracted KeycloakId = '{keycloakId}'");
+            
             if (string.IsNullOrEmpty(keycloakId))
-                return Unauthorized("User not authenticated");
+            {
+                _logger.LogWarning("[CreatePost] ❌ FAILED: KeycloakId is NULL or EMPTY - User not authenticated!");
+                return Unauthorized(new { error = "User not authenticated", keycloakId = keycloakId });
+            }
+
+            _logger.LogInformation($"[CreatePost] ✓ KeycloakId validated: {keycloakId}");
+            
+            // Validate request body
+            _logger.LogInformation("[CreatePost] Step 2: Validating request body");
+            _logger.LogInformation($"[CreatePost] Content length = {createPostDto?.Content?.Length ?? 0}");
+            _logger.LogInformation($"[CreatePost] Visibility = {createPostDto?.Visibility}");
+            
+            if (createPostDto == null)
+            {
+                _logger.LogWarning("[CreatePost] ❌ FAILED: CreatePostDto is null");
+                return BadRequest(new { error = "Post data is required" });
+            }
 
             // Check rate limit before processing
+            _logger.LogInformation("[CreatePost] Step 3: Checking rate limit");
             if (!await _rateLimitingService.CheckAndIncrementAsync(keycloakId, "post_creation"))
             {
+                _logger.LogWarning($"[CreatePost] ❌ FAILED: Rate limit exceeded for user {keycloakId}");
                 var remainingRequests = await _rateLimitingService.GetRemainingRequestsAsync(keycloakId, "post_creation");
                 return StatusCode(429, new { 
                     message = "Too many requests. Please try again later.", 
                     remainingRequests = remainingRequests,
-                    resetTime = DateTime.UtcNow.AddMinutes(1) // Based on 1 minute window
+                    resetTime = DateTime.UtcNow.AddMinutes(1)
                 });
             }
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            _logger.LogInformation($"[CreatePost] ✓ Rate limit check passed");
 
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning($"[CreatePost] ❌ FAILED: ModelState is invalid");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    _logger.LogWarning($"[CreatePost] ModelState Error: {error.ErrorMessage}");
+                }
+                return BadRequest(ModelState);
+            }
+
+            // Create post via service
+            _logger.LogInformation("[CreatePost] Step 4: Calling PostService.CreatePostAsync");
+            _logger.LogInformation($"[CreatePost] Parameters: keycloakId='{keycloakId}', content='{createPostDto.Content?.Substring(0, Math.Min(50, createPostDto.Content?.Length ?? 0))}...'");
+            
             var post = await _postService.CreatePostAsync(keycloakId, createPostDto);
+            
             if (post == null)
-                return BadRequest("Failed to create post - user or profile not found");
+            {
+                _logger.LogError("[CreatePost] ❌ FAILED: PostService returned NULL - user or profile not found");
+                return BadRequest(new { error = "Failed to create post - user or profile not found", keycloakId = keycloakId });
+            }
+
+            _logger.LogInformation($"[CreatePost] ✅ SUCCESS: Post created with ID = {post.Id}");
+            _logger.LogInformation($"[CreatePost] Post content = '{post.Content?.Substring(0, Math.Min(50, post.Content?.Length ?? 0))}...'");
+            _logger.LogInformation($"[CreatePost] Post profile = {post.Profile?.DisplayName}");
+            _logger.LogInformation("=== POST CREATE REQUEST COMPLETED SUCCESSFULLY ===");
 
             return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid post creation request");
-            return BadRequest(ex.Message);
+            _logger.LogError(ex, "[CreatePost] ❌ ArgumentException: Invalid post creation request");
+            return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating post");
-            return StatusCode(500, "Internal server error");
+            _logger.LogError(ex, "[CreatePost] ❌ Exception: Error creating post - {ExceptionMessage}", ex.Message);
+            _logger.LogError($"[CreatePost] Stack trace: {ex.StackTrace}");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
         }
     }
 
@@ -213,12 +269,19 @@ public class PostsController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] API ENDPOINT CALLED - page={Page}, pageSize={PageSize}, profileType={ProfileType}", page, pageSize, profileType);
+            
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] Keycloak ID extracted: {KeycloakId}", keycloakId ?? "NULL");
             
             if (pageSize > 100)
                 pageSize = 100; // Limit page size
 
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] Calling PostService.GetActivityFeedAsync with keycloakId={KeycloakId}", keycloakId);
             var (posts, totalCount) = await _postService.GetActivityFeedAsync(keycloakId, page + 1, pageSize, profileType);
+            
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] PostService returned {Count} posts (totalCount: {TotalCount})", posts.Count(), totalCount);
+            
             var feed = new PostFeedDto
             {
                 Posts = posts.ToList(),
@@ -227,11 +290,12 @@ public class PostsController : ControllerBase
                 TotalCount = totalCount
             };
             
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] Returning feed DTO with {Count} posts", feed.Posts.Count);
             return Ok(feed);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting activity stream feed");
+            _logger.LogError(ex, "[PostsController.GetActivityStreamFeed] Error getting activity stream feed");
             return StatusCode(500, "Internal server error");
         }
     }
@@ -439,29 +503,82 @@ public class PostsController : ControllerBase
     /// </summary>
     private string GetKeycloakIdFromRequest()
     {
+        _logger.LogInformation("[GetKeycloakIdFromRequest] Starting Keycloak ID extraction...");
+
         // Check for mock authentication header (for integration tests)
         if (Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
         {
+            _logger.LogInformation($"[GetKeycloakIdFromRequest] ✓ Found X-Keycloak-Id header: {keycloakIdHeader}");
             return keycloakIdHeader.ToString();
         }
 
-        // Check if user is authenticated via mock middleware
+        _logger.LogInformation("[GetKeycloakIdFromRequest] No X-Keycloak-Id header found");
+
+        // Check if user is authenticated via claims
+        _logger.LogInformation($"[GetKeycloakIdFromRequest] User.Identity?.IsAuthenticated = {User?.Identity?.IsAuthenticated}");
+        
         if (User?.Identity?.IsAuthenticated == true)
         {
+            _logger.LogInformation($"[GetKeycloakIdFromRequest] User is authenticated. Total claims: {User.Claims.Count()}");
+            
+            // Log all available claims
+            foreach (var claim in User.Claims)
+            {
+                _logger.LogInformation($"[GetKeycloakIdFromRequest]   Claim: {claim.Type} = {claim.Value}");
+            }
+
+            // Try "sub" claim first (OpenID Connect standard)
             var subClaim = User.FindFirst("sub")?.Value;
             if (!string.IsNullOrEmpty(subClaim))
             {
+                _logger.LogInformation($"[GetKeycloakIdFromRequest] ✓ Found 'sub' claim: {subClaim}");
                 return subClaim;
             }
+            
+            _logger.LogInformation("[GetKeycloakIdFromRequest] 'sub' claim not found or empty");
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                _logger.LogInformation($"[GetKeycloakIdFromRequest] ✓ Found 'user_id' claim: {userIdClaim}");
+                return userIdClaim;
+            }
+            
+            _logger.LogInformation("[GetKeycloakIdFromRequest] 'user_id' claim not found");
+
+            var idClaim = User.FindFirst("id")?.Value;
+            if (!string.IsNullOrEmpty(idClaim))
+            {
+                _logger.LogInformation($"[GetKeycloakIdFromRequest] ✓ Found 'id' claim: {idClaim}");
+                return idClaim;
+            }
+            
+            _logger.LogInformation("[GetKeycloakIdFromRequest] 'id' claim not found");
+
+            var nameIdentifierClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(nameIdentifierClaim))
+            {
+                _logger.LogInformation($"[GetKeycloakIdFromRequest] ✓ Found NameIdentifier claim: {nameIdentifierClaim}");
+                return nameIdentifierClaim;
+            }
+            
+            _logger.LogInformation("[GetKeycloakIdFromRequest] NameIdentifier claim not found");
+        }
+        else
+        {
+            _logger.LogWarning("[GetKeycloakIdFromRequest] User is NOT authenticated!");
         }
 
         // Only return fallback if we have mock auth header (X-Mock-Auth) indicating this is a test scenario
         if (Request.Headers.ContainsKey("X-Mock-Auth"))
         {
+            _logger.LogInformation("[GetKeycloakIdFromRequest] ✓ Using mock auth header");
             return "mock-keycloak-user-id";
         }
 
         // No authentication found
+        _logger.LogError("[GetKeycloakIdFromRequest] ❌ NO KEYCLOAK ID FOUND - returning null!");
         return null!;
     }
 }

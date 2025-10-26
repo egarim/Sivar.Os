@@ -26,6 +26,7 @@ public class ProfilesController : ControllerBase
     /// </summary>
     /// <returns>User's personal profile</returns>
     [HttpGet("my")]
+    [Authorize]
     public async Task<ActionResult<ProfileDto>> GetMyProfile()
     {
         try
@@ -177,6 +178,7 @@ public class ProfilesController : ControllerBase
     /// </summary>
     /// <returns>User's active profile</returns>
     [HttpGet("my/active")]
+    [Authorize]
     public async Task<ActionResult<ProfileDto>> GetMyActiveProfile()
     {
         try
@@ -703,8 +705,7 @@ public class ProfilesController : ControllerBase
     }
 
     /// <summary>
-    /// Placeholder method to extract Keycloak ID from JWT token
-    /// TODO: Implement actual JWT token parsing when Keycloak is integrated
+    /// Extract Keycloak ID from JWT token with multiple claim type support
     /// </summary>
     private string GetKeycloakIdFromRequest()
     {
@@ -714,13 +715,22 @@ public class ProfilesController : ControllerBase
             return keycloakIdHeader.ToString();
         }
 
-        // Check if user is authenticated via JWT Bearer token
+        // Check if user is authenticated via claims
         if (User?.Identity?.IsAuthenticated == true)
         {
-            var keycloakIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(keycloakIdClaim))
+            var subClaim = User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim))
             {
-                return keycloakIdClaim;
+                return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = User.FindFirst("user_id")?.Value 
+                           ?? User.FindFirst("id")?.Value 
+                           ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                return userIdClaim;
             }
         }
 

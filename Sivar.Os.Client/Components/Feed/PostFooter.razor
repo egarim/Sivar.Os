@@ -1,4 +1,5 @@
 @using MudBlazor
+@using Sivar.Os.Shared.DTOs
 
 @* PostFooter component *@
 
@@ -22,9 +23,17 @@
             <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
             Save
         </button>
-        <button class="action-btn" @onclick="OnMore">
-            <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
-        </button>
+        
+        @* More Options Menu *@
+        <PostMoreMenu 
+            IsPostOwner="@IsPostOwner"
+            PostLink="@PostLink"
+            OnEdit="@OnEdit"
+            OnDelete="@OnDelete"
+            OnViewAnalytics="@OnViewAnalytics"
+            OnShare="@OnShare"
+            OnReport="@OnReport"
+            OnCopyLink="@OnCopyLink" />
     </div>
 </footer>
 
@@ -54,6 +63,18 @@
     public bool Liked { get; set; }
 
     /// <summary>
+    /// Whether the current user is the post owner
+    /// </summary>
+    [Parameter]
+    public bool IsPostOwner { get; set; }
+
+    /// <summary>
+    /// Link to the post (for sharing/copying)
+    /// </summary>
+    [Parameter]
+    public string? PostLink { get; set; }
+
+    /// <summary>
     /// Callback when like is clicked
     /// </summary>
     [Parameter]
@@ -78,8 +99,38 @@
     public EventCallback OnSave { get; set; }
 
     /// <summary>
-    /// Callback when more is clicked
+    /// Callback when more is clicked (deprecated - use individual callbacks)
     /// </summary>
     [Parameter]
     public EventCallback OnMore { get; set; }
+
+    /// <summary>
+    /// Callback when edit is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when delete is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when view analytics is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewAnalytics { get; set; }
+
+    /// <summary>
+    /// Callback when report is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnReport { get; set; }
+
+    /// <summary>
+    /// Callback when copy link is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCopyLink { get; set; }
 }

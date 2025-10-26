@@ -161,18 +161,29 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// <summary>
     /// Gets feed posts
     /// </summary>
-    public async Task<IEnumerable<PostDto>> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Placeholder implementation
-            var posts = new List<PostDto>();
-            _logger.LogInformation("Feed posts retrieved: {Count} items", posts.Count);
-            return posts;
+            // Note: This is server-side implementation used during pre-rendering
+            // The actual Keycloak ID should come from HttpContext.User claims
+            // For now, return empty feed as this should be called from client-side afterwards
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Server-side called for page {PageNumber}, pageSize {PageSize}", pageNumber, pageSize);
+            
+            var feed = new PostFeedDto
+            {
+                Posts = new List<PostDto>(),
+                Page = pageNumber - 1,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
+            
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Returning feed with {Count} items", feed.Posts.Count);
+            return feed;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving feed posts");
+            _logger.LogError(ex, "[PostsClient.GetFeedPostsAsync] Error retrieving feed posts");
             throw;
         }
     }
@@ -180,12 +191,18 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// <summary>
     /// Gets posts for a specific profile
     /// </summary>
-    public async Task<IEnumerable<PostDto>> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         if (profileId == Guid.Empty)
         {
             _logger.LogWarning("GetProfilePostsAsync called with empty profile ID");
-            return new List<PostDto>();
+            return new PostFeedDto
+            {
+                Posts = new List<PostDto>(),
+                Page = pageNumber - 1,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         try
@@ -194,7 +211,13 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var dtos = posts.Select(MapPostToDto).ToList();
 
             _logger.LogInformation("Profile posts retrieved for profile {ProfileId}: {Count} items", profileId, dtos.Count);
-            return dtos;
+            return new PostFeedDto
+            {
+                Posts = dtos,
+                Page = pageNumber - 1,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
         catch (Exception ex)
         {
@@ -206,12 +229,18 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// <summary>
     /// Searches for posts
     /// </summary>
-    public async Task<IEnumerable<PostDto>> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
             _logger.LogWarning("SearchPostsAsync called with empty query");
-            return new List<PostDto>();
+            return new PostFeedDto
+            {
+                Posts = new List<PostDto>(),
+                Page = pageNumber - 1,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         try
@@ -220,7 +249,13 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var dtos = posts.Select(MapPostToDto).ToList();
 
             _logger.LogInformation("Search posts found: {Count} items for query '{Query}'", dtos.Count, query);
-            return dtos;
+            return new PostFeedDto
+            {
+                Posts = dtos,
+                Page = pageNumber - 1,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
         catch (Exception ex)
         {
@@ -232,7 +267,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// <summary>
     /// Gets trending posts
     /// </summary>
-    public async Task<IEnumerable<PostDto>> GetTrendingPostsAsync(int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetTrendingPostsAsync(int pageSize = 20, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -240,7 +275,13 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var dtos = posts.Select(MapPostToDto).ToList();
 
             _logger.LogInformation("Trending posts retrieved: {Count} items", dtos.Count);
-            return dtos;
+            return new PostFeedDto
+            {
+                Posts = dtos,
+                Page = 0,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
         catch (Exception ex)
         {

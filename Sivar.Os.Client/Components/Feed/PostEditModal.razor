@@ -1,0 +1,201 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h5">Edit Post</MudText>
+            
+            <!-- Content Field -->
+            <MudTextField @bind-Value="EditContent"
+                          Label="What's on your mind?"
+                          Placeholder="Share your thoughts..."
+                          FullWidth="true"
+                          MultiLine="true"
+                          Lines="4"
+                          Variant="Variant.Outlined" />
+
+            <!-- Advanced Options Collapsible Section -->
+            <details open="false" style="border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; padding: 12px;">
+                <summary style="cursor: pointer; font-weight: 500; padding: 8px; user-select: none;">
+                    ⚙️ Advanced Options
+                </summary>
+
+                <MudStack Spacing="2" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.12);">
+                    <!-- Visibility Level -->
+                    <MudSelect @bind-Value="EditVisibility"
+                               Label="Who can see this?"
+                               FullWidth="true"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="VisibilityLevel.Public">
+                            <MudStack Row="true" Spacing="1" Style="align-items: center;">
+                                <MudIcon Icon="@Icons.Material.Outlined.Public" Size="Size.Small" />
+                                <span>Public - Everyone can see</span>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="VisibilityLevel.ConnectionsOnly">
+                            <MudStack Row="true" Spacing="1" Style="align-items: center;">
+                                <MudIcon Icon="@Icons.Material.Outlined.PeopleAlt" Size="Size.Small" />
+                                <span>Connections Only</span>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="VisibilityLevel.Restricted">
+                            <MudStack Row="true" Spacing="1" Style="align-items: center;">
+                                <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                                <span>Restricted - Selected people</span>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="VisibilityLevel.Private">
+                            <MudStack Row="true" Spacing="1" Style="align-items: center;">
+                                <MudIcon Icon="@Icons.Material.Outlined.VpnLock" Size="Size.Small" />
+                                <span>Private - Only you</span>
+                            </MudStack>
+                        </MudSelectItem>
+                    </MudSelect>
+
+                    <!-- Visibility Description -->
+                    <MudAlert Severity="Severity.Info" Dense="true" Style="font-size: 0.85rem;">
+                        @GetVisibilityDescription()
+                    </MudAlert>
+
+                    <!-- Tags Input -->
+                    <MudTextField @bind-Value="EditTags"
+                                  Label="Tags (comma-separated, max 10)"
+                                  Placeholder="business, technology, innovation"
+                                  FullWidth="true"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Enter up to 10 tags separated by commas" />
+
+                    <!-- Location -->
+                    <MudTextField @bind-Value="EditLocationCity"
+                                  Label="Location"
+                                  Placeholder="e.g., New York, NY"
+                                  FullWidth="true"
+                                  Variant="Variant.Outlined" />
+
+                    <!-- Business Metadata (conditional on business profile) -->
+                    @if (IsBusinessProfile)
+                    {
+                        <MudTextField @bind-Value="EditBusinessMetadata"
+                                      Label="Business Information (JSON)"
+                                      Placeholder="{ \"hours\": \"9-5\", \"phone\": \"+1234567890\" }"
+                                      FullWidth="true"
+                                      MultiLine="true"
+                                      Lines="3"
+                                      Variant="Variant.Outlined"
+                                      HelperText="Optional JSON data for business details" />
+                    }
+                </MudStack>
+            </details>
+
+            <!-- Error Message (if any) -->
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@ErrorMessage</MudAlert>
+            }
+
+            <!-- Loading State -->
+            @if (IsUpdating)
+            {
+                <MudStack Row="true" Spacing="1" Style="justify-content: center; align-items: center;">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                    <MudText>Saving changes...</MudText>
+                </MudStack>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="IsUpdating">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   OnClick="Save" 
+                   Disabled="IsUpdating || string.IsNullOrWhiteSpace(EditContent)"
+                   Variant="Variant.Filled">
+            @if (IsUpdating)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Save Changes</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] dynamic MudDialog { get; set; } = null!;
+    
+    [Parameter] public PostDto? Post { get; set; }
+    [Parameter] public bool IsBusinessProfile { get; set; } = false;
+
+    // Edit form fields (mutable)
+    private string EditContent = "";
+    private VisibilityLevel EditVisibility = VisibilityLevel.Public;
+    private string EditTags = "";
+    private string EditLocationCity = "";
+    private string EditBusinessMetadata = "";
+    
+    private string ErrorMessage = "";
+    private bool IsUpdating = false;
+
+    protected override void OnInitialized()
+    {
+        if (Post != null)
+        {
+            // Populate form fields from post data
+            EditContent = Post.Content ?? "";
+            EditVisibility = Post.Visibility;
+            EditTags = Post.Tags != null ? string.Join(", ", Post.Tags) : "";
+            EditLocationCity = Post.Location?.City ?? "";
+            EditBusinessMetadata = Post.BusinessMetadata ?? "";
+        }
+    }
+
+    private string GetVisibilityDescription() => EditVisibility switch
+    {
+        VisibilityLevel.Public => "Your post will be visible to everyone on SivarOS.",
+        VisibilityLevel.ConnectionsOnly => "Only your connections can see this post.",
+        VisibilityLevel.Restricted => "Only people you select can see this post.",
+        VisibilityLevel.Private => "Only you can see this post.",
+        _ => "Select a visibility level."
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        try
+        {
+            ErrorMessage = "";
+            IsUpdating = true;
+
+            // Build UpdatePostDto from form fields
+            var updateDto = new UpdatePostDto
+            {
+                Content = EditContent,
+                Visibility = EditVisibility,
+                Tags = EditTags
+                    .Split(',')
+                    .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .ToList(),
+                Location = !string.IsNullOrEmpty(EditLocationCity) 
+                    ? new LocationDto { City = EditLocationCity }
+                    : null,
+                BusinessMetadata = !string.IsNullOrEmpty(EditBusinessMetadata) 
+                    ? EditBusinessMetadata 
+                    : null
+            };
+
+            // Return the UpdatePostDto to the caller
+            await MudDialog.CloseAsync(DialogResult.Ok(updateDto));
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error preparing post update: {ex.Message}";
+            IsUpdating = false;
+        }
+    }
+}

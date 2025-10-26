@@ -17,36 +17,6 @@ public class UserSample
     public string Initials => string.Join(string.Empty, Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
 }
 
-public class PostTypeOption
-{
-    public PostTypeOption(string id, string label, string icon, string tooltip)
-    {
-        Id = id;
-        Label = label;
-        Icon = icon;
-        Tooltip = tooltip;
-    }
-
-    public string Id { get; }
-    public string Label { get; }
-    public string Icon { get; }
-    public string Tooltip { get; }
-}
-
-public class ComposerAttachmentOption
-{
-    public ComposerAttachmentOption(string id, string label, string icon)
-    {
-        Id = id;
-        Label = label;
-        Icon = icon;
-    }
-
-    public string Id { get; }
-    public string Label { get; }
-    public string Icon { get; }
-}
-
 public class PostSample
 {
     public string Author { get; set; } = string.Empty;

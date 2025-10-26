@@ -317,6 +317,38 @@ public class NotificationsController : ControllerBase
     /// <returns>Keycloak ID or null if not found</returns>
     private string? GetKeycloakIdFromRequest()
     {
-        return User.FindFirst("sub")?.Value;
+        // Check for mock authentication header (for integration tests)
+        if (Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
+        {
+            return keycloakIdHeader.ToString();
+        }
+
+        // Check if user is authenticated via claims
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            var subClaim = User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim))
+            {
+                return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = User.FindFirst("user_id")?.Value 
+                           ?? User.FindFirst("id")?.Value 
+                           ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                return userIdClaim;
+            }
+        }
+
+        // Only return fallback if we have mock auth header (X-Mock-Auth) indicating this is a test scenario
+        if (Request.Headers.ContainsKey("X-Mock-Auth"))
+        {
+            return "mock-keycloak-user-id";
+        }
+
+        // No authentication found
+        return null;
     }
 }
