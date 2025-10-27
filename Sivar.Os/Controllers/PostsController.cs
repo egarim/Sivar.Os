@@ -277,7 +277,7 @@ public class PostsController : ControllerBase
             if (pageSize > 100)
                 pageSize = 100; // Limit page size
 
-            _logger.LogInformation("[PostsController.GetActivityStreamFeed] Calling PostService.GetActivityFeedAsync with keycloakId={KeycloakId}", keycloakId);
+            _logger.LogInformation("[PostsController.GetActivityStreamFeed] Calling PostService.GetActivityFeedAsync with keycloakId={KeycloakId}, page={Page}, pageSize={PageSize}", keycloakId, page + 1, pageSize);
             var (posts, totalCount) = await _postService.GetActivityFeedAsync(keycloakId, page + 1, pageSize, profileType);
             
             _logger.LogInformation("[PostsController.GetActivityStreamFeed] PostService returned {Count} posts (totalCount: {TotalCount})", posts.Count(), totalCount);

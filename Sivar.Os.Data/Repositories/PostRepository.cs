@@ -144,36 +144,69 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         bool includeRelated = true,
         string? profileType = null)
     {
+        Console.WriteLine($"[PostRepository.GetActivityFeedAsync] START - ProfileId={profileId}, Page={page}, PageSize={pageSize}, IncludeOwnPosts={includeOwnPosts}");
+        
         // Get list of followed profile IDs (only active relationships)
         var followedProfileIds = await _context.ProfileFollowers
             .Where(pf => pf.FollowerProfileId == profileId && pf.IsActive)
             .Select(pf => pf.FollowedProfileId)
             .ToListAsync();
 
-        var query = GetQueryable().Where(p => followedProfileIds.Contains(p.ProfileId));
+        Console.WriteLine($"[PostRepository.GetActivityFeedAsync] Found {followedProfileIds.Count} followed profiles");
 
-        if (includeOwnPosts)
+        IQueryable<Post> query;
+
+        // If user has no follows, show all public posts (discovery feed)
+        // This ensures new users see content and can discover profiles to follow
+        if (!followedProfileIds.Any() && !includeOwnPosts)
         {
-            query = query.Union(GetQueryable().Where(p => p.ProfileId == profileId));
+            Console.WriteLine("[PostRepository.GetActivityFeedAsync] Using discovery feed (all public posts)");
+            query = GetQueryable().Where(p => p.Visibility == VisibilityLevel.Public);
+        }
+        else if (!followedProfileIds.Any() && includeOwnPosts)
+        {
+            Console.WriteLine("[PostRepository.GetActivityFeedAsync] Using own posts + public posts feed");
+            query = GetQueryable().Where(p => p.ProfileId == profileId || p.Visibility == VisibilityLevel.Public);
+        }
+        else
+        {
+            Console.WriteLine("[PostRepository.GetActivityFeedAsync] Using standard followed profiles feed");
+            // Standard feed: posts from followed profiles
+            query = GetQueryable().Where(p => followedProfileIds.Contains(p.ProfileId));
+
+            if (includeOwnPosts)
+            {
+                query = query.Union(GetQueryable().Where(p => p.ProfileId == profileId));
+            }
         }
 
         // Filter by profile type if specified
         if (!string.IsNullOrEmpty(profileType))
         {
+            Console.WriteLine($"[PostRepository.GetActivityFeedAsync] Filtering by profile type: {profileType}");
             query = query.Where(p => p.Profile.ProfileType.Name == profileType);
         }
 
         if (includeRelated)
+        {
+            Console.WriteLine("[PostRepository.GetActivityFeedAsync] Including related entities");
             query = IncludeRelatedEntities(query);
+        }
 
+        Console.WriteLine("[PostRepository.GetActivityFeedAsync] Applying ordering...");
         query = query.OrderByDescending(p => p.CreatedAt);
 
+        Console.WriteLine("[PostRepository.GetActivityFeedAsync] Getting count...");
         var totalCount = await query.CountAsync();
+        Console.WriteLine($"[PostRepository.GetActivityFeedAsync] Total count: {totalCount}");
+
+        Console.WriteLine($"[PostRepository.GetActivityFeedAsync] Executing paged query (page={page}, pageSize={pageSize})...");
         var posts = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
+        Console.WriteLine($"[PostRepository.GetActivityFeedAsync] COMPLETE - Returning {posts.Count} posts out of {totalCount} total");
         return (posts, totalCount);
     }
 

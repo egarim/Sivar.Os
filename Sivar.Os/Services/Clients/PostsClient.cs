@@ -16,15 +16,18 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 {
     private readonly IPostService _postService;
     private readonly IPostRepository _postRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<PostsClient> _logger;
 
     public PostsClient(
         IPostService postService,
         IPostRepository postRepository,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<PostsClient> logger)
     {
         _postService = postService ?? throw new ArgumentNullException(nameof(postService));
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -165,17 +168,40 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         try
         {
-            // Note: This is server-side implementation used during pre-rendering
-            // The actual Keycloak ID should come from HttpContext.User claims
-            // For now, return empty feed as this should be called from client-side afterwards
             _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Server-side called for page {PageNumber}, pageSize {PageSize}", pageNumber, pageSize);
+            
+            // Get Keycloak ID from HttpContext claims
+            var keycloakId = _httpContextAccessor.HttpContext?.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub")?.Value;
+            
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[PostsClient.GetFeedPostsAsync] No Keycloak ID found in claims - user not authenticated. Returning empty feed.");
+                return new PostFeedDto
+                {
+                    Posts = new List<PostDto>(),
+                    Page = pageNumber - 1,
+                    PageSize = pageSize,
+                    TotalCount = 0
+                };
+            }
+            
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Found Keycloak ID: {KeycloakId}, calling PostService", keycloakId);
+            
+            // Call the actual PostService
+            var (posts, totalCount) = await _postService.GetActivityFeedAsync(
+                keycloakId, 
+                pageNumber, 
+                pageSize);
+            
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] PostService returned {Count} posts (total: {TotalCount})", posts.Count(), totalCount);
             
             var feed = new PostFeedDto
             {
-                Posts = new List<PostDto>(),
+                Posts = posts.ToList(),
                 Page = pageNumber - 1,
                 PageSize = pageSize,
-                TotalCount = 0
+                TotalCount = totalCount
             };
             
             _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Returning feed with {Count} items", feed.Posts.Count);

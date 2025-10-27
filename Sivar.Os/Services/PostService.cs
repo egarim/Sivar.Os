@@ -275,16 +275,57 @@ public class PostService : IPostService
     /// </summary>
     public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetActivityFeedAsync(string keycloakId, int page = 1, int pageSize = 10, string? profileType = null)
     {
+        _logger.LogInformation("[PostService.GetActivityFeedAsync] START - KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}, ProfileType={ProfileType}", 
+            keycloakId, page, pageSize, profileType);
+
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[PostService.GetActivityFeedAsync] Empty Keycloak ID provided");
             return (Enumerable.Empty<PostDto>(), 0);
+        }
 
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile == null)
+        _logger.LogInformation("[PostService.GetActivityFeedAsync] User lookup result - User found: {UserFound}, UserId: {UserId}, ActiveProfile: {ActiveProfileId}", 
+            user != null, user?.Id, user?.ActiveProfile?.Id);
+
+        if (user == null)
+        {
+            _logger.LogWarning("[PostService.GetActivityFeedAsync] User not found for KeycloakId={KeycloakId}", keycloakId);
             return (Enumerable.Empty<PostDto>(), 0);
+        }
+
+        // Handle case where ActiveProfile is not set - get user's first profile
+        Guid profileId;
+        if (user.ActiveProfile != null)
+        {
+            profileId = user.ActiveProfile.Id;
+            _logger.LogInformation("[PostService.GetActivityFeedAsync] Using ActiveProfile: {ProfileId}", profileId);
+        }
+        else
+        {
+            _logger.LogWarning("[PostService.GetActivityFeedAsync] ActiveProfile is NULL, fetching user's profiles for UserId={UserId}", user.Id);
+            var userProfiles = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: false);
+            var firstProfile = userProfiles.FirstOrDefault();
+            
+            if (firstProfile == null)
+            {
+                _logger.LogWarning("[PostService.GetActivityFeedAsync] No profiles found for UserId={UserId}", user.Id);
+                return (Enumerable.Empty<PostDto>(), 0);
+            }
+            
+            profileId = firstProfile.Id;
+            _logger.LogInformation("[PostService.GetActivityFeedAsync] Using first available profile: {ProfileId}, DisplayName={DisplayName}", 
+                profileId, firstProfile.DisplayName);
+        }
+
+        _logger.LogInformation("[PostService.GetActivityFeedAsync] Calling repository with ProfileId={ProfileId}", profileId);
 
         // Use the enhanced repository method with profile type filtering
-        var (posts, totalCount) = await _postRepository.GetActivityFeedAsync(user.ActiveProfile.Id, page, pageSize, profileType: profileType);
+        var (posts, totalCount) = await _postRepository.GetActivityFeedAsync(profileId, page, pageSize, profileType: profileType);
         
+        _logger.LogInformation("[PostService.GetActivityFeedAsync] Repository returned {PostCount} posts (total: {TotalCount})", 
+            posts.Count(), totalCount);
+
         var postDtos = new List<PostDto>();
         foreach (var post in posts)
         {
@@ -292,6 +333,9 @@ public class PostService : IPostService
             if (dto != null)
                 postDtos.Add(dto);
         }
+
+        _logger.LogInformation("[PostService.GetActivityFeedAsync] Mapped {DtoCount} DTOs from {PostCount} posts", 
+            postDtos.Count, posts.Count());
 
         return (postDtos, totalCount);
     }
