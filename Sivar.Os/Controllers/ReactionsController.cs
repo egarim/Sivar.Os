@@ -31,53 +31,92 @@ public class ReactionsController : ControllerBase
     [HttpPost("post")]
     public async Task<ActionResult<ReactionDto>> ReactToPost([FromBody] CreatePostReactionDto createReactionDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ReactionsController.ReactToPost] START - RequestId={RequestId}, PostId={PostId}, ReactionType={ReactionType}", 
+            requestId, createReactionDto?.PostId, createReactionDto?.ReactionType);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ReactionsController.ReactToPost] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ReactionsController.ReactToPost] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("[ReactionsController.ReactToPost] INVALID_MODEL - RequestId={RequestId}, Errors={Errors}", 
+                    requestId, string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
+            }
 
+            _logger.LogInformation("[ReactionsController.ReactToPost] Calling reaction service - RequestId={RequestId}", requestId);
             var result = await _reactionService.TogglePostReactionAsync(keycloakId, createReactionDto.PostId, createReactionDto.ReactionType);
+            
             if (result == null)
             {
+                _logger.LogWarning("[ReactionsController.ReactToPost] SERVICE_RETURNED_NULL - PostId={PostId}, RequestId={RequestId}", 
+                    createReactionDto.PostId, requestId);
                 return BadRequest("Failed to react to post. Please check the post ID and try again.");
             }
+            
+            _logger.LogInformation("[ReactionsController.ReactToPost] Reaction toggled - Action={Action}, ReactionType={ReactionType}, RequestId={RequestId}", 
+                result.Action, result.ReactionType, requestId);
             
             // Create reaction notification if a new reaction was added
             if (result.Action == ReactionAction.Added && result.Reaction != null)
             {
                 try
                 {
+                    _logger.LogInformation("[ReactionsController.ReactToPost] Creating notification - PostId={PostId}, UserId={UserId}, RequestId={RequestId}", 
+                        createReactionDto.PostId, result.Reaction.Profile.UserId, requestId);
+                    
                     await _notificationService.CreateReactionNotificationAsync(
                         createReactionDto.PostId, 
                         result.Reaction.Profile.UserId, 
                         result.ReactionType.ToString());
+                    
+                    _logger.LogInformation("[ReactionsController.ReactToPost] Notification created successfully - RequestId={RequestId}", requestId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating reaction notification for post {PostId} by user {UserId}", 
-                        createReactionDto.PostId, result.Reaction.Profile.UserId);
+                    _logger.LogError(ex, "[ReactionsController.ReactToPost] NOTIFICATION_ERROR - PostId={PostId}, UserId={UserId}, RequestId={RequestId}", 
+                        createReactionDto.PostId, result.Reaction.Profile.UserId, requestId);
                     // Don't fail the reaction if notification creation fails
                 }
             }
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionsController.ReactToPost] SUCCESS - Action={Action}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.Action, requestId, elapsed);
             
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid post reaction request");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ReactionsController.ReactToPost] ARGUMENT_ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return BadRequest(ex.Message);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ReactionsController.ReactToPost] ACCESS_DENIED - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return Forbid("Access denied - cannot react to this post");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reacting to post");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionsController.ReactToPost] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -90,44 +129,78 @@ public class ReactionsController : ControllerBase
     [HttpPost("comment")]
     public async Task<ActionResult<ReactionDto>> ReactToComment([FromBody] CreateCommentReactionDto createReactionDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ReactionsController.ReactToComment] START - RequestId={RequestId}, CommentId={CommentId}, ReactionType={ReactionType}", 
+            requestId, createReactionDto?.CommentId, createReactionDto?.ReactionType);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ReactionsController.ReactToComment] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ReactionsController.ReactToComment] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("[ReactionsController.ReactToComment] INVALID_MODEL - RequestId={RequestId}, Errors={Errors}", 
+                    requestId, string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
+            }
 
+            _logger.LogInformation("[ReactionsController.ReactToComment] Calling reaction service - RequestId={RequestId}", requestId);
             var result = await _reactionService.ToggleCommentReactionAsync(keycloakId, createReactionDto.CommentId, createReactionDto.ReactionType);
+            
             if (result == null)
             {
+                _logger.LogWarning("[ReactionsController.ReactToComment] SERVICE_RETURNED_NULL - CommentId={CommentId}, RequestId={RequestId}", 
+                    createReactionDto.CommentId, requestId);
                 return BadRequest("Failed to react to comment. Please check the comment ID and try again.");
             }
+            
+            _logger.LogInformation("[ReactionsController.ReactToComment] Reaction toggled - Action={Action}, ReactionType={ReactionType}, RequestId={RequestId}", 
+                result.Action, result.ReactionType, requestId);
             
             // Create reaction notification if a new reaction was added to a comment
             // Note: For now, we'll skip comment reaction notifications
             // TODO: Implement comment reaction notifications by extending the notification service
             if (result.Action == ReactionAction.Added && result.Reaction != null)
             {
-                _logger.LogDebug("Comment reaction added for comment {CommentId} by user {UserId} - notification skipped (TODO)", 
-                    createReactionDto.CommentId, result.Reaction.Profile.UserId);
+                _logger.LogDebug("[ReactionsController.ReactToComment] Comment reaction added - CommentId={CommentId}, UserId={UserId}, notification skipped (TODO), RequestId={RequestId}", 
+                    createReactionDto.CommentId, result.Reaction.Profile.UserId, requestId);
             }
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionsController.ReactToComment] SUCCESS - Action={Action}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.Action, requestId, elapsed);
             
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid comment reaction request");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ReactionsController.ReactToComment] ARGUMENT_ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return BadRequest(ex.Message);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ReactionsController.ReactToComment] ACCESS_DENIED - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return Forbid("Access denied - cannot react to this comment");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reacting to comment");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionsController.ReactToComment] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -222,16 +295,30 @@ public class ReactionsController : ControllerBase
         [FromQuery] int page = 0,
         [FromQuery] int pageSize = 20)
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[ReactionsController.GetPostReactions] START - PostId={PostId}, ReactionType={ReactionType}, Page={Page}, PageSize={PageSize}", 
+            postId, reactionType?.ToString() ?? "ALL", page, pageSize);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ReactionsController.GetPostReactions] KeycloakId: {KeycloakId}", keycloakId ?? "ANONYMOUS");
             
             if (pageSize > 100)
+            {
+                _logger.LogInformation("[ReactionsController.GetPostReactions] PageSize capped from {Original} to 100", pageSize);
                 pageSize = 100; // Limit page size
+            }
 
             if (reactionType.HasValue)
             {
+                _logger.LogInformation("[ReactionsController.GetPostReactions] Fetching reactions by type - Type={Type}", reactionType.Value);
                 var (reactions, totalCount) = await _reactionService.GetPostReactionsByTypeAsync(postId, reactionType.Value, keycloakId, page, pageSize);
+                
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[ReactionsController.GetPostReactions] SUCCESS - PostId={PostId}, TotalCount={TotalCount}, Duration={Duration}ms", 
+                    postId, totalCount, elapsed);
+                
                 return Ok(new ReactionListDto 
                 { 
                     Reactions = reactions.ToList(),
@@ -242,14 +329,22 @@ public class ReactionsController : ControllerBase
             }
             else
             {
+                _logger.LogInformation("[ReactionsController.GetPostReactions] Fetching reaction summary - PostId={PostId}", postId);
                 // Get summary if no specific type requested
                 var summary = await _reactionService.GetPostReactionSummaryAsync(postId, keycloakId);
+                
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[ReactionsController.GetPostReactions] SUCCESS (Summary) - PostId={PostId}, Duration={Duration}ms", 
+                    postId, elapsed);
+                
                 return Ok(summary);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reactions for post {PostId}", postId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionsController.GetPostReactions] ERROR - PostId={PostId}, Duration={Duration}ms", 
+                postId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -340,26 +435,48 @@ public class ReactionsController : ControllerBase
     [HttpGet("analytics/post/{postId}")]
     public async Task<ActionResult<PostReactionAnalyticsDto>> GetPostReactionAnalytics(Guid postId)
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[ReactionsController.GetPostReactionAnalytics] START - PostId={PostId}", postId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ReactionsController.GetPostReactionAnalytics] KeycloakId: {KeycloakId}", keycloakId ?? "NULL");
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ReactionsController.GetPostReactionAnalytics] UNAUTHORIZED - PostId={PostId}", postId);
                 return Unauthorized("User not authenticated");
+            }
 
             var analytics = await _reactionService.GetPostReactionAnalyticsAsync(postId, keycloakId);
             
             if (analytics == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ReactionsController.GetPostReactionAnalytics] NOT_FOUND - PostId={PostId}, Duration={Duration}ms", 
+                    postId, elapsed);
                 return NotFound("Post not found or access denied");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionsController.GetPostReactionAnalytics] SUCCESS - PostId={PostId}, Duration={Duration}ms", 
+                postId, successElapsed);
 
             return Ok(analytics);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ReactionsController.GetPostReactionAnalytics] ACCESS_DENIED - PostId={PostId}, Duration={Duration}ms", 
+                postId, elapsed);
             return Forbid("Access denied to post reaction analytics");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reaction analytics for post {PostId}", postId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionsController.GetPostReactionAnalytics] ERROR - PostId={PostId}, Duration={Duration}ms", 
+                postId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

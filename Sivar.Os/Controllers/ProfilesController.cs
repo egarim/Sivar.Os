@@ -29,22 +29,44 @@ public class ProfilesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ProfileDto>> GetMyProfile()
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfilesController.GetMyProfile] START - RequestId={RequestId}", requestId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ProfilesController.GetMyProfile] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfilesController.GetMyProfile] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var profile = await _profileService.GetMyProfileAsync(keycloakId);
             
             if (profile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfilesController.GetMyProfile] NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    keycloakId, requestId, elapsed);
                 return NotFound("Profile not found");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfilesController.GetMyProfile] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profile.Id, requestId, successElapsed);
 
             return Ok(profile);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user's profile");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.GetMyProfile] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -57,28 +79,63 @@ public class ProfilesController : ControllerBase
     [HttpPost("my")]
     public async Task<ActionResult<ProfileDto>> CreateMyProfile([FromBody] CreateProfileDto createDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfilesController.CreateMyProfile] START - RequestId={RequestId}, DisplayName={DisplayName}", 
+            requestId, createDto?.DisplayName);
+
         try
         {
             if (createDto == null)
+            {
+                _logger.LogWarning("[ProfilesController.CreateMyProfile] BAD_REQUEST - Null createDto, RequestId={RequestId}", requestId);
                 return BadRequest("Profile data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ProfilesController.CreateMyProfile] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfilesController.CreateMyProfile] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Validate profile data
+            _logger.LogInformation("[ProfilesController.CreateMyProfile] Validating profile data - RequestId={RequestId}", requestId);
             var validation = await _profileService.ValidateProfileDataAsync(createDto);
             if (!validation.IsValid)
+            {
+                _logger.LogWarning("[ProfilesController.CreateMyProfile] VALIDATION_FAILED - Errors={Errors}, RequestId={RequestId}", 
+                    string.Join(", ", validation.Errors), requestId);
                 return BadRequest(new { errors = validation.Errors });
+            }
 
             // Check if user already has a personal profile
+            _logger.LogInformation("[ProfilesController.CreateMyProfile] Checking for existing profile - RequestId={RequestId}", requestId);
             if (await _profileService.UserHasPersonalProfileAsync(keycloakId))
+            {
+                _logger.LogWarning("[ProfilesController.CreateMyProfile] CONFLICT - User already has personal profile, KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                    keycloakId, requestId);
                 return Conflict("User already has a personal profile");
+            }
 
+            _logger.LogInformation("[ProfilesController.CreateMyProfile] Creating profile - RequestId={RequestId}", requestId);
             var profile = await _profileService.CreateMyProfileAsync(keycloakId, createDto);
             
             if (profile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfilesController.CreateMyProfile] FAILED - Service returned null, RequestId={RequestId}, Duration={Duration}ms", 
+                    requestId, elapsed);
                 return BadRequest("Failed to create profile");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfilesController.CreateMyProfile] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profile.Id, requestId, successElapsed);
 
             return CreatedAtAction(
                 nameof(GetMyProfile), 
@@ -86,7 +143,9 @@ public class ProfilesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user's profile");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.CreateMyProfile] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -99,25 +158,51 @@ public class ProfilesController : ControllerBase
     [HttpPut("my")]
     public async Task<ActionResult<ProfileDto>> UpdateMyProfile([FromBody] UpdateProfileDto updateDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfilesController.UpdateMyProfile] START - RequestId={RequestId}", requestId);
+
         try
         {
             if (updateDto == null)
+            {
+                _logger.LogWarning("[ProfilesController.UpdateMyProfile] BAD_REQUEST - Null updateDto, RequestId={RequestId}", requestId);
                 return BadRequest("Update data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
-            if (string.IsNullOrEmpty(keycloakId))
-                return Unauthorized("User not authenticated");
+            _logger.LogInformation("[ProfilesController.UpdateMyProfile] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
 
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfilesController.UpdateMyProfile] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
+                return Unauthorized("User not authenticated");
+            }
+
+            _logger.LogInformation("[ProfilesController.UpdateMyProfile] Updating profile - RequestId={RequestId}", requestId);
             var updatedProfile = await _profileService.UpdateMyProfileAsync(keycloakId, updateDto);
             
             if (updatedProfile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfilesController.UpdateMyProfile] NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    keycloakId, requestId, elapsed);
                 return NotFound("Profile not found");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfilesController.UpdateMyProfile] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                updatedProfile.Id, requestId, successElapsed);
 
             return Ok(updatedProfile);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user's profile");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.UpdateMyProfile] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -331,28 +416,55 @@ public class ProfilesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ProfileDto>> GetProfile(Guid id)
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[ProfilesController.GetProfile] START - ProfileId={ProfileId}", id);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ProfilesController.GetProfile] KeycloakId: {KeycloakId}", keycloakId ?? "ANONYMOUS");
             
             // First try to get as public profile (increments view count)
+            _logger.LogInformation("[ProfilesController.GetProfile] Attempting public profile fetch - ProfileId={ProfileId}", id);
             var profile = await _profileService.GetPublicProfileAsync(id);
             
             if (profile == null && !string.IsNullOrEmpty(keycloakId))
             {
                 // If not public, check if user owns this profile
+                _logger.LogInformation("[ProfilesController.GetProfile] Public profile not found, checking ownership - ProfileId={ProfileId}, KeycloakId={KeycloakId}", 
+                    id, keycloakId);
                 var userProfiles = await _profileService.GetMyProfilesAsync(keycloakId);
                 profile = userProfiles.FirstOrDefault(p => p.Id == id);
+                
+                if (profile != null)
+                {
+                    _logger.LogInformation("[ProfilesController.GetProfile] Found as owned profile - ProfileId={ProfileId}", id);
+                }
+            }
+            else if (profile != null)
+            {
+                _logger.LogInformation("[ProfilesController.GetProfile] Found as public profile - ProfileId={ProfileId}", id);
             }
             
             if (profile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfilesController.GetProfile] NOT_FOUND - ProfileId={ProfileId}, Duration={Duration}ms", 
+                    id, elapsed);
                 return NotFound("Profile not found");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfilesController.GetProfile] SUCCESS - ProfileId={ProfileId}, Duration={Duration}ms", 
+                id, successElapsed);
 
             return Ok(profile);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting profile {ProfileId}", id);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.GetProfile] ERROR - ProfileId={ProfileId}, Duration={Duration}ms", 
+                id, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -484,20 +596,35 @@ public class ProfilesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[ProfilesController.SearchProfiles] START - SearchTerm={SearchTerm}, Page={Page}, PageSize={PageSize}", 
+            searchTerm, page, pageSize);
+
         try
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                _logger.LogWarning("[ProfilesController.SearchProfiles] BAD_REQUEST - Empty search term");
                 return BadRequest("Search term is required");
+            }
 
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
             var result = await _profileService.SearchProfilesAsync(searchTerm, page, pageSize);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            var itemCount = result?.Items != null ? result.Items.Count() : 0;
+            _logger.LogInformation("[ProfilesController.SearchProfiles] SUCCESS - SearchTerm={SearchTerm}, ResultsCount={Count}, Duration={Duration}ms", 
+                searchTerm, itemCount, elapsed);
+            
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching profiles");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.SearchProfiles] ERROR - SearchTerm={SearchTerm}, Duration={Duration}ms", 
+                searchTerm, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

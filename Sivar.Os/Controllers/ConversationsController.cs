@@ -39,21 +39,40 @@ public class ConversationsController : ControllerBase
     [HttpGet("profiles/{profileId:guid}")]
     public async Task<ActionResult<IEnumerable<ConversationDto>>> GetProfileConversations(Guid profileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ConversationsController.GetProfileConversations] START - RequestId={RequestId}, ProfileId={ProfileId}", 
+            requestId, profileId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ConversationsController.GetProfileConversations] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ConversationsController.GetProfileConversations] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify profile ownership
             var profile = await _profileService.GetPublicProfileAsync(profileId);
             if (profile == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ConversationsController.GetProfileConversations] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    profileId, requestId, elapsedNotFound);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Add proper ownership validation when authentication is implemented
             // For now, we'll just check if the profile exists
 
             var conversations = await _conversationRepository.GetProfileConversationsAsync(profileId);
+            _logger.LogInformation("[ConversationsController.GetProfileConversations] Retrieved {Count} conversations - RequestId={RequestId}", 
+                conversations.Count(), requestId);
             
             var conversationDtos = new List<ConversationDto>();
             foreach (var conversation in conversations)
@@ -72,11 +91,17 @@ public class ConversationsController : ControllerBase
                 });
             }
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ConversationsController.GetProfileConversations] SUCCESS - ProfileId={ProfileId}, ConversationCount={Count}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, conversationDtos.Count, requestId, elapsed);
+
             return Ok(conversationDtos);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting conversations for profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ConversationsController.GetProfileConversations] ERROR - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -89,20 +114,39 @@ public class ConversationsController : ControllerBase
     [HttpGet("{conversationId:guid}/messages")]
     public async Task<ActionResult<IEnumerable<ChatMessageDto>>> GetConversationMessages(Guid conversationId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ConversationsController.GetConversationMessages] START - RequestId={RequestId}, ConversationId={ConversationId}", 
+            requestId, conversationId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ConversationsController.GetConversationMessages] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ConversationsController.GetConversationMessages] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var conversation = await _conversationRepository.GetByIdAsync(conversationId);
             if (conversation == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ConversationsController.GetConversationMessages] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    conversationId, requestId, elapsedNotFound);
                 return NotFound("Conversation not found");
+            }
 
             // TODO: Verify user has access to this conversation
             // For now, we'll just check if conversation exists
 
             var messages = await _chatMessageRepository.GetConversationMessagesAsync(conversationId);
+            _logger.LogInformation("[ConversationsController.GetConversationMessages] Retrieved {Count} messages - RequestId={RequestId}", 
+                messages.Count(), requestId);
             
             var messageDtos = messages.Select(m => new ChatMessageDto
             {
@@ -115,11 +159,17 @@ public class ConversationsController : ControllerBase
                 CreatedAt = m.CreatedAt
             }).ToList();
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ConversationsController.GetConversationMessages] SUCCESS - ConversationId={ConversationId}, MessageCount={Count}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, messageDtos.Count, requestId, elapsed);
+
             return Ok(messageDtos);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting messages for conversation {ConversationId}", conversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ConversationsController.GetConversationMessages] ERROR - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -132,19 +182,39 @@ public class ConversationsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ConversationDto>> CreateConversation([FromBody] CreateConversationDto createDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ConversationsController.CreateConversation] START - RequestId={RequestId}, ProfileId={ProfileId}, Title={Title}", 
+            requestId, createDto?.ProfileId, createDto?.Title);
+
         try
         {
             if (createDto == null)
+            {
+                _logger.LogWarning("[ConversationsController.CreateConversation] BAD_REQUEST - Null createDto, RequestId={RequestId}", requestId);
                 return BadRequest("Conversation data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ConversationsController.CreateConversation] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ConversationsController.CreateConversation] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify profile exists
             var profile = await _profileService.GetPublicProfileAsync(createDto.ProfileId);
             if (profile == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ConversationsController.CreateConversation] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    createDto.ProfileId, requestId, elapsedNotFound);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Verify user owns this profile when authentication is implemented
 
@@ -158,6 +228,9 @@ public class ConversationsController : ControllerBase
 
             await _conversationRepository.AddAsync(conversation);
             await _conversationRepository.SaveChangesAsync();
+            
+            _logger.LogInformation("[ConversationsController.CreateConversation] Conversation created successfully - ConversationId={ConversationId}, RequestId={RequestId}", 
+                conversation.Id, requestId);
 
             var conversationDto = new ConversationDto
             {
@@ -170,6 +243,10 @@ public class ConversationsController : ControllerBase
                 MessageCount = 0
             };
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ConversationsController.CreateConversation] SUCCESS - ConversationId={ConversationId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversation.Id, createDto.ProfileId, requestId, elapsed);
+
             return CreatedAtAction(
                 nameof(GetConversationMessages),
                 new { conversationId = conversation.Id },
@@ -177,7 +254,9 @@ public class ConversationsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating conversation");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ConversationsController.CreateConversation] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -193,24 +272,47 @@ public class ConversationsController : ControllerBase
         Guid conversationId,
         [FromBody] UpdateConversationDto updateDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ConversationsController.UpdateConversationTitle] START - RequestId={RequestId}, ConversationId={ConversationId}, NewTitle={NewTitle}", 
+            requestId, conversationId, updateDto?.Title);
+
         try
         {
             if (updateDto == null)
+            {
+                _logger.LogWarning("[ConversationsController.UpdateConversationTitle] BAD_REQUEST - Null updateDto, RequestId={RequestId}", requestId);
                 return BadRequest("Update data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ConversationsController.UpdateConversationTitle] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ConversationsController.UpdateConversationTitle] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var conversation = await _conversationRepository.GetByIdAsync(conversationId);
             if (conversation == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ConversationsController.UpdateConversationTitle] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    conversationId, requestId, elapsedNotFound);
                 return NotFound("Conversation not found");
+            }
 
             // TODO: Verify user owns this conversation when authentication is implemented
 
             conversation.Title = updateDto.Title;
             await _conversationRepository.UpdateAsync(conversation);
             await _conversationRepository.SaveChangesAsync();
+            
+            _logger.LogInformation("[ConversationsController.UpdateConversationTitle] Title updated successfully - ConversationId={ConversationId}, RequestId={RequestId}", 
+                conversationId, requestId);
 
             var messageCount = await _chatMessageRepository.GetMessageCountAsync(conversation.Id);
             
@@ -225,11 +327,17 @@ public class ConversationsController : ControllerBase
                 MessageCount = messageCount
             };
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ConversationsController.UpdateConversationTitle] SUCCESS - ConversationId={ConversationId}, NewTitle={Title}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, conversation.Title, requestId, elapsed);
+
             return Ok(conversationDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating conversation {ConversationId}", conversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ConversationsController.UpdateConversationTitle] ERROR - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -242,26 +350,49 @@ public class ConversationsController : ControllerBase
     [HttpDelete("{conversationId:guid}")]
     public async Task<ActionResult> DeleteConversation(Guid conversationId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ConversationsController.DeleteConversation] START - RequestId={RequestId}, ConversationId={ConversationId}", 
+            requestId, conversationId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ConversationsController.DeleteConversation] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ConversationsController.DeleteConversation] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var conversation = await _conversationRepository.GetByIdAsync(conversationId);
             if (conversation == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ConversationsController.DeleteConversation] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    conversationId, requestId, elapsedNotFound);
                 return NotFound("Conversation not found");
+            }
 
             // TODO: Verify user owns this conversation when authentication is implemented
 
             await _conversationRepository.DeleteAsync(conversationId);
             await _conversationRepository.SaveChangesAsync();
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ConversationsController.DeleteConversation] SUCCESS - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting conversation {ConversationId}", conversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ConversationsController.DeleteConversation] ERROR - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

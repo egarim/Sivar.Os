@@ -40,24 +40,50 @@ public class ChatMessagesController : ControllerBase
         Guid conversationId,
         [FromBody] SendMessageContentDto messageContent)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ChatMessagesController.SendMessage] START - RequestId={RequestId}, ConversationId={ConversationId}, MessageLength={Length}", 
+            requestId, conversationId, messageContent?.Content?.Length ?? 0);
+
         try
         {
             if (messageContent == null)
+            {
+                _logger.LogWarning("[ChatMessagesController.SendMessage] BAD_REQUEST - Null message content, RequestId={RequestId}", requestId);
                 return BadRequest("Message content is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[ChatMessagesController.SendMessage] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ChatMessagesController.SendMessage] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify conversation exists
+            _logger.LogInformation("[ChatMessagesController.SendMessage] Verifying conversation - RequestId={RequestId}", requestId);
             var conversation = await _conversationRepository.GetByIdAsync(conversationId);
             if (conversation == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ChatMessagesController.SendMessage] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    conversationId, requestId, elapsed);
                 return NotFound("Conversation not found");
+            }
 
             // Verify profile exists and user has access
             var profile = await _profileService.GetPublicProfileAsync(conversation.ProfileId);
             if (profile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ChatMessagesController.SendMessage] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    conversation.ProfileId, requestId, elapsed);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Verify user owns this profile when authentication is implemented
 
@@ -69,18 +95,27 @@ public class ChatMessagesController : ControllerBase
             };
 
             // Send message to ChatService
+            _logger.LogInformation("[ChatMessagesController.SendMessage] Sending to AI service - RequestId={RequestId}", requestId);
             var response = await _chatService.SendMessageAsync(sendDto, conversation.ProfileId);
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatMessagesController.SendMessage] SUCCESS - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, successElapsed);
 
             return Ok(response);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation when sending message to conversation {ConversationId}", conversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[ChatMessagesController.SendMessage] INVALID_OPERATION - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending message to conversation {ConversationId}", conversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatMessagesController.SendMessage] ERROR - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                conversationId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

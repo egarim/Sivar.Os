@@ -30,19 +30,40 @@ public class CommentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CommentDto>> CreateComment([FromBody] CreateCommentDto createCommentDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
         try
         {
+            _logger.LogInformation("[CommentsController.CreateComment] START - RequestId={RequestId}, PostId={PostId}, ContentLength={ContentLength}", 
+                requestId, createCommentDto?.PostId, createCommentDto?.Content?.Length ?? 0);
+
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[CommentsController.CreateComment] Extracted KeycloakId={KeycloakId}", keycloakId);
+            
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[CommentsController.CreateComment] FAILED - User not authenticated, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("[CommentsController.CreateComment] FAILED - Invalid ModelState, RequestId={RequestId}", requestId);
                 return BadRequest(ModelState);
+            }
 
+            _logger.LogInformation("[CommentsController.CreateComment] Calling CommentService.CreateCommentAsync, RequestId={RequestId}", requestId);
             var comment = await _commentService.CreateCommentAsync(keycloakId, createCommentDto);
             
             if (comment == null)
+            {
+                _logger.LogWarning("[CommentsController.CreateComment] FAILED - Comment creation returned null, RequestId={RequestId}", requestId);
                 return BadRequest("Failed to create comment - user, profile or post not found");
+            }
+
+            _logger.LogInformation("[CommentsController.CreateComment] Comment created successfully - CommentId={CommentId}, RequestId={RequestId}", 
+                comment.Id, requestId);
 
             // Create comment notification
             try
@@ -51,28 +72,39 @@ public class CommentsController : ControllerBase
                     comment.PostId, 
                     comment.Profile.UserId, 
                     comment.Content);
+                _logger.LogInformation("[CommentsController.CreateComment] Notification sent for CommentId={CommentId}", comment.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating comment notification for comment {CommentId} on post {PostId}", 
+                _logger.LogError(ex, "[CommentsController.CreateComment] Error creating notification - CommentId={CommentId}, PostId={PostId}", 
                     comment.Id, comment.PostId);
-                // Don't fail the comment creation if notification creation fails
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[CommentsController.CreateComment] SUCCESS - CommentId={CommentId}, RequestId={RequestId}, Duration={Duration}ms", 
+                comment.Id, requestId, elapsed);
 
             return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid comment creation request");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[CommentsController.CreateComment] FAILED - Invalid request, RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return BadRequest(ex.Message);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[CommentsController.CreateComment] FAILED - Access denied, RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return Forbid("Access denied - cannot comment on this post");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating comment");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[CommentsController.CreateComment] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -212,26 +244,47 @@ public class CommentsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteComment(Guid id)
     {
+        var startTime = DateTime.UtcNow;
+        
         try
         {
+            _logger.LogInformation("[CommentsController.DeleteComment] START - CommentId={CommentId}", id);
+
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[CommentsController.DeleteComment] KeycloakId={KeycloakId}", keycloakId);
+            
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[CommentsController.DeleteComment] FAILED - User not authenticated");
                 return Unauthorized("User not authenticated");
+            }
 
             var success = await _commentService.DeleteCommentAsync(id, keycloakId);
             
             if (!success)
+            {
+                _logger.LogWarning("[CommentsController.DeleteComment] FAILED - Comment not found, CommentId={CommentId}", id);
                 return NotFound("Comment not found");
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[CommentsController.DeleteComment] SUCCESS - CommentId={CommentId}, Duration={Duration}ms", 
+                id, elapsed);
 
             return NoContent();
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[CommentsController.DeleteComment] FAILED - Access denied, CommentId={CommentId}, Duration={Duration}ms", 
+                id, elapsed);
             return Forbid("Access denied - you can only delete your own comments");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting comment {CommentId}", id);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[CommentsController.DeleteComment] ERROR - CommentId={CommentId}, Duration={Duration}ms", 
+                id, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -249,20 +302,35 @@ public class CommentsController : ControllerBase
         [FromQuery] int page = 0, 
         [FromQuery] int pageSize = 20)
     {
+        var startTime = DateTime.UtcNow;
+        
         try
         {
+            _logger.LogInformation("[CommentsController.GetCommentsByPost] START - PostId={PostId}, Page={Page}, PageSize={PageSize}", 
+                postId, page, pageSize);
+
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[CommentsController.GetCommentsByPost] KeycloakId={KeycloakId}", keycloakId ?? "(anonymous)");
             
             if (pageSize > 100)
-                pageSize = 100; // Limit page size
+            {
+                _logger.LogInformation("[CommentsController.GetCommentsByPost] PageSize limited from {Original} to 100", pageSize);
+                pageSize = 100;
+            }
 
             var comments = await _commentService.GetCommentsByPostAsync(postId, keycloakId, page, pageSize);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[CommentsController.GetCommentsByPost] SUCCESS - PostId={PostId}, TotalCount={TotalCount}, Duration={Duration}ms", 
+                postId, comments.TotalCount, elapsed);
             
             return Ok(comments);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting comments for post {PostId}", postId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[CommentsController.GetCommentsByPost] ERROR - PostId={PostId}, Duration={Duration}ms", 
+                postId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

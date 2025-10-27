@@ -36,26 +36,49 @@ public class SavedResultsController : ControllerBase
         Guid profileId,
         [FromQuery] string? resultType = null)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[SavedResultsController.GetProfileSavedResults] START - RequestId={RequestId}, ProfileId={ProfileId}, ResultType={ResultType}", 
+            requestId, profileId, resultType ?? "ALL");
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[SavedResultsController.GetProfileSavedResults] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[SavedResultsController.GetProfileSavedResults] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify profile exists
             var profile = await _profileService.GetPublicProfileAsync(profileId);
             if (profile == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[SavedResultsController.GetProfileSavedResults] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    profileId, requestId, elapsedNotFound);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Verify user owns this profile when authentication is implemented
 
             var results = await _savedResultService.GetProfileSavedResultsAsync(profileId, resultType);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[SavedResultsController.GetProfileSavedResults] SUCCESS - ProfileId={ProfileId}, ResultCount={Count}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, results?.Count() ?? 0, requestId, elapsed);
 
             return Ok(results);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting saved results for profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[SavedResultsController.GetProfileSavedResults] ERROR - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -71,23 +94,47 @@ public class SavedResultsController : ControllerBase
         Guid profileId,
         [FromBody] CreateSavedResultDto createDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[SavedResultsController.SaveResult] START - RequestId={RequestId}, ProfileId={ProfileId}, ResultType={ResultType}", 
+            requestId, profileId, createDto?.ResultType);
+
         try
         {
             if (createDto == null)
+            {
+                _logger.LogWarning("[SavedResultsController.SaveResult] BAD_REQUEST - Null createDto, RequestId={RequestId}", requestId);
                 return BadRequest("Saved result data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[SavedResultsController.SaveResult] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[SavedResultsController.SaveResult] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify profile exists
             var profile = await _profileService.GetPublicProfileAsync(profileId);
             if (profile == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[SavedResultsController.SaveResult] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    profileId, requestId, elapsedNotFound);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Verify user owns this profile when authentication is implemented
 
             var savedResult = await _savedResultService.SaveResultAsync(profileId, createDto);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[SavedResultsController.SaveResult] SUCCESS - ResultId={ResultId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                savedResult?.Id, profileId, requestId, elapsed);
 
             return CreatedAtAction(
                 nameof(GetProfileSavedResults),
@@ -96,12 +143,16 @@ public class SavedResultsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation when saving result for profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning(ex, "[SavedResultsController.SaveResult] INVALID_OPERATION - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, requestId, elapsed);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving result for profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[SavedResultsController.SaveResult] ERROR - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -115,29 +166,57 @@ public class SavedResultsController : ControllerBase
     [HttpDelete("{resultId:guid}")]
     public async Task<ActionResult> DeleteSavedResult(Guid profileId, Guid resultId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[SavedResultsController.DeleteSavedResult] START - RequestId={RequestId}, ProfileId={ProfileId}, ResultId={ResultId}", 
+            requestId, profileId, resultId);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[SavedResultsController.DeleteSavedResult] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[SavedResultsController.DeleteSavedResult] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             // Verify profile exists
             var profile = await _profileService.GetPublicProfileAsync(profileId);
             if (profile == null)
+            {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[SavedResultsController.DeleteSavedResult] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    profileId, requestId, elapsedNotFound);
                 return NotFound("Profile not found");
+            }
 
             // TODO: Verify user owns this profile when authentication is implemented
 
             var success = await _savedResultService.DeleteSavedResultAsync(resultId, profileId);
             
             if (!success)
+            {
+                var elapsedResultNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[SavedResultsController.DeleteSavedResult] RESULT_NOT_FOUND - ResultId={ResultId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    resultId, profileId, requestId, elapsedResultNotFound);
                 return NotFound("Saved result not found");
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[SavedResultsController.DeleteSavedResult] SUCCESS - ResultId={ResultId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                resultId, profileId, requestId, elapsed);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting saved result {ResultId} for profile {ProfileId}", resultId, profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[SavedResultsController.DeleteSavedResult] ERROR - ResultId={ResultId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                resultId, profileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

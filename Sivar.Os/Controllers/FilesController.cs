@@ -45,10 +45,17 @@ public class FilesController : ControllerBase
         [FromForm] string container = "general",
         [FromForm] string? metadata = null)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FilesController.UploadFile] START - RequestId={RequestId}, FileName={FileName}, Size={Size}, Container={Container}", 
+            requestId, file?.FileName, file?.Length, container);
+
         try
         {
             if (file == null || file.Length == 0)
             {
+                _logger.LogWarning("[FilesController.UploadFile] BAD_REQUEST - No file or empty, RequestId={RequestId}", requestId);
                 return BadRequest(new { Error = "No file provided or file is empty" });
             }
 
@@ -60,9 +67,12 @@ public class FilesController : ControllerBase
                 {
                     metadataDict = JsonSerializer.Deserialize<Dictionary<string, string>>(metadata) 
                                    ?? new Dictionary<string, string>();
+                    _logger.LogInformation("[FilesController.UploadFile] Metadata parsed - Count={Count}, RequestId={RequestId}", 
+                        metadataDict.Count, requestId);
                 }
                 catch (JsonException ex)
                 {
+                    _logger.LogWarning(ex, "[FilesController.UploadFile] INVALID_METADATA - RequestId={RequestId}", requestId);
                     return BadRequest(new { Error = $"Invalid metadata JSON: {ex.Message}" });
                 }
             }
@@ -78,9 +88,12 @@ public class FilesController : ControllerBase
             };
 
             // Validate the request
+            _logger.LogInformation("[FilesController.UploadFile] Validating file - RequestId={RequestId}", requestId);
             var validation = await _validator.ValidateFileAsync(request, container);
             if (!validation.IsValid)
             {
+                _logger.LogWarning("[FilesController.UploadFile] VALIDATION_FAILED - Errors={Errors}, RequestId={RequestId}", 
+                    string.Join(", ", validation.Errors), requestId);
                 return BadRequest(new { Errors = validation.Errors });
             }
 
@@ -91,16 +104,20 @@ public class FilesController : ControllerBase
             }
             
             // Upload the file
+            _logger.LogInformation("[FilesController.UploadFile] Uploading to storage - RequestId={RequestId}", requestId);
             var result = await _fileService.UploadFileAsync(request);
             
-            _logger.LogInformation("Successfully uploaded file {FileName} with ID {FileId}", 
-                file.FileName, result.FileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FilesController.UploadFile] SUCCESS - FileId={FileId}, FileName={FileName}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.FileId, file.FileName, requestId, elapsed);
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file {FileName}", file?.FileName);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FilesController.UploadFile] ERROR - FileName={FileName}, RequestId={RequestId}, Duration={Duration}ms", 
+                file?.FileName, requestId, elapsed);
             return StatusCode(500, new { Error = "Internal server error occurred while uploading file" });
         }
     }
@@ -282,27 +299,42 @@ public class FilesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DeleteFile(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FilesController.DeleteFile] START - RequestId={RequestId}, FileId={FileId}", 
+            requestId, fileId);
+
         try
         {
             if (string.IsNullOrWhiteSpace(fileId))
             {
+                _logger.LogWarning("[FilesController.DeleteFile] BAD_REQUEST - Empty FileId, RequestId={RequestId}", requestId);
                 return BadRequest(new { Error = "File ID is required" });
             }
 
             var deleted = await _fileService.DeleteFileAsync(fileId);
+            
             if (deleted)
             {
-                _logger.LogInformation("Successfully deleted file {FileId}", fileId);
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[FilesController.DeleteFile] SUCCESS - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    fileId, requestId, elapsed);
                 return Ok(new { Message = $"File {fileId} deleted successfully" });
             }
             else
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FilesController.DeleteFile] NOT_FOUND - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    fileId, requestId, elapsed);
                 return NotFound(new { Error = $"File with ID {fileId} not found" });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete file {FileId}", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FilesController.DeleteFile] ERROR - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                fileId, requestId, elapsed);
             return StatusCode(500, new { Error = "Internal server error occurred while deleting file" });
         }
     }

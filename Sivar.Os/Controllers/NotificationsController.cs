@@ -43,11 +43,23 @@ public class NotificationsController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] NotificationPriority? priority = null)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[NotificationsController.GetNotifications] START - RequestId={RequestId}, UnreadOnly={UnreadOnly}, Type={Type}, Page={Page}, PageSize={PageSize}, Priority={Priority}", 
+            requestId, unreadOnly, type ?? "ALL", page, pageSize, priority?.ToString() ?? "ALL");
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[NotificationsController.GetNotifications] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[NotificationsController.GetNotifications] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 20;
@@ -62,11 +74,18 @@ public class NotificationsController : ControllerBase
             };
 
             var notifications = await _notificationService.GetUserNotificationsAsync(keycloakId, queryParams);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationsController.GetNotifications] SUCCESS - Count={Count}, RequestId={RequestId}, Duration={Duration}ms", 
+                notifications.Count, requestId, elapsed);
+            
             return Ok(notifications);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notifications for user");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationsController.GetNotifications] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "An error occurred while retrieving notifications");
         }
     }
@@ -101,18 +120,32 @@ public class NotificationsController : ControllerBase
     [HttpGet("unread-count")]
     public async Task<ActionResult<int>> GetUnreadCount()
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[NotificationsController.GetUnreadCount] START");
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[NotificationsController.GetUnreadCount] KeycloakId: {KeycloakId}", keycloakId ?? "NULL");
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[NotificationsController.GetUnreadCount] UNAUTHORIZED");
                 return Unauthorized("User not authenticated");
+            }
 
             var count = await _notificationService.GetUnreadCountAsync(keycloakId);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationsController.GetUnreadCount] SUCCESS - Count={Count}, Duration={Duration}ms", 
+                count, elapsed);
+            
             return Ok(count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting unread count for user");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationsController.GetUnreadCount] ERROR - Duration={Duration}ms", elapsed);
             return StatusCode(500, "An error occurred while retrieving unread count");
         }
     }
@@ -125,24 +158,45 @@ public class NotificationsController : ControllerBase
     [HttpPut("{id}/read")]
     public async Task<ActionResult> MarkAsRead(Guid id)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[NotificationsController.MarkAsRead] START - RequestId={RequestId}, NotificationId={NotificationId}", 
+            requestId, id);
+
         try
         {
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[NotificationsController.MarkAsRead] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[NotificationsController.MarkAsRead] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var result = await _notificationService.MarkAsReadAsync(id, keycloakId);
             
             if (!result)
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[NotificationsController.MarkAsRead] NOT_FOUND - NotificationId={NotificationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    id, requestId, elapsed);
                 return NotFound("Notification not found or not owned by user");
             }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationsController.MarkAsRead] SUCCESS - NotificationId={NotificationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                id, requestId, successElapsed);
 
             return Ok(new { message = "Notification marked as read" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking notification {NotificationId} as read", id);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationsController.MarkAsRead] ERROR - NotificationId={NotificationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                id, requestId, elapsed);
             return StatusCode(500, "An error occurred while marking notification as read");
         }
     }

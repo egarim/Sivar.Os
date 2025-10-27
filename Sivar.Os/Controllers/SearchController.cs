@@ -57,20 +57,31 @@ public class SearchController : ControllerBase
         [FromQuery, SwaggerParameter("Maximum results per type (1-50)")] int maxResults = 10,
         [FromQuery, SwaggerParameter("Sort by: relevance, date, name")] string sortBy = "relevance")
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[SearchController.GlobalSearch] START - RequestId={RequestId}, Query={Query}, Types={Types}, MaxResults={MaxResults}, SortBy={SortBy}", 
+            requestId, query, types ?? "all", maxResults, sortBy);
+
         try
         {
             if (string.IsNullOrWhiteSpace(query))
             {
+                _logger.LogWarning("[SearchController.GlobalSearch] BAD_REQUEST - Empty query, RequestId={RequestId}", requestId);
                 return BadRequest(new { error = "Query parameter is required" });
             }
 
             if (maxResults < 1 || maxResults > 50)
             {
+                _logger.LogInformation("[SearchController.GlobalSearch] Capping maxResults from {Original} to 10, RequestId={RequestId}", 
+                    maxResults, requestId);
                 maxResults = 10;
             }
 
-            var startTime = DateTime.UtcNow;
             var searchTypes = ParseSearchTypes(types);
+            _logger.LogInformation("[SearchController.GlobalSearch] Parsed search types: {SearchTypes}, RequestId={RequestId}", 
+                string.Join(",", searchTypes), requestId);
+            
             var results = new GlobalSearchResponse { Query = query };
 
             // Search profiles
@@ -78,13 +89,16 @@ public class SearchController : ControllerBase
             {
                 try
                 {
+                    _logger.LogInformation("[SearchController.GlobalSearch] Searching profiles, RequestId={RequestId}", requestId);
                     var profileResults = await _profileService.SearchProfilesAsync(query, 1, maxResults);
                     results.Profiles = profileResults.Items.ToList();
                     results.ProfileCount = profileResults.TotalItems;
+                    _logger.LogInformation("[SearchController.GlobalSearch] Profile search completed - Count={Count}, RequestId={RequestId}", 
+                        results.ProfileCount, requestId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error searching profiles");
+                    _logger.LogWarning(ex, "[SearchController.GlobalSearch] PROFILE_SEARCH_ERROR - RequestId={RequestId}", requestId);
                 }
             }
 
@@ -93,25 +107,33 @@ public class SearchController : ControllerBase
             {
                 try
                 {
+                    _logger.LogInformation("[SearchController.GlobalSearch] Searching posts, RequestId={RequestId}", requestId);
                     var keycloakId = GetKeycloakIdFromRequest();
                     var (posts, totalCount) = await _postService.SearchPostsAsync(query, keycloakId, 1, maxResults);
                     results.Posts = posts.ToList();
                     results.PostCount = totalCount;
+                    _logger.LogInformation("[SearchController.GlobalSearch] Post search completed - Count={Count}, RequestId={RequestId}", 
+                        results.PostCount, requestId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error searching posts");
+                    _logger.LogWarning(ex, "[SearchController.GlobalSearch] POST_SEARCH_ERROR - RequestId={RequestId}", requestId);
                 }
             }
 
             results.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             results.TotalResults = results.ProfileCount + results.PostCount;
 
+            _logger.LogInformation("[SearchController.GlobalSearch] SUCCESS - TotalResults={TotalResults}, RequestId={RequestId}, Duration={Duration}ms", 
+                results.TotalResults, requestId, results.ProcessingTimeMs);
+
             return Ok(results);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing global search");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[SearchController.GlobalSearch] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, new { error = "An error occurred while searching" });
         }
     }

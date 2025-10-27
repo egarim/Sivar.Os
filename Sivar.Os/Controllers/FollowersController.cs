@@ -35,27 +35,44 @@ public class FollowersController : ControllerBase
     [HttpGet("followers")]
     public async Task<ActionResult<IEnumerable<FollowerProfileDto>>> GetFollowers()
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[FollowersController.GetFollowers] START");
+
         try
         {
             // Get current user's profile ID if available
             var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            _logger.LogInformation("[FollowersController.GetFollowers] KeycloakId: {KeycloakId}", currentUserKeycloakId ?? "ANONYMOUS");
+            
             Guid? currentUserProfileId = null;
             
             if (!string.IsNullOrEmpty(currentUserKeycloakId))
             {
                 var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
                 currentUserProfileId = currentUserProfile?.Id;
+                _logger.LogInformation("[FollowersController.GetFollowers] Active ProfileId: {ProfileId}", currentUserProfileId?.ToString() ?? "NULL");
             }
 
             if (currentUserProfileId == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FollowersController.GetFollowers] NO_ACTIVE_PROFILE - Duration={Duration}ms", elapsed);
                 return BadRequest("User must have an active profile");
+            }
 
             var followers = await _followerService.GetFollowersAsync(currentUserProfileId.Value, currentUserProfileId);
-            return Ok(followers);
+            var followersList = followers.ToList();
+            
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FollowersController.GetFollowers] SUCCESS - Count={Count}, Duration={Duration}ms", 
+                followersList.Count, successElapsed);
+            
+            return Ok(followersList);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting followers");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FollowersController.GetFollowers] ERROR - Duration={Duration}ms", elapsed);
             return StatusCode(500, "An error occurred while retrieving followers");
         }
     }
@@ -66,27 +83,44 @@ public class FollowersController : ControllerBase
     [HttpGet("following")]
     public async Task<ActionResult<IEnumerable<FollowingProfileDto>>> GetFollowing()
     {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[FollowersController.GetFollowing] START");
+
         try
         {
             // Get current user's profile ID if available
             var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            _logger.LogInformation("[FollowersController.GetFollowing] KeycloakId: {KeycloakId}", currentUserKeycloakId ?? "ANONYMOUS");
+            
             Guid? currentUserProfileId = null;
             
             if (!string.IsNullOrEmpty(currentUserKeycloakId))
             {
                 var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
                 currentUserProfileId = currentUserProfile?.Id;
+                _logger.LogInformation("[FollowersController.GetFollowing] Active ProfileId: {ProfileId}", currentUserProfileId?.ToString() ?? "NULL");
             }
 
             if (currentUserProfileId == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FollowersController.GetFollowing] NO_ACTIVE_PROFILE - Duration={Duration}ms", elapsed);
                 return BadRequest("User must have an active profile");
+            }
 
             var following = await _followerService.GetFollowingAsync(currentUserProfileId.Value, currentUserProfileId);
-            return Ok(following);
+            var followingList = following.ToList();
+            
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FollowersController.GetFollowing] SUCCESS - Count={Count}, Duration={Duration}ms", 
+                followingList.Count, successElapsed);
+            
+            return Ok(followingList);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting following");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FollowersController.GetFollowing] ERROR - Duration={Duration}ms", elapsed);
             return StatusCode(500, "An error occurred while retrieving following");
         }
     }
@@ -128,46 +162,75 @@ public class FollowersController : ControllerBase
     [HttpPost("follow")]
     public async Task<ActionResult<FollowResultDto>> FollowProfile([FromBody] FollowActionDto followAction)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FollowersController.FollowProfile] START - RequestId={RequestId}, TargetProfileId={TargetProfileId}", 
+            requestId, followAction?.ProfileToFollowId);
+
         try
         {
             var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            _logger.LogInformation("[FollowersController.FollowProfile] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                currentUserKeycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(currentUserKeycloakId))
             {
+                _logger.LogWarning("[FollowersController.FollowProfile] UNAUTHORIZED - No KeycloakId, RequestId={RequestId}", requestId);
                 return Unauthorized("User must be authenticated to follow profiles");
             }
 
             var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
             if (currentUserProfile == null)
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FollowersController.FollowProfile] NO_ACTIVE_PROFILE - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    currentUserKeycloakId, requestId, elapsed);
                 return BadRequest("User must have an active profile to follow other profiles");
             }
+
+            _logger.LogInformation("[FollowersController.FollowProfile] Active profile found - ProfileId={ProfileId}, following ProfileId={TargetProfileId}, RequestId={RequestId}", 
+                currentUserProfile.Id, followAction.ProfileToFollowId, requestId);
 
             var result = await _followerService.FollowProfileAsync(currentUserProfile.Id, followAction.ProfileToFollowId);
             
             if (result.Success)
             {
+                _logger.LogInformation("[FollowersController.FollowProfile] Follow successful - FollowerProfileId={FollowerProfileId}, FollowedProfileId={FollowedProfileId}, RequestId={RequestId}", 
+                    currentUserProfile.Id, followAction.ProfileToFollowId, requestId);
+
                 // Create follow notification for the profile being followed
                 try
                 {
+                    _logger.LogInformation("[FollowersController.FollowProfile] Creating notification - RequestId={RequestId}", requestId);
                     await _notificationService.CreateFollowNotificationAsync(
                         followAction.ProfileToFollowId,
                         currentUserProfile.UserId);
+                    _logger.LogInformation("[FollowersController.FollowProfile] Notification created - RequestId={RequestId}", requestId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating follow notification for profile {ProfileId} followed by user {UserId}", 
-                        followAction.ProfileToFollowId, currentUserProfile.UserId);
+                    _logger.LogError(ex, "[FollowersController.FollowProfile] NOTIFICATION_ERROR - ProfileId={ProfileId}, UserId={UserId}, RequestId={RequestId}", 
+                        followAction.ProfileToFollowId, currentUserProfile.UserId, requestId);
                     // Don't fail the follow operation if notification creation fails
                 }
 
+                var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[FollowersController.FollowProfile] SUCCESS - RequestId={RequestId}, Duration={Duration}ms", 
+                    requestId, successElapsed);
                 return Ok(result);
             }
             
+            var failedElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning("[FollowersController.FollowProfile] FAILED - Result={Result}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.Message, requestId, failedElapsed);
             return BadRequest(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error following profile {ProfileId}", followAction?.ProfileToFollowId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FollowersController.FollowProfile] ERROR - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                followAction?.ProfileToFollowId, requestId, elapsed);
             return StatusCode(500, "An error occurred while following the profile");
         }
     }
@@ -178,32 +241,56 @@ public class FollowersController : ControllerBase
     [HttpDelete("follow/{profileToUnfollowId:guid}")]
     public async Task<ActionResult<FollowResultDto>> UnfollowProfile(Guid profileToUnfollowId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FollowersController.UnfollowProfile] START - RequestId={RequestId}, TargetProfileId={TargetProfileId}", 
+            requestId, profileToUnfollowId);
+
         try
         {
             var currentUserKeycloakId = GetCurrentUserKeycloakId();
+            _logger.LogInformation("[FollowersController.UnfollowProfile] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                currentUserKeycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(currentUserKeycloakId))
             {
+                _logger.LogWarning("[FollowersController.UnfollowProfile] UNAUTHORIZED - No KeycloakId, RequestId={RequestId}", requestId);
                 return Unauthorized("User must be authenticated to unfollow profiles");
             }
 
             var currentUserProfile = await _profileService.GetMyActiveProfileAsync(currentUserKeycloakId);
             if (currentUserProfile == null)
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FollowersController.UnfollowProfile] NO_ACTIVE_PROFILE - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    currentUserKeycloakId, requestId, elapsed);
                 return BadRequest("User must have an active profile to unfollow other profiles");
             }
+
+            _logger.LogInformation("[FollowersController.UnfollowProfile] Unfollowing - FollowerProfileId={FollowerProfileId}, TargetProfileId={TargetProfileId}, RequestId={RequestId}", 
+                currentUserProfile.Id, profileToUnfollowId, requestId);
 
             var result = await _followerService.UnfollowProfileAsync(currentUserProfile.Id, profileToUnfollowId);
             
             if (result.Success)
             {
+                var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[FollowersController.UnfollowProfile] SUCCESS - RequestId={RequestId}, Duration={Duration}ms", 
+                    requestId, successElapsed);
                 return Ok(result);
             }
             
+            var failedElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogWarning("[FollowersController.UnfollowProfile] FAILED - Result={Result}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.Message, requestId, failedElapsed);
             return BadRequest(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unfollowing profile {ProfileId}", profileToUnfollowId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FollowersController.UnfollowProfile] ERROR - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                profileToUnfollowId, requestId, elapsed);
             return StatusCode(500, "An error occurred while unfollowing the profile");
         }
     }

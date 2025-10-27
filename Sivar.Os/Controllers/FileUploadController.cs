@@ -28,8 +28,15 @@ public class FileUploadController : ControllerBase
     [HttpPost("upload")]
     public async Task<IActionResult> UploadFile(IFormFile file, [FromQuery] string container = "uploads")
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FileUploadController.UploadFile] START - RequestId={RequestId}, FileName={FileName}, Size={Size} bytes, ContentType={ContentType}, Container={Container}", 
+            requestId, file?.FileName, file?.Length ?? 0, file?.ContentType, container);
+
         if (file == null || file.Length == 0)
         {
+            _logger.LogWarning("[FileUploadController.UploadFile] BAD_REQUEST - No file provided, RequestId={RequestId}", requestId);
             return BadRequest("No file provided");
         }
 
@@ -37,6 +44,8 @@ public class FileUploadController : ControllerBase
         const long maxFileSize = 10 * 1024 * 1024;
         if (file.Length > maxFileSize)
         {
+            _logger.LogWarning("[FileUploadController.UploadFile] FILE_TOO_LARGE - FileName={FileName}, Size={Size} bytes, RequestId={RequestId}", 
+                file.FileName, file.Length, requestId);
             return BadRequest("File size exceeds 10MB limit");
         }
 
@@ -44,8 +53,12 @@ public class FileUploadController : ControllerBase
         var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "text/plain" };
         if (!allowedTypes.Contains(file.ContentType))
         {
+            _logger.LogWarning("[FileUploadController.UploadFile] INVALID_FILE_TYPE - FileName={FileName}, ContentType={ContentType}, RequestId={RequestId}", 
+                file.FileName, file.ContentType, requestId);
             return BadRequest($"File type {file.ContentType} is not allowed");
         }
+
+        _logger.LogInformation("[FileUploadController.UploadFile] File validation passed - RequestId={RequestId}", requestId);
 
         try
         {
@@ -64,6 +77,10 @@ public class FileUploadController : ControllerBase
             };
 
             var result = await _fileStorageService.UploadFileAsync(request);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FileUploadController.UploadFile] SUCCESS - FileId={FileId}, Size={Size} bytes, RequestId={RequestId}, Duration={Duration}ms", 
+                result.FileId, result.FileSizeBytes, requestId, elapsed);
 
             return Ok(new
             {
@@ -78,7 +95,9 @@ public class FileUploadController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file {FileName}", file.FileName);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FileUploadController.UploadFile] ERROR - FileName={FileName}, RequestId={RequestId}, Duration={Duration}ms", 
+                file.FileName, requestId, elapsed);
             return StatusCode(500, "Internal server error during file upload");
         }
     }
@@ -91,8 +110,15 @@ public class FileUploadController : ControllerBase
     [HttpGet("metadata/{fileId}")]
     public async Task<IActionResult> GetFileMetadata(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FileUploadController.GetFileMetadata] START - RequestId={RequestId}, FileId={FileId}", 
+            requestId, fileId);
+
         if (string.IsNullOrWhiteSpace(fileId))
         {
+            _logger.LogWarning("[FileUploadController.GetFileMetadata] BAD_REQUEST - Null or empty FileId, RequestId={RequestId}", requestId);
             return BadRequest("File ID is required");
         }
 
@@ -101,8 +127,15 @@ public class FileUploadController : ControllerBase
             var metadata = await _fileStorageService.GetFileMetadataAsync(fileId);
             if (metadata == null)
             {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FileUploadController.GetFileMetadata] FILE_NOT_FOUND - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    fileId, requestId, elapsedNotFound);
                 return NotFound("File not found");
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FileUploadController.GetFileMetadata] SUCCESS - FileId={FileId}, Size={Size} bytes, RequestId={RequestId}, Duration={Duration}ms", 
+                fileId, metadata.FileSizeBytes, requestId, elapsed);
 
             return Ok(new
             {
@@ -115,7 +148,9 @@ public class FileUploadController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get metadata for file {FileId}", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FileUploadController.GetFileMetadata] ERROR - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                fileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -128,8 +163,15 @@ public class FileUploadController : ControllerBase
     [HttpDelete("{fileId}")]
     public async Task<IActionResult> DeleteFile(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FileUploadController.DeleteFile] START - RequestId={RequestId}, FileId={FileId}", 
+            requestId, fileId);
+
         if (string.IsNullOrWhiteSpace(fileId))
         {
+            _logger.LogWarning("[FileUploadController.DeleteFile] BAD_REQUEST - Null or empty FileId, RequestId={RequestId}", requestId);
             return BadRequest("File ID is required");
         }
 
@@ -138,14 +180,23 @@ public class FileUploadController : ControllerBase
             var deleted = await _fileStorageService.DeleteFileAsync(fileId);
             if (!deleted)
             {
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[FileUploadController.DeleteFile] FILE_NOT_FOUND - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    fileId, requestId, elapsedNotFound);
                 return NotFound("File not found");
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FileUploadController.DeleteFile] SUCCESS - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                fileId, requestId, elapsed);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete file {FileId}", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FileUploadController.DeleteFile] ERROR - FileId={FileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                fileId, requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }

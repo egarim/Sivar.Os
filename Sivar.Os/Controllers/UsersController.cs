@@ -28,29 +28,51 @@ public class UsersController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<UserDto>> GetCurrentUser()
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[UsersController.GetCurrentUser] START - RequestId={RequestId}", requestId);
+
         try
         {
             // TODO: Extract Keycloak ID from JWT token when authentication is implemented
             // For now, we'll use a placeholder method
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[UsersController.GetCurrentUser] KeycloakId extracted: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
             
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[UsersController.GetCurrentUser] UNAUTHORIZED - No KeycloakId, RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var user = await _userService.GetCurrentUserAsync(keycloakId);
             
             if (user == null)
             {
+                _logger.LogInformation("[UsersController.GetCurrentUser] User not found, auto-registering - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                    keycloakId, requestId);
+                
                 // Auto-register new user from Keycloak claims
                 var newUserDto = CreateUserDtoFromKeycloakClaims();
                 user = await _userService.GetOrCreateUserFromKeycloakAsync(newUserDto);
+                
+                _logger.LogInformation("[UsersController.GetCurrentUser] New user created - UserId={UserId}, RequestId={RequestId}", 
+                    user?.Id, requestId);
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[UsersController.GetCurrentUser] SUCCESS - UserId={UserId}, RequestId={RequestId}, Duration={Duration}ms", 
+                user?.Id, requestId, elapsed);
 
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting current user");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[UsersController.GetCurrentUser] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -63,25 +85,50 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<ActionResult<UserDto>> UpdateUserPreferences([FromBody] UpdateUserPreferencesDto updateDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[UsersController.UpdateUserPreferences] START - RequestId={RequestId}", requestId);
+
         try
         {
             if (updateDto == null)
+            {
+                _logger.LogWarning("[UsersController.UpdateUserPreferences] BAD_REQUEST - Null updateDto, RequestId={RequestId}", requestId);
                 return BadRequest("Update data is required");
+            }
 
             var keycloakId = GetKeycloakIdFromRequest();
+            _logger.LogInformation("[UsersController.UpdateUserPreferences] KeycloakId: {KeycloakId}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", requestId);
+
             if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[UsersController.UpdateUserPreferences] UNAUTHORIZED - RequestId={RequestId}", requestId);
                 return Unauthorized("User not authenticated");
+            }
 
             var updatedUser = await _userService.UpdateUserPreferencesAsync(keycloakId, updateDto);
             
             if (updatedUser == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[UsersController.UpdateUserPreferences] NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                    keycloakId, requestId, elapsed);
                 return NotFound("User not found");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[UsersController.UpdateUserPreferences] SUCCESS - UserId={UserId}, RequestId={RequestId}, Duration={Duration}ms", 
+                updatedUser.Id, requestId, successElapsed);
 
             return Ok(updatedUser);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user preferences");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[UsersController.UpdateUserPreferences] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
             return StatusCode(500, "Internal server error");
         }
     }
