@@ -333,9 +333,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthenticationService>(sp =>
 {
     var contextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var logger = sp.GetRequiredService<ILogger<ServerAuthenticationService>>();
     // On server render: HttpContext is available, use ServerAuthenticationService
     // On client render: HttpContext is null, use ServerAuthenticationService which will return unauthenticated
-    return new ServerAuthenticationService(contextAccessor);
+    return new ServerAuthenticationService(contextAccessor, logger);
 });
 
 // --- Adaptive Weather Service for Auto render mode ---
