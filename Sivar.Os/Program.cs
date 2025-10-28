@@ -424,9 +424,9 @@ app.MapStaticAssets();
 
 // ✅ Blazor Server ONLY - render mode configuration
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(typeof(Sivar.Os.Client._Imports).Assembly);
     // Removed for Server-only: .AddInteractiveWebAssemblyRenderMode()
-    // Removed for Server-only: .AddAdditionalAssemblies(typeof(Sivar.Os.Client._Imports).Assembly);
 
 app.Run();
 
