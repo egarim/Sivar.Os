@@ -3052,13 +3052,22 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             {
                 Console.WriteLine($"[Home] ✅ Profile created successfully: {newProfile.Id}");
                 
-                // If SetAsActive is true, switch to the new profile
-                if (request.SetAsActive)
-                {
-                    Console.WriteLine("[Home] Setting new profile as active");
-                    await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
-                    _activeProfile = newProfile;
-                }
+                // ✅ ALWAYS auto-select the new profile
+                Console.WriteLine("[Home] Auto-selecting new profile");
+                await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
+                _activeProfile = newProfile;
+                
+                // ✅ Update current profile ID (required for feed loading)
+                _currentProfileId = newProfile.Id;
+                Console.WriteLine($"[Home] Updated _currentProfileId to {_currentProfileId}");
+                
+                // ✅ Reset pagination
+                _currentPage = 1;
+                Console.WriteLine("[Home] Reset pagination to page 1");
+                
+                // ✅ Reload activities for the new profile
+                Console.WriteLine("[Home] Reloading feed for new profile");
+                await LoadFeedPostsAsync();
 
                 // Reload profiles after creation
                 await LoadUserProfilesAsync();

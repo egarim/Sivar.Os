@@ -394,7 +394,7 @@
     private string ProfileName { get; set; } = string.Empty;
     private string ProfileDescription { get; set; } = string.Empty;
     private VisibilityLevel SelectedVisibility { get; set; } = VisibilityLevel.Public;
-    private bool SetAsActive { get; set; } = false;
+    private bool SetAsActive { get; set; } = true;  // ✅ Default to true for auto-selection of new profiles
     private bool IsSubmitting { get; set; } = false;
     private string ProfileNameError { get; set; } = string.Empty;
 
@@ -436,7 +436,7 @@
         ProfileName = string.Empty;
         ProfileDescription = string.Empty;
         SelectedVisibility = VisibilityLevel.Public;
-        SetAsActive = false;
+        SetAsActive = true;  // ✅ Default to true for auto-selection
         ProfileNameError = string.Empty;
         IsSubmitting = false;
     }
