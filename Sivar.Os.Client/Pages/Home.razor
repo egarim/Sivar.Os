@@ -2732,8 +2732,8 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 return;
             }
             
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetFeedPostsAsync with pageSize=10, pageNumber={_currentPage}");
-            var feedDto = await SivarClient.Posts.GetFeedPostsAsync(pageSize: 10, pageNumber: _currentPage);
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetProfilePostsAsync with profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage}");
+            var feedDto = await SivarClient.Posts.GetProfilePostsAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
             
             if (feedDto == null)
             {
