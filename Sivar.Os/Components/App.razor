@@ -9,12 +9,12 @@
     <link href=@Assets["_content/MudBlazor/MudBlazor.min.css"] rel="stylesheet" />
     <ImportMap />
     <link rel="icon" type="image/ico" href="favicon.ico" />
-    <HeadOutlet @rendermode="InteractiveAuto" />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
     <CascadingAuthenticationState>
-        <Routes @rendermode="InteractiveAuto" />
+        <Routes @rendermode="InteractiveServer" />
     </CascadingAuthenticationState>
     <script>
         // Helper used by the WasmAuthenticationStateProvider to fetch server-side auth profile

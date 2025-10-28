@@ -369,8 +369,9 @@ builder.Services.AddControllers()
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveServerComponents();
+    // ✅ Blazor Server ONLY - No WebAssembly
+    // Removed: .AddInteractiveWebAssemblyComponents();
 
 // Configure circuit options for detailed error reporting
 builder.Services.Configure<CircuitOptions>(options =>
@@ -383,7 +384,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseWebAssemblyDebugging();
+    // ✅ Blazor Server ONLY - removed: app.UseWebAssemblyDebugging();
 }
 else
 {
@@ -421,10 +422,11 @@ app.UseAntiforgery();
 app.MapControllers();
 app.MapStaticAssets();
 
+// ✅ Blazor Server ONLY - render mode configuration
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(Sivar.Os.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
+    // Removed for Server-only: .AddInteractiveWebAssemblyRenderMode()
+    // Removed for Server-only: .AddAdditionalAssemblies(typeof(Sivar.Os.Client._Imports).Assembly);
 
 app.Run();
 
