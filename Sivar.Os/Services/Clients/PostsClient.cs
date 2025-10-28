@@ -44,21 +44,16 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            // Note: Server-side client would need keycloakId from context
-            // This is a placeholder implementation
-            var result = new PostDto
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
             {
-                Id = Guid.NewGuid(),
-                Content = request.Content,
-                PostType = request.PostType,
-                Visibility = request.Visibility,
-                Language = request.Language ?? "en",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                _logger.LogWarning("CreatePostAsync: No authenticated user");
+                return null!;
+            }
 
-            _logger.LogInformation("Post created with ID: {PostId}", result.Id);
-            return result;
+            _logger.LogInformation("CreatePostAsync: {KeycloakId}, Content length={Length}", keycloakId, request.Content?.Length ?? 0);
+            var post = await _postService.CreatePostAsync(keycloakId, request);
+            return post ?? null!;
         }
         catch (Exception ex)
         {
@@ -109,20 +104,16 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            var post = await _postRepository.GetByIdAsync(postId);
-            if (post == null)
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("Post not found for update: {PostId}", postId);
+                _logger.LogWarning("UpdatePostAsync: No authenticated user");
                 return null!;
             }
 
-            post.Content = request.Content ?? post.Content;
-            post.UpdatedAt = DateTime.UtcNow;
-
-            await _postRepository.UpdateAsync(post);
-
-            _logger.LogInformation("Post updated: {PostId}", postId);
-            return MapPostToDto(post);
+            _logger.LogInformation("UpdatePostAsync: {KeycloakId}, PostId={PostId}", keycloakId, postId);
+            var post = await _postService.UpdatePostAsync(postId, keycloakId, request);
+            return post ?? null!;
         }
         catch (Exception ex)
         {
@@ -144,14 +135,23 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            var deleted = await _postRepository.DeleteAsync(postId);
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("DeletePostAsync: No authenticated user");
+                return;
+            }
+
+            _logger.LogInformation("DeletePostAsync: {KeycloakId}, PostId={PostId}", keycloakId, postId);
+            var deleted = await _postService.DeletePostAsync(postId, keycloakId);
+            
             if (deleted)
             {
                 _logger.LogInformation("Post deleted: {PostId}", postId);
             }
             else
             {
-                _logger.LogWarning("Post not found for deletion: {PostId}", postId);
+                _logger.LogWarning("Post not found or unauthorized for deletion: {PostId}", postId);
             }
         }
         catch (Exception ex)
@@ -371,6 +371,43 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             _logger.LogError(ex, "Error retrieving profile activity for {ProfileId}", profileId);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Extracts the Keycloak ID from the current HTTP context
+    /// </summary>
+    /// <returns>The user's Keycloak ID, or null if not authenticated</returns>
+    private string? GetKeycloakIdFromContext()
+    {
+        var httpContext = _httpContextAccessor?.HttpContext;
+        if (httpContext?.User == null)
+        {
+            return null;
+        }
+
+        // Check for mock authentication header (for integration tests)
+        if (httpContext.Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
+        {
+            return keycloakIdHeader.ToString();
+        }
+
+        // Check if user is authenticated via claims
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            var subClaim = httpContext.User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim))
+            {
+                return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = httpContext.User.FindFirst("user_id")?.Value 
+                           ?? httpContext.User.FindFirst("id")?.Value 
+                           ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return userIdClaim;
+        }
+
+        return null;
     }
 
     /// <summary>
