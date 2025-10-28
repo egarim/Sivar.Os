@@ -2191,14 +2191,26 @@
     }
 
     // Pagination
-    private void PreviousPage()
+    private async Task PreviousPage()
     {
-        if (_currentPage > 1) _currentPage--;
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            Console.WriteLine($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
+            await LoadFeedPostsAsync();
+            StateHasChanged();
+        }
     }
 
-    private void NextPage()
+    private async Task NextPage()
     {
-        if (_currentPage < _totalPages) _currentPage++;
+        if (_currentPage < _totalPages)
+        {
+            _currentPage++;
+            Console.WriteLine($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
+            await LoadFeedPostsAsync();
+            StateHasChanged();
+        }
     }
 
     // Saved Results
