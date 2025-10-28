@@ -1,0 +1,541 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Client.Services
+@namespace Sivar.Os.Client.Components.ProfileSwitcher
+
+@if (IsOpen)
+{
+    <div class="modal-overlay" @onclick="@(() => OnCancel.InvokeAsync())">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Create New Profile</h2>
+                <button class="modal-close" @onclick="@(() => OnCancel.InvokeAsync())">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Profile Type Selection -->
+                <div class="form-group">
+                    <label class="form-label">Profile Type</label>
+                    <div class="profile-type-grid">
+                        @foreach (var type in ProfileTypes)
+                        {
+                            <div class="profile-type-option @(SelectedProfileType == type.Id ? "selected" : "")" 
+                                 @onclick="@(() => SelectProfileType(type))">
+                                <div class="profile-type-icon">
+                                    @GetProfileTypeIcon(type.Name)
+                                </div>
+                                <div class="profile-type-label">
+                                    <span class="profile-type-name">@type.DisplayName</span>
+                                    <span class="profile-type-desc">@type.Description</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Profile Name Input -->
+                <div class="form-group">
+                    <label class="form-label">Profile Name *</label>
+                    <input type="text" 
+                           class="form-input" 
+                           placeholder="e.g., My Business, Creative Studio"
+                           @bind="ProfileName"
+                           @bind:event="oninput"
+                           @onchange="ValidateProfileName" />
+                    @if (!string.IsNullOrEmpty(ProfileNameError))
+                    {
+                        <span class="form-error">@ProfileNameError</span>
+                    }
+                </div>
+
+                <!-- Profile Description -->
+                <div class="form-group">
+                    <label class="form-label">Description (Optional)</label>
+                    <textarea class="form-textarea"
+                              placeholder="Tell us about this profile..."
+                              @bind="ProfileDescription"
+                              @bind:event="oninput"
+                              rows="3"></textarea>
+                    <div class="char-count">@ProfileDescription.Length / 500</div>
+                </div>
+
+                <!-- Visibility Level -->
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="visibility-options">
+                        @foreach (var visibility in GetVisibilityOptions())
+                        {
+                            <label class="visibility-option">
+                                <input type="radio" 
+                                       name="visibility" 
+                                       value="@visibility" 
+                                       @onchange="@((ChangeEventArgs e) => SelectedVisibility = (VisibilityLevel)Enum.Parse(typeof(VisibilityLevel), (string)e.Value!))" />
+                                <span>@GetVisibilityLabel(visibility)</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <!-- Quick Settings -->
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" @bind="SetAsActive" />
+                        <span>Set as active profile</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="@(() => OnCancel.InvokeAsync())">Cancel</button>
+                <button class="btn btn-primary" 
+                        @onclick="SubmitForm"
+                        disabled="@(!IsFormValid())">
+                    @if (IsSubmitting)
+                    {
+                        <span>Creating...</span>
+                    }
+                    else
+                    {
+                        <span>Create Profile</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .modal-content {
+        background: var(--mud-palette-surface);
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .modal-close {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mud-palette-text-secondary);
+        transition: color 0.2s ease;
+    }
+
+    .modal-close:hover {
+        color: var(--mud-palette-text-primary);
+    }
+
+    .modal-close svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .form-input,
+    .form-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        color: var(--mud-palette-text-primary);
+        background: var(--mud-palette-surface);
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--mud-palette-primary);
+        box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    }
+
+    .form-textarea {
+        resize: vertical;
+    }
+
+    .char-count {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .form-error {
+        display: block;
+        font-size: 12px;
+        color: #d32f2f;
+        margin-top: 4px;
+    }
+
+    .profile-type-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .profile-type-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 2px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .profile-type-option:hover {
+        border-color: var(--mud-palette-primary);
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .profile-type-option.selected {
+        border-color: var(--mud-palette-primary);
+        background: rgba(25, 118, 210, 0.05);
+    }
+
+    .profile-type-icon {
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-type-label {
+        flex: 1;
+    }
+
+    .profile-type-name {
+        display: block;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+        font-size: 14px;
+    }
+
+    .profile-type-desc {
+        display: block;
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        margin-top: 2px;
+    }
+
+    .visibility-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .visibility-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .visibility-option input[type="radio"] {
+        cursor: pointer;
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        cursor: pointer;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 20px 24px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .btn {
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+        min-width: 100px;
+    }
+
+    .btn-primary {
+        background: var(--mud-palette-primary);
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #1a8cd8;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: var(--mud-palette-action-default-hover);
+        color: var(--mud-palette-text-primary);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .btn-secondary:hover {
+        background: var(--mud-palette-lines-default);
+    }
+</style>
+
+@code {
+    [Inject]
+    private IProfileSwitcherService ProfileSwitcherService { get; set; } = null!;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<CreateAnyProfileDto> OnCreate { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    public List<ProfileTypeDto> ProfileTypes { get; set; } = new();
+
+    private Guid SelectedProfileType { get; set; }
+    private string ProfileName { get; set; } = string.Empty;
+    private string ProfileDescription { get; set; } = string.Empty;
+    private VisibilityLevel SelectedVisibility { get; set; } = VisibilityLevel.Public;
+    private bool SetAsActive { get; set; } = false;
+    private bool IsSubmitting { get; set; } = false;
+    private string ProfileNameError { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeProfileTypes();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reset form when modal opens
+        if (IsOpen && ProfileTypes.Any())
+        {
+            SelectedProfileType = ProfileTypes.First().Id;
+            ResetForm();
+        }
+    }
+
+    private async Task InitializeProfileTypes()
+    {
+        // Fetch real profile types from the server instead of creating fake ones
+        ProfileTypes = await ProfileSwitcherService.GetProfileTypesAsync();
+        
+        Console.WriteLine($"[ProfileCreatorModal] InitializeProfileTypes: Loaded {ProfileTypes.Count} profile types");
+        foreach (var type in ProfileTypes)
+        {
+            Console.WriteLine($"  - {type.DisplayName} (ID: {type.Id})");
+        }
+        
+        if (ProfileTypes.Any())
+        {
+            SelectedProfileType = ProfileTypes.First().Id;
+            Console.WriteLine($"[ProfileCreatorModal] OnInitializedAsync: Set SelectedProfileType to {ProfileTypes.First().DisplayName} (ID: {SelectedProfileType})");
+        }
+    }
+
+    private void ResetForm()
+    {
+        ProfileName = string.Empty;
+        ProfileDescription = string.Empty;
+        SelectedVisibility = VisibilityLevel.Public;
+        SetAsActive = false;
+        ProfileNameError = string.Empty;
+        IsSubmitting = false;
+    }
+
+    private string GetProfileTypeIcon(string typeName)
+    {
+        return typeName?.ToLower() switch
+        {
+            "personal" => "👤",
+            "business" => "💼",
+            "brand" => "🏢",
+            "creator" => "🎬",
+            _ => "📋"
+        };
+    }
+
+    private string GetVisibilityLabel(VisibilityLevel level)
+    {
+        return level switch
+        {
+            VisibilityLevel.Private => "🔒 Private - Only you can see this profile",
+            VisibilityLevel.ConnectionsOnly => "👥 Connections - Only your connections can see this",
+            VisibilityLevel.Public => "🌍 Public - Everyone can see this profile",
+            VisibilityLevel.Restricted => "⚠️ Restricted - Visible to specific users only",
+            _ => level.ToString()
+        };
+    }
+
+    private IEnumerable<VisibilityLevel> GetVisibilityOptions()
+    {
+        return new[] { VisibilityLevel.Public, VisibilityLevel.ConnectionsOnly, VisibilityLevel.Private };
+    }
+
+    private void SelectProfileType(ProfileTypeDto type)
+    {
+        Console.WriteLine($"[ProfileCreatorModal] SelectProfileType: Selected {type.DisplayName} (ID: {type.Id})");
+        SelectedProfileType = type.Id;
+    }
+
+    private void ValidateProfileName()
+    {
+        ProfileNameError = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(ProfileName))
+        {
+            ProfileNameError = "Profile name is required";
+            return;
+        }
+
+        if (ProfileName.Length < 3)
+        {
+            ProfileNameError = "Profile name must be at least 3 characters";
+            return;
+        }
+
+        if (ProfileName.Length > 100)
+        {
+            ProfileNameError = "Profile name must be less than 100 characters";
+            return;
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(ProfileName) && 
+               ProfileName.Length >= 3 && 
+               ProfileName.Length <= 100 &&
+               SelectedProfileType != Guid.Empty &&
+               !IsSubmitting;
+    }
+
+    private async Task SubmitForm()
+    {
+        ValidateProfileName();
+
+        if (!IsFormValid())
+            return;
+
+        IsSubmitting = true;
+
+        try
+        {
+            var selectedTypeName = ProfileTypes.FirstOrDefault(t => t.Id == SelectedProfileType)?.DisplayName ?? "Unknown";
+            Console.WriteLine($"[ProfileCreatorModal.SubmitForm] Creating profile: Name={ProfileName}, Type={selectedTypeName} (ID: {SelectedProfileType})");
+
+            var request = new CreateAnyProfileDto
+            {
+                ProfileTypeId = SelectedProfileType,
+                DisplayName = ProfileName.Trim(),
+                Bio = ProfileDescription.Trim(),
+                VisibilityLevel = SelectedVisibility,
+                SetAsActive = SetAsActive
+            };
+
+            await OnCreate.InvokeAsync(request);
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

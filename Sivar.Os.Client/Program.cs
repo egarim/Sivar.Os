@@ -11,6 +11,7 @@ using Sivar.Os.Shared;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Client.Clients;
 using Microsoft.Extensions.Options;
+using System.Text.Json.Serialization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -18,6 +19,14 @@ builder.Services.AddMudServices();
 
 // Register UnauthorizedRedirectHandler so we can centrally handle 401 responses
 builder.Services.AddTransient<UnauthorizedRedirectHandler>();
+
+// Configure JSON serialization options for matching server-side enum serialization
+var jsonOptions = new System.Text.Json.JsonSerializerOptions
+{
+	PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+	DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+};
+jsonOptions.Converters.Add(new JsonStringEnumConverter());
 
 // Configure HttpClient for WASM to include browser credentials (cookies) on every request
 // The BaseAddress being set to the same origin means cookies will be included by default in Blazor
@@ -37,6 +46,9 @@ builder.Services.AddScoped<IAuthenticationService, ClientAuthenticationService>(
 
 // Register client-side weather service
 builder.Services.AddScoped<IWeatherService, ClientWeatherService>();
+
+// Register profile switcher service
+builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherService>();
 
 // Configure SivarClient options
 builder.Services.Configure<SivarClientOptions>(options =>

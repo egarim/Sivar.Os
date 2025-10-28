@@ -749,13 +749,13 @@ public class ProfileService : IProfileService
     /// <summary>
     /// Creates a profile for a user (supports all profile types)
     /// </summary>
-    public async Task<ProfileDto?> CreateProfileAsync(CreateProfileDto createDto, string userKeycloakId)
+    public async Task<ProfileDto?> CreateProfileAsync(CreateProfileDto createDto, string userKeycloakId, Guid? specifiedProfileTypeId = null)
     {
         if (createDto == null || string.IsNullOrWhiteSpace(userKeycloakId))
             return null;
 
         // Enhanced validation with business rules
-        var validation = await ValidateProfileCreationAsync(createDto, userKeycloakId);
+        var validation = await ValidateProfileCreationAsync(createDto, userKeycloakId, specifiedProfileTypeId);
         if (!validation.IsValid)
             return null;
 
@@ -764,8 +764,18 @@ public class ProfileService : IProfileService
         if (user == null)
             return null;
 
-        // Determine profile type based on metadata content
-        var profileTypeId = await DetermineProfileTypeFromMetadataAsync(createDto.Metadata);
+        // Use specified ProfileTypeId if provided, otherwise determine from metadata
+        Guid profileTypeId;
+        if (specifiedProfileTypeId.HasValue && specifiedProfileTypeId.Value != Guid.Empty)
+        {
+            profileTypeId = specifiedProfileTypeId.Value;
+            _logger.LogInformation("[CreateProfileAsync] Using specified ProfileTypeId: {ProfileTypeId}", profileTypeId);
+        }
+        else
+        {
+            profileTypeId = await DetermineProfileTypeFromMetadataAsync(createDto.Metadata);
+            _logger.LogInformation("[CreateProfileAsync] Determined ProfileTypeId from metadata: {ProfileTypeId}", profileTypeId);
+        }
         var profileType = await _profileTypeRepository.GetByIdAsync(profileTypeId);
         if (profileType == null)
             return null;

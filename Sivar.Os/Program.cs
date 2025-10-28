@@ -10,6 +10,7 @@ using MudBlazor.Services;
 using OpenAI;
 using Sivar.Os.Client.Pages;
 using Sivar.Os.Client.Services;
+using Sivar.Os.Client.Components.ProfileSwitcher;
 using Sivar.Os.Components;
 using Sivar.Os.Data.Context;
 using Sivar.Os.Data.Repositories;
@@ -139,6 +140,10 @@ builder.Services.AddScoped<IFilesClient, FilesClient>();
 
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();
+
+// Register profile switcher service for hybrid Blazor (interactive components)
+// Uses server-side implementation with repositories
+builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherClient>();
 
 // --- Auth (Keycloak OIDC) ---
 var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080/realms/blazor-interactive";

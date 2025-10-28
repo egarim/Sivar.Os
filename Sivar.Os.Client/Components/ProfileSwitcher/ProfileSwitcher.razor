@@ -1,0 +1,333 @@
+@using Sivar.Os.Shared.DTOs
+@using MudBlazor
+@namespace Sivar.Os.Client.Components.ProfileSwitcher
+
+<div class="profile-switcher-container">
+    <!-- Active Profile Display -->
+    <div class="active-profile-card" @onclick="ToggleDropdown">
+        <div class="active-profile-content">
+            <div class="active-profile-avatar">
+                @GetProfileInitials(ActiveProfile?.DisplayName ?? "User")
+            </div>
+            <div class="active-profile-info">
+                <div class="active-profile-name">@(ActiveProfile?.DisplayName ?? "Select Profile")</div>
+                <div class="active-profile-type">@(ActiveProfile?.ProfileType?.DisplayName ?? "Personal")</div>
+            </div>
+        </div>
+        <svg class="profile-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            @if (IsDropdownOpen)
+            {
+                <path d="M18 15l-6-6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            }
+            else
+            {
+                <path d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            }
+        </svg>
+    </div>
+
+    <!-- Dropdown Menu -->
+    @if (IsDropdownOpen)
+    {
+        <div class="profile-dropdown">
+            <!-- Existing Profiles -->
+            @if (UserProfiles != null && UserProfiles.Any())
+            {
+                <div class="profile-list">
+                    @foreach (var profile in UserProfiles)
+                    {
+                        <div class="profile-item @(profile.Id == ActiveProfile?.Id ? "active" : "")" 
+                             @onclick="@(() => SelectProfile(profile))">
+                            <div class="profile-item-avatar">
+                                @GetProfileInitials(profile.DisplayName ?? "")
+                            </div>
+                            <div class="profile-item-info">
+                                <div class="profile-item-name">@profile.DisplayName</div>
+                                <div class="profile-item-type">@profile.ProfileType?.DisplayName</div>
+                            </div>
+                            @if (profile.Id == ActiveProfile?.Id)
+                            {
+                                <svg class="profile-checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M20 6L9 17l-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="dropdown-divider"></div>
+            }
+
+            <!-- Create New Profile Button -->
+            <div class="create-profile-btn" @onclick="OpenCreateModal">
+                <svg class="profile-plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Create New Profile</span>
+            </div>
+        </div>
+    }
+
+    <!-- Profile Creator Modal -->
+    @if (ShowCreateModal)
+    {
+        <ProfileCreatorModal 
+            IsOpen="@ShowCreateModal"
+            OnCreate="@HandleCreateProfile"
+            OnCancel="@CloseCreateModal" />
+    }
+</div>
+
+<style>
+    .profile-switcher-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .active-profile-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .active-profile-card:hover {
+        border-color: var(--mud-palette-primary);
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .active-profile-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .active-profile-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--mud-palette-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .active-profile-info {
+        min-width: 0;
+    }
+
+    .active-profile-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .active-profile-type {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-dropdown-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--mud-palette-text-secondary);
+        transition: transform 0.2s ease;
+    }
+
+    .profile-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        min-width: 280px;
+    }
+
+    .profile-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .profile-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .profile-item:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .profile-item.active {
+        background: rgba(25, 118, 210, 0.05);
+    }
+
+    .profile-item-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--mud-palette-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+
+    .profile-item-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .profile-item-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-item-type {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-checkmark {
+        width: 20px;
+        height: 20px;
+        color: var(--mud-palette-primary);
+        flex-shrink: 0;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .create-profile-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        cursor: pointer;
+        color: var(--mud-palette-primary);
+        transition: all 0.2s ease;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .create-profile-btn:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .profile-plus-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--mud-palette-primary);
+        flex-shrink: 0;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public ProfileDto? ActiveProfile { get; set; }
+
+    [Parameter]
+    public List<ProfileDto> UserProfiles { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ProfileDto> OnProfileChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<CreateAnyProfileDto> OnCreateProfile { get; set; }
+
+    [Parameter]
+    public EventCallback OnCreateProfileClick { get; set; }
+
+    private bool IsDropdownOpen { get; set; }
+    private bool ShowCreateModal { get; set; }
+
+    private string GetProfileInitials(string profileName)
+    {
+        if (string.IsNullOrEmpty(profileName))
+            return "U";
+        
+        var parts = profileName.Split(' ');
+        if (parts.Length > 1)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        
+        return profileName.Substring(0, Math.Min(2, profileName.Length)).ToUpper();
+    }
+
+    private void ToggleDropdown()
+    {
+        IsDropdownOpen = !IsDropdownOpen;
+        StateHasChanged();
+    }
+
+    private async Task SelectProfile(ProfileDto profile)
+    {
+        if (profile.Id != ActiveProfile?.Id)
+        {
+            IsDropdownOpen = false;
+            await OnProfileChanged.InvokeAsync(profile);
+            StateHasChanged();
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        IsDropdownOpen = false;
+        ShowCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        ShowCreateModal = false;
+    }
+
+    private async Task HandleCreateProfile(CreateAnyProfileDto request)
+    {
+        ShowCreateModal = false;
+        // Pass the profile creation request to parent component
+        if (OnCreateProfile.HasDelegate)
+        {
+            await OnCreateProfile.InvokeAsync(request);
+        }
+        else if (OnCreateProfileClick.HasDelegate)
+        {
+            // Fallback for backward compatibility
+            await OnCreateProfileClick.InvokeAsync();
+        }
+    }
+}

@@ -155,8 +155,9 @@ public interface IProfileService
     /// </summary>
     /// <param name="createDto">Profile creation data</param>
     /// <param name="userKeycloakId">Keycloak user identifier</param>
+    /// <param name="specifiedProfileTypeId">Optional ProfileTypeId to use directly instead of determining from metadata</param>
     /// <returns>Created profile DTO if successful, null otherwise</returns>
-    Task<ProfileDto?> CreateProfileAsync(CreateProfileDto createDto, string userKeycloakId);
+    Task<ProfileDto?> CreateProfileAsync(CreateProfileDto createDto, string userKeycloakId, Guid? specifiedProfileTypeId = null);
 
     /// <summary>
     /// Updates a specific profile by ID (with ownership validation)

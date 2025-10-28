@@ -13,8 +13,10 @@
 @using Sivar.Os.Client.Components.Stats
 @using Sivar.Os.Client.Components.Pagination
 @using Sivar.Os.Client.Components.AIChat
+@using Sivar.Os.Client.Components.ProfileSwitcher
 @using Sivar.Os.Client.Layout
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Services
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
 @using Sivar.Os.Client.Clients
@@ -28,6 +30,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISivarClient SivarClient
 @inject IDialogService _dialogService
+@inject IProfileSwitcherService ProfileSwitcherService
 @implements IAsyncDisposable
 
 <style>
@@ -1677,11 +1680,12 @@
                         OnNext="@(() => NextPage())" />
         </div>
 
-        <!-- Right: Stats + Who to Follow -->
+        <!-- Right: Profile Switcher + Who to Follow -->
         <div>
-            <StatsPanel Stats="@GetStatsList()"
-                        SavedItems="@_savedResults"
-                        OnRemoveSaved="@((id) => RemoveSavedResultById(id))" />
+            <ProfileSwitcher ActiveProfile="@_activeProfile"
+                             UserProfiles="@_userProfiles"
+                             OnProfileChanged="@HandleProfileChanged"
+                             OnCreateProfile="@HandleCreateProfile" />
 
             <WhoToFollowSidebar SuggestedUsers="@_suggestedUsers"
                                 OnFollowToggle="@((user) => ToggleFollow(user))"
@@ -1757,6 +1761,11 @@
     // Who to Follow
     private List<ProfileDto> _suggestedUsers = new();
 
+    // Profile Switcher
+    private ProfileDto? _activeProfile;
+    private List<ProfileDto> _userProfiles = new();
+    private bool _isLoadingProfiles;
+
     // AI Chat State
     private bool _chatOpen;
     private bool _historyOpen;
@@ -1784,6 +1793,10 @@
             // Load current user info
             Console.WriteLine("[Home] Step 2: Loading current user info");
             await LoadCurrentUserAsync();
+            
+            // Load user profiles for switcher
+            Console.WriteLine("[Home] Step 2.5: Loading user profiles");
+            await LoadUserProfilesAsync();
             
             // Verify active profile is set
             Console.WriteLine($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
@@ -2955,6 +2968,111 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             Console.WriteLine($"[Home] ❌ Error submitting post: {ex.GetType().Name}: {ex.Message}");
             Console.WriteLine($"[Home] Stack Trace: {ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Load all user profiles for the profile switcher
+    /// </summary>
+    private async Task LoadUserProfilesAsync()
+    {
+        try
+        {
+            _isLoadingProfiles = true;
+            Console.WriteLine("[Home] Loading user profiles for switcher");
+
+            _userProfiles = await ProfileSwitcherService.GetUserProfilesAsync();
+            _activeProfile = _userProfiles?.FirstOrDefault(p => p.IsActive) ?? _userProfiles?.FirstOrDefault();
+
+            Console.WriteLine($"[Home] ✓ Loaded {_userProfiles?.Count ?? 0} profiles. Active: {_activeProfile?.DisplayName}");
+            if (_userProfiles?.Any() == true)
+            {
+                foreach (var profile in _userProfiles)
+                {
+                    Console.WriteLine($"[Home]   - Profile: {profile.DisplayName}, Type ID: {profile.ProfileTypeId}, Type: {profile.ProfileType?.DisplayName}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] ❌ Error loading profiles: {ex.Message}");
+            _userProfiles = new();
+            _activeProfile = null;
+        }
+        finally
+        {
+            _isLoadingProfiles = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle profile change when user selects a different profile
+    /// </summary>
+    private async Task HandleProfileChanged(ProfileDto selectedProfile)
+    {
+        try
+        {
+            Console.WriteLine($"[Home] Switching to profile: {selectedProfile.DisplayName}");
+
+            if (await ProfileSwitcherService.SwitchProfileAsync(selectedProfile.Id))
+            {
+                _activeProfile = selectedProfile;
+                _currentProfileId = selectedProfile.Id;
+                Console.WriteLine($"[Home] ✓ Profile switched successfully");
+                
+                // Reload feed posts for the new profile
+                await LoadFeedPostsAsync();
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("[Home] ❌ Failed to switch profile");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] ❌ Error switching profile: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle profile creation from the modal
+    /// </summary>
+    private async Task HandleCreateProfile(CreateAnyProfileDto request)
+    {
+        try
+        {
+            Console.WriteLine("[Home] Creating new profile");
+            Console.WriteLine($"[Home] Profile request: DisplayName={request.DisplayName}, ProfileTypeId={request.ProfileTypeId}, SetAsActive={request.SetAsActive}, Visibility={request.VisibilityLevel}");
+
+            // Call the SivarClient to create the profile
+            var newProfile = await SivarClient.Profiles.CreateProfileAsync(request);
+            
+            if (newProfile != null)
+            {
+                Console.WriteLine($"[Home] ✅ Profile created successfully: {newProfile.Id}");
+                
+                // If SetAsActive is true, switch to the new profile
+                if (request.SetAsActive)
+                {
+                    Console.WriteLine("[Home] Setting new profile as active");
+                    await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
+                    _activeProfile = newProfile;
+                }
+
+                // Reload profiles after creation
+                await LoadUserProfilesAsync();
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("[Home] ❌ Profile creation returned null");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] ❌ Error creating profile: {ex.Message}");
+            Console.WriteLine($"[Home] Stack trace: {ex.StackTrace}");
         }
     }
 }

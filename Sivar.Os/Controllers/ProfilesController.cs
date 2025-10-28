@@ -375,7 +375,7 @@ public class ProfilesController : ControllerBase
     /// <param name="createDto">Profile creation data</param>
     /// <returns>Created profile</returns>
     [HttpPost]
-    public async Task<ActionResult<ProfileDto>> CreateProfile([FromBody] CreateProfileDto createDto)
+    public async Task<ActionResult<ProfileDto>> CreateProfile([FromBody] CreateAnyProfileDto createDto)
     {
         try
         {
@@ -386,12 +386,27 @@ public class ProfilesController : ControllerBase
             if (string.IsNullOrEmpty(keycloakId))
                 return Unauthorized("User not authenticated");
 
-            // Enhanced validation with business rules
-            var validation = await _profileService.ValidateProfileCreationAsync(createDto, keycloakId);
+            // Convert to CreateProfileDto for service
+            var createProfileDto = new CreateProfileDto
+            {
+                DisplayName = createDto.DisplayName,
+                Bio = createDto.Bio,
+                Avatar = createDto.Avatar,
+                AvatarFileId = createDto.AvatarFileId,
+                Location = createDto.Location,
+                IsPublic = createDto.VisibilityLevel != Sivar.Os.Shared.Enums.VisibilityLevel.Private,
+                VisibilityLevel = createDto.VisibilityLevel,
+                Tags = createDto.Tags,
+                SocialMediaLinks = new Dictionary<string, string>(),
+                Metadata = createDto.Metadata
+            };
+
+            // Enhanced validation with business rules - pass ProfileTypeId for validation
+            var validation = await _profileService.ValidateProfileCreationAsync(createProfileDto, keycloakId, createDto.ProfileTypeId);
             if (!validation.IsValid)
                 return BadRequest(new { errors = validation.Errors });
 
-            var profile = await _profileService.CreateProfileAsync(createDto, keycloakId);
+            var profile = await _profileService.CreateProfileAsync(createProfileDto, keycloakId, createDto.ProfileTypeId);
             
             if (profile == null)
                 return BadRequest("Failed to create profile");
