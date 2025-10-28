@@ -30,29 +30,51 @@ public class VectorEmbeddingService : IVectorEmbeddingService
     /// </summary>
     public async Task<Embedding<float>> GenerateEmbeddingAsync(string text)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
         if (string.IsNullOrWhiteSpace(text))
         {
+            _logger.LogWarning("[VectorEmbeddingService.GenerateEmbeddingAsync] Validation failed - RequestId={RequestId}, Reason=NullOrEmpty",
+                requestId);
             throw new ArgumentException("Text cannot be null or empty", nameof(text));
         }
 
+        _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] START - RequestId={RequestId}, TextLength={TextLength}, Provider={Provider}",
+            requestId, text.Length, _options.Provider);
+
         try
         {
-            _logger.LogDebug("Generating embedding for text with length: {TextLength}", text.Length);
-            
             // Truncate text if it exceeds maximum length
             var processedText = text.Length > _options.MaxTextLength 
                 ? text[.._options.MaxTextLength] 
                 : text;
 
+            if (processedText.Length != text.Length)
+            {
+                _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Text truncated - RequestId={RequestId}, OriginalLength={OriginalLength}, TruncatedLength={TruncatedLength}, MaxLength={MaxLength}",
+                    requestId, text.Length, processedText.Length, _options.MaxTextLength);
+            }
+
+            _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Calling embedding generator - RequestId={RequestId}, ProcessedTextLength={ProcessedTextLength}",
+                requestId, processedText.Length);
+
             var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(processedText);
             
-            _logger.LogDebug("Generated embedding with vector length: {VectorLength}", embedding.Vector.Length);
+            _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Embedding generated - RequestId={RequestId}, VectorLength={VectorLength}",
+                requestId, embedding.Vector.Length);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] SUCCESS - RequestId={RequestId}, VectorLength={VectorLength}, Duration={Duration}ms",
+                requestId, embedding.Vector.Length, elapsed);
             
             return embedding;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating embedding for text");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.GenerateEmbeddingAsync] ERROR - RequestId={RequestId}, TextLength={TextLength}, Duration={Duration}ms, Provider={Provider}",
+                requestId, text.Length, elapsed, _options.Provider);
             throw;
         }
     }
@@ -62,32 +84,53 @@ public class VectorEmbeddingService : IVectorEmbeddingService
     /// </summary>
     public async Task<(string Text, Embedding<float> Embedding)[]> GenerateBatchEmbeddingsAsync(List<string> texts)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
         if (texts == null || texts.Count == 0)
         {
+            _logger.LogWarning("[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] Empty batch - RequestId={RequestId}, TextCount={TextCount}",
+                requestId, texts?.Count ?? 0);
             return Array.Empty<(string, Embedding<float>)>();
         }
 
+        _logger.LogInformation("[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] START - RequestId={RequestId}, TextCount={TextCount}, BatchSize={BatchSize}, Provider={Provider}",
+            requestId, texts.Count, _options.BatchSize, _options.Provider);
+
         try
         {
-            _logger.LogDebug("Generating batch embeddings for {TextCount} texts", texts.Count);
-
             // Process texts in batches to avoid overwhelming the service
             var batchSize = _options.BatchSize;
             var results = new List<(string Text, Embedding<float> Embedding)>();
+            var totalBatches = (texts.Count + batchSize - 1) / batchSize;
+            var currentBatch = 0;
 
             for (int i = 0; i < texts.Count; i += batchSize)
             {
+                currentBatch++;
                 var batch = texts.Skip(i).Take(batchSize).ToList();
-                var batchResults = await ProcessBatchAsync(batch);
+
+                _logger.LogInformation("[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] Processing batch - RequestId={RequestId}, Batch={CurrentBatch}/{TotalBatches}, ItemsInBatch={ItemsInBatch}",
+                    requestId, currentBatch, totalBatches, batch.Count);
+
+                var batchResults = await ProcessBatchAsync(batch, requestId);
                 results.AddRange(batchResults);
+
+                _logger.LogInformation("[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] Batch processed - RequestId={RequestId}, Batch={CurrentBatch}/{TotalBatches}, ResultCount={ResultCount}",
+                    requestId, currentBatch, totalBatches, batchResults.Count);
             }
 
-            _logger.LogDebug("Generated {ResultCount} embeddings", results.Count);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] SUCCESS - RequestId={RequestId}, ResultCount={ResultCount}, TotalBatches={TotalBatches}, Duration={Duration}ms",
+                requestId, results.Count, totalBatches, elapsed);
+
             return results.ToArray();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating batch embeddings");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.GenerateBatchEmbeddingsAsync] ERROR - RequestId={RequestId}, TextCount={TextCount}, Duration={Duration}ms, Provider={Provider}",
+                requestId, texts.Count, elapsed, _options.Provider);
             throw;
         }
     }
@@ -100,23 +143,36 @@ public class VectorEmbeddingService : IVectorEmbeddingService
         (string Text, Embedding<float> Embedding)[] candidates, 
         int maxResults = 10)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
         if (string.IsNullOrWhiteSpace(query))
         {
+            _logger.LogWarning("[VectorEmbeddingService.PerformSemanticSearchAsync] Validation failed - RequestId={RequestId}, Reason=NullOrEmptyQuery",
+                requestId);
             throw new ArgumentException("Query cannot be null or empty", nameof(query));
         }
 
         if (candidates == null || candidates.Length == 0)
         {
+            _logger.LogWarning("[VectorEmbeddingService.PerformSemanticSearchAsync] No candidates provided - RequestId={RequestId}, CandidateCount={CandidateCount}",
+                requestId, candidates?.Length ?? 0);
             return new List<SemanticSearchResult>();
         }
 
+        _logger.LogInformation("[VectorEmbeddingService.PerformSemanticSearchAsync] START - RequestId={RequestId}, Query={Query}, CandidateCount={CandidateCount}, MaxResults={MaxResults}, Provider={Provider}",
+            requestId, query, candidates.Length, maxResults, _options.Provider);
+
         try
         {
-            _logger.LogDebug("Performing semantic search for query: '{Query}' against {CandidateCount} candidates", 
-                query, candidates.Length);
-
             // Generate embedding for the query
+            _logger.LogInformation("[VectorEmbeddingService.PerformSemanticSearchAsync] Generating query embedding - RequestId={RequestId}, QueryLength={QueryLength}",
+                requestId, query.Length);
+
             var queryEmbedding = await GenerateEmbeddingAsync(query);
+
+            _logger.LogInformation("[VectorEmbeddingService.PerformSemanticSearchAsync] Query embedding generated - RequestId={RequestId}, QueryVectorLength={QueryVectorLength}",
+                requestId, queryEmbedding.Vector.Length);
 
             // Calculate similarities and sort by relevance
             var results = candidates
@@ -131,14 +187,21 @@ public class VectorEmbeddingService : IVectorEmbeddingService
                 .Take(maxResults)
                 .ToList();
 
-            _logger.LogDebug("Found {ResultCount} results above similarity threshold {Threshold}", 
-                results.Count, _options.MinimumSimilarityThreshold);
+            _logger.LogInformation("[VectorEmbeddingService.PerformSemanticSearchAsync] Similarity filtering complete - RequestId={RequestId}, TotalCandidates={TotalCandidates}, AboveThreshold={AboveThreshold}, Threshold={Threshold}, FinalResults={FinalResults}",
+                requestId, candidates.Length, results.Count, _options.MinimumSimilarityThreshold, Math.Min(results.Count, maxResults));
 
-            return results;
+            var topResults = results.Take(maxResults).ToList();
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.PerformSemanticSearchAsync] SUCCESS - RequestId={RequestId}, ResultCount={ResultCount}, Duration={Duration}ms",
+                requestId, topResults.Count, elapsed);
+
+            return topResults;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing semantic search");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.PerformSemanticSearchAsync] ERROR - RequestId={RequestId}, Query={Query}, CandidateCount={CandidateCount}, Duration={Duration}ms, Provider={Provider}",
+                requestId, query, candidates.Length, elapsed, _options.Provider);
             throw;
         }
     }
@@ -148,31 +211,90 @@ public class VectorEmbeddingService : IVectorEmbeddingService
     /// </summary>
     public float CalculateCosineSimilarity(Embedding<float> embedding1, Embedding<float> embedding2)
     {
-        if (embedding1.Vector.Length != embedding2.Vector.Length)
-        {
-            throw new ArgumentException("Embedding vectors must have the same length");
-        }
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        return TensorPrimitives.CosineSimilarity(embedding1.Vector.Span, embedding2.Vector.Span);
+        _logger.LogInformation("[VectorEmbeddingService.CalculateCosineSimilarity] START - RequestId={RequestId}, Vector1Length={Vector1Length}, Vector2Length={Vector2Length}",
+            requestId, embedding1.Vector.Length, embedding2.Vector.Length);
+
+        try
+        {
+            if (embedding1.Vector.Length != embedding2.Vector.Length)
+            {
+                _logger.LogWarning("[VectorEmbeddingService.CalculateCosineSimilarity] Vector length mismatch - RequestId={RequestId}, Vector1Length={Vector1Length}, Vector2Length={Vector2Length}",
+                    requestId, embedding1.Vector.Length, embedding2.Vector.Length);
+                throw new ArgumentException("Embedding vectors must have the same length");
+            }
+
+            var similarity = TensorPrimitives.CosineSimilarity(embedding1.Vector.Span, embedding2.Vector.Span);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.CalculateCosineSimilarity] SUCCESS - RequestId={RequestId}, Similarity={Similarity}, VectorLength={VectorLength}, Duration={Duration}ms",
+                requestId, similarity, embedding1.Vector.Length, elapsed);
+
+            return similarity;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.CalculateCosineSimilarity] ERROR - RequestId={RequestId}, Vector1Length={Vector1Length}, Vector2Length={Vector2Length}, Duration={Duration}ms",
+                requestId, embedding1.Vector.Length, embedding2.Vector.Length, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
     /// Process a batch of texts and generate embeddings
     /// </summary>
-    private async Task<List<(string Text, Embedding<float> Embedding)>> ProcessBatchAsync(List<string> batch)
+    private async Task<List<(string Text, Embedding<float> Embedding)>> ProcessBatchAsync(List<string> batch, Guid requestId)
     {
-        var results = new List<(string Text, Embedding<float> Embedding)>();
+        var startTime = DateTime.UtcNow;
 
-        foreach (var text in batch)
+        _logger.LogInformation("[VectorEmbeddingService.ProcessBatchAsync] START - RequestId={RequestId}, ItemCount={ItemCount}",
+            requestId, batch.Count);
+
+        var results = new List<(string Text, Embedding<float> Embedding)>();
+        var successCount = 0;
+        var skipCount = 0;
+
+        try
         {
-            if (!string.IsNullOrWhiteSpace(text))
+            for (int i = 0; i < batch.Count; i++)
             {
+                var text = batch[i];
+
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    _logger.LogWarning("[VectorEmbeddingService.ProcessBatchAsync] Skipping empty item - RequestId={RequestId}, Index={Index}/{Total}",
+                        requestId, i + 1, batch.Count);
+                    skipCount++;
+                    continue;
+                }
+
+                _logger.LogInformation("[VectorEmbeddingService.ProcessBatchAsync] Processing item - RequestId={RequestId}, Index={Index}/{Total}, TextLength={TextLength}",
+                    requestId, i + 1, batch.Count, text.Length);
+
                 var embedding = await GenerateEmbeddingAsync(text);
                 results.Add((text, embedding));
-            }
-        }
+                successCount++;
 
-        return results;
+                _logger.LogInformation("[VectorEmbeddingService.ProcessBatchAsync] Item processed - RequestId={RequestId}, Index={Index}/{Total}, VectorLength={VectorLength}",
+                    requestId, i + 1, batch.Count, embedding.Vector.Length);
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.ProcessBatchAsync] SUCCESS - RequestId={RequestId}, ProcessedCount={ProcessedCount}, SkippedCount={SkippedCount}, ResultCount={ResultCount}, Duration={Duration}ms",
+                requestId, successCount, skipCount, results.Count, elapsed);
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.ProcessBatchAsync] ERROR - RequestId={RequestId}, ItemCount={ItemCount}, ProcessedCount={ProcessedCount}, Duration={Duration}ms",
+                requestId, batch.Count, successCount, elapsed);
+            throw;
+        }
     }
 }
 
