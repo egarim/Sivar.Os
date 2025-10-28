@@ -34,9 +34,8 @@ public class PostsClient : BaseClient, IPostsClient
 
     public async Task<PostFeedDto> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
-        // Convert 1-based pageNumber to 0-based page for API
-        var page = pageNumber - 1;
-        return await GetAsync<PostFeedDto>($"api/posts/feed?page={page}&pageSize={pageSize}", cancellationToken);
+        // Use 1-based pageNumber directly (API now expects 1-based)
+        return await GetAsync<PostFeedDto>($"api/posts/feed?page={pageNumber}&pageSize={pageSize}", cancellationToken);
     }
 
     public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)

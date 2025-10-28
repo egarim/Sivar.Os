@@ -180,7 +180,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
                 return new PostFeedDto
                 {
                     Posts = new List<PostDto>(),
-                    Page = pageNumber - 1,
+                    Page = pageNumber,  // Keep as 1-based
                     PageSize = pageSize,
                     TotalCount = 0
                 };
@@ -199,7 +199,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var feed = new PostFeedDto
             {
                 Posts = posts.ToList(),
-                Page = pageNumber - 1,
+                Page = pageNumber,  // Keep as 1-based to match UI expectations (no -1)
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
@@ -240,7 +240,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             return new PostFeedDto
             {
                 Posts = dtos,
-                Page = pageNumber - 1,
+                Page = pageNumber,  // Keep as 1-based
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
@@ -263,7 +263,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             return new PostFeedDto
             {
                 Posts = new List<PostDto>(),
-                Page = pageNumber - 1,
+                Page = pageNumber,  // Keep as 1-based
                 PageSize = pageSize,
                 TotalCount = 0
             };
@@ -278,7 +278,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             return new PostFeedDto
             {
                 Posts = dtos,
-                Page = pageNumber - 1,
+                Page = pageNumber,  // Keep as 1-based
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
@@ -304,7 +304,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             return new PostFeedDto
             {
                 Posts = dtos,
-                Page = 0,
+                Page = 1,  // 1-based page number
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
