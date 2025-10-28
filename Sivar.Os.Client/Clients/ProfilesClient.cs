@@ -21,6 +21,10 @@ public class ProfilesClient : BaseClient, IProfilesClient
 
     public async Task<ProfileDto> CreateMyProfileAsync(CreateProfileDto request, CancellationToken cancellationToken = default)
     {
+        // Return null if request is null
+        if (request == null)
+            return null!;
+            
         return await PostAsync<ProfileDto>("api/profiles/my", request, cancellationToken);
     }
 

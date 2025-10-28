@@ -120,6 +120,14 @@ public abstract class BaseClient
             return JsonSerializer.Deserialize<T>(content, JsonOptions)!;
         }
 
+        // For NOT FOUND (404) and UNAUTHORIZED (401), return null instead of throwing
+        // This aligns with server-side behavior where these scenarios return null
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+            response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            return default!;
+        }
+
         // Log detailed error information for debugging
         var errorContent = await response.Content.ReadAsStringAsync();
         Console.WriteLine($"[BaseClient] API Error: {response.StatusCode} {response.ReasonPhrase}");
@@ -133,6 +141,14 @@ public abstract class BaseClient
     {
         if (!response.IsSuccessStatusCode)
         {
+            // For NOT FOUND (404) and UNAUTHORIZED (401), return silently instead of throwing
+            // This aligns with server-side behavior
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+                response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return;
+            }
+
             await ThrowApiExceptionAsync(response);
         }
     }
