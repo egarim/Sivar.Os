@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Http;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
@@ -15,15 +16,18 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
 {
     private readonly IProfileService _profileService;
     private readonly IProfileRepository _profileRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ProfilesClient> _logger;
 
     public ProfilesClient(
         IProfileService profileService,
         IProfileRepository profileRepository,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<ProfilesClient> logger)
     {
         _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -91,43 +95,171 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
     // My profiles (authenticated user)
     public async Task<ProfileDto> GetMyProfileAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("GetMyProfileAsync");
-        return new ProfileDto { Id = Guid.NewGuid() };
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("GetMyProfileAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("GetMyProfileAsync: {KeycloakId}", keycloakId);
+            var profile = await _profileService.GetMyProfileAsync(keycloakId);
+            return profile ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetMyProfileAsync");
+            throw;
+        }
     }
 
     public async Task<ProfileDto> CreateMyProfileAsync(CreateProfileDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("CreateMyProfileAsync");
-        return new ProfileDto { Id = Guid.NewGuid() };
+        try
+        {
+            if (request == null)
+            {
+                _logger.LogWarning("CreateMyProfileAsync: Null request");
+                return null!;
+            }
+
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("CreateMyProfileAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("CreateMyProfileAsync: {KeycloakId}, DisplayName={DisplayName}", keycloakId, request.DisplayName);
+            var profile = await _profileService.CreateMyProfileAsync(keycloakId, request);
+            return profile ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in CreateMyProfileAsync");
+            throw;
+        }
     }
 
     public async Task<ProfileDto> UpdateMyProfileAsync(UpdateProfileDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("UpdateMyProfileAsync");
-        return new ProfileDto { Id = Guid.NewGuid() };
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("UpdateMyProfileAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("UpdateMyProfileAsync: {KeycloakId}", keycloakId);
+            var profile = await _profileService.UpdateMyProfileAsync(keycloakId, request);
+            return profile ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in UpdateMyProfileAsync");
+            throw;
+        }
     }
 
     public async Task DeleteMyProfileAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("DeleteMyProfileAsync");
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("DeleteMyProfileAsync: No authenticated user");
+                return;
+            }
+
+            _logger.LogInformation("DeleteMyProfileAsync: {KeycloakId}", keycloakId);
+            await _profileService.DeleteMyProfileAsync(keycloakId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in DeleteMyProfileAsync");
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ProfileDto>> GetAllMyProfilesAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("GetAllMyProfilesAsync");
-        return new List<ProfileDto>();
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("GetAllMyProfilesAsync: No authenticated user");
+                return new List<ProfileDto>();
+            }
+
+            _logger.LogInformation("GetAllMyProfilesAsync: {KeycloakId}", keycloakId);
+            var profiles = await _profileService.GetMyProfilesAsync(keycloakId);
+            return profiles ?? new List<ProfileDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetAllMyProfilesAsync");
+            throw;
+        }
     }
 
     public async Task<ActiveProfileDto> GetMyActiveProfileAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("GetMyActiveProfileAsync");
-        return new ActiveProfileDto { Id = Guid.NewGuid(), IsActive = true };
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("GetMyActiveProfileAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("GetMyActiveProfileAsync: {KeycloakId}", keycloakId);
+            var profile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+            if (profile == null) return null!;
+
+            return new ActiveProfileDto 
+            { 
+                Id = profile.Id, 
+                IsActive = true 
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetMyActiveProfileAsync");
+            throw;
+        }
     }
 
     public async Task<ActiveProfileDto> SetMyActiveProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("SetMyActiveProfileAsync: {ProfileId}", profileId);
-        return new ActiveProfileDto { Id = profileId, IsActive = true };
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("SetMyActiveProfileAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("SetMyActiveProfileAsync: {KeycloakId}, ProfileId={ProfileId}", keycloakId, profileId);
+            var result = await _profileService.SetActiveProfileAsync(keycloakId, profileId);
+            return new ActiveProfileDto 
+            { 
+                Id = profileId, 
+                IsActive = result 
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in SetMyActiveProfileAsync");
+            throw;
+        }
     }
 
     // Profile management (admin)
@@ -213,6 +345,43 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
     {
         _logger.LogInformation("GetProfileStatisticsAsync");
         return new ProfileStatisticsDto();
+    }
+
+    /// <summary>
+    /// Extracts the Keycloak ID from the current HTTP context
+    /// </summary>
+    /// <returns>The user's Keycloak ID, or null if not authenticated</returns>
+    private string? GetKeycloakIdFromContext()
+    {
+        var httpContext = _httpContextAccessor?.HttpContext;
+        if (httpContext?.User == null)
+        {
+            return null;
+        }
+
+        // Check for mock authentication header (for integration tests)
+        if (httpContext.Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
+        {
+            return keycloakIdHeader.ToString();
+        }
+
+        // Check if user is authenticated via claims
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            var subClaim = httpContext.User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim))
+            {
+                return subClaim;
+            }
+
+            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            var userIdClaim = httpContext.User.FindFirst("user_id")?.Value 
+                           ?? httpContext.User.FindFirst("id")?.Value 
+                           ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return userIdClaim;
+        }
+
+        return null;
     }
 
     private ProfileDto MapToDto(Profile profile)
