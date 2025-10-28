@@ -46,6 +46,12 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationDto?> CreateNotificationAsync(CreateNotificationDto createNotificationDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[NotificationService.CreateNotificationAsync] START - RequestId={RequestId}, UserId={UserId}, Type={Type}, TriggeredByUserId={TriggeredByUserId}", 
+            requestId, createNotificationDto.UserId, createNotificationDto.Type, createNotificationDto.TriggeredByUserId ?? Guid.Empty);
+
         try
         {
             // Check if similar notification already exists to prevent spam
@@ -55,7 +61,8 @@ public class NotificationService : INotificationService
                 createNotificationDto.RelatedEntityId,
                 createNotificationDto.TriggeredByUserId))
             {
-                _logger.LogDebug("Similar notification already exists, skipping creation");
+                _logger.LogWarning("[NotificationService.CreateNotificationAsync] SIMILAR_NOTIFICATION_EXISTS - RequestId={RequestId}, UserId={UserId}, Type={Type}", 
+                    requestId, createNotificationDto.UserId, createNotificationDto.Type);
                 return null;
             }
 
@@ -73,6 +80,8 @@ public class NotificationService : INotificationService
             };
 
             var createdNotification = await _notificationRepository.AddAsync(notification);
+            _logger.LogInformation("[NotificationService.CreateNotificationAsync] Notification persisted - RequestId={RequestId}, NotificationId={NotificationId}, UserId={UserId}", 
+                requestId, createdNotification.Id, createNotificationDto.UserId);
             
             _logger.LogInformation("Created notification {NotificationId} for user {UserId} of type {Type}",
                 createdNotification.Id, createNotificationDto.UserId, createNotificationDto.Type);
@@ -83,13 +92,21 @@ public class NotificationService : INotificationService
             if (_hubContext != null && notificationDto != null)
             {
                 await SendRealTimeNotificationAsync(createNotificationDto.UserId, notificationDto);
+                _logger.LogInformation("[NotificationService.CreateNotificationAsync] Real-time notification sent - RequestId={RequestId}, NotificationId={NotificationId}", 
+                    requestId, createdNotification.Id);
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationService.CreateNotificationAsync] SUCCESS - RequestId={RequestId}, NotificationId={NotificationId}, Duration={Duration}ms", 
+                requestId, createdNotification.Id, elapsed);
 
             return notificationDto;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating notification for user {UserId}", createNotificationDto.UserId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationService.CreateNotificationAsync] ERROR - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+                requestId, createNotificationDto.UserId, elapsed);
             throw;
         }
     }
@@ -370,14 +387,30 @@ public class NotificationService : INotificationService
 
     public async Task<List<NotificationDto>> GetUserNotificationsAsync(string keycloakId, NotificationQueryDto? queryParams = null)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}", 
+            requestId, keycloakId ?? "NULL", queryParams?.Page ?? 1, queryParams?.PageSize ?? 20);
+
         try
         {
+            if (string.IsNullOrWhiteSpace(keycloakId))
+            {
+                _logger.LogWarning("[NotificationService.GetUserNotificationsAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
+                return new List<NotificationDto>();
+            }
+
             var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
             if (user == null)
             {
-                _logger.LogWarning("User with Keycloak ID {KeycloakId} not found", keycloakId);
+                _logger.LogWarning("[NotificationService.GetUserNotificationsAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+                    requestId, keycloakId);
                 return new List<NotificationDto>();
             }
+
+            _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] User found - RequestId={RequestId}, UserId={UserId}", 
+                requestId, user.Id);
 
             queryParams ??= new NotificationQueryDto();
 
@@ -385,24 +418,37 @@ public class NotificationService : INotificationService
 
             if (!string.IsNullOrEmpty(queryParams.Type))
             {
+                _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] Fetching by type - RequestId={RequestId}, Type={Type}", 
+                    requestId, queryParams.Type);
                 notifications = await _notificationRepository.GetUserNotificationsByTypeAsync(
                     user.Id, queryParams.Type, queryParams.Page, queryParams.PageSize);
             }
             else
             {
+                _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] Fetching all notifications - RequestId={RequestId}, UnreadOnly={UnreadOnly}", 
+                    requestId, queryParams.UnreadOnly ?? false);
                 notifications = await _notificationRepository.GetUserNotificationsAsync(
                     user.Id, queryParams.UnreadOnly ?? false, queryParams.Page, queryParams.PageSize);
             }
 
+            _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] Notifications fetched - RequestId={RequestId}, Count={Count}", 
+                requestId, notifications.Count);
+
             // Apply additional filters
             if (queryParams.Since.HasValue)
             {
+                var beforeCount = notifications.Count;
                 notifications = notifications.Where(n => n.CreatedAt > queryParams.Since.Value).ToList();
+                _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] After Since filter - RequestId={RequestId}, Before={Before}, After={After}", 
+                    requestId, beforeCount, notifications.Count);
             }
 
             if (queryParams.Priority.HasValue)
             {
+                var beforeCount = notifications.Count;
                 notifications = notifications.Where(n => n.Priority == queryParams.Priority.Value).ToList();
+                _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] After Priority filter - RequestId={RequestId}, Priority={Priority}, Before={Before}, After={After}", 
+                    requestId, queryParams.Priority.Value, beforeCount, notifications.Count);
             }
 
             var notificationDtos = new List<NotificationDto>();
@@ -415,11 +461,17 @@ public class NotificationService : INotificationService
                 }
             }
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationService.GetUserNotificationsAsync] SUCCESS - RequestId={RequestId}, UserId={UserId}, ReturnedCount={Count}, Duration={Duration}ms", 
+                requestId, user.Id, notificationDtos.Count, elapsed);
+
             return notificationDtos;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notifications for user {KeycloakId}", keycloakId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationService.GetUserNotificationsAsync] ERROR - RequestId={RequestId}, KeycloakId={KeycloakId}, Duration={Duration}ms", 
+                requestId, keycloakId, elapsed);
             throw;
         }
     }
@@ -505,20 +557,45 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationSummaryDto> GetNotificationSummaryAsync(string keycloakId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[NotificationService.GetNotificationSummaryAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+            requestId, keycloakId ?? "NULL");
+
         try
         {
-            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-            if (user == null)
+            if (string.IsNullOrWhiteSpace(keycloakId))
             {
-                _logger.LogWarning("User with Keycloak ID {KeycloakId} not found", keycloakId);
+                _logger.LogWarning("[NotificationService.GetNotificationSummaryAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
                 return new NotificationSummaryDto();
             }
 
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            if (user == null)
+            {
+                _logger.LogWarning("[NotificationService.GetNotificationSummaryAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+                    requestId, keycloakId);
+                return new NotificationSummaryDto();
+            }
+
+            _logger.LogInformation("[NotificationService.GetNotificationSummaryAsync] User found - RequestId={RequestId}, UserId={UserId}", 
+                requestId, user.Id);
+
             var (total, unread, recent, typeBreakdown) = await _notificationRepository.GetNotificationSummaryAsync(user.Id);
+            _logger.LogInformation("[NotificationService.GetNotificationSummaryAsync] Summary retrieved - RequestId={RequestId}, Total={Total}, Unread={Unread}, Recent={Recent}", 
+                requestId, total, unread, recent);
 
             // Get the most recent notification timestamp
             var recentNotifications = await _notificationRepository.GetUserNotificationsAsync(user.Id, false, 1, 1);
             var lastNotificationAt = recentNotifications.FirstOrDefault()?.CreatedAt;
+
+            _logger.LogInformation("[NotificationService.GetNotificationSummaryAsync] Last notification timestamp - RequestId={RequestId}, LastAt={LastAt}", 
+                requestId, lastNotificationAt?.ToString("o") ?? "NULL");
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[NotificationService.GetNotificationSummaryAsync] SUCCESS - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+                requestId, user.Id, elapsed);
 
             return new NotificationSummaryDto
             {
@@ -531,7 +608,9 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notification summary for user {KeycloakId}", keycloakId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[NotificationService.GetNotificationSummaryAsync] ERROR - RequestId={RequestId}, KeycloakId={KeycloakId}, Duration={Duration}ms", 
+                requestId, keycloakId, elapsed);
             throw;
         }
     }

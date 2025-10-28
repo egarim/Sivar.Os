@@ -14,10 +14,12 @@ namespace Sivar.Os.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ILogger<UserService> _logger;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -26,21 +28,44 @@ public class UserService : IUserService
     /// </summary>
     public async Task<UserDto> GetOrCreateUserFromKeycloakAsync(CreateUserFromKeycloakDto keycloakUserDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, Email={Email}", 
+            requestId, keycloakUserDto?.KeycloakId ?? "NULL", keycloakUserDto?.Email ?? "NULL");
+
         if (keycloakUserDto == null)
+        {
+            _logger.LogError("[UserService.GetOrCreateUserFromKeycloakAsync] NULL_DTO - RequestId={RequestId}", requestId);
             throw new ArgumentNullException(nameof(keycloakUserDto));
+        }
 
         if (string.IsNullOrWhiteSpace(keycloakUserDto.KeycloakId))
+        {
+            _logger.LogError("[UserService.GetOrCreateUserFromKeycloakAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
             throw new ArgumentException("KeycloakId is required", nameof(keycloakUserDto));
+        }
 
         // Try to get existing user
         var existingUser = await _userRepository.GetByKeycloakIdAsync(keycloakUserDto.KeycloakId);
         if (existingUser != null)
         {
+            _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] User found - RequestId={RequestId}, UserId={UserId}", 
+                requestId, existingUser.Id);
+
             // Update last login and return existing user
             await _userRepository.UpdateLastLoginAsync(keycloakUserDto.KeycloakId);
             await _userRepository.SaveChangesAsync();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] SUCCESS (existing) - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+                requestId, existingUser.Id, elapsed);
+
             return MapToUserDto(existingUser);
         }
+
+        _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] User not found, creating new - RequestId={RequestId}, KeycloakId={KeycloakId}, Email={Email}", 
+            requestId, keycloakUserDto.KeycloakId, keycloakUserDto.Email);
 
         // Create new user (auto-registration)
         var newUser = new User
@@ -57,6 +82,13 @@ public class UserService : IUserService
 
         await _userRepository.AddAsync(newUser);
         await _userRepository.SaveChangesAsync();
+
+        _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] User created and persisted - RequestId={RequestId}, UserId={UserId}, Email={Email}", 
+            requestId, newUser.Id, newUser.Email);
+
+        var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[UserService.GetOrCreateUserFromKeycloakAsync] SUCCESS (new) - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+            requestId, newUser.Id, totalElapsed);
 
         return MapToUserDto(newUser);
     }
@@ -78,16 +110,39 @@ public class UserService : IUserService
     /// </summary>
     public async Task<UserDto?> GetCurrentUserAsync(string keycloakId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[UserService.GetCurrentUserAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+            requestId, keycloakId ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[UserService.GetCurrentUserAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
             return null;
+        }
 
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
+        {
+            _logger.LogWarning("[UserService.GetCurrentUserAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+                requestId, keycloakId);
             return null;
+        }
+
+        _logger.LogInformation("[UserService.GetCurrentUserAsync] User found - RequestId={RequestId}, UserId={UserId}, IsActive={IsActive}", 
+            requestId, user.Id, user.IsActive);
 
         // Update last login
         await _userRepository.UpdateLastLoginAsync(keycloakId);
         await _userRepository.SaveChangesAsync();
+
+        _logger.LogInformation("[UserService.GetCurrentUserAsync] Last login updated - RequestId={RequestId}, UserId={UserId}", 
+            requestId, user.Id);
+
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[UserService.GetCurrentUserAsync] SUCCESS - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+            requestId, user.Id, elapsed);
 
         return MapToUserDto(user);
     }
@@ -97,22 +152,57 @@ public class UserService : IUserService
     /// </summary>
     public async Task<UserDto?> UpdateUserPreferencesAsync(string keycloakId, UpdateUserPreferencesDto updateDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, Language={Language}, TimeZone={TimeZone}", 
+            requestId, keycloakId ?? "NULL", updateDto?.PreferredLanguage ?? "NULL", updateDto?.TimeZone ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(keycloakId) || updateDto == null)
+        {
+            _logger.LogWarning("[UserService.UpdateUserPreferencesAsync] INVALID_INPUT - RequestId={RequestId}, KeycloakId={KeycloakId}, DtoNull={DtoNull}", 
+                requestId, keycloakId ?? "NULL", updateDto == null);
             return null;
+        }
 
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
+        {
+            _logger.LogWarning("[UserService.UpdateUserPreferencesAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+                requestId, keycloakId);
             return null;
+        }
+
+        _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] User found - RequestId={RequestId}, UserId={UserId}", 
+            requestId, user.Id);
+
+        var originalLanguage = user.PreferredLanguage;
+        var originalTimeZone = user.TimeZone;
 
         // Update preferences
         if (!string.IsNullOrWhiteSpace(updateDto.PreferredLanguage))
+        {
             user.PreferredLanguage = updateDto.PreferredLanguage;
+            _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] Language updated - RequestId={RequestId}, Old={Old}, New={New}", 
+                requestId, originalLanguage, updateDto.PreferredLanguage);
+        }
 
         if (!string.IsNullOrWhiteSpace(updateDto.TimeZone))
+        {
             user.TimeZone = updateDto.TimeZone;
+            _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] TimeZone updated - RequestId={RequestId}, Old={Old}, New={New}", 
+                requestId, originalTimeZone, updateDto.TimeZone);
+        }
 
         await _userRepository.UpdateAsync(user);
         await _userRepository.SaveChangesAsync();
+
+        _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] Preferences persisted - RequestId={RequestId}, UserId={UserId}", 
+            requestId, user.Id);
+
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[UserService.UpdateUserPreferencesAsync] SUCCESS - RequestId={RequestId}, UserId={UserId}, Duration={Duration}ms", 
+            requestId, user.Id, elapsed);
 
         return MapToUserDto(user);
     }

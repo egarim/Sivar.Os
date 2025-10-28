@@ -18,19 +18,22 @@ public class CommentService : ICommentService
     private readonly IUserRepository _userRepository;
     private readonly IProfileRepository _profileRepository;
     private readonly IReactionRepository _reactionRepository;
+    private readonly ILogger<CommentService> _logger;
 
     public CommentService(
         ICommentRepository commentRepository,
         IPostRepository postRepository,
         IUserRepository userRepository,
         IProfileRepository profileRepository,
-        IReactionRepository reactionRepository)
+        IReactionRepository reactionRepository,
+        ILogger<CommentService> logger)
     {
         _commentRepository = commentRepository ?? throw new ArgumentNullException(nameof(commentRepository));
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _reactionRepository = reactionRepository ?? throw new ArgumentNullException(nameof(reactionRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -38,22 +41,45 @@ public class CommentService : ICommentService
     /// </summary>
     public async Task<CommentDto?> CreateCommentAsync(string keycloakId, CreateCommentDto createCommentDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[CommentService.CreateCommentAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, PostId={PostId}, ContentLength={Length}", 
+            requestId, keycloakId ?? "NULL", createCommentDto?.PostId, createCommentDto?.Content?.Length ?? 0);
+
         if (string.IsNullOrWhiteSpace(keycloakId) || createCommentDto == null)
+        {
+            _logger.LogWarning("[CommentService.CreateCommentAsync] INVALID_INPUT - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Get user and their active profile
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user?.ActiveProfile == null)
+        {
+            _logger.LogWarning("[CommentService.CreateCommentAsync] USER_OR_ACTIVE_PROFILE_NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                keycloakId, requestId);
             return null;
+        }
+
+        _logger.LogInformation("[CommentService.CreateCommentAsync] User found - UserId={UserId}, ProfileId={ProfileId}, RequestId={RequestId}", 
+            user.Id, user.ActiveProfile.Id, requestId);
 
         // Validate content
         if (string.IsNullOrWhiteSpace(createCommentDto.Content))
+        {
+            _logger.LogWarning("[CommentService.CreateCommentAsync] EMPTY_CONTENT - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Check if post exists and user can comment on it
         var post = await _postRepository.GetByIdAsync(createCommentDto.PostId);
         if (post == null)
+        {
+            _logger.LogWarning("[CommentService.CreateCommentAsync] POST_NOT_FOUND - PostId={PostId}, RequestId={RequestId}", 
+                createCommentDto.PostId, requestId);
             return null;
+        }
 
         // TODO: Add permission check for commenting based on post visibility
 
@@ -72,10 +98,18 @@ public class CommentService : ICommentService
         try
         {
             await _commentRepository.AddAsync(comment);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[CommentService.CreateCommentAsync] SUCCESS - CommentId={CommentId}, PostId={PostId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                comment.Id, createCommentDto.PostId, user.ActiveProfile.Id, requestId, elapsed);
+
             return await MapToCommentDtoAsync(comment, keycloakId);
         }
-        catch
+        catch (Exception ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[CommentService.CreateCommentAsync] ERROR - PostId={PostId}, RequestId={RequestId}, Duration={Duration}ms", 
+                createCommentDto.PostId, requestId, elapsed);
             return null;
         }
     }

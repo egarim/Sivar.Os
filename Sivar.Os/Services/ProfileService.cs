@@ -66,15 +66,39 @@ public class ProfileService : IProfileService
     /// </summary>
     public async Task<ProfileDto?> GetMyProfileAsync(string keycloakId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfileService.GetMyProfileAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}", 
+            requestId, keycloakId ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[ProfileService.GetMyProfileAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
             return null;
+        }
 
         var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
         if (personalProfileTypeId == null)
+        {
+            _logger.LogWarning("[ProfileService.GetMyProfileAsync] PERSONAL_PROFILE_TYPE_NOT_FOUND - RequestId={RequestId}", requestId);
             return null;
+        }
 
         var profiles = await _profileRepository.GetProfilesByKeycloakIdAsync(keycloakId);
         var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == personalProfileTypeId.Value);
+
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        if (personalProfile != null)
+        {
+            _logger.LogInformation("[ProfileService.GetMyProfileAsync] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+                personalProfile.Id, requestId, elapsed);
+        }
+        else
+        {
+            _logger.LogInformation("[ProfileService.GetMyProfileAsync] NO_PROFILE_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}, Duration={Duration}ms", 
+                keycloakId, requestId, elapsed);
+        }
 
         return personalProfile != null ? await MapToProfileDtoAsync(personalProfile) : null;
     }
@@ -84,27 +108,56 @@ public class ProfileService : IProfileService
     /// </summary>
     public async Task<ProfileDto?> CreateMyProfileAsync(string keycloakId, CreateProfileDto createDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfileService.CreateMyProfileAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, DisplayName={DisplayName}", 
+            requestId, keycloakId ?? "NULL", createDto?.DisplayName);
+
         if (string.IsNullOrWhiteSpace(keycloakId) || createDto == null)
+        {
+            _logger.LogWarning("[ProfileService.CreateMyProfileAsync] INVALID_INPUT - KeycloakId={KeycloakId}, CreateDto={CreateDto}, RequestId={RequestId}", 
+                keycloakId ?? "NULL", createDto != null ? "PRESENT" : "NULL", requestId);
             return null;
+        }
 
         // Validate profile data
         var validation = await ValidateProfileDataAsync(createDto);
         if (!validation.IsValid)
+        {
+            _logger.LogWarning("[ProfileService.CreateMyProfileAsync] VALIDATION_FAILED - Errors={Errors}, RequestId={RequestId}", 
+                string.Join(", ", validation.Errors), requestId);
             return null;
+        }
 
         // Get user
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
+        {
+            _logger.LogWarning("[ProfileService.CreateMyProfileAsync] USER_NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                keycloakId, requestId);
             return null;
+        }
+
+        _logger.LogInformation("[ProfileService.CreateMyProfileAsync] User found - UserId={UserId}, RequestId={RequestId}", 
+            user.Id, requestId);
 
         // Check if user already has a personal profile
         if (await UserHasPersonalProfileAsync(keycloakId))
+        {
+            _logger.LogWarning("[ProfileService.CreateMyProfileAsync] PROFILE_ALREADY_EXISTS - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                keycloakId, requestId);
             return null; // User already has a personal profile
+        }
 
         // Get PersonalProfile type ID
         var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
         if (personalProfileTypeId == null)
+        {
+            _logger.LogError("[ProfileService.CreateMyProfileAsync] PROFILE_TYPE_NOT_FOUND - ProfileTypeName=PersonalProfile, RequestId={RequestId}", 
+                requestId);
             return null; // PersonalProfile type not found
+        }
 
         // Create profile
         var profile = new Profile
@@ -122,8 +175,16 @@ public class ProfileService : IProfileService
         await _profileRepository.AddAsync(profile);
         await _profileRepository.SaveChangesAsync();
 
+        _logger.LogInformation("[ProfileService.CreateMyProfileAsync] Profile created - ProfileId={ProfileId}, RequestId={RequestId}", 
+            profile.Id, requestId);
+
         // Load the profile with related data
         var createdProfile = await _profileRepository.GetWithRelatedDataAsync(profile.Id);
+        
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[ProfileService.CreateMyProfileAsync] SUCCESS - ProfileId={ProfileId}, UserId={UserId}, RequestId={RequestId}, Duration={Duration}ms", 
+            profile.Id, user.Id, requestId, elapsed);
+
         return createdProfile != null ? await MapToProfileDtoAsync(createdProfile) : null;
     }
 
@@ -132,31 +193,56 @@ public class ProfileService : IProfileService
     /// </summary>
     public async Task<ProfileDto?> UpdateMyProfileAsync(string keycloakId, UpdateProfileDto updateDto)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] START - RequestId={RequestId}, KeycloakId={KeycloakId}, DisplayName={DisplayName}", 
+            requestId, keycloakId ?? "NULL", updateDto?.DisplayName);
+
         if (string.IsNullOrWhiteSpace(keycloakId) || updateDto == null)
+        {
+            _logger.LogWarning("[ProfileService.UpdateMyProfileAsync] INVALID_INPUT - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Get PersonalProfile type ID
         var personalProfileTypeId = await GetProfileTypeIdByNameAsync("PersonalProfile");
         if (personalProfileTypeId == null)
+        {
+            _logger.LogError("[ProfileService.UpdateMyProfileAsync] PROFILE_TYPE_NOT_FOUND - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Get user's personal profile
         var profiles = await _profileRepository.GetProfilesByKeycloakIdAsync(keycloakId);
         var personalProfile = profiles.FirstOrDefault(p => p.ProfileTypeId == personalProfileTypeId.Value);
 
         if (personalProfile == null)
+        {
+            _logger.LogWarning("[ProfileService.UpdateMyProfileAsync] PROFILE_NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                keycloakId, requestId);
             return null;
+        }
+
+        _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] Profile found - ProfileId={ProfileId}, RequestId={RequestId}", 
+            personalProfile.Id, requestId);
 
         // Get user
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
+        {
+            _logger.LogWarning("[ProfileService.UpdateMyProfileAsync] USER_NOT_FOUND - KeycloakId={KeycloakId}, RequestId={RequestId}", 
+                keycloakId, requestId);
             return null;
+        }
 
         // Check for duplicate display names within user's profiles (excluding the current profile)
         var existingProfiles = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: true);
         if (existingProfiles.Any(p => p.Id != personalProfile.Id && 
                                       p.DisplayName.Equals(updateDto.DisplayName, StringComparison.OrdinalIgnoreCase)))
         {
+            _logger.LogWarning("[ProfileService.UpdateMyProfileAsync] DUPLICATE_DISPLAY_NAME - DisplayName={DisplayName}, RequestId={RequestId}", 
+                updateDto.DisplayName, requestId);
             return null; // A profile with this display name already exists for this user
         }
 
@@ -170,8 +256,16 @@ public class ProfileService : IProfileService
         await _profileRepository.UpdateAsync(personalProfile);
         await _profileRepository.SaveChangesAsync();
 
+        _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] Profile updated - ProfileId={ProfileId}, RequestId={RequestId}", 
+            personalProfile.Id, requestId);
+
         // Load updated profile with related data
         var updatedProfile = await _profileRepository.GetWithRelatedDataAsync(personalProfile.Id);
+        
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
+            personalProfile.Id, requestId, elapsed);
+
         return updatedProfile != null ? await MapToProfileDtoAsync(updatedProfile) : null;
     }
 

@@ -33,11 +33,33 @@ public class AzureBlobStorageService : IFileStorageService
 
     public async Task<FileUploadResult> UploadFileAsync(FileUploadRequest request)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] START - RequestId={RequestId}, FileName={FileName}, Container={Container}, ContentType={ContentType}, FileSizeBytes={FileSizeBytes}",
+            requestId, request?.FileName ?? "NULL", request?.Container ?? "NULL", request?.ContentType ?? "NULL", request?.FileStream?.Length ?? 0);
+
         try
         {
+            if (request == null)
+            {
+                _logger.LogWarning("[AzureBlobStorageService.UploadFileAsync] Invalid request - RequestId={RequestId}",
+                    requestId);
+                throw new ArgumentNullException(nameof(request));
+            }
+
             var fileId = Guid.NewGuid().ToString("N");
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Generated FileId - RequestId={RequestId}, FileId={FileId}",
+                requestId, fileId);
+
             var containerClient = await GetOrCreateContainerAsync(request.Container);
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Container client obtained - RequestId={RequestId}, Container={Container}",
+                requestId, request.Container);
+
             var blobName = GenerateBlobName(fileId, request.Container, request.FileName);
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Generated blob name - RequestId={RequestId}, BlobName={BlobName}",
+                requestId, blobName);
+
             var blobClient = containerClient.GetBlobClient(blobName);
 
             // Set content type and metadata
@@ -55,16 +77,26 @@ public class AzureBlobStorageService : IFileStorageService
                 }
             };
 
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Uploading file - RequestId={RequestId}, FileId={FileId}, FileName={FileName}",
+                requestId, fileId, request.FileName);
+
             // Upload the file
             var response = await blobClient.UploadAsync(request.FileStream, uploadOptions);
             
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] File uploaded - RequestId={RequestId}, FileId={FileId}, Status={Status}",
+                requestId, fileId, response.GetRawResponse().Status);
+
             // Get file size from the response or blob properties
             var properties = await blobClient.GetPropertiesAsync();
             var fileSize = properties.Value.ContentLength;
             var publicUrl = GeneratePublicUrl(blobClient.Uri, request.Container, fileId, request.FileName);
 
-            _logger.LogInformation("Successfully uploaded file {FileName} with ID {FileId} to Azure Blob Storage", 
-                request.FileName, fileId);
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] File properties retrieved - RequestId={RequestId}, FileId={FileId}, FileSizeBytes={FileSizeBytes}",
+                requestId, fileId, fileSize);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, FileSizeBytes={FileSizeBytes}, Duration={Duration}ms",
+                requestId, fileId, fileSize, elapsed);
 
             return new FileUploadResult
             {
@@ -79,88 +111,122 @@ public class AzureBlobStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file {FileName} to Azure Blob Storage", request.FileName);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.UploadFileAsync] ERROR - RequestId={RequestId}, FileName={FileName}, Duration={Duration}ms",
+                requestId, request?.FileName ?? "NULL", elapsed);
             throw;
         }
     }
 
     public async Task<BulkFileUploadResult> UploadFilesAsync(BulkFileUploadRequest request)
     {
-        var result = new BulkFileUploadResult();
-        var semaphore = new SemaphoreSlim(_config.MaxConcurrentUploads, _config.MaxConcurrentUploads);
-        
-        var tasks = request.Files.Select(async (fileRequest, index) =>
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.UploadFilesAsync] START - RequestId={RequestId}, FileCount={FileCount}, Container={Container}, MaxConcurrentUploads={MaxConcurrent}",
+            requestId, request?.Files?.Count ?? 0, request?.Container ?? "NULL", _config.MaxConcurrentUploads);
+
+        try
         {
-            await semaphore.WaitAsync();
-            try
+            var result = new BulkFileUploadResult();
+            var semaphore = new SemaphoreSlim(_config.MaxConcurrentUploads, _config.MaxConcurrentUploads);
+            
+            var tasks = request.Files.Select(async (fileRequest, index) =>
             {
-                // Merge common metadata with file-specific metadata
-                var mergedMetadata = new Dictionary<string, string>(request.CommonMetadata);
-                foreach (var kvp in fileRequest.Metadata)
+                await semaphore.WaitAsync();
+                try
                 {
-                    mergedMetadata[kvp.Key] = kvp.Value;
+                    _logger.LogInformation("[AzureBlobStorageService.UploadFilesAsync] Uploading file {Index}/{Total} - RequestId={RequestId}, FileName={FileName}",
+                        index + 1, request.Files.Count, requestId, fileRequest.FileName);
+
+                    // Merge common metadata with file-specific metadata
+                    var mergedMetadata = new Dictionary<string, string>(request.CommonMetadata);
+                    foreach (var kvp in fileRequest.Metadata)
+                    {
+                        mergedMetadata[kvp.Key] = kvp.Value;
+                    }
+
+                    var uploadRequest = new FileUploadRequest
+                    {
+                        FileStream = fileRequest.FileStream,
+                        FileName = fileRequest.FileName,
+                        ContentType = fileRequest.ContentType,
+                        Container = request.Container,
+                        Metadata = mergedMetadata
+                    };
+
+                    var uploadResult = await UploadFileAsync(uploadRequest);
+                    
+                    lock (result)
+                    {
+                        result.SuccessfulUploads.Add(uploadResult);
+                    }
+
+                    _logger.LogInformation("[AzureBlobStorageService.UploadFilesAsync] File uploaded successfully {Index}/{Total} - RequestId={RequestId}, FileName={FileName}, FileId={FileId}, FileSizeBytes={FileSizeBytes}",
+                        index + 1, request.Files.Count, requestId, fileRequest.FileName, uploadResult.FileId, uploadResult.FileSizeBytes);
                 }
-
-                var uploadRequest = new FileUploadRequest
+                catch (Exception ex)
                 {
-                    FileStream = fileRequest.FileStream,
-                    FileName = fileRequest.FileName,
-                    ContentType = fileRequest.ContentType,
-                    Container = request.Container,
-                    Metadata = mergedMetadata
-                };
+                    var error = new FileUploadError
+                    {
+                        FileName = fileRequest.FileName,
+                        ErrorType = FileUploadErrorType.StorageError,
+                        ErrorMessage = ex.Message
+                    };
 
-                var uploadResult = await UploadFileAsync(uploadRequest);
-                
-                lock (result)
-                {
-                    result.SuccessfulUploads.Add(uploadResult);
+                    lock (result)
+                    {
+                        result.FailedUploads.Add(error);
+                    }
+
+                    _logger.LogWarning(ex, "[AzureBlobStorageService.UploadFilesAsync] File upload failed {Index}/{Total} - RequestId={RequestId}, FileName={FileName}, Error={Error}",
+                        index + 1, request.Files.Count, requestId, fileRequest.FileName, ex.Message);
                 }
-
-                _logger.LogDebug("Bulk upload: Successfully uploaded file {Index}/{Total}: {FileName}", 
-                    index + 1, request.Files.Count, fileRequest.FileName);
-            }
-            catch (Exception ex)
-            {
-                var error = new FileUploadError
+                finally
                 {
-                    FileName = fileRequest.FileName,
-                    ErrorType = FileUploadErrorType.StorageError,
-                    ErrorMessage = ex.Message
-                };
-
-                lock (result)
-                {
-                    result.FailedUploads.Add(error);
+                    semaphore.Release();
                 }
+            });
 
-                _logger.LogWarning(ex, "Bulk upload: Failed to upload file {Index}/{Total}: {FileName}", 
-                    index + 1, request.Files.Count, fileRequest.FileName);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
+            await Task.WhenAll(tasks);
 
-        await Task.WhenAll(tasks);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[AzureBlobStorageService.UploadFilesAsync] SUCCESS - RequestId={RequestId}, SuccessCount={SuccessCount}, FailureCount={FailureCount}, TotalCount={TotalCount}, Duration={Duration}ms",
+                requestId, result.SuccessfulUploads.Count, result.FailedUploads.Count, request.Files.Count, elapsed);
 
-        _logger.LogInformation("Bulk upload completed: {SuccessCount} successful, {FailureCount} failed", 
-            result.SuccessfulUploads.Count, result.FailedUploads.Count);
-
-        return result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.UploadFilesAsync] ERROR - RequestId={RequestId}, Container={Container}, Duration={Duration}ms",
+                requestId, request?.Container ?? "NULL", elapsed);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteFileAsync(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.DeleteFileAsync] START - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
         try
         {
             // Find the blob by searching through containers
             // In a production system, you might want to store container info with the file ID
             var containers = _blobServiceClient.GetBlobContainersAsync();
-            
+            var foundAndDeleted = false;
+            var containerCount = 0;
+
             await foreach (var container in containers)
             {
+                containerCount++;
+                _logger.LogInformation("[AzureBlobStorageService.DeleteFileAsync] Searching container {ContainerCount} - RequestId={RequestId}, Container={Container}",
+                    containerCount, requestId, container.Name);
+
                 var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
                 var blobs = containerClient.GetBlobsAsync(prefix: fileId);
                 
@@ -169,33 +235,62 @@ public class AzureBlobStorageService : IFileStorageService
                     if (blob.Metadata?.ContainsKey("file_id") == true && 
                         blob.Metadata["file_id"] == fileId)
                     {
+                        _logger.LogInformation("[AzureBlobStorageService.DeleteFileAsync] File found - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Container={Container}",
+                            requestId, fileId, blob.Name, container.Name);
+
                         var blobClient = containerClient.GetBlobClient(blob.Name);
                         await blobClient.DeleteIfExistsAsync();
                         
-                        _logger.LogInformation("Successfully deleted file {FileId} from Azure Blob Storage", fileId);
-                        return true;
+                        _logger.LogInformation("[AzureBlobStorageService.DeleteFileAsync] File deleted - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}",
+                            requestId, fileId, blob.Name);
+
+                        foundAndDeleted = true;
+                        break;
                     }
                 }
+
+                if (foundAndDeleted)
+                    break;
             }
 
-            _logger.LogWarning("File {FileId} not found in Azure Blob Storage", fileId);
-            return false;
+            if (!foundAndDeleted)
+            {
+                _logger.LogWarning("[AzureBlobStorageService.DeleteFileAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
+                    requestId, fileId, containerCount);
+                return false;
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[AzureBlobStorageService.DeleteFileAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsed);
+
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete file {FileId} from Azure Blob Storage", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.DeleteFileAsync] ERROR - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsed);
             throw;
         }
     }
 
     public async Task<bool> FileExistsAsync(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] START - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
         try
         {
             var containers = _blobServiceClient.GetBlobContainersAsync();
+            var containerCount = 0;
             
             await foreach (var container in containers)
             {
+                containerCount++;
                 var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
                 var blobs = containerClient.GetBlobsAsync(prefix: fileId);
                 
@@ -204,28 +299,46 @@ public class AzureBlobStorageService : IFileStorageService
                     if (blob.Metadata?.ContainsKey("file_id") == true && 
                         blob.Metadata["file_id"] == fileId)
                     {
+                        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                        _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] SUCCESS - File found - RequestId={RequestId}, FileId={FileId}, Container={Container}, Duration={Duration}ms",
+                            requestId, fileId, container.Name, elapsed);
+
                         return true;
                     }
                 }
             }
 
+            var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] SUCCESS - File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}, Duration={Duration}ms",
+                requestId, fileId, containerCount, elapsedNotFound);
+
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check if file {FileId} exists in Azure Blob Storage", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.FileExistsAsync] ERROR - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsed);
             throw;
         }
     }
 
     public async Task<string> GetFileUrlAsync(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] START - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
         try
         {
             var containers = _blobServiceClient.GetBlobContainersAsync();
+            var containerCount = 0;
             
             await foreach (var container in containers)
             {
+                containerCount++;
                 var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
                 var blobs = containerClient.GetBlobsAsync(prefix: fileId);
                 
@@ -234,32 +347,60 @@ public class AzureBlobStorageService : IFileStorageService
                     if (blob.Metadata?.ContainsKey("file_id") == true && 
                         blob.Metadata["file_id"] == fileId)
                     {
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] File found - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Container={Container}",
+                            requestId, fileId, blob.Name, container.Name);
+
                         var blobClient = containerClient.GetBlobClient(blob.Name);
                         var originalFileName = blob.Metadata.TryGetValue("original_filename", out var fileName) ? fileName : "unknown";
-                        return GeneratePublicUrl(blobClient.Uri, container.Name, fileId, originalFileName);
+                        var url = GeneratePublicUrl(blobClient.Uri, container.Name, fileId, originalFileName);
+
+                        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, OriginalFileName={OriginalFileName}, Duration={Duration}ms",
+                            requestId, fileId, originalFileName, elapsed);
+
+                        return url;
                     }
                 }
             }
+
+            _logger.LogWarning("[AzureBlobStorageService.GetFileUrlAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
+                requestId, fileId, containerCount);
 
             throw new FileNotFoundException($"File with ID {fileId} not found");
         }
         catch (Exception ex) when (!(ex is FileNotFoundException))
         {
-            _logger.LogError(ex, "Failed to get URL for file {FileId} from Azure Blob Storage", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.GetFileUrlAsync] ERROR - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsed);
             throw;
         }
     }
 
     public async Task<BulkDeleteResult> DeleteFilesAsync(IEnumerable<string> fileIds)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
         var result = new BulkDeleteResult();
         var semaphore = new SemaphoreSlim(_config.MaxConcurrentUploads, _config.MaxConcurrentUploads);
         
-        var tasks = fileIds.Select(async fileId =>
+        var fileIdList = fileIds.ToList();
+        var totalCount = fileIdList.Count;
+
+        _logger.LogInformation("[AzureBlobStorageService.DeleteFilesAsync] START - RequestId={RequestId}, TotalFiles={TotalFiles}, MaxConcurrent={MaxConcurrent}",
+            requestId, totalCount, _config.MaxConcurrentUploads);
+
+        var index = 0;
+        var tasks = fileIdList.Select(async fileId =>
         {
+            var currentIndex = Interlocked.Increment(ref index);
+            
             await semaphore.WaitAsync();
             try
             {
+                _logger.LogInformation("[AzureBlobStorageService.DeleteFilesAsync] Processing file - RequestId={RequestId}, Index={Index}/{Total}, FileId={FileId}",
+                    requestId, currentIndex, totalCount, fileId);
+
                 var deleted = await DeleteFileAsync(fileId);
                 
                 lock (result)
@@ -267,6 +408,8 @@ public class AzureBlobStorageService : IFileStorageService
                     if (deleted)
                     {
                         result.SuccessfulDeletes.Add(fileId);
+                        _logger.LogInformation("[AzureBlobStorageService.DeleteFilesAsync] File deleted successfully - RequestId={RequestId}, FileId={FileId}",
+                            requestId, fileId);
                     }
                     else
                     {
@@ -275,6 +418,8 @@ public class AzureBlobStorageService : IFileStorageService
                             FileId = fileId,
                             ErrorMessage = "File not found"
                         });
+                        _logger.LogWarning("[AzureBlobStorageService.DeleteFilesAsync] File not found - RequestId={RequestId}, FileId={FileId}",
+                            requestId, fileId);
                     }
                 }
             }
@@ -289,7 +434,8 @@ public class AzureBlobStorageService : IFileStorageService
                     });
                 }
                 
-                _logger.LogWarning(ex, "Failed to delete file {FileId} from Azure Blob Storage", fileId);
+                _logger.LogWarning(ex, "[AzureBlobStorageService.DeleteFilesAsync] Delete failed - RequestId={RequestId}, FileId={FileId}, Error={Error}",
+                    requestId, fileId, ex.Message);
             }
             finally
             {
@@ -299,20 +445,29 @@ public class AzureBlobStorageService : IFileStorageService
 
         await Task.WhenAll(tasks);
 
-        _logger.LogInformation("Bulk delete completed: {SuccessCount} successful, {FailureCount} failed", 
-            result.SuccessfulDeletes.Count, result.FailedDeletes.Count);
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation("[AzureBlobStorageService.DeleteFilesAsync] SUCCESS - RequestId={RequestId}, SuccessfulDeletes={SuccessfulDeletes}, FailedDeletes={FailedDeletes}, TotalFiles={TotalFiles}, Duration={Duration}ms",
+            requestId, result.SuccessfulDeletes.Count, result.FailedDeletes.Count, totalCount, elapsed);
 
         return result;
     }
 
     public async Task<FileMetadata?> GetFileMetadataAsync(string fileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[AzureBlobStorageService.GetFileMetadataAsync] START - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
         try
         {
             var containers = _blobServiceClient.GetBlobContainersAsync();
+            var containerCount = 0;
             
             await foreach (var container in containers)
             {
+                containerCount++;
                 var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
                 var blobs = containerClient.GetBlobsAsync(prefix: fileId);
                 
@@ -321,7 +476,10 @@ public class AzureBlobStorageService : IFileStorageService
                     if (blob.Metadata?.ContainsKey("file_id") == true && 
                         blob.Metadata["file_id"] == fileId)
                     {
-                        return new FileMetadata
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileMetadataAsync] File found - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Container={Container}",
+                            requestId, fileId, blob.Name, container.Name);
+
+                        var metadata = new FileMetadata
                         {
                             FileId = fileId,
                             OriginalFileName = blob.Metadata.TryGetValue("original_filename", out var originalFileName) ? originalFileName : "unknown",
@@ -329,15 +487,33 @@ public class AzureBlobStorageService : IFileStorageService
                             FileSizeBytes = blob.Properties.ContentLength ?? 0,
                             UploadedAt = blob.Properties.CreatedOn?.DateTime ?? DateTime.MinValue
                         };
+
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileMetadataAsync] Metadata retrieved - RequestId={RequestId}, FileId={FileId}, OriginalFileName={OriginalFileName}, SizeBytes={SizeBytes}, ContentType={ContentType}",
+                            requestId, fileId, metadata.OriginalFileName, metadata.FileSizeBytes, metadata.ContentType);
+
+                        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileMetadataAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                            requestId, fileId, elapsed);
+
+                        return metadata;
                     }
                 }
             }
+
+            _logger.LogWarning("[AzureBlobStorageService.GetFileMetadataAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
+                requestId, fileId, containerCount);
+
+            var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[AzureBlobStorageService.GetFileMetadataAsync] SUCCESS - Returning null - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsedNotFound);
 
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get metadata for file {FileId} from Azure Blob Storage", fileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.GetFileMetadataAsync] ERROR - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                requestId, fileId, elapsed);
             throw;
         }
     }
@@ -346,18 +522,51 @@ public class AzureBlobStorageService : IFileStorageService
 
     private async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName)
     {
-        return await _containerClients.GetOrAddAsync(containerName, async name =>
-        {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(GetContainerName(name));
-            
-            if (_config.AutoCreateContainers)
-            {
-                await containerClient.CreateIfNotExistsAsync(_config.DefaultPublicAccessType);
-                _logger.LogDebug("Ensured container {ContainerName} exists", containerClient.Name);
-            }
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-            return containerClient;
-        });
+        _logger.LogInformation("[AzureBlobStorageService.GetOrCreateContainerAsync] START - RequestId={RequestId}, ContainerName={ContainerName}",
+            requestId, containerName);
+
+        try
+        {
+            return await _containerClients.GetOrAddAsync(containerName, async name =>
+            {
+                _logger.LogInformation("[AzureBlobStorageService.GetOrCreateContainerAsync] Retrieving/creating container - RequestId={RequestId}, LogicalName={LogicalName}",
+                    requestId, name);
+
+                var containerClient = _blobServiceClient.GetBlobContainerClient(GetContainerName(name));
+                
+                if (_config.AutoCreateContainers)
+                {
+                    _logger.LogInformation("[AzureBlobStorageService.GetOrCreateContainerAsync] Creating container if not exists - RequestId={RequestId}, ContainerClientName={ContainerClientName}",
+                        requestId, containerClient.Name);
+
+                    await containerClient.CreateIfNotExistsAsync(_config.DefaultPublicAccessType);
+                    
+                    _logger.LogDebug("[AzureBlobStorageService.GetOrCreateContainerAsync] Container ensured - RequestId={RequestId}, ContainerName={ContainerName}, PublicAccessType={PublicAccessType}",
+                        requestId, containerClient.Name, _config.DefaultPublicAccessType);
+                }
+                else
+                {
+                    _logger.LogInformation("[AzureBlobStorageService.GetOrCreateContainerAsync] Auto-create disabled, using existing container - RequestId={RequestId}, ContainerName={ContainerName}",
+                        requestId, containerClient.Name);
+                }
+
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[AzureBlobStorageService.GetOrCreateContainerAsync] Container ready - RequestId={RequestId}, ContainerName={ContainerName}, Duration={Duration}ms",
+                    requestId, containerClient.Name, elapsed);
+
+                return containerClient;
+            });
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[AzureBlobStorageService.GetOrCreateContainerAsync] ERROR - RequestId={RequestId}, ContainerName={ContainerName}, Duration={Duration}ms",
+                requestId, containerName, elapsed);
+            throw;
+        }
     }
 
     private string GetContainerName(string logicalContainer)

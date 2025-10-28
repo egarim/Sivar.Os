@@ -166,15 +166,49 @@ public class PostService : IPostService
     /// </summary>
     public async Task<PostDto?> GetPostByIdAsync(Guid postId, string? requestingKeycloakId = null, bool includeReactions = true, bool includeComments = true)
     {
-        var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null)
-            return null;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        // Check if user can view this post
-        if (!await CanUserViewPostAsync(postId, requestingKeycloakId))
-            return null;
+        _logger.LogInformation("[PostService.GetPostByIdAsync] START - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}, IncludeReactions={IncludeReactions}, IncludeComments={IncludeComments}",
+            requestId, postId, requestingKeycloakId ?? "NULL", includeReactions, includeComments);
 
-        return await MapToPostDtoAsync(post, requestingKeycloakId, includeReactions, includeComments);
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[PostService.GetPostByIdAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return null;
+            }
+
+            _logger.LogInformation("[PostService.GetPostByIdAsync] Post retrieved - RequestId={RequestId}, PostId={PostId}, ProfileId={ProfileId}, Visibility={Visibility}",
+                requestId, postId, post.ProfileId, post.Visibility);
+
+            // Check if user can view this post
+            var canView = await CanUserViewPostAsync(postId, requestingKeycloakId);
+            if (!canView)
+            {
+                _logger.LogWarning("[PostService.GetPostByIdAsync] User not authorized to view post - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}",
+                    requestId, postId, requestingKeycloakId ?? "NULL");
+                return null;
+            }
+
+            var postDto = await MapToPostDtoAsync(post, requestingKeycloakId, includeReactions, includeComments);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPostByIdAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+
+            return postDto;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPostByIdAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -182,60 +216,114 @@ public class PostService : IPostService
     /// </summary>
     public async Task<PostDto?> UpdatePostAsync(Guid postId, string keycloakId, UpdatePostDto updatePostDto)
     {
-        if (string.IsNullOrWhiteSpace(keycloakId) || updatePostDto == null)
-            return null;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null)
-            return null;
-
-        // Check if user is the author
-        var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile?.Id != post.ProfileId)
-            return null;
-
-        // Update post properties
-        if (!string.IsNullOrWhiteSpace(updatePostDto.Content))
-        {
-            post.Content = updatePostDto.Content.Trim();
-            post.IsEdited = true;
-            post.EditedAt = DateTime.UtcNow;
-        }
-
-        if (updatePostDto.Visibility.HasValue)
-            post.Visibility = updatePostDto.Visibility.Value;
-
-        if (updatePostDto.Tags != null)
-            post.Tags = JsonSerializer.Serialize(updatePostDto.Tags);
-
-        if (updatePostDto.Location != null)
-        {
-            post.Location = new Location
-            {
-                City = updatePostDto.Location.City,
-                State = updatePostDto.Location.State,
-                Country = updatePostDto.Location.Country,
-                Latitude = updatePostDto.Location.Latitude,
-                Longitude = updatePostDto.Location.Longitude
-            };
-        }
-
-        if (updatePostDto.BusinessMetadata != null)
-            post.BusinessMetadata = updatePostDto.BusinessMetadata;
-
-        post.UpdatedAt = DateTime.UtcNow;
+        _logger.LogInformation("[PostService.UpdatePostAsync] START - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}",
+            requestId, postId, keycloakId);
 
         try
         {
+            if (string.IsNullOrWhiteSpace(keycloakId) || updatePostDto == null)
+            {
+                _logger.LogWarning("[PostService.UpdatePostAsync] Invalid parameters - RequestId={RequestId}, KeycloakIdEmpty={KeycloakIdEmpty}, DtoNull={DtoNull}",
+                    requestId, string.IsNullOrWhiteSpace(keycloakId), updatePostDto == null);
+                return null;
+            }
+
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[PostService.UpdatePostAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return null;
+            }
+
+            _logger.LogInformation("[PostService.UpdatePostAsync] Post found - RequestId={RequestId}, PostId={PostId}, ProfileId={ProfileId}",
+                requestId, postId, post.ProfileId);
+
+            // Check if user is the author
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            if (user?.ActiveProfile?.Id != post.ProfileId)
+            {
+                _logger.LogWarning("[PostService.UpdatePostAsync] Authorization failed - RequestId={RequestId}, UserProfileId={UserProfileId}, PostProfileId={PostProfileId}",
+                    requestId, user?.ActiveProfile?.Id.ToString() ?? "NULL", post.ProfileId);
+                return null;
+            }
+
+            _logger.LogInformation("[PostService.UpdatePostAsync] User authorized for update - RequestId={RequestId}, KeycloakId={KeycloakId}",
+                requestId, keycloakId);
+
+            // Update post properties
+            if (!string.IsNullOrWhiteSpace(updatePostDto.Content))
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating content - RequestId={RequestId}, OldLength={OldLength}, NewLength={NewLength}",
+                    requestId, post.Content.Length, updatePostDto.Content.Length);
+
+                post.Content = updatePostDto.Content.Trim();
+                post.IsEdited = true;
+                post.EditedAt = DateTime.UtcNow;
+            }
+
+            if (updatePostDto.Visibility.HasValue)
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating visibility - RequestId={RequestId}, OldVisibility={OldVisibility}, NewVisibility={NewVisibility}",
+                    requestId, post.Visibility, updatePostDto.Visibility.Value);
+                post.Visibility = updatePostDto.Visibility.Value;
+            }
+
+            if (updatePostDto.Tags != null)
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating tags - RequestId={RequestId}, TagCount={TagCount}",
+                    requestId, updatePostDto.Tags.Count);
+                post.Tags = JsonSerializer.Serialize(updatePostDto.Tags);
+            }
+
+            if (updatePostDto.Location != null)
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating location - RequestId={RequestId}, City={City}, Country={Country}",
+                    requestId, updatePostDto.Location.City ?? "NULL", updatePostDto.Location.Country ?? "NULL");
+
+                post.Location = new Location
+                {
+                    City = updatePostDto.Location.City,
+                    State = updatePostDto.Location.State,
+                    Country = updatePostDto.Location.Country,
+                    Latitude = updatePostDto.Location.Latitude,
+                    Longitude = updatePostDto.Location.Longitude
+                };
+            }
+
+            if (updatePostDto.BusinessMetadata != null)
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating business metadata - RequestId={RequestId}",
+                    requestId);
+                post.BusinessMetadata = updatePostDto.BusinessMetadata;
+            }
+
+            post.UpdatedAt = DateTime.UtcNow;
+
             // Vector embedding regeneration disabled until service is properly configured
             // TODO: Enable when vector embedding service is available
 
+            _logger.LogInformation("[PostService.UpdatePostAsync] Saving post - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+
             await _postRepository.UpdateAsync(post);
-            return await MapToPostDtoAsync(post, keycloakId);
+            var result = await MapToPostDtoAsync(post, keycloakId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.UpdatePostAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+
+            return result;
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.UpdatePostAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
         }
     }
 
@@ -244,29 +332,71 @@ public class PostService : IPostService
     /// </summary>
     public async Task<bool> DeletePostAsync(Guid postId, string keycloakId)
     {
-        if (string.IsNullOrWhiteSpace(keycloakId))
-            return false;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null)
-            return false;
-
-        // Check if user is the author
-        var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile?.Id != post.ProfileId)
-            return false;
+        _logger.LogInformation("[PostService.DeletePostAsync] START - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}",
+            requestId, postId, keycloakId);
 
         try
         {
+            if (string.IsNullOrWhiteSpace(keycloakId))
+            {
+                _logger.LogWarning("[PostService.DeletePostAsync] Invalid keycloak ID - RequestId={RequestId}",
+                    requestId);
+                return false;
+            }
+
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[PostService.DeletePostAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return false;
+            }
+
+            _logger.LogInformation("[PostService.DeletePostAsync] Post found - RequestId={RequestId}, PostId={PostId}, ProfileId={ProfileId}",
+                requestId, postId, post.ProfileId);
+
+            // Check if user is the author
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            if (user?.ActiveProfile?.Id != post.ProfileId)
+            {
+                _logger.LogWarning("[PostService.DeletePostAsync] Authorization failed - RequestId={RequestId}, UserProfileId={UserProfileId}, PostProfileId={PostProfileId}",
+                    requestId, user?.ActiveProfile?.Id.ToString() ?? "NULL", post.ProfileId);
+                return false;
+            }
+
+            _logger.LogInformation("[PostService.DeletePostAsync] User authorized for deletion - RequestId={RequestId}, KeycloakId={KeycloakId}",
+                requestId, keycloakId);
+
             // Delete attachments and their files first
+            _logger.LogInformation("[PostService.DeletePostAsync] Deleting post attachments - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+
             await DeletePostAttachmentsAsync(postId);
             
+            _logger.LogInformation("[PostService.DeletePostAsync] Attachments deleted - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+
             // Then delete the post
-            return await _postRepository.DeleteAsync(postId);
+            _logger.LogInformation("[PostService.DeletePostAsync] Deleting post record - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+
+            var result = await _postRepository.DeleteAsync(postId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.DeletePostAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Result={Result}, Duration={Duration}ms",
+                requestId, postId, result, elapsed);
+
+            return result;
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.DeletePostAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
         }
     }
 
@@ -345,20 +475,52 @@ public class PostService : IPostService
     /// </summary>
     public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 10)
     {
-        var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, page, pageSize);
-        
-        var postDtos = new List<PostDto>();
-        foreach (var post in posts)
-        {
-            if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
-            {
-                var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
-                if (dto != null)
-                    postDtos.Add(dto);
-            }
-        }
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        return (postDtos, totalCount);
+        _logger.LogInformation("[PostService.GetPostsByProfileAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}",
+            requestId, profileId, requestingKeycloakId ?? "NULL", page, pageSize);
+
+        try
+        {
+            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, page, pageSize);
+
+            _logger.LogInformation("[PostService.GetPostsByProfileAsync] Repository returned {PostCount} posts (total: {TotalCount}) - RequestId={RequestId}",
+                posts.Count(), totalCount, requestId);
+
+            var postDtos = new List<PostDto>();
+            var skippedCount = 0;
+
+            foreach (var post in posts)
+            {
+                if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
+                {
+                    var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
+                    if (dto != null)
+                        postDtos.Add(dto);
+                }
+                else
+                {
+                    skippedCount++;
+                }
+            }
+
+            _logger.LogInformation("[PostService.GetPostsByProfileAsync] Mapped {DtoCount} DTOs, skipped {SkippedCount} unauthorized posts - RequestId={RequestId}",
+                postDtos.Count, skippedCount, requestId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPostsByProfileAsync] SUCCESS - RequestId={RequestId}, ReturnedCount={ReturnedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
+                requestId, postDtos.Count, totalCount, elapsed);
+
+            return (postDtos, totalCount);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPostsByProfileAsync] ERROR - RequestId={RequestId}, ProfileId={ProfileId}, Duration={Duration}ms",
+                requestId, profileId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -366,20 +528,52 @@ public class PostService : IPostService
     /// </summary>
     public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByTypeAsync(PostType postType, string? requestingKeycloakId = null, int page = 1, int pageSize = 10)
     {
-        var (posts, totalCount) = await _postRepository.GetByPostTypeAsync(postType, page, pageSize);
-        
-        var postDtos = new List<PostDto>();
-        foreach (var post in posts)
-        {
-            if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
-            {
-                var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
-                if (dto != null)
-                    postDtos.Add(dto);
-            }
-        }
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        return (postDtos, totalCount);
+        _logger.LogInformation("[PostService.GetPostsByTypeAsync] START - RequestId={RequestId}, PostType={PostType}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}",
+            requestId, postType, requestingKeycloakId ?? "NULL", page, pageSize);
+
+        try
+        {
+            var (posts, totalCount) = await _postRepository.GetByPostTypeAsync(postType, page, pageSize);
+
+            _logger.LogInformation("[PostService.GetPostsByTypeAsync] Repository returned {PostCount} posts (total: {TotalCount}) - RequestId={RequestId}",
+                posts.Count(), totalCount, requestId);
+
+            var postDtos = new List<PostDto>();
+            var skippedCount = 0;
+
+            foreach (var post in posts)
+            {
+                if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
+                {
+                    var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
+                    if (dto != null)
+                        postDtos.Add(dto);
+                }
+                else
+                {
+                    skippedCount++;
+                }
+            }
+
+            _logger.LogInformation("[PostService.GetPostsByTypeAsync] Mapped {DtoCount} DTOs, skipped {SkippedCount} unauthorized posts - RequestId={RequestId}",
+                postDtos.Count, skippedCount, requestId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPostsByTypeAsync] SUCCESS - RequestId={RequestId}, PostType={PostType}, ReturnedCount={ReturnedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
+                requestId, postType, postDtos.Count, totalCount, elapsed);
+
+            return (postDtos, totalCount);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPostsByTypeAsync] ERROR - RequestId={RequestId}, PostType={PostType}, Duration={Duration}ms",
+                requestId, postType, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -387,23 +581,58 @@ public class PostService : IPostService
     /// </summary>
     public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> SearchPostsAsync(string searchTerm, string? requestingKeycloakId = null, int page = 1, int pageSize = 10)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return (Enumerable.Empty<PostDto>(), 0);
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        var (posts, totalCount) = await _postRepository.SearchPostsAsync(searchTerm.Trim(), null, page, pageSize);
-        
-        var postDtos = new List<PostDto>();
-        foreach (var post in posts)
+        _logger.LogInformation("[PostService.SearchPostsAsync] START - RequestId={RequestId}, SearchTerm={SearchTerm}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}",
+            requestId, searchTerm ?? "NULL", requestingKeycloakId ?? "NULL", page, pageSize);
+
+        try
         {
-            if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
+            if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
-                if (dto != null)
-                    postDtos.Add(dto);
+                _logger.LogWarning("[PostService.SearchPostsAsync] Empty search term - RequestId={RequestId}", requestId);
+                return (Enumerable.Empty<PostDto>(), 0);
             }
-        }
 
-        return (postDtos, totalCount);
+            var (posts, totalCount) = await _postRepository.SearchPostsAsync(searchTerm.Trim(), null, page, pageSize);
+
+            _logger.LogInformation("[PostService.SearchPostsAsync] Repository returned {PostCount} posts (total: {TotalCount}) for search term '{SearchTerm}' - RequestId={RequestId}",
+                posts.Count(), totalCount, searchTerm, requestId);
+
+            var postDtos = new List<PostDto>();
+            var skippedCount = 0;
+
+            foreach (var post in posts)
+            {
+                if (await CanUserViewPostAsync(post.Id, requestingKeycloakId))
+                {
+                    var dto = await MapToPostDtoAsync(post, requestingKeycloakId);
+                    if (dto != null)
+                        postDtos.Add(dto);
+                }
+                else
+                {
+                    skippedCount++;
+                }
+            }
+
+            _logger.LogInformation("[PostService.SearchPostsAsync] Mapped {DtoCount} DTOs, skipped {SkippedCount} unauthorized posts - RequestId={RequestId}",
+                postDtos.Count, skippedCount, requestId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.SearchPostsAsync] SUCCESS - RequestId={RequestId}, SearchTerm={SearchTerm}, ReturnedCount={ReturnedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
+                requestId, searchTerm, postDtos.Count, totalCount, elapsed);
+
+            return (postDtos, totalCount);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.SearchPostsAsync] ERROR - RequestId={RequestId}, SearchTerm={SearchTerm}, Duration={Duration}ms",
+                requestId, searchTerm ?? "NULL", elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -411,31 +640,74 @@ public class PostService : IPostService
     /// </summary>
     public async Task<PostEngagementDto?> GetPostEngagementAsync(Guid postId, string keycloakId)
     {
-        if (string.IsNullOrWhiteSpace(keycloakId))
-            return null;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null)
-            return null;
+        _logger.LogInformation("[PostService.GetPostEngagementAsync] START - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}",
+            requestId, postId, keycloakId);
 
-        // Check if user is the author
-        var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile?.Id != post.ProfileId)
-            return null;
-
-        var reactionCounts = await _reactionRepository.GetReactionCountsByPostAsync(postId);
-        var commentCount = await _commentRepository.GetCommentCountByPostAsync(postId);
-
-        return new PostEngagementDto
+        try
         {
-            PostId = postId,
-            TotalReactions = reactionCounts.Sum(r => r.Value),
-            ReactionsByType = reactionCounts,
-            TotalComments = commentCount,
-            TotalShares = 0, // TODO: Implement shares functionality
-            EngagementRate = CalculateEngagementRate(reactionCounts.Sum(r => r.Value), commentCount, 0),
-            TopReactionType = reactionCounts.OrderByDescending(r => r.Value).FirstOrDefault().Key
-        };
+            if (string.IsNullOrWhiteSpace(keycloakId))
+            {
+                _logger.LogWarning("[PostService.GetPostEngagementAsync] Invalid keycloak ID - RequestId={RequestId}",
+                    requestId);
+                return null;
+            }
+
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[PostService.GetPostEngagementAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return null;
+            }
+
+            _logger.LogInformation("[PostService.GetPostEngagementAsync] Post found - RequestId={RequestId}, PostId={PostId}, ProfileId={ProfileId}",
+                requestId, postId, post.ProfileId);
+
+            // Check if user is the author
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            if (user?.ActiveProfile?.Id != post.ProfileId)
+            {
+                _logger.LogWarning("[PostService.GetPostEngagementAsync] User is not the post author - RequestId={RequestId}, UserProfileId={UserProfileId}, PostProfileId={PostProfileId}",
+                    requestId, user?.ActiveProfile?.Id.ToString() ?? "NULL", post.ProfileId);
+                return null;
+            }
+
+            _logger.LogInformation("[PostService.GetPostEngagementAsync] User authorized - RequestId={RequestId}, KeycloakId={KeycloakId}",
+                requestId, keycloakId);
+
+            var reactionCounts = await _reactionRepository.GetReactionCountsByPostAsync(postId);
+            var commentCount = await _commentRepository.GetCommentCountByPostAsync(postId);
+
+            _logger.LogInformation("[PostService.GetPostEngagementAsync] Engagement stats retrieved - RequestId={RequestId}, PostId={PostId}, TotalReactions={TotalReactions}, CommentCount={CommentCount}",
+                requestId, postId, reactionCounts.Sum(r => r.Value), commentCount);
+
+            var engagement = new PostEngagementDto
+            {
+                PostId = postId,
+                TotalReactions = reactionCounts.Sum(r => r.Value),
+                ReactionsByType = reactionCounts,
+                TotalComments = commentCount,
+                TotalShares = 0, // TODO: Implement shares functionality
+                EngagementRate = CalculateEngagementRate(reactionCounts.Sum(r => r.Value), commentCount, 0),
+                TopReactionType = reactionCounts.OrderByDescending(r => r.Value).FirstOrDefault().Key
+            };
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPostEngagementAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+
+            return engagement;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPostEngagementAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -443,39 +715,87 @@ public class PostService : IPostService
     /// </summary>
     public async Task<bool> CanUserViewPostAsync(Guid postId, string? requestingKeycloakId)
     {
-        var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null)
-            return false;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        // Public posts can be viewed by anyone
-        if (post.Visibility == VisibilityLevel.Public)
-            return true;
+        _logger.LogInformation("[PostService.CanUserViewPostAsync] START - RequestId={RequestId}, PostId={PostId}, KeycloakId={KeycloakId}",
+            requestId, postId, requestingKeycloakId ?? "NULL");
 
-        // Private posts require authentication
-        if (string.IsNullOrWhiteSpace(requestingKeycloakId))
-            return false;
-
-        var requestingUser = await _userRepository.GetByKeycloakIdAsync(requestingKeycloakId);
-        if (requestingUser?.ActiveProfile == null)
-            return false;
-
-        // Author can always view their own posts
-        if (requestingUser.ActiveProfile.Id == post.ProfileId)
-            return true;
-
-        // TODO: Implement follower-based visibility when ProfileFollower system is integrated
-        switch (post.Visibility)
+        try
         {
-            case VisibilityLevel.ConnectionsOnly:
-                // Check if requesting user follows the post author
-                // For now, return false until follower system is integrated
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[PostService.CanUserViewPostAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
                 return false;
-            
-            case VisibilityLevel.Private:
+            }
+
+            _logger.LogInformation("[PostService.CanUserViewPostAsync] Post found - RequestId={RequestId}, PostId={PostId}, Visibility={Visibility}",
+                requestId, postId, post.Visibility);
+
+            // Public posts can be viewed by anyone
+            if (post.Visibility == VisibilityLevel.Public)
+            {
+                _logger.LogInformation("[PostService.CanUserViewPostAsync] Post is public - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return true;
+            }
+
+            // Private posts require authentication
+            if (string.IsNullOrWhiteSpace(requestingKeycloakId))
+            {
+                _logger.LogInformation("[PostService.CanUserViewPostAsync] Post is not public and no keycloak ID provided - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
                 return false;
-            
-            default:
+            }
+
+            var requestingUser = await _userRepository.GetByKeycloakIdAsync(requestingKeycloakId);
+            if (requestingUser?.ActiveProfile == null)
+            {
+                _logger.LogWarning("[PostService.CanUserViewPostAsync] Requesting user not found or has no active profile - RequestId={RequestId}, KeycloakId={KeycloakId}",
+                    requestId, requestingKeycloakId);
                 return false;
+            }
+
+            _logger.LogInformation("[PostService.CanUserViewPostAsync] User profile found - RequestId={RequestId}, UserProfileId={UserProfileId}",
+                requestId, requestingUser.ActiveProfile.Id);
+
+            // Author can always view their own posts
+            if (requestingUser.ActiveProfile.Id == post.ProfileId)
+            {
+                _logger.LogInformation("[PostService.CanUserViewPostAsync] User is post author - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return true;
+            }
+
+            // TODO: Implement follower-based visibility when ProfileFollower system is integrated
+            switch (post.Visibility)
+            {
+                case VisibilityLevel.ConnectionsOnly:
+                    // Check if requesting user follows the post author
+                    // For now, return false until follower system is integrated
+                    _logger.LogInformation("[PostService.CanUserViewPostAsync] Post visibility is ConnectionsOnly - follower check not yet implemented - RequestId={RequestId}, PostId={PostId}",
+                        requestId, postId);
+                    return false;
+                
+                case VisibilityLevel.Private:
+                    _logger.LogInformation("[PostService.CanUserViewPostAsync] Post visibility is Private - RequestId={RequestId}, PostId={PostId}",
+                        requestId, postId);
+                    return false;
+                
+                default:
+                    _logger.LogWarning("[PostService.CanUserViewPostAsync] Unknown visibility level - RequestId={RequestId}, PostId={PostId}, Visibility={Visibility}",
+                        requestId, postId, post.Visibility);
+                    return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.CanUserViewPostAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
         }
     }
 
@@ -600,25 +920,65 @@ public class PostService : IPostService
     /// </summary>
     private async Task ProcessPostAttachmentsAsync(Guid postId, List<CreatePostAttachmentDto> attachments)
     {
-        foreach (var attachmentDto in attachments)
-        {
-            var attachment = new PostAttachment
-            {
-                Id = Guid.NewGuid(),
-                PostId = postId,
-                AttachmentType = attachmentDto.AttachmentType,
-                FileId = attachmentDto.FileId,
-                Url = attachmentDto.FilePath,
-                OriginalFileName = attachmentDto.OriginalFilename,
-                MimeType = attachmentDto.MimeType,
-                FileSizeBytes = attachmentDto.FileSize,
-                Description = attachmentDto.AltText,
-                DisplayOrder = attachmentDto.DisplayOrder,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-            await _postAttachmentRepository.AddAsync(attachment);
+        _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] START - RequestId={RequestId}, PostId={PostId}, AttachmentCount={AttachmentCount}",
+            requestId, postId, attachments?.Count ?? 0);
+
+        try
+        {
+            if (attachments == null || attachments.Count == 0)
+            {
+                _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] No attachments to process - RequestId={RequestId}",
+                    requestId);
+                return;
+            }
+
+            int successCount = 0;
+            foreach (var attachmentDto in attachments)
+            {
+                try
+                {
+                    var attachment = new PostAttachment
+                    {
+                        Id = Guid.NewGuid(),
+                        PostId = postId,
+                        AttachmentType = attachmentDto.AttachmentType,
+                        FileId = attachmentDto.FileId,
+                        Url = attachmentDto.FilePath,
+                        OriginalFileName = attachmentDto.OriginalFilename,
+                        MimeType = attachmentDto.MimeType,
+                        FileSizeBytes = attachmentDto.FileSize,
+                        Description = attachmentDto.AltText,
+                        DisplayOrder = attachmentDto.DisplayOrder,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] Adding attachment - RequestId={RequestId}, PostId={PostId}, FileId={FileId}, Type={Type}, Size={Size}",
+                        requestId, postId, attachmentDto.FileId, attachmentDto.AttachmentType, attachmentDto.FileSize);
+
+                    await _postAttachmentRepository.AddAsync(attachment);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[PostService.ProcessPostAttachmentsAsync] Failed to process attachment - RequestId={RequestId}, PostId={PostId}, FileId={FileId}",
+                        requestId, postId, attachmentDto.FileId);
+                }
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, ProcessedCount={ProcessedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
+                requestId, postId, successCount, attachments.Count, elapsed);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.ProcessPostAttachmentsAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
         }
     }
 
@@ -627,21 +987,53 @@ public class PostService : IPostService
     /// </summary>
     private async Task DeletePostAttachmentsAsync(Guid postId)
     {
-        var attachments = await _postAttachmentRepository.GetByPostIdAsync(postId);
-        
-        // Delete files from storage
-        var fileIds = attachments
-            .Where(a => !string.IsNullOrEmpty(a.FileId))
-            .Select(a => a.FileId!)
-            .ToList();
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        if (fileIds.Any())
+        _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] START - RequestId={RequestId}, PostId={PostId}",
+            requestId, postId);
+
+        try
         {
-            await _fileStorageService.DeleteFilesAsync(fileIds);
-        }
+            var attachments = await _postAttachmentRepository.GetByPostIdAsync(postId);
 
-        // Delete attachment records
-        await _postAttachmentRepository.DeleteByPostIdAsync(postId);
+            _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] Retrieved {AttachmentCount} attachments - RequestId={RequestId}, PostId={PostId}",
+                attachments.Count, requestId, postId);
+
+            // Delete files from storage
+            var fileIds = attachments
+                .Where(a => !string.IsNullOrEmpty(a.FileId))
+                .Select(a => a.FileId!)
+                .ToList();
+
+            if (fileIds.Any())
+            {
+                _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] Deleting {FileCount} files from storage - RequestId={RequestId}, PostId={PostId}",
+                    fileIds.Count, requestId, postId);
+
+                await _fileStorageService.DeleteFilesAsync(fileIds);
+
+                _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] Files deleted successfully - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+            }
+
+            // Delete attachment records
+            _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] Deleting attachment records - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+
+            await _postAttachmentRepository.DeleteByPostIdAsync(postId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.DeletePostAttachmentsAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, DeletedCount={DeletedCount}, Duration={Duration}ms",
+                requestId, postId, attachments.Count, elapsed);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.DeletePostAttachmentsAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -649,21 +1041,46 @@ public class PostService : IPostService
     /// </summary>
     private async Task<List<PostAttachmentDto>> MapAttachmentsToDtosAsync(Guid postId)
     {
-        var attachments = await _postAttachmentRepository.GetByPostIdOrderedAsync(postId);
-        
-        return attachments.Select(attachment => new PostAttachmentDto
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] START - RequestId={RequestId}, PostId={PostId}",
+            requestId, postId);
+
+        try
         {
-            Id = attachment.Id,
-            AttachmentType = attachment.AttachmentType,
-            FileId = attachment.FileId,
-            FilePath = attachment.Url,
-            OriginalFilename = attachment.OriginalFileName ?? "",
-            MimeType = attachment.MimeType ?? "",
-            FileSize = attachment.FileSizeBytes ?? 0,
-            AltText = attachment.Description,
-            DisplayOrder = attachment.DisplayOrder,
-            CreatedAt = attachment.CreatedAt
-        }).ToList();
+            var attachments = await _postAttachmentRepository.GetByPostIdOrderedAsync(postId);
+
+            _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] Retrieved {AttachmentCount} attachments - RequestId={RequestId}, PostId={PostId}",
+                attachments.Count, requestId, postId);
+
+            var attachmentDtos = attachments.Select(attachment => new PostAttachmentDto
+            {
+                Id = attachment.Id,
+                AttachmentType = attachment.AttachmentType,
+                FileId = attachment.FileId,
+                FilePath = attachment.Url,
+                OriginalFilename = attachment.OriginalFileName ?? "",
+                MimeType = attachment.MimeType ?? "",
+                FileSize = attachment.FileSizeBytes ?? 0,
+                AltText = attachment.Description,
+                DisplayOrder = attachment.DisplayOrder,
+                CreatedAt = attachment.CreatedAt
+            }).ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, MappedCount={MappedCount}, Duration={Duration}ms",
+                requestId, postId, attachmentDtos.Count, elapsed);
+
+            return attachmentDtos;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
+                requestId, postId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -671,34 +1088,65 @@ public class PostService : IPostService
     /// </summary>
     public async Task<List<PostDto>> GetAllPostsWithEmbeddingsAsync()
     {
-        var posts = await _postRepository.GetAllWithEmbeddingsAsync();
-        
-        var postDtos = new List<PostDto>();
-        
-        foreach (var post in posts)
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[PostService.GetAllPostsWithEmbeddingsAsync] START - RequestId={RequestId}",
+            requestId);
+
+        try
         {
-            var postDto = await MapToPostDtoAsync(post, null, false, false);
-            if (postDto != null)
+            var posts = await _postRepository.GetAllWithEmbeddingsAsync();
+
+            _logger.LogInformation("[PostService.GetAllPostsWithEmbeddingsAsync] Repository returned {PostCount} posts with embeddings - RequestId={RequestId}",
+                posts.Count, requestId);
+
+            var postDtos = new List<PostDto>();
+            var successCount = 0;
+            var embeddingFailures = 0;
+            
+            foreach (var post in posts)
             {
-                // Deserialize the embedding data for the DTO
-                if (!string.IsNullOrEmpty(post.ContentEmbedding))
+                var postDto = await MapToPostDtoAsync(post, null, false, false);
+                if (postDto != null)
                 {
-                    try
+                    // Deserialize the embedding data for the DTO
+                    if (!string.IsNullOrEmpty(post.ContentEmbedding))
                     {
-                        var embeddingArray = JsonSerializer.Deserialize<float[]>(post.ContentEmbedding);
-                        postDto = postDto with { ContentEmbedding = embeddingArray };
+                        try
+                        {
+                            var embeddingArray = JsonSerializer.Deserialize<float[]>(post.ContentEmbedding);
+                            postDto = postDto with { ContentEmbedding = embeddingArray };
+                            successCount++;
+                        }
+                        catch (Exception embeddingEx)
+                        {
+                            embeddingFailures++;
+                            _logger.LogWarning(embeddingEx, "[PostService.GetAllPostsWithEmbeddingsAsync] Failed to deserialize embedding - RequestId={RequestId}, PostId={PostId}",
+                                requestId, post.Id);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to deserialize embedding for post {PostId}", post.Id);
-                    }
+                    
+                    postDtos.Add(postDto);
                 }
-                
-                postDtos.Add(postDto);
             }
+
+            _logger.LogInformation("[PostService.GetAllPostsWithEmbeddingsAsync] Processed {SuccessCount} embeddings, {FailureCount} failures - RequestId={RequestId}",
+                successCount, embeddingFailures, requestId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetAllPostsWithEmbeddingsAsync] SUCCESS - RequestId={RequestId}, TotalPosts={TotalPosts}, SuccessfulEmbeddings={SuccessfulEmbeddings}, Duration={Duration}ms",
+                requestId, postDtos.Count, successCount, elapsed);
+
+            return postDtos;
         }
-        
-        return postDtos;
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetAllPostsWithEmbeddingsAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>
@@ -706,7 +1154,32 @@ public class PostService : IPostService
     /// </summary>
     public async Task<List<Post>> GetAllPostEntitiesWithEmbeddingsAsync()
     {
-        return await _postRepository.GetAllWithEmbeddingsAsync();
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[PostService.GetAllPostEntitiesWithEmbeddingsAsync] START - RequestId={RequestId}",
+            requestId);
+
+        try
+        {
+            var posts = await _postRepository.GetAllWithEmbeddingsAsync();
+
+            _logger.LogInformation("[PostService.GetAllPostEntitiesWithEmbeddingsAsync] SUCCESS - RequestId={RequestId}, PostCount={PostCount}",
+                requestId, posts.Count);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetAllPostEntitiesWithEmbeddingsAsync] Duration={Duration}ms",
+                elapsed);
+
+            return posts;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetAllPostEntitiesWithEmbeddingsAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            throw;
+        }
     }
 
     #endregion

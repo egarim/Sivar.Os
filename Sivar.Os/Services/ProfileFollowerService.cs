@@ -30,11 +30,20 @@ public class ProfileFollowerService : IProfileFollowerService
     /// </summary>
     public async Task<FollowResultDto> FollowProfileAsync(Guid followerProfileId, Guid profileToFollowId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] START - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToFollowId={ProfileToFollowId}", 
+            requestId, followerProfileId, profileToFollowId);
+
         try
         {
             // Validate that profiles are different
             if (followerProfileId == profileToFollowId)
             {
+                _logger.LogWarning("[ProfileFollowerService.FollowProfileAsync] SELF_FOLLOW_ATTEMPT - RequestId={RequestId}, ProfileId={ProfileId}", 
+                    requestId, followerProfileId);
+
                 return new FollowResultDto
                 {
                     Success = false,
@@ -48,6 +57,9 @@ public class ProfileFollowerService : IProfileFollowerService
 
             if (followerProfile == null)
             {
+                _logger.LogWarning("[ProfileFollowerService.FollowProfileAsync] FOLLOWER_PROFILE_NOT_FOUND - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}", 
+                    requestId, followerProfileId);
+
                 return new FollowResultDto
                 {
                     Success = false,
@@ -57,12 +69,18 @@ public class ProfileFollowerService : IProfileFollowerService
 
             if (profileToFollow == null)
             {
+                _logger.LogWarning("[ProfileFollowerService.FollowProfileAsync] TARGET_PROFILE_NOT_FOUND - RequestId={RequestId}, ProfileToFollowId={ProfileToFollowId}", 
+                    requestId, profileToFollowId);
+
                 return new FollowResultDto
                 {
                     Success = false,
                     Message = "Profile to follow not found"
                 };
             }
+
+            _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] Both profiles found - RequestId={RequestId}, FollowerName={FollowerName}, TargetName={TargetName}", 
+                requestId, followerProfile.DisplayName, profileToFollow.DisplayName);
 
             // Check if already following
             var existingRelation = await _followerRepository.GetFollowRelationshipAsync(followerProfileId, profileToFollowId);
@@ -71,6 +89,9 @@ public class ProfileFollowerService : IProfileFollowerService
             {
                 if (existingRelation.IsActive)
                 {
+                    _logger.LogWarning("[ProfileFollowerService.FollowProfileAsync] ALREADY_FOLLOWING - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToFollowId={ProfileToFollowId}", 
+                        requestId, followerProfileId, profileToFollowId);
+
                     return new FollowResultDto
                     {
                         Success = false,
@@ -80,12 +101,22 @@ public class ProfileFollowerService : IProfileFollowerService
                 else
                 {
                     // Reactivate existing relationship
+                    _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] Reactivating previous relationship - RequestId={RequestId}, RelationshipId={RelationshipId}", 
+                        requestId, existingRelation.Id);
+
                     existingRelation.IsActive = true;
                     existingRelation.FollowedAt = DateTime.UtcNow;
                     existingRelation.UpdatedAt = DateTime.UtcNow;
                     
                     await _followerRepository.UpdateAsync(existingRelation);
                     await _followerRepository.SaveChangesAsync();
+
+                    _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] Relationship reactivated - RequestId={RequestId}, RelationshipId={RelationshipId}", 
+                        requestId, existingRelation.Id);
+
+                    var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                    _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] SUCCESS (reactivated) - RequestId={RequestId}, Duration={Duration}ms", 
+                        requestId, elapsed);
 
                     return new FollowResultDto
                     {
@@ -97,6 +128,8 @@ public class ProfileFollowerService : IProfileFollowerService
             }
 
             // Create new follow relationship
+            _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] Creating new relationship - RequestId={RequestId}", requestId);
+
             var newFollowRelation = new ProfileFollower
             {
                 Id = Guid.NewGuid(),
@@ -113,8 +146,15 @@ public class ProfileFollowerService : IProfileFollowerService
             await _followerRepository.AddAsync(newFollowRelation);
             await _followerRepository.SaveChangesAsync();
 
+            _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] Relationship created and persisted - RequestId={RequestId}, RelationshipId={RelationshipId}", 
+                requestId, newFollowRelation.Id);
+
             _logger.LogInformation("Profile {FollowerId} started following profile {FollowedId}", 
                 followerProfileId, profileToFollowId);
+
+            var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileFollowerService.FollowProfileAsync] SUCCESS (new) - RequestId={RequestId}, RelationshipId={RelationshipId}, Duration={Duration}ms", 
+                requestId, newFollowRelation.Id, totalElapsed);
 
             return new FollowResultDto
             {
@@ -125,8 +165,9 @@ public class ProfileFollowerService : IProfileFollowerService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error following profile {ProfileId} by {FollowerId}", 
-                profileToFollowId, followerProfileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileFollowerService.FollowProfileAsync] ERROR - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToFollowId={ProfileToFollowId}, Duration={Duration}ms", 
+                requestId, followerProfileId, profileToFollowId, elapsed);
             
             return new FollowResultDto
             {
@@ -141,18 +182,30 @@ public class ProfileFollowerService : IProfileFollowerService
     /// </summary>
     public async Task<FollowResultDto> UnfollowProfileAsync(Guid followerProfileId, Guid profileToUnfollowId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ProfileFollowerService.UnfollowProfileAsync] START - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToUnfollowId={ProfileToUnfollowId}", 
+            requestId, followerProfileId, profileToUnfollowId);
+
         try
         {
             var existingRelation = await _followerRepository.GetFollowRelationshipAsync(followerProfileId, profileToUnfollowId);
             
             if (existingRelation == null || !existingRelation.IsActive)
             {
+                _logger.LogWarning("[ProfileFollowerService.UnfollowProfileAsync] NOT_FOLLOWING - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToUnfollowId={ProfileToUnfollowId}", 
+                    requestId, followerProfileId, profileToUnfollowId);
+
                 return new FollowResultDto
                 {
                     Success = false,
                     Message = "Not currently following this profile"
                 };
             }
+
+            _logger.LogInformation("[ProfileFollowerService.UnfollowProfileAsync] Relationship found - RequestId={RequestId}, RelationshipId={RelationshipId}, IsActive={IsActive}", 
+                requestId, existingRelation.Id, existingRelation.IsActive);
 
             // Deactivate the relationship (soft delete)
             existingRelation.IsActive = false;
@@ -161,8 +214,15 @@ public class ProfileFollowerService : IProfileFollowerService
             await _followerRepository.UpdateAsync(existingRelation);
             await _followerRepository.SaveChangesAsync();
 
+            _logger.LogInformation("[ProfileFollowerService.UnfollowProfileAsync] Relationship deactivated - RequestId={RequestId}, RelationshipId={RelationshipId}", 
+                requestId, existingRelation.Id);
+
             _logger.LogInformation("Profile {FollowerId} unfollowed profile {FollowedId}", 
                 followerProfileId, profileToUnfollowId);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileFollowerService.UnfollowProfileAsync] SUCCESS - RequestId={RequestId}, RelationshipId={RelationshipId}, Duration={Duration}ms", 
+                requestId, existingRelation.Id, elapsed);
 
             return new FollowResultDto
             {
@@ -172,8 +232,9 @@ public class ProfileFollowerService : IProfileFollowerService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unfollowing profile {ProfileId} by {FollowerId}", 
-                profileToUnfollowId, followerProfileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileFollowerService.UnfollowProfileAsync] ERROR - RequestId={RequestId}, FollowerProfileId={FollowerProfileId}, ProfileToUnfollowId={ProfileToUnfollowId}, Duration={Duration}ms", 
+                requestId, followerProfileId, profileToUnfollowId, elapsed);
             
             return new FollowResultDto
             {
@@ -248,22 +309,49 @@ public class ProfileFollowerService : IProfileFollowerService
     /// </summary>
     public async Task<FollowerStatsDto> GetFollowerStatsAsync(Guid profileId, Guid? currentUserProfileId = null)
     {
-        var followersCount = await _followerRepository.GetFollowerCountAsync(profileId);
-        var followingCount = await _followerRepository.GetFollowingCountAsync(profileId);
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        bool isFollowedByCurrentUser = false;
-        if (currentUserProfileId.HasValue)
+        _logger.LogInformation("[ProfileFollowerService.GetFollowerStatsAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, CurrentUserProfileId={CurrentUserProfileId}", 
+            requestId, profileId, currentUserProfileId?.ToString() ?? "NULL");
+
+        try
         {
-            isFollowedByCurrentUser = await _followerRepository.IsFollowingAsync(currentUserProfileId.Value, profileId);
+            var followersCount = await _followerRepository.GetFollowerCountAsync(profileId);
+            _logger.LogInformation("[ProfileFollowerService.GetFollowerStatsAsync] Followers count retrieved - RequestId={RequestId}, Count={Count}", 
+                requestId, followersCount);
+
+            var followingCount = await _followerRepository.GetFollowingCountAsync(profileId);
+            _logger.LogInformation("[ProfileFollowerService.GetFollowerStatsAsync] Following count retrieved - RequestId={RequestId}, Count={Count}", 
+                requestId, followingCount);
+
+            bool isFollowedByCurrentUser = false;
+            if (currentUserProfileId.HasValue)
+            {
+                isFollowedByCurrentUser = await _followerRepository.IsFollowingAsync(currentUserProfileId.Value, profileId);
+                _logger.LogInformation("[ProfileFollowerService.GetFollowerStatsAsync] Current user follow status - RequestId={RequestId}, IsFollowing={IsFollowing}", 
+                    requestId, isFollowedByCurrentUser);
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileFollowerService.GetFollowerStatsAsync] SUCCESS - RequestId={RequestId}, Followers={Followers}, Following={Following}, Duration={Duration}ms", 
+                requestId, followersCount, followingCount, elapsed);
+
+            return new FollowerStatsDto
+            {
+                ProfileId = profileId,
+                FollowersCount = followersCount,
+                FollowingCount = followingCount,
+                IsFollowedByCurrentUser = isFollowedByCurrentUser
+            };
         }
-
-        return new FollowerStatsDto
+        catch (Exception ex)
         {
-            ProfileId = profileId,
-            FollowersCount = followersCount,
-            FollowingCount = followingCount,
-            IsFollowedByCurrentUser = isFollowedByCurrentUser
-        };
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileFollowerService.GetFollowerStatsAsync] ERROR - RequestId={RequestId}, ProfileId={ProfileId}, Duration={Duration}ms", 
+                requestId, profileId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>

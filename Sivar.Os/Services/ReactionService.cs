@@ -18,19 +18,22 @@ public class ReactionService : IReactionService
     private readonly ICommentRepository _commentRepository;
     private readonly IUserRepository _userRepository;
     private readonly IProfileRepository _profileRepository;
+    private readonly ILogger<ReactionService> _logger;
 
     public ReactionService(
         IReactionRepository reactionRepository,
         IPostRepository postRepository,
         ICommentRepository commentRepository,
         IUserRepository userRepository,
-        IProfileRepository profileRepository)
+        IProfileRepository profileRepository,
+        ILogger<ReactionService> logger)
     {
         _reactionRepository = reactionRepository ?? throw new ArgumentNullException(nameof(reactionRepository));
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _commentRepository = commentRepository ?? throw new ArgumentNullException(nameof(commentRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -38,22 +41,56 @@ public class ReactionService : IReactionService
     /// </summary>
     public async Task<ReactionResultDto?> TogglePostReactionAsync(string keycloakId, Guid postId, ReactionType reactionType)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ReactionService.TogglePostReactionAsync] START - RequestId={RequestId}, PostId={PostId}, ReactionType={ReactionType}, KeycloakId={KeycloakId}", 
+            requestId, postId, reactionType, keycloakId ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[ReactionService.TogglePostReactionAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Get user and their active profile
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile == null)
+        if (user == null)
+        {
+            _logger.LogWarning("[ReactionService.TogglePostReactionAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", requestId, keycloakId);
             return null;
+        }
+
+        if (user.ActiveProfile == null)
+        {
+            _logger.LogWarning("[ReactionService.TogglePostReactionAsync] NO_ACTIVE_PROFILE - RequestId={RequestId}, UserId={UserId}", requestId, user.Id);
+            return null;
+        }
+
+        _logger.LogInformation("[ReactionService.TogglePostReactionAsync] User found - RequestId={RequestId}, UserId={UserId}, ProfileId={ProfileId}", 
+            requestId, user.Id, user.ActiveProfile.Id);
 
         // Check if user can react to this post
         if (!await CanUserReactToPostAsync(postId, keycloakId))
+        {
+            _logger.LogWarning("[ReactionService.TogglePostReactionAsync] REACTION_NOT_ALLOWED - RequestId={RequestId}, PostId={PostId}, ProfileId={ProfileId}", 
+                requestId, postId, user.ActiveProfile.Id);
             return null;
+        }
 
         try
         {
             var result = await _reactionRepository.ToggleReactionAsync(user.ActiveProfile.Id, reactionType, postId, null);
+            _logger.LogInformation("[ReactionService.TogglePostReactionAsync] Reaction toggled - RequestId={RequestId}, Action={Action}, ReactionId={ReactionId}", 
+                requestId, result.Action, result.Reaction?.Id ?? Guid.Empty);
+
             var updatedCounts = await _reactionRepository.GetReactionCountsByPostAsync(postId);
+            _logger.LogInformation("[ReactionService.TogglePostReactionAsync] Reaction counts updated - RequestId={RequestId}, TotalReactions={Total}", 
+                requestId, updatedCounts.Sum(r => r.Value));
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionService.TogglePostReactionAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms", 
+                requestId, postId, elapsed);
 
             return new ReactionResultDto
             {
@@ -63,8 +100,11 @@ public class ReactionService : IReactionService
                 UpdatedCounts = updatedCounts
             };
         }
-        catch
+        catch (Exception ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionService.TogglePostReactionAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms", 
+                requestId, postId, elapsed);
             return null;
         }
     }
@@ -74,22 +114,56 @@ public class ReactionService : IReactionService
     /// </summary>
     public async Task<ReactionResultDto?> ToggleCommentReactionAsync(string keycloakId, Guid commentId, ReactionType reactionType)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ReactionService.ToggleCommentReactionAsync] START - RequestId={RequestId}, CommentId={CommentId}, ReactionType={ReactionType}, KeycloakId={KeycloakId}", 
+            requestId, commentId, reactionType, keycloakId ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[ReactionService.ToggleCommentReactionAsync] NULL_KEYCLOAK_ID - RequestId={RequestId}", requestId);
             return null;
+        }
 
         // Get user and their active profile
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
-        if (user?.ActiveProfile == null)
+        if (user == null)
+        {
+            _logger.LogWarning("[ReactionService.ToggleCommentReactionAsync] USER_NOT_FOUND - RequestId={RequestId}, KeycloakId={KeycloakId}", requestId, keycloakId);
             return null;
+        }
+
+        if (user.ActiveProfile == null)
+        {
+            _logger.LogWarning("[ReactionService.ToggleCommentReactionAsync] NO_ACTIVE_PROFILE - RequestId={RequestId}, UserId={UserId}", requestId, user.Id);
+            return null;
+        }
+
+        _logger.LogInformation("[ReactionService.ToggleCommentReactionAsync] User found - RequestId={RequestId}, UserId={UserId}, ProfileId={ProfileId}", 
+            requestId, user.Id, user.ActiveProfile.Id);
 
         // Check if user can react to this comment
         if (!await CanUserReactToCommentAsync(commentId, keycloakId))
+        {
+            _logger.LogWarning("[ReactionService.ToggleCommentReactionAsync] REACTION_NOT_ALLOWED - RequestId={RequestId}, CommentId={CommentId}, ProfileId={ProfileId}", 
+                requestId, commentId, user.ActiveProfile.Id);
             return null;
+        }
 
         try
         {
             var result = await _reactionRepository.ToggleReactionAsync(user.ActiveProfile.Id, reactionType, null, commentId);
+            _logger.LogInformation("[ReactionService.ToggleCommentReactionAsync] Reaction toggled - RequestId={RequestId}, Action={Action}, ReactionId={ReactionId}", 
+                requestId, result.Action, result.Reaction?.Id ?? Guid.Empty);
+
             var updatedCounts = await _reactionRepository.GetReactionCountsByCommentAsync(commentId);
+            _logger.LogInformation("[ReactionService.ToggleCommentReactionAsync] Reaction counts updated - RequestId={RequestId}, TotalReactions={Total}", 
+                requestId, updatedCounts.Sum(r => r.Value));
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionService.ToggleCommentReactionAsync] SUCCESS - RequestId={RequestId}, CommentId={CommentId}, Duration={Duration}ms", 
+                requestId, commentId, elapsed);
 
             return new ReactionResultDto
             {
@@ -99,8 +173,11 @@ public class ReactionService : IReactionService
                 UpdatedCounts = updatedCounts
             };
         }
-        catch
+        catch (Exception ex)
         {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionService.ToggleCommentReactionAsync] ERROR - RequestId={RequestId}, CommentId={CommentId}, Duration={Duration}ms", 
+                requestId, commentId, elapsed);
             return null;
         }
     }
@@ -110,28 +187,53 @@ public class ReactionService : IReactionService
     /// </summary>
     public async Task<PostReactionSummaryDto> GetPostReactionSummaryAsync(Guid postId, string? requestingKeycloakId = null)
     {
-        var reactionCounts = await _reactionRepository.GetReactionCountsByPostAsync(postId);
-        ReactionType? userReaction = null;
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        if (!string.IsNullOrWhiteSpace(requestingKeycloakId))
+        _logger.LogInformation("[ReactionService.GetPostReactionSummaryAsync] START - RequestId={RequestId}, PostId={PostId}, RequestingKeycloakId={KeycloakId}", 
+            requestId, postId, requestingKeycloakId ?? "NULL");
+
+        try
         {
-            var user = await _userRepository.GetByKeycloakIdAsync(requestingKeycloakId);
-            if (user?.ActiveProfile != null)
+            var reactionCounts = await _reactionRepository.GetReactionCountsByPostAsync(postId);
+            _logger.LogInformation("[ReactionService.GetPostReactionSummaryAsync] Reaction counts retrieved - RequestId={RequestId}, TotalReactions={Total}", 
+                requestId, reactionCounts.Sum(r => r.Value));
+
+            ReactionType? userReaction = null;
+
+            if (!string.IsNullOrWhiteSpace(requestingKeycloakId))
             {
-                var reaction = await _reactionRepository.GetUserReactionToPostAsync(postId, user.ActiveProfile.Id);
-                userReaction = reaction?.ReactionType;
+                var user = await _userRepository.GetByKeycloakIdAsync(requestingKeycloakId);
+                if (user?.ActiveProfile != null)
+                {
+                    var reaction = await _reactionRepository.GetUserReactionToPostAsync(postId, user.ActiveProfile.Id);
+                    userReaction = reaction?.ReactionType;
+                    _logger.LogInformation("[ReactionService.GetPostReactionSummaryAsync] User reaction found - RequestId={RequestId}, UserReaction={Reaction}", 
+                        requestId, userReaction?.ToString() ?? "NONE");
+                }
             }
-        }
 
-        return new PostReactionSummaryDto
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ReactionService.GetPostReactionSummaryAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms", 
+                requestId, postId, elapsed);
+
+            return new PostReactionSummaryDto
+            {
+                PostId = postId,
+                TotalReactions = reactionCounts.Sum(r => r.Value),
+                ReactionCounts = reactionCounts,
+                UserReaction = userReaction,
+                TopReactionType = reactionCounts.OrderByDescending(r => r.Value).FirstOrDefault().Key,
+                HasUserReacted = userReaction.HasValue
+            };
+        }
+        catch (Exception ex)
         {
-            PostId = postId,
-            TotalReactions = reactionCounts.Sum(r => r.Value),
-            ReactionCounts = reactionCounts,
-            UserReaction = userReaction,
-            TopReactionType = reactionCounts.OrderByDescending(r => r.Value).FirstOrDefault().Key,
-            HasUserReacted = userReaction.HasValue
-        };
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ReactionService.GetPostReactionSummaryAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms", 
+                requestId, postId, elapsed);
+            throw;
+        }
     }
 
     /// <summary>

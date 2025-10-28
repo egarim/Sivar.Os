@@ -126,24 +126,45 @@ public class ChatService : IChatService
 
     public async Task<ChatResponseDto> SendMessageAsync(SendMessageDto dto, Guid profileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[ChatService.SendMessageAsync] START - RequestId={RequestId}, ConversationId={ConversationId}, ProfileId={ProfileId}, MessageLength={Length}", 
+            requestId, dto?.ConversationId, profileId, dto?.Content?.Length ?? 0);
+
         try
         {
+            if (dto == null)
+            {
+                _logger.LogWarning("[ChatService.SendMessageAsync] NULL_DTO - RequestId={RequestId}", requestId);
+                throw new ArgumentNullException(nameof(dto));
+            }
+
             // Verify conversation belongs to profile
             var conversation = await _conversationRepository.GetConversationWithMessagesAsync(dto.ConversationId);
             if (conversation == null)
             {
+                _logger.LogWarning("[ChatService.SendMessageAsync] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}, RequestId={RequestId}", 
+                    dto.ConversationId, requestId);
                 throw new InvalidOperationException($"Conversation {dto.ConversationId} not found");
             }
 
             if (conversation.ProfileId != profileId)
             {
+                _logger.LogWarning("[ChatService.SendMessageAsync] UNAUTHORIZED - ConversationId={ConversationId}, ProfileId={ProfileId}, RequestId={RequestId}", 
+                    dto.ConversationId, profileId, requestId);
                 throw new UnauthorizedAccessException("Conversation does not belong to this profile");
             }
+
+            _logger.LogInformation("[ChatService.SendMessageAsync] Conversation verified - ConversationId={ConversationId}, RequestId={RequestId}", 
+                conversation.Id, requestId);
 
             // Check message limit
             var messageCount = await _messageRepository.GetMessageCountAsync(dto.ConversationId);
             if (messageCount >= _options.MaxMessagesPerConversation)
             {
+                _logger.LogWarning("[ChatService.SendMessageAsync] MESSAGE_LIMIT_REACHED - ConversationId={ConversationId}, MessageCount={Count}, Limit={Limit}, RequestId={RequestId}", 
+                    dto.ConversationId, messageCount, _options.MaxMessagesPerConversation, requestId);
                 throw new InvalidOperationException($"Conversation has reached maximum message limit of {_options.MaxMessagesPerConversation}");
             }
 
@@ -158,6 +179,8 @@ public class ChatService : IChatService
             };
 
             var savedUserMessage = await _messageRepository.AddAsync(userMessage);
+            _logger.LogInformation("[ChatService.SendMessageAsync] User message saved - MessageId={MessageId}, Order={Order}, RequestId={RequestId}", 
+                savedUserMessage.Id, userMessageOrder, requestId);
 
             // Set current profile for function calls
             _functionService.SetCurrentProfile(profileId);
@@ -165,6 +188,9 @@ public class ChatService : IChatService
             // Build chat history for context
             var chatHistory = BuildChatHistory(conversation);
             chatHistory.Add(new AiChatMessage(ChatRole.User, dto.Content));
+            
+            _logger.LogInformation("[ChatService.SendMessageAsync] Chat history built - HistoryCount={Count}, RequestId={RequestId}", 
+                chatHistory.Count, requestId);
 
             // Create AI functions
             var functions = new[]
@@ -185,7 +211,15 @@ public class ChatService : IChatService
                 Tools = functions
             };
 
+            _logger.LogInformation("[ChatService.SendMessageAsync] Calling AI service - MaxTokens={MaxTokens}, Temperature={Temperature}, RequestId={RequestId}", 
+                _options.MaxTokens, _options.Temperature, requestId);
+
+            var aiStartTime = DateTime.UtcNow;
             var response = await _chatClient.CompleteAsync(chatHistory, chatOptions);
+            var aiElapsed = (DateTime.UtcNow - aiStartTime).TotalMilliseconds;
+            
+            _logger.LogInformation("[ChatService.SendMessageAsync] AI response received - ResponseLength={Length}, AIDuration={Duration}ms, RequestId={RequestId}", 
+                response.Message.Text?.Length ?? 0, aiElapsed, requestId);
 
             // Save assistant message
             var assistantMessageOrder = await _messageRepository.GetNextMessageOrderAsync(dto.ConversationId);
@@ -199,11 +233,15 @@ public class ChatService : IChatService
             };
 
             var savedAssistantMessage = await _messageRepository.AddAsync(assistantMessage);
+            _logger.LogInformation("[ChatService.SendMessageAsync] Assistant message saved - MessageId={MessageId}, Order={Order}, RequestId={RequestId}", 
+                savedAssistantMessage.Id, assistantMessageOrder, requestId);
 
             // Update conversation last message time
             await _conversationRepository.UpdateLastMessageTimeAsync(dto.ConversationId);
 
-            _logger.LogInformation("Processed message in conversation {ConversationId}", dto.ConversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatService.SendMessageAsync] SUCCESS - ConversationId={ConversationId}, UserMessageId={UserMsgId}, AIMessageId={AIMsgId}, RequestId={RequestId}, TotalDuration={Duration}ms, AIDuration={AIDuration}ms", 
+                dto.ConversationId, savedUserMessage.Id, savedAssistantMessage.Id, requestId, elapsed, aiElapsed);
 
             return new ChatResponseDto
             {
@@ -214,7 +252,9 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending message in conversation {ConversationId}", dto.ConversationId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatService.SendMessageAsync] ERROR - ConversationId={ConversationId}, RequestId={RequestId}, Duration={Duration}ms", 
+                dto?.ConversationId, requestId, elapsed);
             throw;
         }
     }
