@@ -33,7 +33,29 @@ public class ChatFunctionService
     /// </summary>
     public void SetCurrentProfile(Guid profileId)
     {
-        _currentProfileId = profileId;
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ChatFunctionService.SetCurrentProfile] START - RequestId={RequestId}, ProfileId={ProfileId}",
+            requestId, profileId);
+
+        try
+        {
+            if (profileId == Guid.Empty)
+            {
+                _logger.LogError("[ChatFunctionService.SetCurrentProfile] VALIDATION ERROR - RequestId={RequestId}, ProfileIdEmpty=true",
+                    requestId);
+                throw new ArgumentException("Profile ID cannot be empty", nameof(profileId));
+            }
+
+            _currentProfileId = profileId;
+            _logger.LogInformation("[ChatFunctionService.SetCurrentProfile] SUCCESS - RequestId={RequestId}, CurrentProfileId={CurrentProfileId}",
+                requestId, _currentProfileId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.SetCurrentProfile] EXCEPTION - RequestId={RequestId}, ExceptionType={ExceptionType}",
+                requestId, ex.GetType().Name);
+            throw;
+        }
     }
 
     /// <summary>
@@ -46,8 +68,22 @@ public class ChatFunctionService
         [Description("Maximum number of results to return (default 5, max 10)")]
         int maxResults = 5)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.SearchProfiles] START - RequestId={RequestId}, Timestamp={Timestamp}, Query={Query}, MaxResults={MaxResults}",
+            requestId, startTime, query, maxResults);
+
         try
         {
+            // Validate inputs
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                _logger.LogError("[ChatFunctionService.SearchProfiles] VALIDATION ERROR - RequestId={RequestId}, QueryNull=true",
+                    requestId);
+                throw new ArgumentException("Query cannot be null or empty", nameof(query));
+            }
+
             _logger.LogInformation("AI searching for profiles with query: {Query}", query);
 
             // Limit max results
@@ -55,7 +91,7 @@ public class ChatFunctionService
 
             // Get all profiles and filter (in real app, this would be a DB query)
             var allProfiles = await _profileRepository.GetAllAsync();
-            
+
             var matchingProfiles = allProfiles
                 .Where(p => !p.IsDeleted &&
                     (p.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -72,6 +108,10 @@ public class ChatFunctionService
                 })
                 .ToList();
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchProfiles] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms",
+                requestId, matchingProfiles.Count, elapsed);
+
             if (!matchingProfiles.Any())
             {
                 return $"No profiles found matching '{query}'";
@@ -84,9 +124,18 @@ public class ChatFunctionService
                 profiles = matchingProfiles
             }, new JsonSerializerOptions { WriteIndented = true });
         }
+        catch (ArgumentException ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchProfiles] VALIDATION ERROR - RequestId={RequestId}, Query={Query}, Duration={Duration}ms",
+                requestId, query, elapsed);
+            return $"Validation error searching profiles: {ex.Message}";
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching profiles with query: {Query}", query);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchProfiles] EXCEPTION - RequestId={RequestId}, Query={Query}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, query, ex.GetType().Name, elapsed);
             return $"Error searching profiles: {ex.Message}";
         }
     }
@@ -101,8 +150,22 @@ public class ChatFunctionService
         [Description("Maximum number of results to return (default 5, max 10)")]
         int maxResults = 5)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.SearchPosts] START - RequestId={RequestId}, Timestamp={Timestamp}, Query={Query}, MaxResults={MaxResults}",
+            requestId, startTime, query, maxResults);
+
         try
         {
+            // Validate inputs
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                _logger.LogError("[ChatFunctionService.SearchPosts] VALIDATION ERROR - RequestId={RequestId}, QueryNull=true",
+                    requestId);
+                throw new ArgumentException("Query cannot be null or empty", nameof(query));
+            }
+
             _logger.LogInformation("AI searching for posts with query: {Query}", query);
 
             // Limit max results
@@ -127,6 +190,10 @@ public class ChatFunctionService
                 })
                 .ToList();
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchPosts] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms",
+                requestId, matchingPosts.Count, elapsed);
+
             if (!matchingPosts.Any())
             {
                 return $"No posts found matching '{query}'";
@@ -139,9 +206,18 @@ public class ChatFunctionService
                 posts = matchingPosts
             }, new JsonSerializerOptions { WriteIndented = true });
         }
+        catch (ArgumentException ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchPosts] VALIDATION ERROR - RequestId={RequestId}, Query={Query}, Duration={Duration}ms",
+                requestId, query, elapsed);
+            return $"Validation error searching posts: {ex.Message}";
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching posts with query: {Query}", query);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchPosts] EXCEPTION - RequestId={RequestId}, Query={Query}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, query, ex.GetType().Name, elapsed);
             return $"Error searching posts: {ex.Message}";
         }
     }
@@ -154,18 +230,27 @@ public class ChatFunctionService
         [Description("The ID of the post to get details for")]
         string postId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetPostDetails] START - RequestId={RequestId}, Timestamp={Timestamp}, PostId={PostId}",
+            requestId, startTime, postId);
+
         try
         {
+            // Validate input
             if (!Guid.TryParse(postId, out var postGuid))
             {
+                _logger.LogError("[ChatFunctionService.GetPostDetails] VALIDATION ERROR - RequestId={RequestId}, InvalidPostIdFormat=true",
+                    requestId);
                 return $"Invalid post ID format: {postId}";
             }
-
-            _logger.LogInformation("AI getting post details for: {PostId}", postId);
 
             var post = await _postRepository.GetByIdAsync(postGuid);
             if (post == null || post.IsDeleted)
             {
+                _logger.LogWarning("[ChatFunctionService.GetPostDetails] POST NOT FOUND - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postGuid);
                 return $"Post not found: {postId}";
             }
 
@@ -190,11 +275,17 @@ public class ChatFunctionService
                 attachmentCount = post.Attachments?.Count ?? 0
             };
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.GetPostDetails] SUCCESS - RequestId={RequestId}, PostId={PostId}, Comments={CommentCount}, Reactions={ReactionCount}, Duration={Duration}ms",
+                requestId, postGuid, post.Comments?.Count ?? 0, post.Reactions?.Count ?? 0, elapsed);
+
             return JsonSerializer.Serialize(postDetails, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting post details for: {PostId}", postId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.GetPostDetails] EXCEPTION - RequestId={RequestId}, PostId={PostId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, postId, ex.GetType().Name, elapsed);
             return $"Error getting post details: {ex.Message}";
         }
     }
@@ -207,26 +298,36 @@ public class ChatFunctionService
         [Description("The ID of the profile to follow")]
         string profileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.FollowProfile] START - RequestId={RequestId}, Timestamp={Timestamp}, ProfileId={ProfileId}, CurrentProfileId={CurrentProfileId}",
+            requestId, startTime, profileId, _currentProfileId);
+
         try
         {
+            // Validate input
             if (!Guid.TryParse(profileId, out var profileGuid))
             {
+                _logger.LogError("[ChatFunctionService.FollowProfile] VALIDATION ERROR - RequestId={RequestId}, InvalidProfileIdFormat=true",
+                    requestId);
                 return $"Invalid profile ID format: {profileId}";
             }
-
-            _logger.LogInformation("AI following profile {ProfileId} from current profile {CurrentProfileId}", 
-                profileId, _currentProfileId);
 
             // Check if profile exists
             var targetProfile = await _profileRepository.GetByIdAsync(profileGuid);
             if (targetProfile == null || targetProfile.IsDeleted)
             {
+                _logger.LogWarning("[ChatFunctionService.FollowProfile] PROFILE NOT FOUND - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, profileGuid);
                 return $"Profile not found: {profileId}";
             }
 
             // Can't follow yourself
             if (profileGuid == _currentProfileId)
             {
+                _logger.LogWarning("[ChatFunctionService.FollowProfile] SELF FOLLOW ATTEMPT - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, profileGuid);
                 return "You cannot follow yourself.";
             }
 
@@ -234,6 +335,8 @@ public class ChatFunctionService
             var isFollowing = await _followerRepository.IsFollowingAsync(_currentProfileId, profileGuid);
             if (isFollowing)
             {
+                _logger.LogInformation("[ChatFunctionService.FollowProfile] ALREADY FOLLOWING - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, profileGuid);
                 return $"You are already following {targetProfile.DisplayName}.";
             }
 
@@ -245,6 +348,10 @@ public class ChatFunctionService
             };
 
             await _followerRepository.AddAsync(follower);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.FollowProfile] SUCCESS - RequestId={RequestId}, ProfileId={ProfileId}, ProfileName={ProfileName}, Duration={Duration}ms",
+                requestId, profileGuid, targetProfile.DisplayName, elapsed);
 
             return JsonSerializer.Serialize(new
             {
@@ -261,7 +368,9 @@ public class ChatFunctionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error following profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.FollowProfile] EXCEPTION - RequestId={RequestId}, ProfileId={ProfileId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, profileId, ex.GetType().Name, elapsed);
             return $"Error following profile: {ex.Message}";
         }
     }
@@ -274,19 +383,27 @@ public class ChatFunctionService
         [Description("The ID of the profile to unfollow")]
         string profileId)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.UnfollowProfile] START - RequestId={RequestId}, Timestamp={Timestamp}, ProfileId={ProfileId}, CurrentProfileId={CurrentProfileId}",
+            requestId, startTime, profileId, _currentProfileId);
+
         try
         {
+            // Validate input
             if (!Guid.TryParse(profileId, out var profileGuid))
             {
+                _logger.LogError("[ChatFunctionService.UnfollowProfile] VALIDATION ERROR - RequestId={RequestId}, InvalidProfileIdFormat=true",
+                    requestId);
                 return $"Invalid profile ID format: {profileId}";
             }
-
-            _logger.LogInformation("AI unfollowing profile {ProfileId} from current profile {CurrentProfileId}", 
-                profileId, _currentProfileId);
 
             var targetProfile = await _profileRepository.GetByIdAsync(profileGuid);
             if (targetProfile == null || targetProfile.IsDeleted)
             {
+                _logger.LogWarning("[ChatFunctionService.UnfollowProfile] PROFILE NOT FOUND - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, profileGuid);
                 return $"Profile not found: {profileId}";
             }
 
@@ -294,6 +411,8 @@ public class ChatFunctionService
             var isFollowing = await _followerRepository.IsFollowingAsync(_currentProfileId, profileGuid);
             if (!isFollowing)
             {
+                _logger.LogInformation("[ChatFunctionService.UnfollowProfile] NOT FOLLOWING - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, profileGuid);
                 return $"You are not following {targetProfile.DisplayName}.";
             }
 
@@ -302,7 +421,13 @@ public class ChatFunctionService
             if (follower != null)
             {
                 await _followerRepository.DeleteAsync(follower.Id);
+                _logger.LogInformation("[ChatFunctionService.UnfollowProfile] RELATIONSHIP DELETED - RequestId={RequestId}, RelationshipId={RelationshipId}",
+                    requestId, follower.Id);
             }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.UnfollowProfile] SUCCESS - RequestId={RequestId}, ProfileId={ProfileId}, ProfileName={ProfileName}, Duration={Duration}ms",
+                requestId, profileGuid, targetProfile.DisplayName, elapsed);
 
             return JsonSerializer.Serialize(new
             {
@@ -318,7 +443,9 @@ public class ChatFunctionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unfollowing profile {ProfileId}", profileId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.UnfollowProfile] EXCEPTION - RequestId={RequestId}, ProfileId={ProfileId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, profileId, ex.GetType().Name, elapsed);
             return $"Error unfollowing profile: {ex.Message}";
         }
     }
@@ -329,13 +456,19 @@ public class ChatFunctionService
     [Description("Get information about the current user's active profile.")]
     public async Task<string> GetMyProfile()
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetMyProfile] START - RequestId={RequestId}, Timestamp={Timestamp}, CurrentProfileId={CurrentProfileId}",
+            requestId, startTime, _currentProfileId);
+
         try
         {
-            _logger.LogInformation("AI getting current profile info: {ProfileId}", _currentProfileId);
-
             var profile = await _profileRepository.GetByIdAsync(_currentProfileId);
             if (profile == null || profile.IsDeleted)
             {
+                _logger.LogWarning("[ChatFunctionService.GetMyProfile] PROFILE NOT FOUND - RequestId={RequestId}, ProfileId={ProfileId}",
+                    requestId, _currentProfileId);
                 return "Current profile not found.";
             }
 
@@ -345,6 +478,9 @@ public class ChatFunctionService
 
             // Get post count
             var (posts, totalPosts) = await _postRepository.GetByProfileAsync(_currentProfileId, 1, 1, false);
+
+            _logger.LogInformation("[ChatFunctionService.GetMyProfile] PROFILE LOADED - RequestId={RequestId}, ProfileId={ProfileId}, DisplayName={DisplayName}, Followers={FollowerCount}, Following={FollowingCount}, Posts={PostCount}",
+                requestId, _currentProfileId, profile.DisplayName, followerCount, followingCount, totalPosts);
 
             var profileInfo = new
             {
@@ -361,11 +497,17 @@ public class ChatFunctionService
                 createdAt = profile.CreatedAt.ToString("yyyy-MM-dd")
             };
 
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.GetMyProfile] SUCCESS - RequestId={RequestId}, ProfileId={ProfileId}, Duration={Duration}ms",
+                requestId, _currentProfileId, elapsed);
+
             return JsonSerializer.Serialize(profileInfo, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting current profile");
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.GetMyProfile] EXCEPTION - RequestId={RequestId}, ProfileId={ProfileId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, _currentProfileId, ex.GetType().Name, elapsed);
             return $"Error getting profile: {ex.Message}";
         }
     }

@@ -343,10 +343,11 @@ builder.Services.AddScoped<IAuthenticationService>(sp =>
 builder.Services.AddScoped<IWeatherService>(sp =>
 {
     var contextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var logger = sp.GetRequiredService<ILogger<ServerWeatherService>>();
     // On server render: HttpContext is available, use ServerWeatherService (direct data access)
     // On client render: HttpContext is null, use ServerWeatherService which returns empty
     // Client will call the API endpoint instead
-    return new ServerWeatherService();
+    return new ServerWeatherService(logger);
 });
 
 // --- Auth state flow for Auto mode ---

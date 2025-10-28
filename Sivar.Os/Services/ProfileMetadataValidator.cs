@@ -26,10 +26,26 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
     /// </summary>
     public async Task<MetadataValidationResult> ValidateMetadataAsync(string? metadata, ProfileType profileType)
     {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ProfileMetadataValidator.ValidateMetadataAsync] START - RequestId={RequestId}, Timestamp={Timestamp}, ProfileType={ProfileType}, MetadataLength={MetadataLength}",
+            requestId, startTime, profileType?.Name ?? "null", metadata?.Length ?? 0);
+
         try
         {
+            // Validate input
+            if (profileType == null)
+            {
+                _logger.LogError("[ProfileMetadataValidator.ValidateMetadataAsync] VALIDATION ERROR - RequestId={RequestId}, ProfileTypeNull=true",
+                    requestId);
+                throw new ArgumentNullException(nameof(profileType), "Profile type cannot be null");
+            }
+
             if (string.IsNullOrWhiteSpace(metadata))
             {
+                _logger.LogDebug("[ProfileMetadataValidator.ValidateMetadataAsync] Empty metadata provided, using default - RequestId={RequestId}, ProfileType={ProfileType}",
+                    requestId, profileType.Name);
                 metadata = "{}";
             }
 
@@ -37,6 +53,9 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
             const int maxMetadataSize = 50 * 1024; // 50KB
             if (metadata.Length > maxMetadataSize)
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateMetadataAsync] SIZE LIMIT EXCEEDED - RequestId={RequestId}, ProfileType={ProfileType}, Size={Size}, MaxSize={MaxSize}, Duration={Duration}ms",
+                    requestId, profileType.Name, metadata.Length, maxMetadataSize, elapsed);
                 return MetadataValidationResult.Failure($"Metadata size exceeds maximum allowed size of {maxMetadataSize} bytes");
             }
 
@@ -45,9 +64,14 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
             try
             {
                 jsonDoc = JsonDocument.Parse(metadata);
+                _logger.LogDebug("[ProfileMetadataValidator.ValidateMetadataAsync] JSON parsed successfully - RequestId={RequestId}, ProfileType={ProfileType}",
+                    requestId, profileType.Name);
             }
             catch (JsonException ex)
             {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateMetadataAsync] INVALID JSON - RequestId={RequestId}, ProfileType={ProfileType}, Error={Error}, Duration={Duration}ms",
+                    requestId, profileType.Name, ex.Message, elapsed);
                 return MetadataValidationResult.Failure($"Invalid JSON format: {ex.Message}");
             }
 
@@ -56,14 +80,29 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
 
             if (jsonDoc?.RootElement.ValueKind == JsonValueKind.Object)
             {
-                await ValidateJsonObject(jsonDoc.RootElement, rules, result);
+                _logger.LogDebug("[ProfileMetadataValidator.ValidateMetadataAsync] Validating JSON object - RequestId={RequestId}, ProfileType={ProfileType}, RuleCount={RuleCount}",
+                    requestId, profileType.Name, rules.Count);
+                await ValidateJsonObject(jsonDoc.RootElement, rules, result, requestId);
             }
+
+            var elapsed2 = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileMetadataValidator.ValidateMetadataAsync] SUCCESS - RequestId={RequestId}, ProfileType={ProfileType}, IsValid={IsValid}, FieldErrorCount={FieldErrorCount}, Duration={Duration}ms",
+                requestId, profileType.Name, result.IsValid, result.FieldErrors.Count, elapsed2);
 
             return result;
         }
+        catch (ArgumentNullException ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileMetadataValidator.ValidateMetadataAsync] VALIDATION ERROR - RequestId={RequestId}, ProfileType={ProfileType}, Duration={Duration}ms",
+                requestId, profileType?.Name, elapsed);
+            return MetadataValidationResult.Failure(ex.Message);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating metadata for profile type {ProfileType}", profileType.Name);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileMetadataValidator.ValidateMetadataAsync] EXCEPTION - RequestId={RequestId}, ProfileType={ProfileType}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, profileType?.Name, ex.GetType().Name, elapsed);
             return MetadataValidationResult.Failure("Internal validation error");
         }
     }
@@ -73,43 +112,77 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
     /// </summary>
     public Task<MetadataValidationResult> ValidatePersonalMetadataAsync(PersonalProfileMetadataDto metadata)
     {
-        var result = new MetadataValidationResult { IsValid = true };
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        if (metadata == null)
-        {
-            return Task.FromResult(MetadataValidationResult.Failure("Personal metadata is required"));
-        }
+        _logger.LogInformation("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] START - RequestId={RequestId}, Timestamp={Timestamp}",
+            requestId, startTime);
 
-        // Validate skills
-        if (metadata.Skills != null && metadata.Skills.Count > 15)
+        try
         {
-            result.FieldErrors.Add(nameof(metadata.Skills), new List<string> { "Maximum 15 skills allowed" });
-        }
+            var result = new MetadataValidationResult { IsValid = true };
 
-        // Validate languages
-        if (metadata.Languages != null && metadata.Languages.Count > 10)
-        {
-            result.FieldErrors.Add(nameof(metadata.Languages), new List<string> { "Maximum 10 languages allowed" });
-        }
-
-        // Validate interests string length
-        if (!string.IsNullOrEmpty(metadata.Interests) && metadata.Interests.Length > 1000)
-        {
-            result.FieldErrors.Add(nameof(metadata.Interests), new List<string> { "Interests cannot exceed 1000 characters" });
-        }
-
-        // Validate date of birth (must be realistic)
-        if (metadata.DateOfBirth.HasValue)
-        {
-            var age = DateTime.Now.Year - metadata.DateOfBirth.Value.Year;
-            if (age < 13 || age > 120)
+            if (metadata == null)
             {
-                result.FieldErrors.Add(nameof(metadata.DateOfBirth), new List<string> { "Age must be between 13 and 120 years" });
+                _logger.LogError("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] VALIDATION ERROR - RequestId={RequestId}, MetadataNull=true",
+                    requestId);
+                return Task.FromResult(MetadataValidationResult.Failure("Personal metadata is required"));
             }
-        }
 
-        result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
-        return Task.FromResult(result);
+            _logger.LogDebug("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] Validating skills, languages, interests - RequestId={RequestId}",
+                requestId);
+
+            // Validate skills
+            if (metadata.Skills != null && metadata.Skills.Count > 15)
+            {
+                result.FieldErrors.Add(nameof(metadata.Skills), new List<string> { "Maximum 15 skills allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] Skills limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Skills.Count);
+            }
+
+            // Validate languages
+            if (metadata.Languages != null && metadata.Languages.Count > 10)
+            {
+                result.FieldErrors.Add(nameof(metadata.Languages), new List<string> { "Maximum 10 languages allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] Languages limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Languages.Count);
+            }
+
+            // Validate interests string length
+            if (!string.IsNullOrEmpty(metadata.Interests) && metadata.Interests.Length > 1000)
+            {
+                result.FieldErrors.Add(nameof(metadata.Interests), new List<string> { "Interests cannot exceed 1000 characters" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] Interests length exceeded - RequestId={RequestId}, Length={Length}",
+                    requestId, metadata.Interests.Length);
+            }
+
+            // Validate date of birth (must be realistic)
+            if (metadata.DateOfBirth.HasValue)
+            {
+                var age = DateTime.Now.Year - metadata.DateOfBirth.Value.Year;
+                if (age < 13 || age > 120)
+                {
+                    result.FieldErrors.Add(nameof(metadata.DateOfBirth), new List<string> { "Age must be between 13 and 120 years" });
+                    _logger.LogWarning("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] Age out of range - RequestId={RequestId}, Age={Age}",
+                        requestId, age);
+                }
+            }
+
+            result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileMetadataValidator.ValidatePersonalMetadataAsync] SUCCESS - RequestId={RequestId}, IsValid={IsValid}, FieldErrorCount={FieldErrorCount}, Duration={Duration}ms",
+                requestId, result.IsValid, result.FieldErrors.Count, elapsed);
+
+            return Task.FromResult(result);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileMetadataValidator.ValidatePersonalMetadataAsync] EXCEPTION - RequestId={RequestId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, ex.GetType().Name, elapsed);
+            return Task.FromResult(MetadataValidationResult.Failure("Internal validation error"));
+        }
     }
 
     /// <summary>
@@ -117,50 +190,86 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
     /// </summary>
     public Task<MetadataValidationResult> ValidateBusinessMetadataAsync(BusinessProfileMetadataDto metadata)
     {
-        var result = new MetadataValidationResult { IsValid = true };
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        if (metadata == null)
-        {
-            return Task.FromResult(MetadataValidationResult.Failure("Business metadata is required"));
-        }
+        _logger.LogInformation("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] START - RequestId={RequestId}, Timestamp={Timestamp}",
+            requestId, startTime);
 
-        // Validate industry (required for business profiles)
-        if (string.IsNullOrEmpty(metadata.Industry))
+        try
         {
-            result.FieldErrors.Add(nameof(metadata.Industry), new List<string> { "Industry is required for business profiles" });
-        }
+            var result = new MetadataValidationResult { IsValid = true };
 
-        // Validate services
-        if (metadata.Services != null && metadata.Services.Count > 25)
-        {
-            result.FieldErrors.Add(nameof(metadata.Services), new List<string> { "Maximum 25 services allowed" });
-        }
-
-        // Validate products
-        if (metadata.Products != null && metadata.Products.Count > 25)
-        {
-            result.FieldErrors.Add(nameof(metadata.Products), new List<string> { "Maximum 25 products allowed" });
-        }
-
-        // Validate certifications
-        if (metadata.Certifications != null && metadata.Certifications.Count > 10)
-        {
-            result.FieldErrors.Add(nameof(metadata.Certifications), new List<string> { "Maximum 10 certifications allowed" });
-        }
-
-        // Validate year founded
-        if (metadata.YearFounded.HasValue)
-        {
-            var currentYear = DateTime.Now.Year;
-            if (metadata.YearFounded < 1800 || metadata.YearFounded > currentYear)
+            if (metadata == null)
             {
-                result.FieldErrors.Add(nameof(metadata.YearFounded), 
-                    new List<string> { $"Year founded must be between 1800 and {currentYear}" });
+                _logger.LogError("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] VALIDATION ERROR - RequestId={RequestId}, MetadataNull=true",
+                    requestId);
+                return Task.FromResult(MetadataValidationResult.Failure("Business metadata is required"));
             }
-        }
 
-        result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
-        return Task.FromResult(result);
+            _logger.LogDebug("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Validating business fields - RequestId={RequestId}",
+                requestId);
+
+            // Validate industry (required for business profiles)
+            if (string.IsNullOrEmpty(metadata.Industry))
+            {
+                result.FieldErrors.Add(nameof(metadata.Industry), new List<string> { "Industry is required for business profiles" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Missing required field - RequestId={RequestId}, Field=Industry",
+                    requestId);
+            }
+
+            // Validate services
+            if (metadata.Services != null && metadata.Services.Count > 25)
+            {
+                result.FieldErrors.Add(nameof(metadata.Services), new List<string> { "Maximum 25 services allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Services limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Services.Count);
+            }
+
+            // Validate products
+            if (metadata.Products != null && metadata.Products.Count > 25)
+            {
+                result.FieldErrors.Add(nameof(metadata.Products), new List<string> { "Maximum 25 products allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Products limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Products.Count);
+            }
+
+            // Validate certifications
+            if (metadata.Certifications != null && metadata.Certifications.Count > 10)
+            {
+                result.FieldErrors.Add(nameof(metadata.Certifications), new List<string> { "Maximum 10 certifications allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Certifications limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Certifications.Count);
+            }
+
+            // Validate year founded
+            if (metadata.YearFounded.HasValue)
+            {
+                var currentYear = DateTime.Now.Year;
+                if (metadata.YearFounded < 1800 || metadata.YearFounded > currentYear)
+                {
+                    result.FieldErrors.Add(nameof(metadata.YearFounded), 
+                        new List<string> { $"Year founded must be between 1800 and {currentYear}" });
+                    _logger.LogWarning("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] Invalid year founded - RequestId={RequestId}, Year={Year}",
+                        requestId, metadata.YearFounded);
+                }
+            }
+
+            result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileMetadataValidator.ValidateBusinessMetadataAsync] SUCCESS - RequestId={RequestId}, IsValid={IsValid}, FieldErrorCount={FieldErrorCount}, Duration={Duration}ms",
+                requestId, result.IsValid, result.FieldErrors.Count, elapsed);
+
+            return Task.FromResult(result);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileMetadataValidator.ValidateBusinessMetadataAsync] EXCEPTION - RequestId={RequestId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, ex.GetType().Name, elapsed);
+            return Task.FromResult(MetadataValidationResult.Failure("Internal validation error"));
+        }
     }
 
     /// <summary>
@@ -168,50 +277,86 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
     /// </summary>
     public Task<MetadataValidationResult> ValidateOrganizationMetadataAsync(OrganizationProfileMetadataDto metadata)
     {
-        var result = new MetadataValidationResult { IsValid = true };
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
 
-        if (metadata == null)
-        {
-            return Task.FromResult(MetadataValidationResult.Failure("Organization metadata is required"));
-        }
+        _logger.LogInformation("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] START - RequestId={RequestId}, Timestamp={Timestamp}",
+            requestId, startTime);
 
-        // Validate organization type (required)
-        if (string.IsNullOrEmpty(metadata.OrganizationType))
+        try
         {
-            result.FieldErrors.Add(nameof(metadata.OrganizationType), new List<string> { "Organization type is required" });
-        }
+            var result = new MetadataValidationResult { IsValid = true };
 
-        // Validate programs
-        if (metadata.Programs != null && metadata.Programs.Count > 20)
-        {
-            result.FieldErrors.Add(nameof(metadata.Programs), new List<string> { "Maximum 20 programs allowed" });
-        }
-
-        // Validate leadership team
-        if (metadata.Leadership != null && metadata.Leadership.Count > 15)
-        {
-            result.FieldErrors.Add(nameof(metadata.Leadership), new List<string> { "Maximum 15 leadership members allowed" });
-        }
-
-        // Validate values
-        if (metadata.Values != null && metadata.Values.Count > 10)
-        {
-            result.FieldErrors.Add(nameof(metadata.Values), new List<string> { "Maximum 10 organizational values allowed" });
-        }
-
-        // Validate year founded
-        if (metadata.YearFounded.HasValue)
-        {
-            var currentYear = DateTime.Now.Year;
-            if (metadata.YearFounded < 1800 || metadata.YearFounded > currentYear)
+            if (metadata == null)
             {
-                result.FieldErrors.Add(nameof(metadata.YearFounded), 
-                    new List<string> { $"Year founded must be between 1800 and {currentYear}" });
+                _logger.LogError("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] VALIDATION ERROR - RequestId={RequestId}, MetadataNull=true",
+                    requestId);
+                return Task.FromResult(MetadataValidationResult.Failure("Organization metadata is required"));
             }
-        }
 
-        result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
-        return Task.FromResult(result);
+            _logger.LogDebug("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Validating organization fields - RequestId={RequestId}",
+                requestId);
+
+            // Validate organization type (required)
+            if (string.IsNullOrEmpty(metadata.OrganizationType))
+            {
+                result.FieldErrors.Add(nameof(metadata.OrganizationType), new List<string> { "Organization type is required" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Missing required field - RequestId={RequestId}, Field=OrganizationType",
+                    requestId);
+            }
+
+            // Validate programs
+            if (metadata.Programs != null && metadata.Programs.Count > 20)
+            {
+                result.FieldErrors.Add(nameof(metadata.Programs), new List<string> { "Maximum 20 programs allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Programs limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Programs.Count);
+            }
+
+            // Validate leadership team
+            if (metadata.Leadership != null && metadata.Leadership.Count > 15)
+            {
+                result.FieldErrors.Add(nameof(metadata.Leadership), new List<string> { "Maximum 15 leadership members allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Leadership limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Leadership.Count);
+            }
+
+            // Validate values
+            if (metadata.Values != null && metadata.Values.Count > 10)
+            {
+                result.FieldErrors.Add(nameof(metadata.Values), new List<string> { "Maximum 10 organizational values allowed" });
+                _logger.LogWarning("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Values limit exceeded - RequestId={RequestId}, Count={Count}",
+                    requestId, metadata.Values.Count);
+            }
+
+            // Validate year founded
+            if (metadata.YearFounded.HasValue)
+            {
+                var currentYear = DateTime.Now.Year;
+                if (metadata.YearFounded < 1800 || metadata.YearFounded > currentYear)
+                {
+                    result.FieldErrors.Add(nameof(metadata.YearFounded), 
+                        new List<string> { $"Year founded must be between 1800 and {currentYear}" });
+                    _logger.LogWarning("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] Invalid year founded - RequestId={RequestId}, Year={Year}",
+                        requestId, metadata.YearFounded);
+                }
+            }
+
+            result.IsValid = !result.FieldErrors.Any() && !result.Errors.Any();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] SUCCESS - RequestId={RequestId}, IsValid={IsValid}, FieldErrorCount={FieldErrorCount}, Duration={Duration}ms",
+                requestId, result.IsValid, result.FieldErrors.Count, elapsed);
+
+            return Task.FromResult(result);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfileMetadataValidator.ValidateOrganizationMetadataAsync] EXCEPTION - RequestId={RequestId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
+                requestId, ex.GetType().Name, elapsed);
+            return Task.FromResult(MetadataValidationResult.Failure("Internal validation error"));
+        }
     }
 
     /// <summary>
@@ -250,7 +395,7 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
 
     #region Private Helper Methods
 
-    private async Task ValidateJsonObject(JsonElement jsonElement, Dictionary<string, MetadataFieldRule> rules, MetadataValidationResult result)
+    private async Task ValidateJsonObject(JsonElement jsonElement, Dictionary<string, MetadataFieldRule> rules, MetadataValidationResult result, Guid requestId)
     {
         // Check required fields
         foreach (var rule in rules.Where(r => r.Value.IsRequired))
@@ -262,6 +407,9 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
                 
                 result.FieldErrors[rule.Key].Add($"Field '{rule.Key}' is required");
                 result.IsValid = false;
+                
+                _logger.LogDebug("[ProfileMetadataValidator.ValidateJsonObject] Missing required field - RequestId={RequestId}, Field={Field}",
+                    requestId, rule.Key);
             }
         }
 
@@ -270,12 +418,12 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
         {
             if (rules.ContainsKey(property.Name))
             {
-                await ValidateFieldValue(property.Name, property.Value, rules[property.Name], result);
+                await ValidateFieldValue(property.Name, property.Value, rules[property.Name], result, requestId);
             }
         }
     }
 
-    private Task ValidateFieldValue(string fieldName, JsonElement value, MetadataFieldRule rule, MetadataValidationResult result)
+    private Task ValidateFieldValue(string fieldName, JsonElement value, MetadataFieldRule rule, MetadataValidationResult result, Guid requestId)
     {
         var errors = new List<string>();
 
@@ -363,6 +511,9 @@ public class ProfileMetadataValidator : IProfileMetadataValidator
             
             result.FieldErrors[fieldName].AddRange(errors);
             result.IsValid = false;
+
+            _logger.LogDebug("[ProfileMetadataValidator.ValidateFieldValue] Field validation errors - RequestId={RequestId}, Field={Field}, ErrorCount={ErrorCount}",
+                requestId, fieldName, errors.Count);
         }
         
         return Task.CompletedTask;
