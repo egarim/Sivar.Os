@@ -4,14 +4,6 @@
 
 <div class="header">
     <div class="logo">Sivar Social</div>
-    <div class="header-center">
-        <span class="profile-type-label">Profile type</span>
-        <select class="profile-type-switcher" @bind="ProfileType">
-            <option value="personal">Personal profile</option>
-            <option value="business">Business page</option>
-            <option value="product">Product showcase</option>
-        </select>
-    </div>
     <div class="user-info">
         <div class="user-details">
             @if (IsLoading)
@@ -88,18 +80,6 @@
     /// </summary>
     [Parameter]
     public bool IsLoading { get; set; } = true;
-
-    /// <summary>
-    /// Currently selected profile type
-    /// </summary>
-    [Parameter]
-    public string ProfileType { get; set; } = "personal";
-
-    /// <summary>
-    /// Callback when profile type changes
-    /// </summary>
-    [Parameter]
-    public EventCallback<string> ProfileTypeChanged { get; set; }
 
     /// <summary>
     /// Show theme toggle button

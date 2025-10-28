@@ -88,26 +88,6 @@
         color: var(--wire-primary);
     }
 
-    .wireframe-landing .header-center {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .wireframe-landing .profile-type-label {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .profile-type-switcher {
-        padding: 6px 12px;
-        border: 1px solid var(--wire-border);
-        border-radius: 6px;
-        background: var(--wire-surface);
-        font-size: 14px;
-        cursor: pointer;
-    }
-
     .wireframe-landing .user-info {
         display: flex;
         align-items: center;
@@ -1639,8 +1619,7 @@
 </style>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
-    <Header @bind-ProfileType="@_profileType"
-            @bind-UserName="@_userName"
+    <Header @bind-UserName="@_userName"
             @bind-UserEmail="@_userEmail"
             UserInitials="@GetUserInitials()"
             IsLoading="@_isUserLoading"
@@ -1656,10 +1635,10 @@
 
         <!-- Center: Main Feed -->
         <div class="feed">
-            <FeedHeader Title="@($"{_profileType.ToUpper()} FEED")"
+            <FeedHeader Title="FEED"
                         Subtitle="See what's happening in your network" />
 
-            <PostComposer ProfileTypeTitle="@GetProfileTypeTitle()"
+            <PostComposer ProfileTypeTitle="Create post"
                           @bind-SelectedType="@_selectedPostType"
                           PostText="@_postText"
                           PostTextChanged="@HandlePostTextInputChanged"
@@ -1672,7 +1651,6 @@
                           @bind-PostTags="@_postTags"
                           @bind-PostLocation="@_postLocation"
                           @bind-PostBusinessMetadata="@_postBusinessMetadata"
-                          IsBusinessProfile="@(_profileType == "business")"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             @foreach (var post in _posts)
@@ -1738,10 +1716,6 @@
     [CascadingParameter]
     private LandingLayout? _layout { get; set; }
 
-    // Profile & UI State
-    private string _profileType = "personal";
-    private bool _bodyClassApplied;
-    
     // Header - User Info
     private string _userName = "Loading...";
     private string _userEmail = "Loading...";
@@ -2024,7 +1998,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_bodyClassApplied)
+        if (firstRender)
         {
             try
             {
@@ -2032,8 +2006,6 @@
                 
                 // Register debug method for browser console access
                 await JS.InvokeVoidAsync("eval", "window.homePageDebug = () => DotNet.invokeMethodAsync('Home', 'DebugCurrentClaims')");
-                
-                _bodyClassApplied = true;
             }
             catch
             {
@@ -2131,7 +2103,7 @@
             
             // Show edit modal
             var result = await _dialogService.ShowAsync<PostEditModal>("Edit Post", 
-                new DialogParameters { { "Post", post }, { "IsBusinessProfile", _profileType == "business" } });
+                new DialogParameters { { "Post", post } });
 
             var dialogResult = await result.Result;
             if (dialogResult?.Canceled == false && dialogResult?.Data is UpdatePostDto updateDto)
@@ -2220,14 +2192,15 @@
     }
 
     // Profile Helper
-    private string GetProfileTypeTitle()
+    private string GetUserInitials()
     {
-        return _profileType switch
-        {
-            "business" => "Business Page",
-            "product" => "Product Profile",
-            _ => "Personal Profile"
-        };
+        if (string.IsNullOrEmpty(_userName) || _userName.Length < 2)
+            return "?";
+
+        var parts = _userName.Split(' ');
+        return parts.Length > 1
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : _userName.Substring(0, Math.Min(2, _userName.Length));
     }
 
     // Stats Helper
@@ -2594,8 +2567,6 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
     public async ValueTask DisposeAsync()
     {
-        if (!_bodyClassApplied) return;
-
         try
         {
             await JS.InvokeVoidAsync("eval", "document.body.classList.remove('wireframe-landing-page')");
@@ -2707,18 +2678,6 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             Console.WriteLine("[HOME-CLIENT] 📍 END: LoadCurrentUserAsync");
             Console.WriteLine("[HOME-CLIENT] ======================================");
         }
-    }
-
-    /// <summary>
-    /// Get user initials from display name for avatar
-    /// </summary>
-    private string GetUserInitials()
-    {
-        if (string.IsNullOrEmpty(_userName)) return "?";
-        var parts = _userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0) return "?";
-        if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
-        return $"{parts[0][0]}{parts[parts.Length - 1][0]}".ToUpper();
     }
 
     /// <summary>
