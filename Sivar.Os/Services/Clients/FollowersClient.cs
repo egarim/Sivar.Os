@@ -68,4 +68,24 @@ public class FollowersClient : BaseRepositoryClient, IFollowersClient
         _logger.LogInformation("GetMutualFollowersAsync: {ProfileId}", otherProfileId);
         return new List<ProfileFollowerDto>();
     }
+
+    // Profile-specific queries
+    public async Task<FollowerStatsDto> GetStatsForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("GetStatsForProfileAsync: {ProfileId}", profileId);
+        // For server-side rendering, we don't have current user context - API will handle it
+        return await _profileFollowerService.GetFollowerStatsAsync(profileId, null);
+    }
+
+    public async Task<IEnumerable<FollowerProfileDto>> GetFollowersForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("GetFollowersForProfileAsync: {ProfileId}", profileId);
+        return await _profileFollowerService.GetFollowersAsync(profileId, null);
+    }
+
+    public async Task<IEnumerable<FollowingProfileDto>> GetFollowingForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("GetFollowingForProfileAsync: {ProfileId}", profileId);
+        return await _profileFollowerService.GetFollowingAsync(profileId, null);
+    }
 }

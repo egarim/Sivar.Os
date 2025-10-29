@@ -19,4 +19,9 @@ public interface IFollowersClient
     // Status checks
     Task<bool> GetFollowingStatusAsync(Guid targetProfileId, CancellationToken cancellationToken = default);
     Task<IEnumerable<ProfileFollowerDto>> GetMutualFollowersAsync(Guid otherProfileId, CancellationToken cancellationToken = default);
+
+    // Profile-specific queries
+    Task<FollowerStatsDto> GetStatsForProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<FollowerProfileDto>> GetFollowersForProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<FollowingProfileDto>> GetFollowingForProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
 }

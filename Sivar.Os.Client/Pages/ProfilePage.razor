@@ -10,6 +10,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager Navigation
 @inject IProfilesClient ProfilesClient
+@inject IFollowersClient FollowersClient
 
 @if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
 {
@@ -251,7 +252,7 @@
                 Username="@profileData.Username"
                 Initials="@profileData.Initials"
                 Stats="@profileData.Stats"
-                FollowButtonText="Follow"
+                FollowButtonText="@GetFollowButtonText()"
                 OnFollowClick="HandleFollow"
                 OnMessageClick="HandleMessage" />
 
@@ -273,6 +274,9 @@
     private ProfileData profileData = new();
     private bool isLoading = true;
     private string? errorMessage;
+    private bool isFollowing = false;
+    private bool isFollowActionInProgress = false;
+    private Guid? viewedProfileId = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,6 +309,7 @@
             else
             {
                 Console.WriteLine($"[ProfilePage] Profile loaded: {profile.DisplayName} (ID: {profile.Id})");
+                viewedProfileId = profile.Id;
                 
                 // SEO: Redirect from GUID to handle for better URLs
                 if (Guid.TryParse(Identifier, out _) && !string.IsNullOrEmpty(profile.Handle))
@@ -314,6 +319,9 @@
                     return; // Don't set profile data, the redirect will trigger a reload
                 }
                 
+                // Load follower stats and follow status
+                var stats = await LoadFollowerStatsAsync(profile.Id);
+                
                 profileData = new ProfileData
                 {
                     ProfileSlug = profile.Handle ?? Identifier,
@@ -321,12 +329,7 @@
                     Username = profile.Handle ?? GenerateUsernameFromDisplayName(profile.DisplayName ?? "Unknown"),
                     Initials = GetInitialsFromDisplayName(profile.DisplayName ?? "Unknown"),
                     Bio = profile.Bio ?? "No bio available",
-                    Stats = new ProfileStats
-                    {
-                        Posts = 0, // TODO: Fetch from posts service
-                        Followers = 0, // TODO: Fetch from followers service
-                        Following = 0  // TODO: Fetch from following service
-                    }
+                    Stats = stats
                 };
             }
         }
@@ -340,6 +343,35 @@
         {
             isLoading = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task<ProfileStats> LoadFollowerStatsAsync(Guid profileId)
+    {
+        try
+        {
+            Console.WriteLine($"[ProfilePage] Loading follower stats for profile: {profileId}");
+            var stats = await FollowersClient.GetStatsForProfileAsync(profileId);
+            
+            isFollowing = stats.IsFollowedByCurrentUser;
+            Console.WriteLine($"[ProfilePage] Stats loaded - Followers: {stats.FollowersCount}, Following: {stats.FollowingCount}, IsFollowing: {isFollowing}");
+            
+            return new ProfileStats
+            {
+                Posts = 0, // TODO: Fetch from posts service
+                Followers = stats.FollowersCount,
+                Following = stats.FollowingCount
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ProfilePage] Error loading follower stats: {ex.Message}");
+            return new ProfileStats
+            {
+                Posts = 0,
+                Followers = 0,
+                Following = 0
+            };
         }
     }
 
@@ -404,9 +436,63 @@
         Navigation.NavigateTo("/");
     }
 
-    private void HandleFollow()
+    private string GetFollowButtonText()
     {
-        // TODO: Implement follow logic
+        if (isFollowActionInProgress)
+            return isFollowing ? "Unfollowing..." : "Following...";
+        
+        return isFollowing ? "Unfollow" : "Follow";
+    }
+
+    private async Task HandleFollow()
+    {
+        if (isFollowActionInProgress || !viewedProfileId.HasValue)
+            return;
+
+        isFollowActionInProgress = true;
+        StateHasChanged();
+
+        try
+        {
+            if (isFollowing)
+            {
+                Console.WriteLine($"[ProfilePage] Unfollowing profile: {viewedProfileId}");
+                await FollowersClient.UnfollowAsync(viewedProfileId.Value);
+                isFollowing = false;
+                profileData.Stats.Followers = Math.Max(0, profileData.Stats.Followers - 1);
+                Console.WriteLine($"[ProfilePage] Unfollowed successfully");
+            }
+            else
+            {
+                Console.WriteLine($"[ProfilePage] Following profile: {viewedProfileId}");
+                var result = await FollowersClient.FollowAsync(new FollowActionDto 
+                { 
+                    ProfileToFollowId = viewedProfileId.Value 
+                });
+                
+                if (result.Success)
+                {
+                    isFollowing = true;
+                    profileData.Stats.Followers++;
+                    Console.WriteLine($"[ProfilePage] Followed successfully");
+                }
+                else
+                {
+                    Console.WriteLine($"[ProfilePage] Follow failed: {result.Message}");
+                    // TODO: Show error message to user
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ProfilePage] Error during follow/unfollow: {ex.Message}");
+            // TODO: Show error message to user
+        }
+        finally
+        {
+            isFollowActionInProgress = false;
+            StateHasChanged();
+        }
     }
 
     private void HandleMessage()

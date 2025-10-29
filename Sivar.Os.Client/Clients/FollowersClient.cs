@@ -47,4 +47,19 @@ public class FollowersClient : BaseClient, IFollowersClient
     {
         return await GetAsync<IEnumerable<ProfileFollowerDto>>($"api/followers/mutual/{otherProfileId}", cancellationToken);
     }
+
+    public async Task<FollowerStatsDto> GetStatsForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<FollowerStatsDto>($"api/followers/profiles/{profileId}/stats", cancellationToken);
+    }
+
+    public async Task<IEnumerable<FollowerProfileDto>> GetFollowersForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<IEnumerable<FollowerProfileDto>>($"api/followers/profiles/{profileId}/followers", cancellationToken);
+    }
+
+    public async Task<IEnumerable<FollowingProfileDto>> GetFollowingForProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<IEnumerable<FollowingProfileDto>>($"api/followers/profiles/{profileId}/following", cancellationToken);
+    }
 }
