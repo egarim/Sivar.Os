@@ -1643,8 +1643,7 @@
 
             <PostComposer ProfileTypeTitle="Create post"
                           @bind-SelectedType="@_selectedPostType"
-                          PostText="@_postText"
-                          PostTextChanged="@HandlePostTextInputChanged"
+                          @bind-PostText="@_postText"
                           @bind-ActiveAttachment="@_activeAttachment"
                           @bind-ScheduledDate="@_scheduledDate"
                           @bind-ScheduledTime="@_scheduledTime"
@@ -2731,46 +2730,90 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] START - Current profile: {_currentProfileId}, Page: {_currentPage}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] START");
+            Console.WriteLine($"  Current Profile ID: {_currentProfileId}");
+            Console.WriteLine($"  Current Page: {_currentPage}");
+            Console.WriteLine($"  Current Activities Count: {_activities?.Count ?? 0}");
             
-            // Note: We use GetFeedActivitiesAsync() which gets the activity feed for the authenticated user
-            // This doesn't require a profileId - it automatically uses the user's Keycloak ID
-            // The feed shows activities from profiles the user follows (or their own activities)
-            
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Calling GetFeedActivitiesAsync with pageSize=10, pageNumber={_currentPage}");
-            var feedDto = await SivarClient.Activities.GetFeedActivitiesAsync(pageSize: 10, pageNumber: _currentPage);
-            
-            if (feedDto == null)
+            // Check if we have a valid profile ID
+            if (_currentProfileId == Guid.Empty)
             {
-                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ❌ Feed DTO is null");
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No active profile ID - skipping activity load");
                 _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
                 return;
             }
             
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Feed DTO received - Activities count: {feedDto.Activities?.Count ?? 0}, Total: {feedDto.TotalCount}, Pages: {feedDto.TotalPages}");
+            // Load activities created BY the current profile (not the follower feed)
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📡 Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
+            var feedDto = await SivarClient.Activities.GetProfileActivitiesAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
+            
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📥 API Response received");
+            
+            if (feedDto == null)
+            {
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ❌ Feed DTO is null!");
+                _activities = new List<ActivityDto>();
+                _totalPages = 0;
+                StateHasChanged();
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                return;
+            }
+            
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Feed DTO Details:");
+            Console.WriteLine($"  Activities: {feedDto.Activities?.Count ?? 0} items");
+            Console.WriteLine($"  TotalCount: {feedDto.TotalCount}");
+            Console.WriteLine($"  TotalPages: {feedDto.TotalPages}");
+            Console.WriteLine($"  CurrentPage: {feedDto.Page}");
             
             if (feedDto?.Activities != null && feedDto.Activities.Any())
             {
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📋 Processing {feedDto.Activities.Count} activities:");
+                for (int i = 0; i < feedDto.Activities.Count; i++)
+                {
+                    var activity = feedDto.Activities[i];
+                    Console.WriteLine($"  Activity {i + 1}:");
+                    Console.WriteLine($"    ID: {activity.Id}");
+                    Console.WriteLine($"    Verb: {activity.Verb}");
+                    Console.WriteLine($"    Summary: {activity.Summary}");
+                    Console.WriteLine($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
+                    Console.WriteLine($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
+                }
+                
                 _activities = feedDto.Activities;
                 _totalPages = feedDto.TotalPages;
                 
-                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✓ Successfully loaded {_activities.Count} activities (Page {feedDto.Page + 1} of {feedDto.TotalPages})");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ Successfully assigned {_activities.Count} activities to _activities field");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ Total pages: {_totalPages}");
             }
             else
             {
-                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No activities found in feed (this is OK - feed is empty)");
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No activities in response - feed is empty");
                 _activities = new List<ActivityDto>();
                 _totalPages = feedDto?.TotalPages ?? 0;
             }
             
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 🔄 Calling StateHasChanged()...");
             StateHasChanged();
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ StateHasChanged() completed");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] FINAL: _activities.Count = {_activities?.Count ?? 0}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ❌ Error loading feed activities: {ex.Message}");
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Stack trace: {ex.StackTrace}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ❌ ERROR!");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Type: {ex.GetType().Name}");
+            Console.WriteLine($"  Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+            }
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
             _activities = new List<ActivityDto>();
             _totalPages = 0;
             StateHasChanged();
@@ -2806,16 +2849,6 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             Console.WriteLine($"[Home] Error loading user statistics: {ex.Message}");
             // Keep default mock values as fallback
         }
-    }
-
-    /// <summary>
-    /// Handle post text input change from PostComposer
-    /// </summary>
-    private Task HandlePostTextInputChanged(string text)
-    {
-        _postText = text;
-        Console.WriteLine($"[Home] PostTextChanged invoked - _postText='{_postText}' (length={_postText?.Length ?? 0})");
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -2942,26 +2975,51 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine($"[Home] Switching to profile: {selectedProfile.DisplayName}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"[Home.HandleProfileChanged] START - Switching to profile");
+            Console.WriteLine($"  Profile Name: {selectedProfile.DisplayName}");
+            Console.WriteLine($"  Profile ID: {selectedProfile.Id}");
+            Console.WriteLine($"  Profile Type: {selectedProfile.ProfileType?.DisplayName}");
+            Console.WriteLine($"  Previous Active Profile: {_activeProfile?.DisplayName} ({_activeProfile?.Id})");
 
             if (await ProfileSwitcherService.SwitchProfileAsync(selectedProfile.Id))
             {
+                Console.WriteLine($"[Home.HandleProfileChanged] ✅ Server acknowledged profile switch");
+                
                 _activeProfile = selectedProfile;
                 _currentProfileId = selectedProfile.Id;
-                Console.WriteLine($"[Home] ✓ Profile switched successfully");
+                
+                Console.WriteLine($"[Home.HandleProfileChanged] Updated local state:");
+                Console.WriteLine($"  _activeProfile: {_activeProfile.DisplayName}");
+                Console.WriteLine($"  _currentProfileId: {_currentProfileId}");
+                
+                // Reset pagination when switching profiles
+                _currentPage = 1;
+                Console.WriteLine($"[Home.HandleProfileChanged] Reset pagination to page 1");
                 
                 // Reload feed activities for the new profile
+                Console.WriteLine($"[Home.HandleProfileChanged] Loading activities for profile: {selectedProfile.DisplayName}");
                 await LoadFeedActivitiesAsync();
+                Console.WriteLine($"[Home.HandleProfileChanged] ✅ Activities loaded: {_activities.Count} activities");
+                
                 StateHasChanged();
+                Console.WriteLine($"[Home.HandleProfileChanged] ✅ UI refreshed");
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
             }
             else
             {
-                Console.WriteLine("[Home] ❌ Failed to switch profile");
+                Console.WriteLine("[Home.HandleProfileChanged] ❌ Failed to switch profile on server");
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ❌ Error switching profile: {ex.Message}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"[Home.HandleProfileChanged] ❌ Error switching profile");
+            Console.WriteLine($"  Exception: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Stack: {ex.StackTrace}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
         }
     }
 

@@ -1,110 +1,139 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Client.Services
+@using MudBlazor
 @namespace Sivar.Os.Client.Components.ProfileSwitcher
 
 @if (IsOpen)
 {
     <div class="modal-overlay" @onclick="@(() => OnCancel.InvokeAsync())">
-        <div class="modal-content" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h2>Create New Profile</h2>
-                <button class="modal-close" @onclick="@(() => OnCancel.InvokeAsync())">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
-            </div>
+        <MudPaper Class="modal-content" Elevation="8" @onclick:stopPropagation="true">
+            <MudStack Spacing="3" Style="padding: 24px;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="margin-bottom: 8px;">
+                    <MudText Typo="Typo.h5">Create New Profile</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                   OnClick="@(() => OnCancel.InvokeAsync())" 
+                                   Size="Size.Small" />
+                </MudStack>
 
-            <div class="modal-body">
-                <!-- Profile Type Selection -->
-                <div class="form-group">
-                    <label class="form-label">Profile Type</label>
-                    <div class="profile-type-grid">
-                        @foreach (var type in ProfileTypes)
-                        {
-                            <div class="profile-type-option @(SelectedProfileType == type.Id ? "selected" : "")" 
-                                 @onclick="@(() => SelectProfileType(type))">
-                                <div class="profile-type-icon">
-                                    @GetProfileTypeIcon(type.Name)
-                                </div>
-                                <div class="profile-type-label">
-                                    <span class="profile-type-name">@type.DisplayName</span>
-                                    <span class="profile-type-desc">@type.Description</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
+                        <!-- Profile Type Selection -->
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">Profile Type</MudText>
+                            <MudStack Spacing="2">
+                                @foreach (var type in ProfileTypes)
+                                {
+                                    <MudPaper Outlined="true" 
+                                              Class="@GetProfileTypeClass(type.Id)"
+                                              @onclick="@(() => SelectProfileType(type))"
+                                              Style="cursor: pointer; padding: 12px; transition: all 0.2s ease;">
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                            <MudText Typo="Typo.h6">@GetProfileTypeIcon(type.Name)</MudText>
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.body1" Style="font-weight: 600;">@type.DisplayName</MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">@type.Description</MudText>
+                                            </MudStack>
+                                            @if (SelectedProfileType == type.Id)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Style="margin-left: auto;" />
+                                            }
+                                        </MudStack>
+                                    </MudPaper>
+                                }
+                            </MudStack>
+                        </MudStack>
 
-                <!-- Profile Name Input -->
-                <div class="form-group">
-                    <label class="form-label">Profile Name *</label>
-                    <input type="text" 
-                           class="form-input" 
-                           placeholder="e.g., My Business, Creative Studio"
-                           @bind="ProfileName"
-                           @bind:event="oninput"
-                           @onchange="ValidateProfileName" />
-                    @if (!string.IsNullOrEmpty(ProfileNameError))
-                    {
-                        <span class="form-error">@ProfileNameError</span>
-                    }
-                </div>
+                        <!-- Profile Name Input -->
+                        <MudTextField @bind-Value="ProfileName"
+                                      Label="Profile Name"
+                                      Placeholder="e.g., My Business, Creative Studio"
+                                      Required="true"
+                                      RequiredError="Profile name is required"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Immediate="true"
+                                      OnBlur="ValidateProfileName"
+                                      Error="@(!string.IsNullOrEmpty(ProfileNameError))"
+                                      ErrorText="@ProfileNameError" />
 
-                <!-- Profile Description -->
-                <div class="form-group">
-                    <label class="form-label">Description (Optional)</label>
-                    <textarea class="form-textarea"
-                              placeholder="Tell us about this profile..."
-                              @bind="ProfileDescription"
-                              @bind:event="oninput"
-                              rows="3"></textarea>
-                    <div class="char-count">@ProfileDescription.Length / 500</div>
-                </div>
+                        <!-- Profile Description -->
+                        <MudTextField @bind-Value="ProfileDescription"
+                                      Label="Description (Optional)"
+                                      Placeholder="Tell us about this profile..."
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Lines="3"
+                                      Counter="500"
+                                      MaxLength="500"
+                                      HelperText="@($"{ProfileDescription.Length} / 500 characters")" />
 
-                <!-- Visibility Level -->
-                <div class="form-group">
-                    <label class="form-label">Visibility</label>
-                    <div class="visibility-options">
-                        @foreach (var visibility in GetVisibilityOptions())
-                        {
-                            <label class="visibility-option">
-                                <input type="radio" 
-                                       name="visibility" 
-                                       value="@visibility" 
-                                       @onchange="@((ChangeEventArgs e) => SelectedVisibility = (VisibilityLevel)Enum.Parse(typeof(VisibilityLevel), (string)e.Value!))" />
-                                <span>@GetVisibilityLabel(visibility)</span>
-                            </label>
-                        }
-                    </div>
-                </div>
+                        <!-- Visibility Level -->
+                        <MudSelect @bind-Value="SelectedVisibility"
+                                   Label="Visibility"
+                                   FullWidth="true"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem Value="VisibilityLevel.Public">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Public" Size="Size.Small" />
+                                    <span>Public - Everyone can see this profile</span>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="VisibilityLevel.ConnectionsOnly">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.PeopleAlt" Size="Size.Small" />
+                                    <span>Connections - Only your connections can see this</span>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="VisibilityLevel.Private">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                                    <span>Private - Only you can see this profile</span>
+                                </MudStack>
+                            </MudSelectItem>
+                        </MudSelect>
+
+                        <!-- Visibility Description -->
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            @GetVisibilityDescription()
+                        </MudAlert>
 
                 <!-- Quick Settings -->
-                <div class="form-group">
-                    <label class="form-checkbox">
-                        <input type="checkbox" @bind="SetAsActive" />
-                        <span>Set as active profile</span>
-                    </label>
-                </div>
-            </div>
+                <MudCheckBox @bind-Checked="SetAsActive" 
+                             Label="Set as active profile"
+                             Color="Color.Primary"
+                             T="bool" />
 
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="@(() => OnCancel.InvokeAsync())">Cancel</button>
-                <button class="btn btn-primary" 
-                        @onclick="SubmitForm"
-                        disabled="@(!IsFormValid())">
-                    @if (IsSubmitting)
-                    {
-                        <span>Creating...</span>
-                    }
-                    else
-                    {
-                        <span>Create Profile</span>
-                    }
-                </button>
-            </div>
-        </div>
+                <!-- Error Message -->
+                @if (IsSubmitting)
+                {
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <MudText>Creating profile...</MudText>
+                    </MudStack>
+                }
+
+                <!-- Footer Actions -->
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--mud-palette-divider);">
+                    <MudButton OnClick="@(() => OnCancel.InvokeAsync())" 
+                               Disabled="IsSubmitting"
+                               Variant="Variant.Outlined">
+                        Cancel
+                    </MudButton>
+                    <MudButton Color="Color.Primary" 
+                               Variant="Variant.Filled"
+                               OnClick="SubmitForm"
+                               Disabled="@(!IsFormValid())">
+                        @if (IsSubmitting)
+                        {
+                            <span>Creating...</span>
+                        }
+                        else
+                        {
+                            <span>Create Profile</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
     </div>
 }
 
@@ -133,9 +162,8 @@
     }
 
     .modal-content {
-        background: var(--mud-palette-surface);
-        border-radius: 12px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        background: var(--mud-palette-surface, white);
+        border-radius: 8px;
         max-width: 500px;
         width: 90%;
         max-height: 90vh;
@@ -154,224 +182,9 @@
         }
     }
 
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 24px;
-        border-bottom: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .modal-header h2 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--mud-palette-text-primary);
-    }
-
-    .modal-close {
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--mud-palette-text-secondary);
-        transition: color 0.2s ease;
-    }
-
-    .modal-close:hover {
-        color: var(--mud-palette-text-primary);
-    }
-
-    .modal-close svg {
-        width: 24px;
-        height: 24px;
-    }
-
-    .modal-body {
-        padding: 24px;
-    }
-
-    .form-group {
-        margin-bottom: 24px;
-    }
-
-    .form-label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: var(--mud-palette-text-primary);
-    }
-
-    .form-input,
-    .form-textarea {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--mud-palette-lines-default);
-        border-radius: 6px;
-        font-size: 14px;
-        font-family: inherit;
-        color: var(--mud-palette-text-primary);
-        background: var(--mud-palette-surface);
-        transition: all 0.2s ease;
-        box-sizing: border-box;
-    }
-
-    .form-input:focus,
-    .form-textarea:focus {
-        outline: none;
-        border-color: var(--mud-palette-primary);
-        box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
-    }
-
-    .form-textarea {
-        resize: vertical;
-    }
-
-    .char-count {
-        font-size: 12px;
-        color: var(--mud-palette-text-secondary);
-        margin-top: 4px;
-        text-align: right;
-    }
-
-    .form-error {
-        display: block;
-        font-size: 12px;
-        color: #d32f2f;
-        margin-top: 4px;
-    }
-
-    .profile-type-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .profile-type-option {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        border: 2px solid var(--mud-palette-lines-default);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .profile-type-option:hover {
-        border-color: var(--mud-palette-primary);
-        background: var(--mud-palette-action-default-hover);
-    }
-
-    .profile-type-option.selected {
-        border-color: var(--mud-palette-primary);
-        background: rgba(25, 118, 210, 0.05);
-    }
-
-    .profile-type-icon {
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .profile-type-label {
-        flex: 1;
-    }
-
-    .profile-type-name {
-        display: block;
-        font-weight: 600;
-        color: var(--mud-palette-text-primary);
-        font-size: 14px;
-    }
-
-    .profile-type-desc {
-        display: block;
-        font-size: 12px;
-        color: var(--mud-palette-text-secondary);
-        margin-top: 2px;
-    }
-
-    .visibility-options {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .visibility-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        color: var(--mud-palette-text-primary);
-    }
-
-    .visibility-option input[type="radio"] {
-        cursor: pointer;
-    }
-
-    .form-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        color: var(--mud-palette-text-primary);
-    }
-
-    .form-checkbox input[type="checkbox"] {
-        cursor: pointer;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        padding: 20px 24px;
-        border-top: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .btn {
-        padding: 10px 24px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s ease;
-        min-width: 100px;
-    }
-
-    .btn-primary {
-        background: var(--mud-palette-primary);
-        color: white;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: #1a8cd8;
-        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-    }
-
-    .btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .btn-secondary {
-        background: var(--mud-palette-action-default-hover);
-        color: var(--mud-palette-text-primary);
-        border: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .btn-secondary:hover {
-        background: var(--mud-palette-lines-default);
+    .profile-type-selected {
+        border-color: var(--mud-palette-primary) !important;
+        background-color: rgba(var(--mud-palette-primary-rgb), 0.08) !important;
     }
 </style>
 
@@ -453,21 +266,21 @@
         };
     }
 
-    private string GetVisibilityLabel(VisibilityLevel level)
+    private string GetProfileTypeClass(Guid typeId)
     {
-        return level switch
-        {
-            VisibilityLevel.Private => "🔒 Private - Only you can see this profile",
-            VisibilityLevel.ConnectionsOnly => "👥 Connections - Only your connections can see this",
-            VisibilityLevel.Public => "🌍 Public - Everyone can see this profile",
-            VisibilityLevel.Restricted => "⚠️ Restricted - Visible to specific users only",
-            _ => level.ToString()
-        };
+        return SelectedProfileType == typeId ? "profile-type-selected" : "";
     }
 
-    private IEnumerable<VisibilityLevel> GetVisibilityOptions()
+    private string GetVisibilityDescription()
     {
-        return new[] { VisibilityLevel.Public, VisibilityLevel.ConnectionsOnly, VisibilityLevel.Private };
+        return SelectedVisibility switch
+        {
+            VisibilityLevel.Private => "Only you can see this profile",
+            VisibilityLevel.ConnectionsOnly => "Only your connections can see this profile",
+            VisibilityLevel.Public => "Everyone can see this profile",
+            VisibilityLevel.Restricted => "Visible to specific users only",
+            _ => "Select a visibility level"
+        };
     }
 
     private void SelectProfileType(ProfileTypeDto type)
