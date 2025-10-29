@@ -1,0 +1,73 @@
+/* ========================================
+   Wireframe Layout - Grid & Container Styles
+   ======================================== */
+
+/* Base Container */
+.wire-container.wireframe-landing {
+    background: var(--wire-bg);
+    min-height: 100vh;
+    padding: 0 !important;
+    max-width: none !important;
+}
+
+/* Main Grid Layout */
+.wireframe-landing .main-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 24px;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Responsive Layouts */
+@media (max-width: 1200px) {
+    .wireframe-landing .main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .wireframe-landing .sidebar,
+    .wireframe-landing .stats-panel {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .wireframe-landing .header {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .wireframe-landing .header-center {
+        order: 3;
+        width: 100%;
+    }
+
+    .wireframe-landing .main-layout {
+        padding: 8px;
+        gap: 12px;
+    }
+
+    .wireframe-landing .post-card,
+    .wireframe-landing .post-composer {
+        padding: 12px;
+    }
+
+    .wireframe-landing .post-type-option {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .ai-chat-drawer {
+        width: 100% !important;
+    }
+
+    /* Mobile-friendly touch targets */
+    .wireframe-landing button,
+    .wireframe-landing .action-btn,
+    .wireframe-landing .post-option,
+    .wireframe-landing .post-type-option {
+        min-height: 44px;
+    }
+}

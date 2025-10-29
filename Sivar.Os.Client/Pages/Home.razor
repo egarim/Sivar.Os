@@ -1,6 +1,5 @@
 @page "/"
 @layout LandingLayout
-@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using System
 @using System.Linq
@@ -26,81 +25,18 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
 @using System.Security.Claims
-@using Microsoft.Extensions.Logging
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISivarClient SivarClient
 @inject IDialogService _dialogService
 @inject IProfileSwitcherService ProfileSwitcherService
-@inject ILogger<Home> Logger
 @implements IAsyncDisposable
 
-<style>
-    /* Remove MudMainContent padding for this page */
-    .mud-main-content {
-        padding: 0 !important;
-    }
+@* All CSS has been moved to external files in wwwroot/css/ for better organization and maintainability *@
 
-    /* Hide scroll to top button on this page */
-    .mud-scroll-to-top {
-        display: none !important;
-    }
 
-    /* Main Layout */
-    .main-layout {
-        display: grid;
-        grid-template-columns: 260px 1fr 300px;
-        gap: 24px;
-        padding: 24px;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    /* Feed column */
-    .feed {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-
-    /* Activity card fallback */
-    .activity-card {
-        padding: 16px;
-        background: var(--mud-palette-surface, #ffffff);
-        border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
-        border-radius: 12px;
-    }
-
-    /* Responsive Styles */
-    @@media (max-width: 1200px) {
-        .main-layout {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .main-layout {
-            padding: 8px;
-            gap: 12px;
-        }
-    }
-</style>
-
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
-    <Header @bind-UserName="@_userName"
-            @bind-UserEmail="@_userEmail"
-            UserInitials="@GetUserInitials()"
-            IsLoading="@_isUserLoading"
-            ShowThemeToggle="true"
-            ShowLogout="true"
-            ThemeIcon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Outlined.DarkMode)"
-            OnThemeToggle="@HandleThemeToggle"
-            OnLogout="@HandleLogout" />
-
+<MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
     <div class="main-layout">
         <!-- Left spacer (empty on mobile) -->
         <div></div>
@@ -259,28 +195,28 @@
     {
         try
         {
-            Logger.LogInformation("[Home] ==================== OnInitializedAsync START ====================");
+            Console.WriteLine("[Home] ==================== OnInitializedAsync START ====================");
             
             // Initialize sample data
             InitializeSampleData();
 
             // Ensure user and profile are created after Keycloak login
-            Logger.LogInformation("[Home] Step 1: Ensuring user and profile are created");
+            Console.WriteLine("[Home] Step 1: Ensuring user and profile are created");
             await EnsureUserAndProfileCreatedAsync();
             
             // Load current user info
-            Logger.LogInformation("[Home] Step 2: Loading current user info");
+            Console.WriteLine("[Home] Step 2: Loading current user info");
             await LoadCurrentUserAsync();
             
             // Load user profiles for switcher
-            Logger.LogInformation("[Home] Step 2.5: Loading user profiles");
+            Console.WriteLine("[Home] Step 2.5: Loading user profiles");
             await LoadUserProfilesAsync();
             
             // Verify active profile is set
-            Logger.LogInformation($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
+            Console.WriteLine($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
             if (_currentProfileId == Guid.Empty)
             {
-                Logger.LogWarning("[Home] WARNING: Active profile ID is empty, trying to get from profiles list");
+                Console.WriteLine("[Home] ?? WARNING: Active profile ID is empty, trying to get from profiles list");
                 await LoadProfileTypesAsync();
                 await LoadUserProfilesAsync();
                 
@@ -292,27 +228,28 @@
                     {
                         _currentProfileId = activeProf.Id;
                         _activeProfile = activeProf;
-                        Logger.LogInformation($"[Home] ? Got active profile from list: {_currentProfileId}");
+                        Console.WriteLine($"[Home] ? Got active profile from list: {_currentProfileId}");
                     }
                 }
             }
             
             // Load initial feed activities
-            Logger.LogInformation("[Home] Step 3: Loading feed activities");
+            Console.WriteLine("[Home] Step 3: Loading feed activities");
             await LoadFeedActivitiesAsync();
             
             // Load user statistics
-            Logger.LogInformation("[Home] Step 4: Loading user statistics");
+            Console.WriteLine("[Home] Step 4: Loading user statistics");
             await LoadUserStatsAsync();
             
-            Logger.LogInformation($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
+            Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
             
             // Notify Blazor that component state has changed so it re-renders with loaded data
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error in OnInitializedAsync: {Message}", ex.Message);
+            Console.WriteLine($"[Home] ? Error in OnInitializedAsync: {ex.Message}");
+            Console.WriteLine($"[Home] Stack trace: {ex.StackTrace}");
         }
     }
 
@@ -324,14 +261,14 @@
     {
         try
         {
-            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] START");
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] START");
             
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             
             if (!user.Identity?.IsAuthenticated ?? true)
             {
-                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] User not authenticated");
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ?? User not authenticated");
                 return; // User not authenticated, nothing to do
             }
 
@@ -340,17 +277,17 @@
 
             if (string.IsNullOrEmpty(keycloakId))
             {
-                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Missing required claim 'sub' (subject identifier)");
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ? Missing required claim 'sub' (subject identifier)");
                 return;
             }
 
             if (string.IsNullOrEmpty(email))
             {
-                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Missing required claim 'email' or 'preferred_username'");
+                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ? Missing required claim 'email' or 'preferred_username'");
                 return;
             }
 
-            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] Calling authentication service");
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] Calling authentication service");
 
             // Call authentication service via SivarClient
             var authInfo = new UserAuthenticationInfo
@@ -370,31 +307,32 @@
                 
                 if (result.IsNewUser)
                 {
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync] ? New user and profile created");
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ? New user and profile created");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
                 else
                 {
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync] ? Existing user authenticated");
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
-                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ? Existing user authenticated");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
             }
             else
             {
-                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Authentication failed: {ErrorMessage}", result.ErrorMessage);
-                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - IsSuccess: {result.IsSuccess}");
-                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - IsNewUser: {result.IsNewUser}");
-                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {result.User?.Id}");
-                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {result.ActiveProfile?.Id}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ? Authentication failed: {result.ErrorMessage}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsSuccess: {result.IsSuccess}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsNewUser: {result.IsNewUser}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {result.User?.Id}");
+                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {result.ActiveProfile?.Id}");
             }
             
-            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] END");
+            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] END");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home.EnsureUserAndProfileCreatedAsync] Error: {Message}", ex.Message);
+            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ? Error: {ex.Message}");
+            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] Stack trace: {ex.StackTrace}");
             // Don't throw - this is a best-effort operation
         }
     }
@@ -404,10 +342,10 @@
     /// </summary>
     private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
     {
-        Logger.LogInformation("[Home] Extracting Keycloak claims - Available claims:");
+        Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
         foreach (var claim in user.Claims)
         {
-            Logger.LogInformation($"  {claim.Type}: {claim.Value}");
+            Console.WriteLine($"  {claim.Type}: {claim.Value}");
         }
 
         string? keycloakId = user.FindFirst("sub")?.Value
@@ -428,7 +366,7 @@
                        ?? user.FindFirst("surname")?.Value
                        ?? "";
 
-        Logger.LogInformation($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+        Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
         return (keycloakId, email, firstName, lastName);
     }
 
@@ -436,10 +374,10 @@
     
     // private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
     // {
-    //     Logger.LogInformation("[Home] Extracting Keycloak claims - Available claims:");
+    //     Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
     //     foreach (var claim in user.Claims)
     //     {
-    //         Logger.LogInformation($"  {claim.Type}: {claim.Value}");
+    //         Console.WriteLine($"  {claim.Type}: {claim.Value}");
     //     }
 
     //     // Standard OIDC claims
@@ -450,7 +388,7 @@
     //     var lastName = user.FindFirst("family_name")?.Value ?? "";
 
     //     // Log what we extracted
-    //     Logger.LogInformation($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+    //     Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
 
     //     return (keycloakId, email, firstName, lastName);
     // }
@@ -466,27 +404,27 @@
             var authState = AuthStateProvider.GetAuthenticationStateAsync().Result;
             var user = authState.User;
             
-            Logger.LogInformation("[Home] === DEBUG: Current User Claims ===");
+            Console.WriteLine("[Home] === DEBUG: Current User Claims ===");
             if (user?.Identity?.IsAuthenticated == true)
             {
-                Logger.LogInformation($"Authenticated: YES");
-                Logger.LogInformation($"Name: {user.Identity.Name}");
-                Logger.LogInformation($"Authentication Type: {user.Identity.AuthenticationType}");
-                Logger.LogInformation("Claims:");
+                Console.WriteLine($"Authenticated: YES");
+                Console.WriteLine($"Name: {user.Identity.Name}");
+                Console.WriteLine($"Authentication Type: {user.Identity.AuthenticationType}");
+                Console.WriteLine("Claims:");
                 foreach (var claim in user.Claims)
                 {
-                    Logger.LogInformation($"  {claim.Type}: {claim.Value}");
+                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
                 }
             }
             else
             {
-                Logger.LogInformation("Authenticated: NO");
+                Console.WriteLine("Authenticated: NO");
             }
-            Logger.LogInformation("[Home] === END DEBUG ===");
+            Console.WriteLine("[Home] === END DEBUG ===");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Debug error: {Message}", ex.Message);
+            Console.WriteLine($"[Home] Debug error: {ex.Message}");
         }
     }
 
@@ -572,20 +510,20 @@
             var dialogResult = await result.Result;
             if (dialogResult?.Canceled == false)
             {
-                Logger.LogInformation($"[Home] Deleting post: {post.Id}");
+                Console.WriteLine($"[Home] Deleting post: {post.Id}");
                 
                 await SivarClient.Posts.DeletePostAsync(post.Id);
                 
                 // Reload activities feed to reflect the deletion
                 await LoadFeedActivitiesAsync();
                 
-                Logger.LogInformation($"[Home] Post deleted successfully");
+                Console.WriteLine($"[Home] Post deleted successfully");
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error deleting post: {Message}", ex.Message);
+            Console.WriteLine($"[Home] Error deleting post: {ex.Message}");
         }
     }
 
@@ -593,7 +531,7 @@
     {
         try
         {
-            Logger.LogInformation($"[Home] Edit post: {post.Id}");
+            Console.WriteLine($"[Home] Edit post: {post.Id}");
             
             // Show edit modal
             var result = await _dialogService.ShowAsync<PostEditModal>("Edit Post", 
@@ -602,7 +540,7 @@
             var dialogResult = await result.Result;
             if (dialogResult?.Canceled == false && dialogResult?.Data is UpdatePostDto updateDto)
             {
-                Logger.LogInformation($"[Home] Updating post: {post.Id}");
+                Console.WriteLine($"[Home] Updating post: {post.Id}");
                 
                 // Call API to update post
                 await SivarClient.Posts.UpdatePostAsync(post.Id, updateDto);
@@ -610,31 +548,31 @@
                 // Reload activities feed to reflect the update
                 await LoadFeedActivitiesAsync();
                 
-                Logger.LogInformation($"[Home] Post updated successfully");
+                Console.WriteLine($"[Home] Post updated successfully");
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error editing post: {Message}", ex.Message);
+            Console.WriteLine($"[Home] Error editing post: {ex.Message}");
         }
     }
 
     private void HandleViewAnalytics(PostDto post)
     {
-        Logger.LogInformation($"[Home] View analytics for post: {post.Id}");
+        Console.WriteLine($"[Home] View analytics for post: {post.Id}");
         // TODO: Implement analytics modal
     }
 
     private void HandleReportPost(PostDto post)
     {
-        Logger.LogInformation($"[Home] Report post: {post.Id}");
+        Console.WriteLine($"[Home] Report post: {post.Id}");
         // TODO: Implement report modal
     }
 
     private void HandleCopyPostLink(PostDto post)
     {
-        Logger.LogInformation($"[Home] Copy link for post: {post.Id}");
+        Console.WriteLine($"[Home] Copy link for post: {post.Id}");
         // TODO: Implement copy to clipboard via JS interop
     }
 
@@ -656,7 +594,7 @@
         if (_currentPage > 1)
         {
             _currentPage--;
-            Logger.LogInformation($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
+            Console.WriteLine($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
             await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
@@ -667,7 +605,7 @@
         if (_currentPage < _totalPages)
         {
             _currentPage++;
-            Logger.LogInformation($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
+            Console.WriteLine($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
             await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
@@ -812,7 +750,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             var last = messages.Last();
             var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
-            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}ï¿½" : previewText;
+            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}…" : previewText;
             conversation.LastUpdated = last.Time;
             conversation.MessageCount = messages.Count;
             conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
@@ -858,9 +796,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             // Add result cards
             var pizzaResults = new[]
             {
-                new ChatResultCard("p1", "??", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza ï¿½ 4.8? ï¿½ $$ ï¿½ Open now"),
-                new ChatResultCard("p2", "??", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired ï¿½ 4.9? ï¿½ $$$ ï¿½ Closes 10pm"),
-                new ChatResultCard("p3", "??", "Pizza Express", "Fast Food", "Quick delivery & takeout ï¿½ 4.2? ï¿½ $ ï¿½ Open 24hrs")
+                new ChatResultCard("p1", "??", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza • 4.8? • $$ • Open now"),
+                new ChatResultCard("p2", "??", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired • 4.9? • $$$ • Closes 10pm"),
+                new ChatResultCard("p3", "??", "Pizza Express", "Fast Food", "Quick delivery & takeout • 4.2? • $ • Open 24hrs")
             };
 
             foreach (var card in pizzaResults)
@@ -876,9 +814,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var techResults = new[]
             {
-                new ChatResultCard("t1", "??", "TechCorp Solutions", "Technology", "Cloud services & AI development ï¿½ 200+ employees"),
-                new ChatResultCard("t2", "??", "Innovation Labs", "Startup", "Mobile app development ï¿½ Series A funded"),
-                new ChatResultCard("t3", "??", "DataWorks Inc", "Enterprise", "Big data analytics platform ï¿½ Fortune 500")
+                new ChatResultCard("t1", "??", "TechCorp Solutions", "Technology", "Cloud services & AI development • 200+ employees"),
+                new ChatResultCard("t2", "??", "Innovation Labs", "Startup", "Mobile app development • Series A funded"),
+                new ChatResultCard("t3", "??", "DataWorks Inc", "Enterprise", "Big data analytics platform • Fortune 500")
             };
 
             foreach (var card in techResults)
@@ -894,9 +832,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var eventResults = new[]
             {
-                new ChatResultCard("e1", "??", "Tech Conference 2024", "Conference", "3-day tech summit ï¿½ Mar 15-17 ï¿½ Downtown Center"),
-                new ChatResultCard("e2", "??", "Startup Pitch Night", "Networking", "Monthly startup showcase ï¿½ Mar 10 ï¿½ 6pm"),
-                new ChatResultCard("e3", "??", "Code & Coffee", "Meetup", "Weekly developer hangout ï¿½ Every Saturday")
+                new ChatResultCard("e1", "??", "Tech Conference 2024", "Conference", "3-day tech summit • Mar 15-17 • Downtown Center"),
+                new ChatResultCard("e2", "??", "Startup Pitch Night", "Networking", "Monthly startup showcase • Mar 10 • 6pm"),
+                new ChatResultCard("e3", "??", "Code & Coffee", "Meetup", "Weekly developer hangout • Every Saturday")
             };
 
             foreach (var card in eventResults)
@@ -912,9 +850,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var jobResults = new[]
             {
-                new ChatResultCard("j1", "??", "Senior Developer", "TechCorp", "Full-stack position ï¿½ $120k-150k ï¿½ Remote available"),
-                new ChatResultCard("j2", "??", "UX Designer", "Design Studio", "Lead designer role ï¿½ $90k-110k ï¿½ Hybrid"),
-                new ChatResultCard("j3", "??", "Product Manager", "StartupXYZ", "PM for AI products ï¿½ $130k-160k ï¿½ On-site")
+                new ChatResultCard("j1", "??", "Senior Developer", "TechCorp", "Full-stack position • $120k-150k • Remote available"),
+                new ChatResultCard("j2", "??", "UX Designer", "Design Studio", "Lead designer role • $90k-110k • Hybrid"),
+                new ChatResultCard("j3", "??", "Product Manager", "StartupXYZ", "PM for AI products • $130k-160k • On-site")
             };
 
             foreach (var card in jobResults)
@@ -1021,7 +959,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
         {
-            return "Sure ï¿½ what specifically do you need help with?";
+            return "Sure — what specifically do you need help with?";
         }
 
         if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
@@ -1031,7 +969,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
         {
-            return "For design feedback, consider spacing, contrast, and alignment ï¿½ need a checklist?";
+            return "For design feedback, consider spacing, contrast, and alignment — need a checklist?";
         }
 
         if (lower.Contains("yes") || lower.Contains("ok") || lower.Contains("thanks"))
@@ -1039,13 +977,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             return _cannedReplies[_random.Next(_cannedReplies.Length)];
         }
 
-        var shortEcho = userText.Length > 70 ? $"{userText[..67]}ï¿½" : userText;
-        return $"You said: \"{shortEcho}\" ï¿½ I can expand on that if you'd like.";
+        var shortEcho = userText.Length > 70 ? $"{userText[..67]}…" : userText;
+        return $"You said: \"{shortEcho}\" — I can expand on that if you'd like.";
     }
 
     private readonly string[] _cannedReplies =
     {
-        "Thanks ï¿½ I noted that. Anything else you'd like to add?",
+        "Thanks — I noted that. Anything else you'd like to add?",
         "Interesting, tell me more about that.",
         "I'll keep that in mind. Want me to summarize it?",
         "Here's a suggestion: try simplifying the flow and testing again.",
@@ -1076,16 +1014,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("[HOME-CLIENT] ======================================");
-            Logger.LogInformation("[HOME-CLIENT] ?? START: LoadCurrentUserAsync");
-            Logger.LogInformation("[HOME-CLIENT] Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-            Logger.LogInformation("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] ?? START: LoadCurrentUserAsync");
+            Console.WriteLine("[HOME-CLIENT] Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            Console.WriteLine("[HOME-CLIENT] ======================================");
             
             _isUserLoading = true;
             StateHasChanged();
             
             // Load user information
-            Logger.LogInformation("[HOME-CLIENT] ?? Calling SivarClient.Users.GetMeAsync()...");
+            Console.WriteLine("[HOME-CLIENT] ?? Calling SivarClient.Users.GetMeAsync()...");
             var userDto = await SivarClient.Users.GetMeAsync();
             
             if (userDto != null)
@@ -1094,16 +1032,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _userEmail = userDto.Email ?? "no-email";
                 _currentUserId = userDto.Id;
                 
-                Logger.LogInformation("[HOME-CLIENT] ? User DTO Received:");
-                Logger.LogInformation($"[HOME-CLIENT]   - ID: {userDto.Id}");
-                Logger.LogInformation($"[HOME-CLIENT]   - First Name: {userDto.FirstName}");
-                Logger.LogInformation($"[HOME-CLIENT]   - Last Name: {userDto.LastName}");
-                Logger.LogInformation($"[HOME-CLIENT]   - Email: {userDto.Email}");
-                Logger.LogInformation($"[HOME-CLIENT]   - Full Name: {_userName}");
-                Logger.LogInformation($"[HOME-CLIENT]   - Combined Email: {_userEmail}");
+                Console.WriteLine("[HOME-CLIENT] ? User DTO Received:");
+                Console.WriteLine($"[HOME-CLIENT]   - ID: {userDto.Id}");
+                Console.WriteLine($"[HOME-CLIENT]   - First Name: {userDto.FirstName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Last Name: {userDto.LastName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Email: {userDto.Email}");
+                Console.WriteLine($"[HOME-CLIENT]   - Full Name: {_userName}");
+                Console.WriteLine($"[HOME-CLIENT]   - Combined Email: {_userEmail}");
                 
                 // Also load the active profile to get profile-specific data
-                Logger.LogInformation("[HOME-CLIENT] ?? Calling SivarClient.Profiles.GetMyActiveProfileAsync()...");
+                Console.WriteLine("[HOME-CLIENT] ?? Calling SivarClient.Profiles.GetMyActiveProfileAsync()...");
                 try
                 {
                     var activeProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
@@ -1118,20 +1056,20 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                         
                         _currentProfileId = activeProfile.Id;
                         
-                        Logger.LogInformation("[HOME-CLIENT] ? Active Profile DTO Received:");
-                        Logger.LogInformation($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
-                        Logger.LogInformation($"[HOME-CLIENT]   - DisplayName: {activeProfile.DisplayName}");
-                        Logger.LogInformation($"[HOME-CLIENT]   - Avatar: {activeProfile.Avatar}");
-                        Logger.LogInformation($"[HOME-CLIENT]   - LocationDisplay: {activeProfile.LocationDisplay}");
+                        Console.WriteLine("[HOME-CLIENT] ? Active Profile DTO Received:");
+                        Console.WriteLine($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
+                        Console.WriteLine($"[HOME-CLIENT]   - DisplayName: {activeProfile.DisplayName}");
+                        Console.WriteLine($"[HOME-CLIENT]   - Avatar: {activeProfile.Avatar}");
+                        Console.WriteLine($"[HOME-CLIENT]   - LocationDisplay: {activeProfile.LocationDisplay}");
                     }
                     else
                     {
-                        Logger.LogWarning("[HOME-CLIENT] Active Profile DTO is NULL!");
+                        Console.WriteLine("[HOME-CLIENT] ??  Active Profile DTO is NULL!");
                     }
                 }
                 catch (Exception profileEx)
                 {
-                    Logger.LogWarning(profileEx, "[HOME-CLIENT] Error loading active profile (non-fatal): {Message}", profileEx.Message);
+                    Console.WriteLine($"[HOME-CLIENT] ??  Error loading active profile (non-fatal): {profileEx.Message}");
                     // Continue with user data even if profile loading fails
                 }
                 
@@ -1139,18 +1077,21 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _isUserLoading = false;
                 StateHasChanged();
                 
-                Logger.LogInformation("[HOME-CLIENT] ? StateHasChanged() called");
-                Logger.LogInformation("[HOME-CLIENT] ? User loaded successfully!");
+                Console.WriteLine("[HOME-CLIENT] ? StateHasChanged() called");
+                Console.WriteLine("[HOME-CLIENT] ? User loaded successfully!");
             }
             else
             {
-                Logger.LogWarning("[HOME-CLIENT] User DTO is NULL!");
+                Console.WriteLine("[HOME-CLIENT] ??  User DTO is NULL!");
                 _isUserLoading = false;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[HOME-CLIENT] ERROR in LoadCurrentUserAsync");
+            Console.WriteLine("[HOME-CLIENT] ? ERROR in LoadCurrentUserAsync:");
+            Console.WriteLine($"[HOME-CLIENT]   Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[HOME-CLIENT]   Message: {ex.Message}");
+            Console.WriteLine($"[HOME-CLIENT]   Stack Trace: {ex.StackTrace}");
             
             _userName = "Error Loading";
             _userEmail = "Check console";
@@ -1159,9 +1100,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
         finally
         {
-            Logger.LogInformation("[HOME-CLIENT] ======================================");
-            Logger.LogInformation("[HOME-CLIENT] ?? END: LoadCurrentUserAsync");
-            Logger.LogInformation("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Console.WriteLine("[HOME-CLIENT] ?? END: LoadCurrentUserAsync");
+            Console.WriteLine("[HOME-CLIENT] ======================================");
         }
     }
 
@@ -1172,18 +1113,18 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("[Home] Loading profile types...");
+            Console.WriteLine("[Home] Loading profile types...");
             var profileTypes = await SivarClient.ProfileTypes.GetActiveProfileTypesAsync();
             
             if (profileTypes != null && profileTypes.Any())
             {
-                Logger.LogInformation($"[Home] Loaded {profileTypes.Count()} profile types");
+                Console.WriteLine($"[Home] Loaded {profileTypes.Count()} profile types");
                 // Profile type dropdown can be updated here if needed
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error loading profile types: {Message}", ex.Message);
+            Console.WriteLine($"[Home] Error loading profile types: {ex.Message}");
         }
     }
 
@@ -1194,82 +1135,90 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("---------------------------------------------------------------");
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] START");
-            Logger.LogInformation($"  Current Profile ID: {_currentProfileId}");
-            Logger.LogInformation($"  Current Page: {_currentPage}");
-            Logger.LogInformation($"  Current Activities Count: {_activities?.Count ?? 0}");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] START");
+            Console.WriteLine($"  Current Profile ID: {_currentProfileId}");
+            Console.WriteLine($"  Current Page: {_currentPage}");
+            Console.WriteLine($"  Current Activities Count: {_activities?.Count ?? 0}");
             
             // Check if we have a valid profile ID
             if (_currentProfileId == Guid.Empty)
             {
-                Logger.LogWarning("[Home.LoadFeedActivitiesAsync] No active profile ID - skipping activity load");
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ?? No active profile ID - skipping activity load");
                 _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine("---------------------------------------------------------------");
                 return;
             }
             
             // Load activities created BY the current profile (not the follower feed)
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
             var feedDto = await SivarClient.Activities.GetProfileActivitiesAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
             
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? API Response received");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? API Response received");
             
             if (feedDto == null)
             {
-                Logger.LogWarning("[Home.LoadFeedActivitiesAsync] Feed DTO is null!");
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ? Feed DTO is null!");
                 _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine("---------------------------------------------------------------");
                 return;
             }
             
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] Feed DTO Details:");
-            Logger.LogInformation($"  Activities: {feedDto.Activities?.Count ?? 0} items");
-            Logger.LogInformation($"  TotalCount: {feedDto.TotalCount}");
-            Logger.LogInformation($"  TotalPages: {feedDto.TotalPages}");
-            Logger.LogInformation($"  CurrentPage: {feedDto.Page}");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Feed DTO Details:");
+            Console.WriteLine($"  Activities: {feedDto.Activities?.Count ?? 0} items");
+            Console.WriteLine($"  TotalCount: {feedDto.TotalCount}");
+            Console.WriteLine($"  TotalPages: {feedDto.TotalPages}");
+            Console.WriteLine($"  CurrentPage: {feedDto.Page}");
             
             if (feedDto?.Activities != null && feedDto.Activities.Any())
             {
-                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Processing {feedDto.Activities.Count} activities:");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Processing {feedDto.Activities.Count} activities:");
                 for (int i = 0; i < feedDto.Activities.Count; i++)
                 {
                     var activity = feedDto.Activities[i];
-                    Logger.LogInformation($"  Activity {i + 1}:");
-                    Logger.LogInformation($"    ID: {activity.Id}");
-                    Logger.LogInformation($"    Verb: {activity.Verb}");
-                    Logger.LogInformation($"    Summary: {activity.Summary}");
-                    Logger.LogInformation($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
-                    Logger.LogInformation($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
+                    Console.WriteLine($"  Activity {i + 1}:");
+                    Console.WriteLine($"    ID: {activity.Id}");
+                    Console.WriteLine($"    Verb: {activity.Verb}");
+                    Console.WriteLine($"    Summary: {activity.Summary}");
+                    Console.WriteLine($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
+                    Console.WriteLine($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
                 }
                 
                 _activities = feedDto.Activities;
                 _totalPages = feedDto.TotalPages;
                 
-                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? Successfully assigned {_activities.Count} activities to _activities field");
-                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? Total pages: {_totalPages}");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ? Successfully assigned {_activities.Count} activities to _activities field");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ? Total pages: {_totalPages}");
             }
             else
             {
-                Logger.LogInformation("[Home.LoadFeedActivitiesAsync] ?? No activities in response - feed is empty");
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ?? No activities in response - feed is empty");
                 _activities = new List<ActivityDto>();
                 _totalPages = feedDto?.TotalPages ?? 0;
             }
             
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Calling StateHasChanged()...");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Calling StateHasChanged()...");
             StateHasChanged();
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? StateHasChanged() completed");
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] FINAL: _activities.Count = {_activities?.Count ?? 0}");
-            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] FINAL: _currentPage = {_currentPage}, _totalPages = {_totalPages}");
-            Logger.LogInformation("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ? StateHasChanged() completed");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] FINAL: _activities.Count = {_activities?.Count ?? 0}");
+            Console.WriteLine("---------------------------------------------------------------");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home.LoadFeedActivitiesAsync] ERROR loading feed activities");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ? ERROR!");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Type: {ex.GetType().Name}");
+            Console.WriteLine($"  Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+            }
+            Console.WriteLine("---------------------------------------------------------------");
             _activities = new List<ActivityDto>();
             _totalPages = 0;
             StateHasChanged();
@@ -1283,7 +1232,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("[Home] Loading user statistics...");
+            Console.WriteLine("[Home] Loading user statistics...");
             
             // Get follower stats
             var followerStats = await SivarClient.Followers.GetStatsAsync();
@@ -1297,12 +1246,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     Reach = 0,  // Will be calculated from posts
                     ResponseRate = 100  // Default to 100%
                 };
-                Logger.LogInformation($"[Home] Stats loaded: {_stats.Followers} followers, {_stats.Following} following");
+                Console.WriteLine($"[Home] Stats loaded: {_stats.Followers} followers, {_stats.Following} following");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error loading user statistics: {Message}", ex.Message);
+            Console.WriteLine($"[Home] Error loading user statistics: {ex.Message}");
             // Keep default mock values as fallback
         }
     }
@@ -1314,16 +1263,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
             
             // Validate post content
             if (string.IsNullOrWhiteSpace(_postText))
             {
-                Logger.LogInformation("[Home] Post text is empty - cannot submit");
+                Console.WriteLine("[Home] Post text is empty - cannot submit");
                 return;
             }
 
-            Logger.LogInformation("[Home] Submitting new post...");
+            Console.WriteLine("[Home] Submitting new post...");
 
             // Convert string to PostType enum
             var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
@@ -1352,7 +1301,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             
             if (newPost != null)
             {
-                Logger.LogInformation($"[Home] Post created successfully: {newPost.Id}");
+                Console.WriteLine($"[Home] Post created successfully: {newPost.Id}");
                 
                 // Reload activities feed to show the new post activity
                 // The ActivityService should automatically record the Create activity
@@ -1378,12 +1327,15 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
         catch (SivarApiException apiEx)
         {
-            Logger.LogError(apiEx, "[Home] API Error submitting post - Status: {StatusCode}, Reason: {ReasonPhrase}", 
-                apiEx.StatusCode, apiEx.ReasonPhrase);
+            Console.WriteLine($"[Home] ? API Error submitting post:");
+            Console.WriteLine($"[Home]   Status: {apiEx.StatusCode}");
+            Console.WriteLine($"[Home]   Reason: {apiEx.ReasonPhrase}");
+            Console.WriteLine($"[Home]   Details: {apiEx.Content}");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error submitting post: {ExceptionType}", ex.GetType().Name);
+            Console.WriteLine($"[Home] ? Error submitting post: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[Home] Stack Trace: {ex.StackTrace}");
         }
     }
 
@@ -1395,23 +1347,23 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         try
         {
             _isLoadingProfiles = true;
-            Logger.LogInformation("[Home] Loading user profiles for switcher");
+            Console.WriteLine("[Home] Loading user profiles for switcher");
 
             _userProfiles = await ProfileSwitcherService.GetUserProfilesAsync();
             _activeProfile = _userProfiles?.FirstOrDefault(p => p.IsActive) ?? _userProfiles?.FirstOrDefault();
 
-            Logger.LogInformation($"[Home] ? Loaded {_userProfiles?.Count ?? 0} profiles. Active: {_activeProfile?.DisplayName}");
+            Console.WriteLine($"[Home] ? Loaded {_userProfiles?.Count ?? 0} profiles. Active: {_activeProfile?.DisplayName}");
             if (_userProfiles?.Any() == true)
             {
                 foreach (var profile in _userProfiles)
                 {
-                    Logger.LogInformation($"[Home]   - Profile: {profile.DisplayName}, Type ID: {profile.ProfileTypeId}, Type: {profile.ProfileType?.DisplayName}");
+                    Console.WriteLine($"[Home]   - Profile: {profile.DisplayName}, Type ID: {profile.ProfileTypeId}, Type: {profile.ProfileType?.DisplayName}");
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home] Error loading profiles: {Message}", ex.Message);
+            Console.WriteLine($"[Home] ? Error loading profiles: {ex.Message}");
             _userProfiles = new();
             _activeProfile = null;
         }
@@ -1428,46 +1380,51 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("---------------------------------------------------------------");
-            Logger.LogInformation($"[Home.HandleProfileChanged] START - Switching to profile");
-            Logger.LogInformation($"  Profile Name: {selectedProfile.DisplayName}");
-            Logger.LogInformation($"  Profile ID: {selectedProfile.Id}");
-            Logger.LogInformation($"  Profile Type: {selectedProfile.ProfileType?.DisplayName}");
-            Logger.LogInformation($"  Previous Active Profile: {_activeProfile?.DisplayName} ({_activeProfile?.Id})");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.HandleProfileChanged] START - Switching to profile");
+            Console.WriteLine($"  Profile Name: {selectedProfile.DisplayName}");
+            Console.WriteLine($"  Profile ID: {selectedProfile.Id}");
+            Console.WriteLine($"  Profile Type: {selectedProfile.ProfileType?.DisplayName}");
+            Console.WriteLine($"  Previous Active Profile: {_activeProfile?.DisplayName} ({_activeProfile?.Id})");
 
             if (await ProfileSwitcherService.SwitchProfileAsync(selectedProfile.Id))
             {
-                Logger.LogInformation($"[Home.HandleProfileChanged] ? Server acknowledged profile switch");
+                Console.WriteLine($"[Home.HandleProfileChanged] ? Server acknowledged profile switch");
                 
                 _activeProfile = selectedProfile;
                 _currentProfileId = selectedProfile.Id;
                 
-                Logger.LogInformation($"[Home.HandleProfileChanged] Updated local state:");
-                Logger.LogInformation($"  _activeProfile: {_activeProfile.DisplayName}");
-                Logger.LogInformation($"  _currentProfileId: {_currentProfileId}");
+                Console.WriteLine($"[Home.HandleProfileChanged] Updated local state:");
+                Console.WriteLine($"  _activeProfile: {_activeProfile.DisplayName}");
+                Console.WriteLine($"  _currentProfileId: {_currentProfileId}");
                 
                 // Reset pagination when switching profiles
                 _currentPage = 1;
-                Logger.LogInformation($"[Home.HandleProfileChanged] Reset pagination to page 1");
+                Console.WriteLine($"[Home.HandleProfileChanged] Reset pagination to page 1");
                 
                 // Reload feed activities for the new profile
-                Logger.LogInformation($"[Home.HandleProfileChanged] Loading activities for profile: {selectedProfile.DisplayName}");
+                Console.WriteLine($"[Home.HandleProfileChanged] Loading activities for profile: {selectedProfile.DisplayName}");
                 await LoadFeedActivitiesAsync();
-                Logger.LogInformation($"[Home.HandleProfileChanged] ? Activities loaded: {_activities.Count} activities");
+                Console.WriteLine($"[Home.HandleProfileChanged] ? Activities loaded: {_activities.Count} activities");
                 
                 StateHasChanged();
-                Logger.LogInformation($"[Home.HandleProfileChanged] ? UI refreshed");
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine($"[Home.HandleProfileChanged] ? UI refreshed");
+                Console.WriteLine("---------------------------------------------------------------");
             }
             else
             {
-                Logger.LogWarning("[Home.HandleProfileChanged] Failed to switch profile on server");
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine("[Home.HandleProfileChanged] ? Failed to switch profile on server");
+                Console.WriteLine("---------------------------------------------------------------");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home.HandleProfileChanged] Error switching profile");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.HandleProfileChanged] ? Error switching profile");
+            Console.WriteLine($"  Exception: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Stack: {ex.StackTrace}");
+            Console.WriteLine("---------------------------------------------------------------");
         }
     }
 
@@ -1478,87 +1435,97 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Logger.LogInformation("---------------------------------------------------------------");
-            Logger.LogInformation("[Home.HandleCreateProfile] START - Creating new profile");
-            Logger.LogInformation($"  DisplayName: {request.DisplayName}");
-            Logger.LogInformation($"  ProfileTypeId: {request.ProfileTypeId}");
-            Logger.LogInformation($"  SetAsActive: {request.SetAsActive}");
-            Logger.LogInformation($"  Visibility: {request.VisibilityLevel}");
-            Logger.LogInformation($"  Bio: {request.Bio}");
-            Logger.LogInformation($"  Avatar: {request.Avatar}");
-            Logger.LogInformation($"  Tags: {request.Tags}");
-            Logger.LogInformation("---------------------------------------------------------------");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine("[Home.HandleCreateProfile] START - Creating new profile");
+            Console.WriteLine($"  DisplayName: {request.DisplayName}");
+            Console.WriteLine($"  ProfileTypeId: {request.ProfileTypeId}");
+            Console.WriteLine($"  SetAsActive: {request.SetAsActive}");
+            Console.WriteLine($"  Visibility: {request.VisibilityLevel}");
+            Console.WriteLine($"  Bio: {request.Bio}");
+            Console.WriteLine($"  Avatar: {request.Avatar}");
+            Console.WriteLine($"  Tags: {request.Tags}");
+            Console.WriteLine("---------------------------------------------------------------");
 
             // Step 1: Call the SivarClient to create the profile
-            Logger.LogInformation("[Home.HandleCreateProfile] STEP 1: Calling SivarClient.Profiles.CreateProfileAsync()");
+            Console.WriteLine("[Home.HandleCreateProfile] STEP 1: Calling SivarClient.Profiles.CreateProfileAsync()");
             var newProfile = await SivarClient.Profiles.CreateProfileAsync(request);
             
             if (newProfile != null)
             {
-                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 2: ? Profile created successfully!");
-                Logger.LogInformation($"  Profile ID: {newProfile.Id}");
-                Logger.LogInformation($"  Profile Name: {newProfile.DisplayName}");
-                Logger.LogInformation($"  Profile Type: {newProfile.ProfileType?.DisplayName}");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 2: ? Profile created successfully!");
+                Console.WriteLine($"  Profile ID: {newProfile.Id}");
+                Console.WriteLine($"  Profile Name: {newProfile.DisplayName}");
+                Console.WriteLine($"  Profile Type: {newProfile.ProfileType?.DisplayName}");
                 
                 // ? ALWAYS auto-select the new profile (if SetAsActive is true)
-                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: SetAsActive={request.SetAsActive}, attempting to auto-select");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: SetAsActive={request.SetAsActive}, attempting to auto-select");
                 
                 if (request.SetAsActive)
                 {
                     try
                     {
                         var activeProfileResult = await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
-                        Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: ? SetMyActiveProfileAsync succeeded!");
-                        Logger.LogInformation($"  Returned Profile ID: {activeProfileResult?.Id}");
+                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ? SetMyActiveProfileAsync succeeded!");
+                        Console.WriteLine($"  Returned Profile ID: {activeProfileResult?.Id}");
                     }
                     catch (Exception setActiveEx)
                     {
-                        Logger.LogWarning(setActiveEx, "[Home.HandleCreateProfile] STEP 3: SetMyActiveProfileAsync failed - Continuing anyway - profile was created successfully");
+                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ?? SetMyActiveProfileAsync failed!");
+                        Console.WriteLine($"  Exception: {setActiveEx.GetType().Name}");
+                        Console.WriteLine($"  Message: {setActiveEx.Message}");
+                        Console.WriteLine("  Continuing anyway - profile was created successfully");
                     }
                 }
                 else
                 {
-                    Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
+                    Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
                 }
                 
                 _activeProfile = newProfile;
                 
                 // ? Update current profile ID (required for feed loading)
                 _currentProfileId = newProfile.Id;
-                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
                 
                 // ? Reset pagination
                 _currentPage = 1;
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
                 
                 // ? Reload activities for the new profile
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
                 await LoadFeedActivitiesAsync();
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
 
                 // Reload profiles after creation
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
                 await LoadUserProfilesAsync();
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
                 
                 StateHasChanged();
-                Logger.LogInformation("[Home.HandleCreateProfile] STEP 8: ? STATE CHANGED - UI updated");
-                Logger.LogInformation("---------------------------------------------------------------");
-                Logger.LogInformation("[Home.HandleCreateProfile] ??? PROFILE CREATION COMPLETE ???");
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 8: ? STATE CHANGED - UI updated");
+                Console.WriteLine("---------------------------------------------------------------");
+                Console.WriteLine("[Home.HandleCreateProfile] ??? PROFILE CREATION COMPLETE ???");
+                Console.WriteLine("---------------------------------------------------------------");
             }
             else
             {
-                Logger.LogWarning("[Home.HandleCreateProfile] STEP 2 FAILED: Profile creation returned null - API call failed or returned no data");
-                Logger.LogInformation("---------------------------------------------------------------");
+                Console.WriteLine("[Home.HandleCreateProfile] ? STEP 2 FAILED: Profile creation returned null");
+                Console.WriteLine("[Home.HandleCreateProfile] This means the API call failed or returned no data");
+                Console.WriteLine("---------------------------------------------------------------");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[Home.HandleCreateProfile] EXCEPTION during profile creation");
+            Console.WriteLine("---------------------------------------------------------------");
+            Console.WriteLine($"[Home.HandleCreateProfile] ? EXCEPTION CAUGHT!");
+            Console.WriteLine($"  Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Stack Trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+            }
+            Console.WriteLine("---------------------------------------------------------------");
         }
     }
 }
-
-
-

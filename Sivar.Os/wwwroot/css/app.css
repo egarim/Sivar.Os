@@ -1,0 +1,43 @@
+/* ========================================
+   Sivar.Os - Main Application Stylesheet
+   
+   This is the master CSS file that imports all modular stylesheets.
+   All CSS is organized into separate files for maintainability.
+   
+   Architecture:
+   - wireframe-theme.css: CSS variables and theme configuration
+   - wireframe-layout.css: Grid layouts and responsive breakpoints
+   - wireframe-components.css: All UI component styles
+   - wireframe-animations.css: Keyframe animations and transitions
+   
+   Component-scoped CSS files (.razor.css) should only be used for
+   styles that are truly unique to a single component instance.
+   ======================================== */
+
+/* Import core theme variables first */
+@import url('wireframe-theme.css');
+
+/* Import layout system */
+@import url('wireframe-layout.css');
+
+/* Import UI components */
+@import url('wireframe-components.css');
+
+/* Import animations */
+@import url('wireframe-animations.css');
+
+/* ========================================
+   MudBlazor Overrides
+   
+   These override MudBlazor's default styles for specific pages.
+   ======================================== */
+
+/* Remove MudMainContent padding for Home page */
+.mud-main-content {
+    padding: 0 !important;
+}
+
+/* Hide scroll to top button on Home page */
+.mud-scroll-to-top {
+    display: none !important;
+}

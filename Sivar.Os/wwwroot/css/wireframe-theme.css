@@ -1,0 +1,14 @@
+/* ========================================
+   Wireframe Theme - CSS Variables & Theme Configuration
+   ======================================== */
+
+/* Use MudBlazor's CSS variables that adapt to theme automatically */
+.wireframe-landing {
+    --wire-bg: var(--mud-palette-background-gray, #f5f7fa);
+    --wire-surface: var(--mud-palette-surface, #ffffff);
+    --wire-border: var(--mud-palette-lines-default, #e1e8ed);
+    --wire-text-primary: var(--mud-palette-text-primary, #14171a);
+    --wire-text-secondary: var(--mud-palette-text-secondary, #657786);
+    --wire-primary: var(--mud-palette-primary, #1da1f2);
+    --wire-hover: var(--mud-palette-action-default-hover, #f0f4f8);
+}

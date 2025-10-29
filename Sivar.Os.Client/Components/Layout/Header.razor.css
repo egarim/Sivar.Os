@@ -16,6 +16,26 @@
     color: var(--mud-palette-primary, #1da1f2);
 }
 
+.header-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-type-label {
+    font-size: 13px;
+    color: var(--mud-palette-text-secondary, #657786);
+}
+
+.profile-type-switcher {
+    padding: 6px 12px;
+    border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+    border-radius: 6px;
+    background: var(--mud-palette-surface, #ffffff);
+    font-size: 14px;
+    cursor: pointer;
+}
+
 .user-info {
     display: flex;
     align-items: center;
@@ -59,6 +79,17 @@
     
     .logo {
         font-size: 18px;
+    }
+    
+    .header-center {
+        order: 3;
+        width: 100%;
+    }
+    
+    .profile-type-switcher {
+        width: 100%;
+        font-size: 13px;
+        padding: 8px 12px;
     }
     
     .user-avatar {
