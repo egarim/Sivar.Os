@@ -113,6 +113,11 @@ public class ProfilesClient : BaseClient, IProfilesClient
         return await GetAsync<IEnumerable<ProfileSummaryDto>>($"api/profiles/public?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
     }
 
+    public async Task<ProfileDto> GetProfileByIdentifierAsync(string identifier, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<ProfileDto>($"api/profiles/by-identifier/{Uri.EscapeDataString(identifier)}", cancellationToken);
+    }
+
     public async Task<IEnumerable<ProfileSearchDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         return await GetAsync<IEnumerable<ProfileSearchDto>>($"api/profiles/search?query={Uri.EscapeDataString(query)}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);

@@ -406,6 +406,39 @@ public class ProfileService : IProfileService
     }
 
     /// <summary>
+    /// Gets a profile by identifier (GUID or handle)
+    /// Tries to parse as GUID first, then falls back to handle search
+    /// </summary>
+    public async Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+            return null;
+
+        // Try parsing as GUID first
+        if (Guid.TryParse(identifier, out var profileId))
+        {
+            _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Identifier is GUID: {ProfileId}", profileId);
+            return await GetPublicProfileAsync(profileId);
+        }
+
+        // Not a GUID, treat as handle (e.g., "jose-ojeda")
+        _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Identifier is handle: {Handle}", identifier);
+        var profile = await _profileRepository.GetByHandleAsync(identifier);
+        
+        if (profile == null || profile.VisibilityLevel != VisibilityLevel.Public)
+        {
+            _logger.LogWarning("[ProfileService.GetProfileByIdentifierAsync] Profile not found or not public for handle: {Handle}", identifier);
+            return null;
+        }
+
+        // Increment view count
+        await _profileRepository.IncrementViewCountAsync(profile.Id);
+        await _profileRepository.SaveChangesAsync();
+
+        return await MapToProfileDtoAsync(profile);
+    }
+
+    /// <summary>
     /// Gets public profiles with pagination
     /// </summary>
     public async Task<PagedResult<ProfileSummaryDto>> GetPublicProfilesAsync(int page = 1, int pageSize = 20)
@@ -1032,6 +1065,7 @@ public class ProfileService : IProfileService
             ProfileTypeId = profile.ProfileTypeId,
             ProfileType = profileTypeDto,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,
             Bio = profile.Bio,
             Avatar = profile.Avatar,
             AvatarFileId = profile.AvatarFileId,
@@ -1064,6 +1098,7 @@ public class ProfileService : IProfileService
         {
             Id = profile.Id,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,
             BioPreview = bioPreview,
             Avatar = profile.Avatar,
             LocationDisplay = profile.LocationDisplay,

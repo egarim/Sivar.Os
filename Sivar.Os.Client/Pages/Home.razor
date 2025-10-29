@@ -750,7 +750,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             var last = messages.Last();
             var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
-            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}…" : previewText;
+            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}ï¿½" : previewText;
             conversation.LastUpdated = last.Time;
             conversation.MessageCount = messages.Count;
             conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
@@ -796,9 +796,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             // Add result cards
             var pizzaResults = new[]
             {
-                new ChatResultCard("p1", "??", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza • 4.8? • $$ • Open now"),
-                new ChatResultCard("p2", "??", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired • 4.9? • $$$ • Closes 10pm"),
-                new ChatResultCard("p3", "??", "Pizza Express", "Fast Food", "Quick delivery & takeout • 4.2? • $ • Open 24hrs")
+                new ChatResultCard("p1", "??", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza ï¿½ 4.8? ï¿½ $$ ï¿½ Open now"),
+                new ChatResultCard("p2", "??", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired ï¿½ 4.9? ï¿½ $$$ ï¿½ Closes 10pm"),
+                new ChatResultCard("p3", "??", "Pizza Express", "Fast Food", "Quick delivery & takeout ï¿½ 4.2? ï¿½ $ ï¿½ Open 24hrs")
             };
 
             foreach (var card in pizzaResults)
@@ -814,9 +814,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var techResults = new[]
             {
-                new ChatResultCard("t1", "??", "TechCorp Solutions", "Technology", "Cloud services & AI development • 200+ employees"),
-                new ChatResultCard("t2", "??", "Innovation Labs", "Startup", "Mobile app development • Series A funded"),
-                new ChatResultCard("t3", "??", "DataWorks Inc", "Enterprise", "Big data analytics platform • Fortune 500")
+                new ChatResultCard("t1", "??", "TechCorp Solutions", "Technology", "Cloud services & AI development ï¿½ 200+ employees"),
+                new ChatResultCard("t2", "??", "Innovation Labs", "Startup", "Mobile app development ï¿½ Series A funded"),
+                new ChatResultCard("t3", "??", "DataWorks Inc", "Enterprise", "Big data analytics platform ï¿½ Fortune 500")
             };
 
             foreach (var card in techResults)
@@ -832,9 +832,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var eventResults = new[]
             {
-                new ChatResultCard("e1", "??", "Tech Conference 2024", "Conference", "3-day tech summit • Mar 15-17 • Downtown Center"),
-                new ChatResultCard("e2", "??", "Startup Pitch Night", "Networking", "Monthly startup showcase • Mar 10 • 6pm"),
-                new ChatResultCard("e3", "??", "Code & Coffee", "Meetup", "Weekly developer hangout • Every Saturday")
+                new ChatResultCard("e1", "??", "Tech Conference 2024", "Conference", "3-day tech summit ï¿½ Mar 15-17 ï¿½ Downtown Center"),
+                new ChatResultCard("e2", "??", "Startup Pitch Night", "Networking", "Monthly startup showcase ï¿½ Mar 10 ï¿½ 6pm"),
+                new ChatResultCard("e3", "??", "Code & Coffee", "Meetup", "Weekly developer hangout ï¿½ Every Saturday")
             };
 
             foreach (var card in eventResults)
@@ -850,9 +850,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var jobResults = new[]
             {
-                new ChatResultCard("j1", "??", "Senior Developer", "TechCorp", "Full-stack position • $120k-150k • Remote available"),
-                new ChatResultCard("j2", "??", "UX Designer", "Design Studio", "Lead designer role • $90k-110k • Hybrid"),
-                new ChatResultCard("j3", "??", "Product Manager", "StartupXYZ", "PM for AI products • $130k-160k • On-site")
+                new ChatResultCard("j1", "??", "Senior Developer", "TechCorp", "Full-stack position ï¿½ $120k-150k ï¿½ Remote available"),
+                new ChatResultCard("j2", "??", "UX Designer", "Design Studio", "Lead designer role ï¿½ $90k-110k ï¿½ Hybrid"),
+                new ChatResultCard("j3", "??", "Product Manager", "StartupXYZ", "PM for AI products ï¿½ $130k-160k ï¿½ On-site")
             };
 
             foreach (var card in jobResults)
@@ -959,7 +959,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
         {
-            return "Sure — what specifically do you need help with?";
+            return "Sure ï¿½ what specifically do you need help with?";
         }
 
         if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
@@ -969,7 +969,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
         {
-            return "For design feedback, consider spacing, contrast, and alignment — need a checklist?";
+            return "For design feedback, consider spacing, contrast, and alignment ï¿½ need a checklist?";
         }
 
         if (lower.Contains("yes") || lower.Contains("ok") || lower.Contains("thanks"))
@@ -977,13 +977,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             return _cannedReplies[_random.Next(_cannedReplies.Length)];
         }
 
-        var shortEcho = userText.Length > 70 ? $"{userText[..67]}…" : userText;
-        return $"You said: \"{shortEcho}\" — I can expand on that if you'd like.";
+        var shortEcho = userText.Length > 70 ? $"{userText[..67]}ï¿½" : userText;
+        return $"You said: \"{shortEcho}\" ï¿½ I can expand on that if you'd like.";
     }
 
     private readonly string[] _cannedReplies =
     {
-        "Thanks — I noted that. Anything else you'd like to add?",
+        "Thanks ï¿½ I noted that. Anything else you'd like to add?",
         "Interesting, tell me more about that.",
         "I'll keep that in mind. Want me to summarize it?",
         "Here's a suggestion: try simplifying the flow and testing again.",

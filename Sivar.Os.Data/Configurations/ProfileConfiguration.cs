@@ -25,6 +25,10 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(p => p.Handle)
+            .IsRequired()
+            .HasMaxLength(50);
+
         builder.Property(p => p.Bio)
             .HasMaxLength(2000);
 
@@ -94,6 +98,10 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 
         builder.HasIndex(p => p.DisplayName)
             .HasDatabaseName("IX_Profiles_DisplayName");
+
+        builder.HasIndex(p => p.Handle)
+            .IsUnique()
+            .HasDatabaseName("IX_Profiles_Handle");
 
         builder.HasIndex(p => p.CreatedAt)
             .HasDatabaseName("IX_Profiles_CreatedAt");

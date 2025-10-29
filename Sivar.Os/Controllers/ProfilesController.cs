@@ -485,6 +485,50 @@ public class ProfilesController : ControllerBase
     }
 
     /// <summary>
+    /// Gets a profile by identifier (GUID or slug like "jose-ojeda")
+    /// </summary>
+    /// <param name="identifier">Profile ID (GUID) or DisplayName slug</param>
+    /// <returns>Profile details</returns>
+    [HttpGet("by-identifier/{identifier}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ProfileDto>> GetProfileByIdentifier(string identifier)
+    {
+        var startTime = DateTime.UtcNow;
+        _logger.LogInformation("[ProfilesController.GetProfileByIdentifier] START - Identifier={Identifier}", identifier);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                _logger.LogWarning("[ProfilesController.GetProfileByIdentifier] Empty identifier provided");
+                return BadRequest("Identifier is required");
+            }
+
+            var profile = await _profileService.GetProfileByIdentifierAsync(identifier);
+            
+            if (profile == null)
+            {
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogWarning("[ProfilesController.GetProfileByIdentifier] Profile not found - Identifier={Identifier}, Duration={Duration}ms", 
+                    identifier, elapsed);
+                return NotFound($"Profile not found for identifier: {identifier}");
+            }
+
+            var successElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProfilesController.GetProfileByIdentifier] SUCCESS - Identifier={Identifier}, ProfileId={ProfileId}, Duration={Duration}ms", 
+                identifier, profile.Id, successElapsed);
+            return Ok(profile);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ProfilesController.GetProfileByIdentifier] ERROR - Identifier={Identifier}, Duration={Duration}ms", 
+                identifier, elapsed);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
     /// Updates a specific profile by ID (with ownership validation)
     /// </summary>
     /// <param name="id">Profile ID to update</param>

@@ -30,6 +30,17 @@ public class Profile : BaseEntity
     public virtual string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique URL-friendly handle for the profile (e.g., "jose-ojeda", "acme-corp")
+    /// Used in profile URLs like /jose-ojeda
+    /// Must be lowercase alphanumeric with hyphens only, 3-50 characters
+    /// </summary>
+    [Required]
+    [StringLength(50, MinimumLength = 3, ErrorMessage = "Handle must be between 3 and 50 characters")]
+    [RegularExpression(@"^[a-z0-9]+(?:-[a-z0-9]+)*$", 
+        ErrorMessage = "Handle must be lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.")]
+    public virtual string Handle { get; set; } = string.Empty;
+
+    /// <summary>
     /// Biography or description text for the profile
     /// </summary>
     [StringLength(2000, ErrorMessage = "Bio cannot exceed 2000 characters")]
@@ -146,7 +157,58 @@ public class Profile : BaseEntity
     /// </summary>
     public bool IsValidForDisplay()
     {
-        return !string.IsNullOrWhiteSpace(DisplayName);
+        return !string.IsNullOrWhiteSpace(DisplayName) && !string.IsNullOrWhiteSpace(Handle);
+    }
+
+    /// <summary>
+    /// Generates a URL-friendly handle from a display name
+    /// Converts to lowercase, replaces spaces with hyphens, removes invalid characters
+    /// </summary>
+    /// <param name="displayName">The display name to convert</param>
+    /// <returns>A URL-friendly handle</returns>
+    public static string GenerateHandle(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return string.Empty;
+
+        // Convert to lowercase
+        var handle = displayName.ToLowerInvariant();
+
+        // Replace spaces and underscores with hyphens
+        handle = handle.Replace(' ', '-').Replace('_', '-');
+
+        // Remove all non-alphanumeric characters except hyphens
+        handle = new string(handle.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+
+        // Replace multiple consecutive hyphens with a single hyphen
+        while (handle.Contains("--"))
+            handle = handle.Replace("--", "-");
+
+        // Remove leading and trailing hyphens
+        handle = handle.Trim('-');
+
+        // Truncate to max length (50 characters)
+        if (handle.Length > 50)
+            handle = handle.Substring(0, 50).TrimEnd('-');
+
+        return handle;
+    }
+
+    /// <summary>
+    /// Validates if a handle meets the requirements
+    /// </summary>
+    /// <param name="handle">The handle to validate</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool IsValidHandle(string handle)
+    {
+        if (string.IsNullOrWhiteSpace(handle))
+            return false;
+
+        if (handle.Length < 3 || handle.Length > 50)
+            return false;
+
+        // Must match pattern: lowercase alphanumeric with hyphens, cannot start/end with hyphen
+        return System.Text.RegularExpressions.Regex.IsMatch(handle, @"^[a-z0-9]+(?:-[a-z0-9]+)*$");
     }
 
     /// <summary>

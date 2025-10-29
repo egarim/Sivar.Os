@@ -1,11 +1,22 @@
-@page "/profile/{ProfileSlug}"
+@page "/{Identifier}"
 @layout LandingLayout
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using MudBlazor
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Profile
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager Navigation
+@inject IProfilesClient ProfilesClient
+
+@if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
+{
+    <HeadContent>
+        <link rel="canonical" href="@($"{Navigation.BaseUri.TrimEnd('/')}/{profileData.Username}")" />
+    </HeadContent>
+}
 
 <style>
     /* Use MudBlazor's CSS variables that adapt to theme automatically */
@@ -257,38 +268,117 @@
 
 @code {
     [Parameter]
-    public string ProfileSlug { get; set; } = string.Empty;
+    public string Identifier { get; set; } = string.Empty;
 
     private ProfileData profileData = new();
+    private bool isLoading = true;
+    private string? errorMessage;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        profileData = new ProfileData
+        await LoadProfileAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reload profile if the identifier changes
+        await LoadProfileAsync();
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
         {
-            ProfileSlug = ProfileSlug,
-            DisplayName = GetDisplayName(),
-            Username = ProfileSlug,
-            Initials = GetInitials(),
-            Bio = GetBio(),
+            Console.WriteLine($"[ProfilePage] Loading profile for identifier: {Identifier}");
+            
+            var profile = await ProfilesClient.GetProfileByIdentifierAsync(Identifier);
+            
+            if (profile == null || profile.Id == Guid.Empty)
+            {
+                Console.WriteLine($"[ProfilePage] Profile not found for identifier: {Identifier}");
+                errorMessage = $"Profile not found for '{Identifier}'";
+                profileData = GetFallbackProfileData();
+            }
+            else
+            {
+                Console.WriteLine($"[ProfilePage] Profile loaded: {profile.DisplayName} (ID: {profile.Id})");
+                
+                // SEO: Redirect from GUID to handle for better URLs
+                if (Guid.TryParse(Identifier, out _) && !string.IsNullOrEmpty(profile.Handle))
+                {
+                    Console.WriteLine($"[ProfilePage] Redirecting from GUID to handle: /{profile.Handle}");
+                    Navigation.NavigateTo($"/{profile.Handle}", replace: true);
+                    return; // Don't set profile data, the redirect will trigger a reload
+                }
+                
+                profileData = new ProfileData
+                {
+                    ProfileSlug = profile.Handle ?? Identifier,
+                    DisplayName = profile.DisplayName ?? "Unknown",
+                    Username = profile.Handle ?? GenerateUsernameFromDisplayName(profile.DisplayName ?? "Unknown"),
+                    Initials = GetInitialsFromDisplayName(profile.DisplayName ?? "Unknown"),
+                    Bio = profile.Bio ?? "No bio available",
+                    Stats = new ProfileStats
+                    {
+                        Posts = 0, // TODO: Fetch from posts service
+                        Followers = 0, // TODO: Fetch from followers service
+                        Following = 0  // TODO: Fetch from following service
+                    }
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ProfilePage] Error loading profile: {ex.Message}");
+            errorMessage = "An error occurred while loading the profile";
+            profileData = GetFallbackProfileData();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private ProfileData GetFallbackProfileData()
+    {
+        // Fallback to mock data for demo purposes
+        return new ProfileData
+        {
+            ProfileSlug = Identifier,
+            DisplayName = GetDisplayNameFromSlug(Identifier),
+            Username = Identifier,
+            Initials = GetInitialsFromSlug(Identifier),
+            Bio = "Profile information is currently unavailable.",
             Stats = new ProfileStats
             {
-                Posts = GetRandomStat(42, 156),
-                Followers = GetRandomStat(500, 2500),
-                Following = GetRandomStat(150, 850)
+                Posts = 0,
+                Followers = 0,
+                Following = 0
             }
         };
     }
 
-    private string GetDisplayName()
+    private string GetDisplayNameFromSlug(string slug)
     {
-        // Convert slug back to display name
-        return string.Join(" ", ProfileSlug.Split('-')
+        if (Guid.TryParse(slug, out _))
+            return "User Profile";
+        
+        return string.Join(" ", slug.Split('-')
             .Select(word => char.ToUpper(word[0]) + word.Substring(1)));
     }
 
-    private string GetInitials()
+    private string GenerateUsernameFromDisplayName(string displayName)
     {
-        var parts = ProfileSlug.Split('-');
+        return displayName.ToLower().Replace(" ", "-");
+    }
+
+    private string GetInitialsFromDisplayName(string displayName)
+    {
+        var parts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 2)
         {
             return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}";
@@ -296,37 +386,17 @@
         return parts.Length > 0 ? char.ToUpper(parts[0][0]).ToString() : "U";
     }
 
-    private string GetBio()
+    private string GetInitialsFromSlug(string slug)
     {
-        var bios = new Dictionary<string, string>
+        if (Guid.TryParse(slug, out _))
+            return "U";
+
+        var parts = slug.Split('-');
+        if (parts.Length >= 2)
         {
-            { "alice-doe", "Product manager passionate about building tools that help teams collaborate better. Love hiking, coffee, and solving complex problems." },
-            { "bob-smith", "Senior UX Designer focused on creating intuitive and delightful user experiences. Always learning, always designing." },
-            { "carol-lee", "Tech recruiter helping connect amazing talent with great opportunities. Building the future of work, one hire at a time." },
-            { "david-chen", "Software engineer specializing in distributed systems and cloud architecture. Coffee enthusiast and open-source contributor." },
-            { "emma-wilson", "Marketing lead with a passion for storytelling and brand building. Creating meaningful connections through content." },
-            { "frank-martinez", "Engineering manager leading high-performing teams. Advocate for work-life balance and continuous improvement." },
-            { "grace-kim", "Content creator and photographer capturing moments that matter. Sharing stories through visuals." },
-            { "sarah-johnson", "Data scientist turning numbers into insights. Machine learning enthusiast and problem solver." },
-            { "mike-chen", "Full-stack developer building scalable web applications. Tech blogger and mentor." },
-            { "emily-davis", "Product designer crafting user-centered experiences. Passionate about accessibility and inclusive design." },
-            { "tom-wilson", "DevOps engineer automating all the things. Cloud infrastructure and CI/CD enthusiast." },
-            { "james-brown", "Entrepreneur building the next generation of productivity tools. Always innovating." },
-            { "lisa-taylor", "Business analyst bridging the gap between business and technology. Data-driven decision maker." },
-            { "david-park", "Solutions architect designing enterprise systems. Helping organizations scale and succeed." }
-        };
-
-        return bios.ContainsKey(ProfileSlug) 
-            ? bios[ProfileSlug] 
-            : "Professional dedicated to making a difference through technology and innovation.";
-    }
-
-    private int GetRandomStat(int min, int max)
-    {
-        // Generate consistent "random" value based on profile slug
-        var hash = ProfileSlug.GetHashCode();
-        var seed = Math.Abs(hash);
-        return min + (seed % (max - min));
+            return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}";
+        }
+        return parts.Length > 0 ? char.ToUpper(parts[0][0]).ToString() : "U";
     }
 
     private void GoBack()

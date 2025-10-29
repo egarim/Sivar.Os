@@ -68,6 +68,14 @@ public interface IProfileService
     Task<ProfileDto?> GetPublicProfileAsync(Guid profileId);
 
     /// <summary>
+    /// Gets a profile by identifier (GUID or DisplayName slug)
+    /// Tries to parse as GUID first, then falls back to DisplayName slug search
+    /// </summary>
+    /// <param name="identifier">Profile ID (GUID) or slug (e.g., "jose-ojeda")</param>
+    /// <returns>Profile DTO if found and public, null otherwise</returns>
+    Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier);
+
+    /// <summary>
     /// Gets public profiles with pagination
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
