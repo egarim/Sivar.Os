@@ -281,6 +281,62 @@ Database (XafSivarOs)
 ## Build Status
 
 ✅ **Client Build:** Succeeded (13 warnings - pre-existing)  
+✅ **Server Build:** Succeeded (18 warnings - pre-existing)  
+✅ **No Compilation Errors**
+
+## Bug Fix (Commit 7b77a3c)
+
+### Issue Discovered
+After initial implementation, clicking the Follow button had no effect. Browser showed no errors, and server logs indicated:
+```
+[06:17:38 INF] Sivar.Os.Services.Clients.FollowersClient: FollowAsync
+[ProfilePage] Follow failed: 
+```
+
+The `FollowResultDto` had `Success = false` and empty `Message`, indicating the server-side client wasn't executing the operation.
+
+### Root Cause
+The server-side `FollowersClient` methods were stub implementations - they only logged and returned empty results without actually calling the `ProfileFollowerService`.
+
+### Solution
+Properly implemented all server-side `FollowersClient` methods:
+
+1. **Added Dependencies:**
+   - `IHttpContextAccessor` - To access current HTTP request context
+   - `IProfileService` - To get current user's active profile
+
+2. **Implemented Core Methods:**
+   - `FollowAsync()` - Extracts user from HTTP context, gets active profile, calls service
+   - `UnfollowAsync()` - Same pattern for unfollowing
+   - `GetFollowersAsync()` - Gets current user's followers
+   - `GetFollowingAsync()` - Gets current user's following
+   - `GetStatsAsync()` - Gets current user's follower statistics
+   - `GetFollowingStatusAsync()` - Checks if following a profile
+
+3. **Added Helper Method:**
+   - `GetKeycloakIdFromContext()` - Extracts user ID from HTTP context (handles mock auth for tests)
+
+4. **Authentication Handling:**
+   - Returns appropriate error messages when user not authenticated
+   - Returns empty results when no active profile exists
+   - Logs all operations for debugging
+
+### Files Modified
+- `Sivar.Os/Services/Clients/FollowersClient.cs` (+228 lines, -13 lines)
+
+### Testing After Fix
+The follow functionality now works correctly:
+1. User clicks "Follow" button
+2. Server authenticates user via HTTP context
+3. Gets user's active profile
+4. Calls `ProfileFollowerService.FollowProfileAsync()`
+5. Database record created in `ProfileFollower` table
+6. Success result returned to UI
+7. UI updates with "Unfollow" button and incremented follower count
+
+## Build Status
+
+✅ **Client Build:** Succeeded (13 warnings - pre-existing)  
 ✅ **Server Build:** Succeeded (19 warnings - pre-existing)  
 ✅ **No Compilation Errors**
 
