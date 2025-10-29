@@ -441,7 +441,7 @@
         if (isFollowActionInProgress)
             return isFollowing ? "Unfollowing..." : "Following...";
         
-        return isFollowing ? "Unfollow" : "Follow";
+        return isFollowing ? "Following" : "Follow";
     }
 
     private async Task HandleFollow()
@@ -482,6 +482,9 @@
                     // TODO: Show error message to user
                 }
             }
+            
+            // Force UI update to reflect new button state
+            StateHasChanged();
         }
         catch (Exception ex)
         {
