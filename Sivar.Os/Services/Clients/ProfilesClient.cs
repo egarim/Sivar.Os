@@ -5,6 +5,7 @@ using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
+using Sivar.Os.Client.Services;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -16,17 +17,20 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
 {
     private readonly IProfileService _profileService;
     private readonly IProfileRepository _profileRepository;
+    private readonly IProfileSwitcherService _profileSwitcherService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ProfilesClient> _logger;
 
     public ProfilesClient(
         IProfileService profileService,
         IProfileRepository profileRepository,
+        IProfileSwitcherService profileSwitcherService,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ProfilesClient> logger)
     {
         _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+        _profileSwitcherService = profileSwitcherService ?? throw new ArgumentNullException(nameof(profileSwitcherService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -147,6 +151,12 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
     {
         try
         {
+            if (request == null)
+            {
+                _logger.LogWarning("UpdateMyProfileAsync: Null request");
+                return null!;
+            }
+
             var keycloakId = GetKeycloakIdFromContext();
             if (string.IsNullOrEmpty(keycloakId))
             {
@@ -265,8 +275,36 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
     // Profile management (admin)
     public async Task<ProfileDto> CreateProfileAsync(CreateAnyProfileDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("CreateProfileAsync (admin)");
-        return new ProfileDto { Id = Guid.NewGuid() };
+        _logger.LogInformation("[ProfilesClient.CreateProfileAsync] Creating profile - DisplayName: {DisplayName}, ProfileTypeId: {ProfileTypeId}", 
+            request?.DisplayName, request?.ProfileTypeId);
+        
+        if (request == null)
+        {
+            _logger.LogWarning("[ProfilesClient.CreateProfileAsync] Request is null");
+            return new ProfileDto { Id = Guid.Empty };
+        }
+
+        try
+        {
+            // Use ProfileSwitcherService which has the proper implementation
+            var profile = await _profileSwitcherService.CreateProfileAsync(request);
+            
+            if (profile != null)
+            {
+                _logger.LogInformation("[ProfilesClient.CreateProfileAsync] ✅ Profile created successfully: {ProfileId}", profile.Id);
+                return profile;
+            }
+            else
+            {
+                _logger.LogWarning("[ProfilesClient.CreateProfileAsync] ProfileSwitcherService returned null");
+                return new ProfileDto { Id = Guid.Empty };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesClient.CreateProfileAsync] Error creating profile");
+            throw;
+        }
     }
 
     public async Task<ProfileDto> UpdateProfileAsync(Guid profileId, UpdateProfileDto request, CancellationToken cancellationToken = default)

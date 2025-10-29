@@ -318,16 +318,25 @@
 
     private async Task HandleCreateProfile(CreateAnyProfileDto request)
     {
+        Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] Closing modal and invoking parent callback");
         ShowCreateModal = false;
+        
         // Pass the profile creation request to parent component
         if (OnCreateProfile.HasDelegate)
         {
+            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] OnCreateProfile delegate exists, invoking it");
             await OnCreateProfile.InvokeAsync(request);
+            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] ✅ OnCreateProfile callback completed");
         }
         else if (OnCreateProfileClick.HasDelegate)
         {
             // Fallback for backward compatibility
+            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] OnCreateProfileClick delegate exists, invoking it (FALLBACK)");
             await OnCreateProfileClick.InvokeAsync();
+        }
+        else
+        {
+            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] ⚠️ WARNING: No delegate bound to OnCreateProfile or OnCreateProfileClick!");
         }
     }
 }

@@ -30,6 +30,10 @@ public class ProfilesClient : BaseClient, IProfilesClient
 
     public async Task<ProfileDto> UpdateMyProfileAsync(UpdateProfileDto request, CancellationToken cancellationToken = default)
     {
+        // Return null if request is null
+        if (request == null)
+            return null!;
+            
         return await PutAsync<ProfileDto>("api/profiles/my", request, cancellationToken);
     }
 
@@ -56,7 +60,26 @@ public class ProfilesClient : BaseClient, IProfilesClient
     // Profile management
     public async Task<ProfileDto> CreateProfileAsync(CreateAnyProfileDto request, CancellationToken cancellationToken = default)
     {
-        return await PostAsync<ProfileDto>("api/profiles", request, cancellationToken);
+        Console.WriteLine("[ProfilesClient.CreateProfileAsync] Starting profile creation API call");
+        Console.WriteLine($"  Endpoint: POST api/profiles");
+        Console.WriteLine($"  DisplayName: {request.DisplayName}");
+        Console.WriteLine($"  ProfileTypeId: {request.ProfileTypeId}");
+        
+        try
+        {
+            var result = await PostAsync<ProfileDto>("api/profiles", request, cancellationToken);
+            Console.WriteLine($"[ProfilesClient.CreateProfileAsync] ✅ API returned successfully");
+            Console.WriteLine($"  Result ID: {result?.Id}");
+            Console.WriteLine($"  Result DisplayName: {result?.DisplayName}");
+            return result!;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ProfilesClient.CreateProfileAsync] ❌ API call failed!");
+            Console.WriteLine($"  Exception: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<ProfileDto> GetProfileAsync(Guid profileId, CancellationToken cancellationToken = default)

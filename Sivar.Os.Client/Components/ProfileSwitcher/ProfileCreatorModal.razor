@@ -510,17 +510,34 @@
 
     private async Task SubmitForm()
     {
+        Console.WriteLine("═══════════════════════════════════════════════════════════════");
+        Console.WriteLine("[ProfileCreatorModal.SubmitForm] START - Submitting create profile form");
+        
         ValidateProfileName();
 
         if (!IsFormValid())
+        {
+            Console.WriteLine("[ProfileCreatorModal.SubmitForm] ❌ Form validation failed");
+            Console.WriteLine($"  ProfileName: '{ProfileName}' (Length: {ProfileName?.Length ?? 0})");
+            Console.WriteLine($"  SelectedProfileType: {SelectedProfileType}");
+            Console.WriteLine($"  IsSubmitting: {IsSubmitting}");
+            Console.WriteLine($"  ProfileNameError: {ProfileNameError}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
             return;
+        }
 
         IsSubmitting = true;
+        Console.WriteLine("[ProfileCreatorModal.SubmitForm] ✅ Form validation passed, starting submission");
 
         try
         {
             var selectedTypeName = ProfileTypes.FirstOrDefault(t => t.Id == SelectedProfileType)?.DisplayName ?? "Unknown";
-            Console.WriteLine($"[ProfileCreatorModal.SubmitForm] Creating profile: Name={ProfileName}, Type={selectedTypeName} (ID: {SelectedProfileType})");
+            Console.WriteLine("[ProfileCreatorModal.SubmitForm] Creating request object");
+            Console.WriteLine($"  Name: {ProfileName.Trim()}");
+            Console.WriteLine($"  Type: {selectedTypeName} (ID: {SelectedProfileType})");
+            Console.WriteLine($"  Bio: {ProfileDescription.Trim()}");
+            Console.WriteLine($"  Visibility: {SelectedVisibility}");
+            Console.WriteLine($"  SetAsActive: {SetAsActive}");
 
             var request = new CreateAnyProfileDto
             {
@@ -531,7 +548,18 @@
                 SetAsActive = SetAsActive
             };
 
+            Console.WriteLine("[ProfileCreatorModal.SubmitForm] Invoking OnCreate callback");
             await OnCreate.InvokeAsync(request);
+            Console.WriteLine("[ProfileCreatorModal.SubmitForm] ✅ OnCreate callback completed");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[ProfileCreatorModal.SubmitForm] ❌ EXCEPTION!");
+            Console.WriteLine($"  Type: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Stack: {ex.StackTrace}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
         }
         finally
         {

@@ -82,4 +82,61 @@ public class ProfilesTestDataFixture
             })
             .ToList();
     }
+
+    #region Post Test Data Helpers
+
+    public static CreatePostDto CreatePostRequestForProfile(Guid profileId, string? content = null)
+    {
+        return new CreatePostDto
+        {
+            ProfileId = profileId,
+            Content = content ?? $"Test post content - {Guid.NewGuid()}",
+            PostType = PostType.General,
+            Visibility = VisibilityLevel.Public,
+            Language = "en",
+            Tags = new List<string> { "test", "integration" }
+        };
+    }
+
+    public static PostDto CreatePostDtoForProfile(Guid profileId, ProfileDto profile, string? content = null)
+    {
+        return new PostDto
+        {
+            Id = Guid.NewGuid(),
+            Profile = profile,
+            Content = content ?? $"Test post - {Guid.NewGuid()}",
+            PostType = PostType.General,
+            Visibility = VisibilityLevel.Public,
+            Language = "en",
+            Tags = new List<string> { "test" },
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsEdited = false,
+            CommentCount = 0
+        };
+    }
+
+    public static PostFeedDto CreatePostFeedWithPosts(List<PostDto> posts)
+    {
+        return new PostFeedDto
+        {
+            Posts = posts,
+            Page = 0,
+            PageSize = 20,
+            TotalCount = posts.Count
+        };
+    }
+
+    public static PostFeedDto CreateEmptyPostFeed()
+    {
+        return new PostFeedDto
+        {
+            Posts = new List<PostDto>(),
+            Page = 0,
+            PageSize = 20,
+            TotalCount = 0
+        };
+    }
+
+    #endregion
 }

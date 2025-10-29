@@ -341,7 +341,15 @@ public class ProfileService : IProfileService
             return false;
         }
 
-        // SIMPLE DIRECT FIX: Directly set ActiveProfileId on user without validation
+        // ✅ CRITICAL: Validate that the profile exists and belongs to the user
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null)
+        {
+            _logger.LogError("[SetActiveProfileAsync] ❌ Profile not found: {ProfileId}", profileId);
+            return false;
+        }
+
+        // Get user
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user == null)
         {
@@ -349,7 +357,15 @@ public class ProfileService : IProfileService
             return false;
         }
 
-        _logger.LogInformation("[SetActiveProfileAsync] DIRECT FIX - Setting ActiveProfileId directly");
+        // ✅ CRITICAL: Verify profile belongs to user
+        if (profile.UserId != user.Id)
+        {
+            _logger.LogError("[SetActiveProfileAsync] ❌ Profile {ProfileId} does not belong to user {UserId}", profileId, user.Id);
+            return false;
+        }
+
+        _logger.LogInformation("[SetActiveProfileAsync] ✅ Profile validation passed");
+        _logger.LogInformation("[SetActiveProfileAsync] Setting ActiveProfileId directly");
         _logger.LogInformation("[SetActiveProfileAsync] User: Id={UserId}", user.Id);
         _logger.LogInformation("[SetActiveProfileAsync] BEFORE: ActiveProfileId={OldValue}", user.ActiveProfileId?.ToString() ?? "NULL");
         
@@ -810,18 +826,20 @@ public class ProfileService : IProfileService
         await _profileRepository.AddAsync(profile);
         await _profileRepository.SaveChangesAsync();
 
-        // If this is the user's first profile, automatically set it as active
-        var userProfiles = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: true);
-        _logger.LogInformation("[CreateProfileAsync] User {UserId} has {Count} profiles total", user.Id, userProfiles.Count());
-        if (userProfiles.Count() == 1)
+        // ✅ If this is the user's first profile, automatically set it as active
+        // ✅ Check if user currently has NO active profile set, rather than counting total profiles
+        // This avoids issues with profile count queries that might not reflect the newly created profile
+        var refreshedUser = await _userRepository.GetByIdAsync(user.Id);
+        if (refreshedUser != null && refreshedUser.ActiveProfileId == null)
         {
-            _logger.LogInformation("[CreateProfileAsync] This is first profile! Calling EnforceOneActiveProfileRuleAsync({ProfileId}, {UserId})", profile.Id, user.Id);
+            _logger.LogInformation("[CreateProfileAsync] ✅ User {UserId} has NO active profile. Setting newly created profile {ProfileId} as active", 
+                user.Id, profile.Id);
             var enforceResult = await EnforceOneActiveProfileRuleAsync(profile.Id, user.Id);
             _logger.LogInformation("[CreateProfileAsync] EnforceOneActiveProfileRuleAsync returned: {Result}", enforceResult);
         }
         else
         {
-            _logger.LogWarning("[CreateProfileAsync] ❌ NOT calling EnforceOneActiveProfileRuleAsync because profile count != 1. Count={Count}", userProfiles.Count());
+            _logger.LogInformation("[CreateProfileAsync] ℹ User {UserId} already has an active profile or could not be refreshed. Not auto-setting as active", user.Id);
         }
 
         // Load the profile with related data
@@ -1016,6 +1034,7 @@ public class ProfileService : IProfileService
             DisplayName = profile.DisplayName,
             Bio = profile.Bio,
             Avatar = profile.Avatar,
+            AvatarFileId = profile.AvatarFileId,
             Location = profile.Location,
             LocationDisplay = profile.LocationDisplay,
             IsActive = profile.IsActive,

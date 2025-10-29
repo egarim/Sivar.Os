@@ -22,6 +22,12 @@ public class ClientSideProfilesClientTests : ProfilesClientContractTests
     private HttpClient _httpClient = null!;
     private const string BaseAddress = "https://localhost:7001";
 
+    /// <summary>
+    /// Client-side (HTTP) implementations don't have access to authentication context.
+    /// Authentication is handled at the HTTP/server level (401 responses).
+    /// </summary>
+    protected override bool SupportsAuthenticationContext => false;
+
     protected override void SetupClient()
     {
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();

@@ -1802,21 +1802,26 @@
             Console.WriteLine($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
             if (_currentProfileId == Guid.Empty)
             {
-                Console.WriteLine("[Home] ⚠️ WARNING: Active profile ID is empty, attempting to load profiles");
+                Console.WriteLine("[Home] ⚠️ WARNING: Active profile ID is empty, trying to get from profiles list");
                 await LoadProfileTypesAsync();
+                await LoadUserProfilesAsync();
+                
+                // Try to get active profile ID from the loaded profiles
+                if (_userProfiles?.Any() == true)
+                {
+                    var activeProf = _userProfiles.FirstOrDefault(p => p.IsActive);
+                    if (activeProf != null)
+                    {
+                        _currentProfileId = activeProf.Id;
+                        _activeProfile = activeProf;
+                        Console.WriteLine($"[Home] ✓ Got active profile from list: {_currentProfileId}");
+                    }
+                }
             }
             
             // Load initial feed posts
             Console.WriteLine("[Home] Step 3: Loading feed posts");
             await LoadFeedPostsAsync();
-            
-            // If no posts loaded, try loading sample data
-            if (!_posts.Any())
-            {
-                Console.WriteLine("[Home] ⚠️ No posts loaded from API, attempting to load sample data");
-                await LoadSampleDataAsync();
-                await LoadFeedPostsAsync();
-            }
             
             // Load user statistics
             Console.WriteLine("[Home] Step 4: Loading user statistics");
@@ -2724,16 +2729,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             Console.WriteLine($"[Home.LoadFeedPostsAsync] START - Current profile: {_currentProfileId}, Page: {_currentPage}");
             
-            if (_currentProfileId == Guid.Empty)
-            {
-                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ Profile ID is empty, cannot load feed");
-                _posts = new List<PostDto>();
-                StateHasChanged();
-                return;
-            }
+            // Note: We use GetFeedPostsAsync() which gets the activity feed for the authenticated user
+            // This doesn't require a profileId - it automatically uses the user's Keycloak ID
+            // The feed shows posts from profiles the user follows (or their own posts in a future implementation)
             
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetProfilePostsAsync with profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage}");
-            var feedDto = await SivarClient.Posts.GetProfilePostsAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
+            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetFeedPostsAsync with pageSize=10, pageNumber={_currentPage}");
+            var feedDto = await SivarClient.Posts.GetFeedPostsAsync(pageSize: 10, pageNumber: _currentPage);
             
             if (feedDto == null)
             {
@@ -2755,7 +2756,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             }
             else
             {
-                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ No posts found in feed");
+                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ No posts found in feed (this is OK - feed is empty)");
                 _posts = new List<PostDto>();
                 _totalPages = feedDto?.TotalPages ?? 0;
             }
@@ -2769,82 +2770,6 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             _posts = new List<PostDto>();
             _totalPages = 0;
             StateHasChanged();
-        }
-    }
-
-    /// <summary>
-    /// Load sample/test data if no posts exist - helps with development and testing
-    /// </summary>
-    private async Task LoadSampleDataAsync()
-    {
-        try
-        {
-            Console.WriteLine("[Home.LoadSampleDataAsync] Attempting to create sample posts for development");
-            
-            if (_currentProfileId == Guid.Empty)
-            {
-                Console.WriteLine("[Home.LoadSampleDataAsync] ⚠️ Cannot create sample data - profile ID is empty");
-                return;
-            }
-            
-            var samplePosts = new List<CreatePostDto>
-            {
-                new()
-                {
-                    Content = "🎉 Welcome to Sivar! This is a sample post to help you get started. Feel free to create your own posts and engage with the community!",
-                    ProfileId = _currentProfileId,
-                    PostType = Sivar.Os.Shared.Enums.PostType.General,
-                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
-                    Tags = new List<string> { "welcome", "getting-started" }
-                },
-                new()
-                {
-                    Content = "💼 Looking to collaborate on exciting projects? Let's connect and build something amazing together!",
-                    ProfileId = _currentProfileId,
-                    PostType = Sivar.Os.Shared.Enums.PostType.Service,
-                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
-                    Tags = new List<string> { "collaboration", "business" }
-                },
-                new()
-                {
-                    Content = "🚀 Just launched a new feature! Check out the latest updates and let me know what you think.",
-                    ProfileId = _currentProfileId,
-                    PostType = Sivar.Os.Shared.Enums.PostType.Product,
-                    Visibility = Sivar.Os.Shared.Enums.VisibilityLevel.Public,
-                    Tags = new List<string> { "product", "launch" }
-                }
-            };
-            
-            int successCount = 0;
-            foreach (var samplePost in samplePosts)
-            {
-                try
-                {
-                    Console.WriteLine($"[Home.LoadSampleDataAsync] Creating sample post: {samplePost.Content[..50]}...");
-                    var createdPost = await SivarClient.Posts.CreatePostAsync(samplePost);
-                    
-                    if (createdPost != null)
-                    {
-                        successCount++;
-                        Console.WriteLine($"[Home.LoadSampleDataAsync] ✓ Sample post created: {createdPost.Id}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("[Home.LoadSampleDataAsync] ⚠️ Failed to create sample post - returned null");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Home.LoadSampleDataAsync] ⚠️ Error creating sample post: {ex.Message}");
-                }
-            }
-            
-            Console.WriteLine($"[Home.LoadSampleDataAsync] Created {successCount}/{samplePosts.Count} sample posts");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[Home.LoadSampleDataAsync] ❌ Error loading sample data: {ex.Message}");
-            // Don't throw - this is optional
         }
     }
 
@@ -3042,46 +2967,97 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("[Home] Creating new profile");
-            Console.WriteLine($"[Home] Profile request: DisplayName={request.DisplayName}, ProfileTypeId={request.ProfileTypeId}, SetAsActive={request.SetAsActive}, Visibility={request.VisibilityLevel}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine("[Home.HandleCreateProfile] START - Creating new profile");
+            Console.WriteLine($"  DisplayName: {request.DisplayName}");
+            Console.WriteLine($"  ProfileTypeId: {request.ProfileTypeId}");
+            Console.WriteLine($"  SetAsActive: {request.SetAsActive}");
+            Console.WriteLine($"  Visibility: {request.VisibilityLevel}");
+            Console.WriteLine($"  Bio: {request.Bio}");
+            Console.WriteLine($"  Avatar: {request.Avatar}");
+            Console.WriteLine($"  Tags: {request.Tags}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
 
-            // Call the SivarClient to create the profile
+            // Step 1: Call the SivarClient to create the profile
+            Console.WriteLine("[Home.HandleCreateProfile] STEP 1: Calling SivarClient.Profiles.CreateProfileAsync()");
             var newProfile = await SivarClient.Profiles.CreateProfileAsync(request);
             
             if (newProfile != null)
             {
-                Console.WriteLine($"[Home] ✅ Profile created successfully: {newProfile.Id}");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 2: ✅ Profile created successfully!");
+                Console.WriteLine($"  Profile ID: {newProfile.Id}");
+                Console.WriteLine($"  Profile Name: {newProfile.DisplayName}");
+                Console.WriteLine($"  Profile Type: {newProfile.ProfileType?.DisplayName}");
                 
-                // ✅ ALWAYS auto-select the new profile
-                Console.WriteLine("[Home] Auto-selecting new profile");
-                await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
+                // ✅ ALWAYS auto-select the new profile (if SetAsActive is true)
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: SetAsActive={request.SetAsActive}, attempting to auto-select");
+                
+                if (request.SetAsActive)
+                {
+                    try
+                    {
+                        var activeProfileResult = await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
+                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ✅ SetMyActiveProfileAsync succeeded!");
+                        Console.WriteLine($"  Returned Profile ID: {activeProfileResult?.Id}");
+                    }
+                    catch (Exception setActiveEx)
+                    {
+                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ⚠️ SetMyActiveProfileAsync failed!");
+                        Console.WriteLine($"  Exception: {setActiveEx.GetType().Name}");
+                        Console.WriteLine($"  Message: {setActiveEx.Message}");
+                        Console.WriteLine("  Continuing anyway - profile was created successfully");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
+                }
+                
                 _activeProfile = newProfile;
                 
                 // ✅ Update current profile ID (required for feed loading)
                 _currentProfileId = newProfile.Id;
-                Console.WriteLine($"[Home] Updated _currentProfileId to {_currentProfileId}");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
                 
                 // ✅ Reset pagination
                 _currentPage = 1;
-                Console.WriteLine("[Home] Reset pagination to page 1");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
                 
                 // ✅ Reload activities for the new profile
-                Console.WriteLine("[Home] Reloading feed for new profile");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
                 await LoadFeedPostsAsync();
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
 
                 // Reload profiles after creation
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
                 await LoadUserProfilesAsync();
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
+                
                 StateHasChanged();
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 8: ✅ STATE CHANGED - UI updated");
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Console.WriteLine("[Home.HandleCreateProfile] ✅✅✅ PROFILE CREATION COMPLETE ✅✅✅");
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
             }
             else
             {
-                Console.WriteLine("[Home] ❌ Profile creation returned null");
+                Console.WriteLine("[Home.HandleCreateProfile] ❌ STEP 2 FAILED: Profile creation returned null");
+                Console.WriteLine("[Home.HandleCreateProfile] This means the API call failed or returned no data");
+                Console.WriteLine("═══════════════════════════════════════════════════════════════");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ❌ Error creating profile: {ex.Message}");
-            Console.WriteLine($"[Home] Stack trace: {ex.StackTrace}");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"[Home.HandleCreateProfile] ❌ EXCEPTION CAUGHT!");
+            Console.WriteLine($"  Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"  Message: {ex.Message}");
+            Console.WriteLine($"  Stack Trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+            }
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
         }
     }
 }

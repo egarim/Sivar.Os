@@ -415,15 +415,83 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     /// </summary>
     private PostDto MapPostToDto(Post post)
     {
-        return new PostDto
+        var postDto = new PostDto
         {
             Id = post.Id,
             Content = post.Content,
             PostType = post.PostType,
             Visibility = post.Visibility,
             Language = post.Language,
+            Tags = string.IsNullOrEmpty(post.Tags) ? new List<string>() : post.GetTags().ToList(),
+            Location = post.Location != null ? new LocationDto
+            {
+                City = post.Location.City,
+                State = post.Location.State,
+                Country = post.Location.Country,
+                Latitude = post.Location.Latitude,
+                Longitude = post.Location.Longitude
+            } : null,
+            BusinessMetadata = post.BusinessMetadata,
             CreatedAt = post.CreatedAt,
-            UpdatedAt = post.UpdatedAt
+            UpdatedAt = post.UpdatedAt,
+            IsEdited = post.IsEdited,
+            EditedAt = post.EditedAt,
+            CommentCount = post.Comments?.Count(c => !c.IsDeleted) ?? 0,
+            Profile = post.Profile != null ? new ProfileDto
+            {
+                Id = post.Profile.Id,
+                DisplayName = post.Profile.DisplayName ?? string.Empty,
+                Bio = post.Profile.Bio ?? string.Empty,
+                Avatar = post.Profile.Avatar ?? string.Empty,
+                UserId = post.Profile.UserId,
+                ProfileTypeId = post.Profile.ProfileTypeId,
+                VisibilityLevel = post.Profile.VisibilityLevel,
+                IsActive = post.Profile.IsActive,
+                CreatedAt = post.Profile.CreatedAt
+            } : null!,
+            Attachments = post.Attachments?.Where(a => !a.IsDeleted).Select(a => new PostAttachmentDto
+            {
+                Id = a.Id,
+                AttachmentType = a.AttachmentType,
+                FileId = a.FileId,
+                FilePath = a.Url ?? string.Empty,
+                OriginalFilename = a.OriginalFileName ?? string.Empty,
+                MimeType = a.MimeType ?? string.Empty,
+                FileSize = a.FileSizeBytes ?? 0,
+                AltText = a.Description,
+                DisplayOrder = a.DisplayOrder,
+                CreatedAt = a.CreatedAt
+            }).ToList() ?? new(),
+            Comments = post.Comments?.Where(c => !c.IsDeleted).Select(c => new CommentDto
+            {
+                Id = c.Id,
+                Content = c.Content ?? string.Empty,
+                PostId = c.PostId,
+                ParentCommentId = c.ParentCommentId,
+                Language = c.Language ?? "en",
+                Profile = c.Profile != null ? new ProfileDto
+                {
+                    Id = c.Profile.Id,
+                    DisplayName = c.Profile.DisplayName ?? string.Empty,
+                    Avatar = c.Profile.Avatar ?? string.Empty,
+                    UserId = c.Profile.UserId,
+                    ProfileTypeId = c.Profile.ProfileTypeId,
+                    VisibilityLevel = c.Profile.VisibilityLevel,
+                    IsActive = c.Profile.IsActive,
+                    CreatedAt = c.Profile.CreatedAt
+                } : null!,
+                Replies = new List<CommentDto>(), // TODO: Map nested replies if needed
+                ReplyCount = c.Replies?.Count(r => !r.IsDeleted) ?? 0,
+                ReactionSummary = null, // TODO: Map reaction summary if needed
+                CreatedAt = c.CreatedAt,
+                UpdatedAt = c.UpdatedAt,
+                IsEdited = c.IsEdited,
+                EditedAt = c.EditedAt,
+                ThreadDepth = 0 // TODO: Calculate thread depth if needed
+            }).ToList() ?? new(),
+            ReactionSummary = null // TODO: Map reaction summary if needed
         };
+        
+        return postDto;
     }
 }

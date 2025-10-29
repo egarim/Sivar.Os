@@ -25,9 +25,13 @@ public class AuthenticationTestFixture
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
 
+        // Mock HttpRequest with proper Headers collection
+        var httpRequest = new Mock<HttpRequest>();
+        httpRequest.Setup(x => x.Headers).Returns(new HeaderDictionary());
+
         var httpContext = new Mock<HttpContext>();
         httpContext.Setup(x => x.User).Returns(principal);
-        httpContext.Setup(x => x.Request).Returns(new Mock<HttpRequest>().Object);
+        httpContext.Setup(x => x.Request).Returns(httpRequest.Object);
         httpContext.Setup(x => x.Response).Returns(new Mock<HttpResponse>().Object);
 
         return httpContext;

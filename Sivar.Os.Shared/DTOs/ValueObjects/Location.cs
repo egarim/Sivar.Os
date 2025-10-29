@@ -65,4 +65,49 @@ public class Location
 
         return string.Join(", ", parts);
     }
+
+    /// <summary>
+    /// Determines whether the specified object is equal to the current Location
+    /// </summary>
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Location other)
+            return false;
+
+        return City == other.City &&
+               State == other.State &&
+               Country == other.Country &&
+               Latitude == other.Latitude &&
+               Longitude == other.Longitude;
+    }
+
+    /// <summary>
+    /// Serves as the default hash function
+    /// </summary>
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(City, State, Country, Latitude, Longitude);
+    }
+
+    /// <summary>
+    /// Determines whether two Location objects are equal
+    /// </summary>
+    public static bool operator ==(Location? left, Location? right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        if (left is null || right is null)
+            return false;
+
+        return left.Equals(right);
+    }
+
+    /// <summary>
+    /// Determines whether two Location objects are not equal
+    /// </summary>
+    public static bool operator !=(Location? left, Location? right)
+    {
+        return !(left == right);
+    }
 }
