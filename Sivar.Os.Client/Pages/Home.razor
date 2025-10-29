@@ -1129,7 +1129,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     }
 
     /// <summary>
-    /// Load feed posts from API
+    /// Load feed posts from API - shows activities from profiles the user follows
     /// </summary>
     private async Task LoadFeedActivitiesAsync()
     {
@@ -1152,9 +1152,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 return;
             }
             
-            // Load activities created BY the current profile (not the follower feed)
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
-            var feedDto = await SivarClient.Activities.GetProfileActivitiesAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
+            // Load activities from profiles the user follows (their personalized feed)
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Calling API: GetFeedActivitiesAsync(pageSize=10, pageNumber={_currentPage})");
+            var feedDto = await SivarClient.Activities.GetFeedActivitiesAsync(pageSize: 10, pageNumber: _currentPage);
             
             Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? API Response received");
             
