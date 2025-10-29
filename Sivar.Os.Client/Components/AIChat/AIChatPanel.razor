@@ -1,5 +1,7 @@
 @using Sivar.Os.Client.Pages
 @using MudBlazor
+@using Microsoft.Extensions.Logging
+@inject ILogger<AIChatPanel> Logger
 
 @* AIChatPanel component - Main chat interface *@
 
@@ -157,4 +159,28 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResultFollow { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogDebug("[AIChatPanel] Parameters set - IsOpen: {IsOpen}, ShowHistory: {ShowHistory}, MessageCount: {Count}", 
+            IsOpen, ShowHistory, Messages?.Count ?? 0);
+    }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[AIChatPanel] Component initialized");
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Logger.LogInformation("[AIChatPanel] First render complete");
+        }
+        
+        if (IsOpen)
+        {
+            Logger.LogDebug("[AIChatPanel] Panel is open - rendering messages");
+        }
+    }
 }

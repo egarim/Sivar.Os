@@ -1,6 +1,9 @@
+@using Microsoft.Extensions.Logging
+@inject ILogger<AIFloatingButton> Logger
+
 @* AIFloatingButton component *@
 
-<button class="ai-fab" aria-label="Open AI Chat" @onclick="OnClick">
+<button class="ai-fab" aria-label="Open AI Chat" @onclick="HandleClick">
     🤖
 </button>
 
@@ -10,4 +13,15 @@
     /// </summary>
     [Parameter]
     public EventCallback OnClick { get; set; }
+
+    private async Task HandleClick()
+    {
+        Logger.LogInformation("[AIFloatingButton] AI Chat button clicked");
+        await OnClick.InvokeAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[AIFloatingButton] Component initialized");
+    }
 }

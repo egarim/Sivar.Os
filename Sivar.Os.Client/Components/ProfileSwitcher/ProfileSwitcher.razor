@@ -1,5 +1,7 @@
 @using Sivar.Os.Shared.DTOs
 @using MudBlazor
+@using Microsoft.Extensions.Logging
+@inject ILogger<ProfileSwitcher> Logger
 @namespace Sivar.Os.Client.Components.ProfileSwitcher
 
 <div class="profile-switcher-container">
@@ -292,6 +294,7 @@
     private void ToggleDropdown()
     {
         IsDropdownOpen = !IsDropdownOpen;
+        Logger.LogInformation("[ProfileSwitcher] Dropdown toggled - IsOpen: {IsOpen}", IsDropdownOpen);
         StateHasChanged();
     }
 
@@ -299,44 +302,58 @@
     {
         if (profile.Id != ActiveProfile?.Id)
         {
+            Logger.LogInformation("[ProfileSwitcher] Profile selected - ProfileId: {ProfileId}, DisplayName: {DisplayName}", 
+                profile.Id, profile.DisplayName);
             IsDropdownOpen = false;
             await OnProfileChanged.InvokeAsync(profile);
             StateHasChanged();
+        }
+        else
+        {
+            Logger.LogDebug("[ProfileSwitcher] Same profile clicked - no change");
         }
     }
 
     private void OpenCreateModal()
     {
+        Logger.LogInformation("[ProfileSwitcher] Opening create profile modal");
         IsDropdownOpen = false;
         ShowCreateModal = true;
     }
 
     private void CloseCreateModal()
     {
+        Logger.LogInformation("[ProfileSwitcher] Closing create profile modal");
         ShowCreateModal = false;
     }
 
     private async Task HandleCreateProfile(CreateAnyProfileDto request)
     {
-        Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] Closing modal and invoking parent callback");
+        Logger.LogInformation("[ProfileSwitcher] Creating new profile - DisplayName: {DisplayName}, ProfileTypeId: {ProfileTypeId}", 
+            request.DisplayName, request.ProfileTypeId);
+        
         ShowCreateModal = false;
         
         // Pass the profile creation request to parent component
         if (OnCreateProfile.HasDelegate)
         {
-            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] OnCreateProfile delegate exists, invoking it");
+            Logger.LogDebug("[ProfileSwitcher] Invoking OnCreateProfile delegate");
             await OnCreateProfile.InvokeAsync(request);
-            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] ✅ OnCreateProfile callback completed");
         }
         else if (OnCreateProfileClick.HasDelegate)
         {
-            // Fallback for backward compatibility
-            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] OnCreateProfileClick delegate exists, invoking it (FALLBACK)");
+            Logger.LogWarning("[ProfileSwitcher] Using fallback OnCreateProfileClick delegate");
             await OnCreateProfileClick.InvokeAsync();
         }
         else
         {
-            Console.WriteLine("[ProfileSwitcher.HandleCreateProfile] ⚠️ WARNING: No delegate bound to OnCreateProfile or OnCreateProfileClick!");
+            Logger.LogError("[ProfileSwitcher] No profile creation delegate bound!");
         }
+    }
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogDebug("[ProfileSwitcher] Parameters set - ActiveProfile: {ActiveProfile}, ProfileCount: {Count}", 
+            ActiveProfile?.DisplayName ?? "None", UserProfiles?.Count ?? 0);
     }
 }

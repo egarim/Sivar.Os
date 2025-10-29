@@ -3,6 +3,8 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostComposer> Logger
 
 @* PostComposer component for creating new posts *@
 
@@ -505,6 +507,9 @@
     /// </summary>
     protected override void OnInitialized()
     {
+        Logger.LogInformation("[PostComposer] Component initialized - ProfileTypeTitle: {ProfileTypeTitle}, SelectedType: {SelectedType}", 
+            ProfileTypeTitle, SelectedType);
+        
         SelectedLanguage = PostLanguage;
         SelectedVisibility = PostVisibility;
         TagsInput = string.Join(", ", PostTags);
@@ -514,6 +519,9 @@
 
     protected override void OnParametersSet()
     {
+        Logger.LogDebug("[PostComposer] Parameters set - PostText Length: {Length}, SelectedType: {Type}", 
+            PostText?.Length ?? 0, SelectedType);
+        
         // Keep local state in sync when parent updates
         SelectedLanguage = PostLanguage;
         SelectedVisibility = PostVisibility;
@@ -528,13 +536,14 @@
     {
         var newText = e.Value?.ToString() ?? string.Empty;
         PostText = newText;
-        Console.WriteLine($"[PostComposer] Text input event - value: '{newText}' (length={newText.Length})");
+        Logger.LogDebug("[PostComposer] Text input changed - Length: {Length}", newText.Length);
         await PostTextChanged.InvokeAsync(newText);
     }
 
     private async Task HandlePostTextChange(ChangeEventArgs e)
     {
         var newText = e.Value?.ToString() ?? string.Empty;
+        Logger.LogDebug("[PostComposer] Text change - Length: {Length}", newText.Length);
         await PostTextChanged.InvokeAsync(newText);
     }
 

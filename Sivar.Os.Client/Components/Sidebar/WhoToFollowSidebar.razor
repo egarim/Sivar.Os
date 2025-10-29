@@ -1,5 +1,7 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
+@using Microsoft.Extensions.Logging
+@inject ILogger<WhoToFollowSidebar> Logger
 
 @* WhoToFollowSidebar component for displaying user suggestions *@
 
@@ -50,5 +52,16 @@
     {
         if (string.IsNullOrEmpty(name)) return "?";
         return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogDebug("[WhoToFollowSidebar] Parameters set - SuggestedUsers count: {Count}, ProfileTypeTitle: {ProfileType}", 
+            SuggestedUsers?.Count ?? 0, ProfileTypeTitle);
+    }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[WhoToFollowSidebar] Component initialized - ProfileTypeTitle: {ProfileType}", ProfileTypeTitle);
     }
 }

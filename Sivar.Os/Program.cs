@@ -22,8 +22,17 @@ using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 using Sivar.Server.Library.Services;
 using System.IdentityModel.Tokens.Jwt;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithEnvironmentName()
+        .Enrich.WithMachineName()
+        .Enrich.WithThreadId());
 
 // Add MudBlazor services
 builder.Services.AddMudServices();

@@ -1,3 +1,6 @@
+@using Microsoft.Extensions.Logging
+@inject ILogger<FeedHeader> Logger
+
 @* FeedHeader component *@
 
 <div class="feed-header">
@@ -17,4 +20,9 @@
     /// </summary>
     [Parameter]
     public string Subtitle { get; set; } = "Latest updates from your network";
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[FeedHeader] Component initialized - Title: {Title}, Subtitle: {Subtitle}", Title, Subtitle);
+    }
 }

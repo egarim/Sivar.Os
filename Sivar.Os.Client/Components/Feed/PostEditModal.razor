@@ -1,6 +1,8 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
 @using MudBlazor
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostEditModal> Logger
 
 <MudDialog>
     <DialogContent>
@@ -142,6 +144,9 @@
 
     protected override void OnInitialized()
     {
+        Logger.LogInformation("[PostEditModal] Dialog opened - PostId: {PostId}, IsBusinessProfile: {IsBusinessProfile}", 
+            Post?.Id ?? Guid.Empty, IsBusinessProfile);
+        
         if (Post != null)
         {
             // Populate form fields from post data
@@ -150,6 +155,9 @@
             EditTags = Post.Tags != null ? string.Join(", ", Post.Tags) : "";
             EditLocationCity = Post.Location?.City ?? "";
             EditBusinessMetadata = Post.BusinessMetadata ?? "";
+            
+            Logger.LogDebug("[PostEditModal] Form initialized - ContentLength: {Length}, Visibility: {Visibility}, TagCount: {TagCount}", 
+                EditContent.Length, EditVisibility, Post.Tags?.Count ?? 0);
         }
     }
 
@@ -162,12 +170,18 @@
         _ => "Select a visibility level."
     };
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        Logger.LogInformation("[PostEditModal] Edit cancelled - PostId: {PostId}", Post?.Id ?? Guid.Empty);
+        MudDialog.Cancel();
+    }
 
     private async Task Save()
     {
         try
         {
+            Logger.LogInformation("[PostEditModal] Saving post changes - PostId: {PostId}", Post?.Id ?? Guid.Empty);
+            
             ErrorMessage = "";
             IsUpdating = true;
 
@@ -189,12 +203,18 @@
                     : null
             };
 
+            Logger.LogDebug("[PostEditModal] UpdateDto created - ContentLength: {Length}, Visibility: {Visibility}, TagCount: {TagCount}", 
+                updateDto.Content?.Length ?? 0, updateDto.Visibility, updateDto.Tags?.Count ?? 0);
+
             // Return the UpdatePostDto to the caller
             await MudDialog.CloseAsync(DialogResult.Ok(updateDto));
+            
+            Logger.LogInformation("[PostEditModal] Post changes saved successfully - PostId: {PostId}", Post?.Id ?? Guid.Empty);
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error preparing post update: {ex.Message}";
+            Logger.LogError(ex, "[PostEditModal] Error saving post - PostId: {PostId}", Post?.Id ?? Guid.Empty);
             IsUpdating = false;
         }
     }

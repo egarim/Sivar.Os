@@ -1,4 +1,6 @@
 @using MudBlazor
+@using Microsoft.Extensions.Logging
+@inject ILogger<Header> Logger
 
 @* Header component for the wireframe landing page *@
 
@@ -110,4 +112,15 @@
     /// </summary>
     [Parameter]
     public EventCallback OnLogout { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[Header] Component initialized - UserName: {UserName}, IsLoading: {IsLoading}", UserName, IsLoading);
+    }
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogDebug("[Header] Parameters set - UserName: {UserName}, UserEmail: {UserEmail}, IsLoading: {IsLoading}", 
+            UserName, UserEmail, IsLoading);
+    }
 }

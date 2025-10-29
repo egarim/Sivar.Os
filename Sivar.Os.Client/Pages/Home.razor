@@ -1,5 +1,6 @@
-﻿@page "/"
+@page "/"
 @layout LandingLayout
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using System
 @using System.Linq
@@ -25,12 +26,14 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
 @using System.Security.Claims
+@using Microsoft.Extensions.Logging
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISivarClient SivarClient
 @inject IDialogService _dialogService
 @inject IProfileSwitcherService ProfileSwitcherService
+@inject ILogger<Home> Logger
 @implements IAsyncDisposable
 
 <style>
@@ -44,98 +47,8 @@
         display: none !important;
     }
 
-    /* Mobile-friendly touch targets */
-    @@media (max-width: 768px) {
-        .wireframe-landing button,
-        .wireframe-landing .action-btn,
-        .wireframe-landing .post-option,
-        .wireframe-landing .post-type-option {
-            min-height: 44px;
-        }
-    }
-
-    /* Use MudBlazor's CSS variables that adapt to theme automatically */
-    .wireframe-landing {
-        --wire-bg: var(--mud-palette-background-gray, #f5f7fa);
-        --wire-surface: var(--mud-palette-surface, #ffffff);
-        --wire-border: var(--mud-palette-lines-default, #e1e8ed);
-        --wire-text-primary: var(--mud-palette-text-primary, #14171a);
-        --wire-text-secondary: var(--mud-palette-text-secondary, #657786);
-        --wire-primary: var(--mud-palette-primary, #1da1f2);
-        --wire-hover: var(--mud-palette-action-default-hover, #f0f4f8);
-    }
-
-    .wire-container.wireframe-landing {
-        background: var(--wire-bg);
-        min-height: 100vh;
-        padding: 0 !important;
-        max-width: none !important;
-    }
-
-    /* Header Styles */
-    .wireframe-landing .header {
-        background: var(--wire-surface);
-        border-bottom: 1px solid var(--wire-border);
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .wireframe-landing .logo {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--wire-primary);
-    }
-
-    .wireframe-landing .user-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .wireframe-landing .user-details {
-        text-align: right;
-    }
-
-    .wireframe-landing .user-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-    }
-
-    .wireframe-landing .user-email {
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--wire-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-    }
-
-    /* Header Icon Buttons */
-    .wireframe-landing .header .mud-icon-button {
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .header .mud-icon-button:hover {
-        color: var(--wire-primary);
-        background: var(--wire-hover);
-    }
-
     /* Main Layout */
-    .wireframe-landing .main-layout {
+    .main-layout {
         display: grid;
         grid-template-columns: 260px 1fr 300px;
         gap: 24px;
@@ -144,129 +57,8 @@
         margin: 0 auto;
     }
 
-    /* Sidebar & Stats Panel */
-    .wireframe-landing .sidebar,
-    .wireframe-landing .stats-panel {
-        background: var(--wire-surface);
-        border: 1px solid var(--wire-border);
-        border-radius: 12px;
-        padding: 20px;
-    }
-
-        .wireframe-landing .sidebar-header h3,
-        .wireframe-landing .stats-panel h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0 0 8px 0;
-            color: var(--wire-text-primary);
-        }
-
-    .wireframe-landing .sidebar-subtitle {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-        margin-bottom: 16px;
-    }
-
-    /* User Card */
-    .wireframe-landing .user-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        margin-bottom: 8px;
-        border-radius: 8px;
-        transition: background 0.2s;
-    }
-
-        .wireframe-landing .user-card:hover {
-            background: var(--wire-hover);
-        }
-
-    .wireframe-landing .small-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--wire-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 600;
-        flex-shrink: 0;
-    }
-
-    .wireframe-landing .user-card-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .wireframe-landing .user-card-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-        .wireframe-landing .user-card-name.clickable:hover {
-            color: var(--wire-primary);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-    .wireframe-landing .user-card-bio {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .wireframe-landing .follow-btn {
-        padding: 6px 16px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        flex-shrink: 0;
-        border: none;
-    }
-
-        .wireframe-landing .follow-btn.follow {
-            background: var(--wire-primary);
-            color: white;
-        }
-
-            .wireframe-landing .follow-btn.follow:hover {
-                background: #1a8cd8;
-            }
-
-        .wireframe-landing .follow-btn.following {
-            background: transparent;
-            color: var(--wire-text-secondary);
-            border: 1px solid var(--wire-border);
-        }
-
-            .wireframe-landing .follow-btn.following:hover {
-                background: #fff0f0;
-                border-color: #ff6b6b;
-                color: #ff6b6b;
-            }
-
-    .wireframe-landing .sidebar-footnote {
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-        text-align: center;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--wire-border);
-    }
-
-    /* Feed Styles */
-    .wireframe-landing .feed {
+    /* Feed column */
+    .feed {
         display: flex;
         flex-direction: column;
         gap: 16px;
@@ -275,1353 +67,30 @@
         overflow-x: hidden;
     }
 
-    .wireframe-landing .feed-header h2 {
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0 0 4px 0;
-        color: var(--wire-text-primary);
-    }
-
-    .wireframe-landing .feed-subtitle {
-        font-size: 14px;
-        color: var(--wire-text-secondary);
-        margin: 0;
-    }
-
-    /* Post Composer */
-    .wireframe-landing .post-composer {
-        background: var(--wire-surface);
-        border: 1px solid var(--wire-border);
-        border-radius: 12px;
-        padding: 20px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-
-    .wireframe-landing .composer-title {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-
-        .wireframe-landing .composer-title h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0;
-            color: var(--wire-text-primary);
-        }
-
-    .wireframe-landing .composer-profile-indicator {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .post-type-selector {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 16px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-    }
-
-    .wireframe-landing .post-type-option {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        white-space: nowrap;
-        background: transparent;
-        border: 1px solid var(--wire-border);
-        color: var(--wire-text-secondary);
-        transition: all 0.2s;
-        position: relative;
-    }
-
-        .wireframe-landing .post-type-option:hover {
-            background: var(--wire-hover);
-        }
-
-        .wireframe-landing .post-type-option.active {
-            background: var(--wire-primary);
-            color: white;
-            border-color: var(--wire-primary);
-        }
-
-        .wireframe-landing .post-type-option .tooltip {
-            display: none;
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--wire-text-primary);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            white-space: nowrap;
-            margin-bottom: 8px;
-            z-index: 10;
-        }
-
-        .wireframe-landing .post-type-option:hover .tooltip {
-            display: block;
-        }
-
-    .wireframe-landing .post-input {
-        width: 100%;
-        min-height: 80px;
-        padding: 12px;
-        border: 1px solid var(--wire-border);
-        border-radius: 8px;
-        font-size: 14px;
-        font-family: inherit;
-        resize: vertical;
-        margin-bottom: 12px;
-    }
-
-        .wireframe-landing .post-input:focus {
-            outline: none;
-            border-color: var(--wire-primary);
-        }
-
-    .wireframe-landing .post-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .wireframe-landing .post-options {
-        display: flex;
-        gap: 8px;
-    }
-
-    .wireframe-landing .post-option {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        cursor: pointer;
-        background: transparent;
-        border: 1px solid var(--wire-border);
-        color: var(--wire-text-secondary);
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .post-option:hover {
-            background: var(--wire-hover);
-            border-color: var(--wire-primary);
-            color: var(--wire-primary);
-        }
-
-    .wireframe-landing .post-btn {
-        padding: 8px 24px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        background: var(--wire-primary);
-        color: white;
-        border: none;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .post-btn:hover:not(:disabled) {
-            background: #1a8cd8;
-        }
-
-        .wireframe-landing .post-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-    /* Post Card */
-    .wireframe-landing .post-card {
-        background: var(--wire-surface);
-        border: 1px solid var(--wire-border);
-        border-radius: 12px;
-        padding: 20px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-    }
-
-    .wireframe-landing .post-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    .wireframe-landing .post-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--wire-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        flex-shrink: 0;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .post-avatar.clickable {
-            cursor: pointer;
-        }
-
-            .wireframe-landing .post-avatar.clickable:hover {
-                transform: scale(1.1);
-                box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-            }
-
-    .wireframe-landing .post-author-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .wireframe-landing .post-author-name {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-    }
-
-        .wireframe-landing .post-author-name.clickable:hover {
-            color: var(--wire-primary);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-    .wireframe-landing .post-time {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .post-header-tags {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-    }
-
-    .wireframe-landing .post-visibility {
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        background: var(--wire-hover);
-        color: var(--wire-text-secondary);
-        font-weight: 500;
-    }
-
-    .wireframe-landing .post-type-badge {
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-        .wireframe-landing .post-type-badge.general {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-
-        .wireframe-landing .post-type-badge.product {
-            background: #f3e5f5;
-            color: #7b1fa2;
-        }
-
-        .wireframe-landing .post-type-badge.service {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
-
-        .wireframe-landing .post-type-badge.event {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-
-        .wireframe-landing .post-type-badge.job {
-            background: #fce4ec;
-            color: #c2185b;
-        }
-
-    .wireframe-landing .post-content {
-        font-size: 15px;
-        line-height: 1.5;
-        color: var(--wire-text-primary);
-        margin-bottom: 12px;
-    }
-
-    .wireframe-landing .post-image {
-        width: 100%;
-        margin-bottom: 12px;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-        .wireframe-landing .post-image img {
-            width: 100%;
-            height: auto;
-            display: block;
-            object-fit: cover;
-            max-height: 500px;
-        }
-
-    .wireframe-landing .post-metadata {
-        background: var(--wire-hover);
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-    }
-
-    .wireframe-landing .post-metadata-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-    }
-
-        .wireframe-landing .post-metadata-row:not(:last-child) {
-            border-bottom: 1px solid var(--wire-border);
-        }
-
-    .wireframe-landing .post-metadata-label {
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-        font-weight: 500;
-    }
-
-    .wireframe-landing .post-metadata-value {
-        font-size: 12px;
-        color: var(--wire-text-primary);
-        font-weight: 600;
-    }
-
-    .wireframe-landing .post-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 12px;
-        border-top: 1px solid var(--wire-border);
-    }
-
-    .wireframe-landing .post-actions-buttons {
-        display: flex;
-        gap: 16px;
-    }
-
-    .wireframe-landing .action-btn {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .action-btn:hover {
-            background: var(--wire-hover);
-            color: var(--wire-primary);
-        }
-
-        .wireframe-landing .action-btn span {
-            font-weight: 600;
-        }
-
-    /* Reactions */
-    .wireframe-landing .post-reactions {
-        display: flex;
-        gap: 8px;
-        padding: 12px 0;
-        border-top: 1px solid var(--wire-border);
-        margin-top: 12px;
-        flex-wrap: wrap;
-    }
-
-    .wireframe-landing .reaction-pill {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        background: var(--wire-bg);
-        border: 1px solid var(--wire-border);
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        user-select: none;
-    }
-
-        .wireframe-landing .reaction-pill:hover {
-            background: var(--wire-hover);
-            border-color: var(--wire-primary);
-            transform: translateY(-2px);
-        }
-
-        .wireframe-landing .reaction-pill.active {
-            background: rgba(25, 118, 210, 0.1);
-            border-color: var(--wire-primary);
-            color: var(--wire-primary);
-        }
-
-    .wireframe-landing .reaction-emoji {
-        font-size: 16px;
-        line-height: 1;
-    }
-
-    .wireframe-landing .reaction-count {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .reaction-pill.active .reaction-count {
-        color: var(--wire-primary);
-    }
-
-    /* Comments */
-    .wireframe-landing .post-comments-section {
-        border-top: 1px solid var(--wire-border);
-        margin-top: 12px;
-        padding-top: 12px;
-    }
-
-    .wireframe-landing .comments-toggle {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
-        background: var(--wire-bg);
-        border: 1px solid var(--wire-border);
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--wire-text-secondary);
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-bottom: 12px;
-    }
-
-        .wireframe-landing .comments-toggle:hover {
-            background: var(--wire-hover);
-            border-color: var(--wire-primary);
-            color: var(--wire-primary);
-        }
-
-    .wireframe-landing .comments-list {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .wireframe-landing .comment-item {
-        display: flex;
-        gap: 10px;
-        padding: 10px;
-        background: var(--wire-bg);
-        border-radius: 8px;
-        border: 1px solid var(--wire-border);
-    }
-
-    .wireframe-landing .comment-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--wire-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        font-weight: 600;
-        flex-shrink: 0;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .comment-avatar.clickable {
-            cursor: pointer;
-        }
-
-            .wireframe-landing .comment-avatar.clickable:hover {
-                transform: scale(1.1);
-                box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-            }
-
-    .wireframe-landing .comment-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .wireframe-landing .comment-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 4px;
-    }
-
-    .wireframe-landing .comment-author {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .comment-author.clickable {
-            cursor: pointer;
-        }
-
-            .wireframe-landing .comment-author.clickable:hover {
-                color: var(--wire-primary);
-                text-decoration: underline;
-            }
-
-    .wireframe-landing .comment-time {
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-        opacity: 0.8;
-    }
-
-    .wireframe-landing .comment-text {
-        font-size: 14px;
-        color: var(--wire-text-primary);
-        line-height: 1.5;
-        margin-bottom: 6px;
-    }
-
-    .wireframe-landing .comment-actions {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-    }
-
-    .wireframe-landing .comment-like {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .comment-like:hover {
-            color: var(--wire-primary);
-        }
-
-    .wireframe-landing .comment-like-count {
-        font-weight: 600;
-    }
-
-    /* Pagination */
-    .wireframe-landing .pagination {
-        background: var(--wire-surface);
-        border: 1px solid var(--wire-border);
-        border-radius: 12px;
-        padding: 16px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .wireframe-landing .pagination-info {
-        text-align: center;
-    }
-
-    .wireframe-landing .page-indicator,
-    .wireframe-landing .posts-info {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .page-indicator {
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
-
-    .wireframe-landing #current-page {
-        color: var(--wire-primary);
-    }
-
-    .wireframe-landing .pagination-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        background: var(--wire-primary);
-        color: white;
-        border: none;
-        transition: all 0.2s;
-    }
-
-        .wireframe-landing .pagination-btn:hover:not(:disabled) {
-            background: #1a8cd8;
-        }
-
-        .wireframe-landing .pagination-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-    /* Stats */
-    .wireframe-landing .stat-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 12px 0;
-    }
-
-        .wireframe-landing .stat-item:not(:last-of-type) {
-            border-bottom: 1px solid var(--wire-border);
-        }
-
-    .wireframe-landing .stat-label {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .stat-value {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--wire-text-primary);
-    }
-
-    .wireframe-landing .saved-results-section {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 2px solid var(--wire-border);
-    }
-
-    .wireframe-landing .saved-results-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        padding: 0 2px;
-    }
-
-        .wireframe-landing .saved-results-header h5 {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0;
-            color: var(--wire-text-primary);
-            letter-spacing: -0.2px;
-        }
-
-    .wireframe-landing .clear-saved-btn {
-        font-size: 12px;
-        color: var(--wire-primary);
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-        .wireframe-landing .clear-saved-btn:hover {
-            text-decoration: underline;
-        }
-
-    .wireframe-landing .saved-result-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        margin-bottom: 8px;
-        border-radius: 10px;
-        background: white;
-        border: 2px solid var(--wire-border);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-        .wireframe-landing .saved-result-item:hover {
-            border-color: var(--wire-primary);
-            transform: translateX(3px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-    .wireframe-landing .saved-result-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        background: var(--wire-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-
-    .wireframe-landing .saved-result-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .wireframe-landing .saved-result-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.3;
-    }
-
-    .wireframe-landing .saved-result-type {
-        font-size: 12px;
-        color: var(--wire-text-secondary);
-        opacity: 0.8;
-    }
-
-    .wireframe-landing .quick-action-btn {
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        background: var(--wire-primary);
-        color: white;
-        border: none;
-        transition: all 0.2s;
-        flex-shrink: 0;
-    }
-
-        .wireframe-landing .quick-action-btn:hover {
-            background: #1a8cd8;
-        }
-
-        .wireframe-landing .quick-action-btn.secondary {
-            background: transparent;
-            color: var(--wire-text-secondary);
-            border: 1px solid var(--wire-border);
-        }
-
-            .wireframe-landing .quick-action-btn.secondary:hover {
-                background: var(--wire-hover);
-                border-color: var(--wire-primary);
-                color: var(--wire-primary);
-            }
-
-    /* AI Chat */
-    .ai-chat-drawer {
-        width: 400px !important;
-    }
-
-    .wireframe-landing .ai-chat-panel {
-        height: 100%;
-        display: flex;
-        position: relative;
-    }
-
-    .wireframe-landing .chat-history-sidebar {
-        width: 280px;
-        background: #f7f7f7;
-        border-right: 1px solid var(--wire-border);
-        display: none;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-        .wireframe-landing .chat-history-sidebar.active {
-            display: flex;
-        }
-
-    .wireframe-landing .ai-chat-panel.with-history {
-        width: 700px !important;
-        max-width: calc(100vw - 48px);
-    }
-
-    .wireframe-landing .chat-history-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    /* Activity card fallback */
+    .activity-card {
         padding: 16px;
-        border-bottom: 1px solid var(--wire-border);
-    }
-
-        .wireframe-landing .chat-history-header h4 {
-            font-size: 15px;
-            font-weight: 600;
-            margin: 0;
-            color: var(--wire-text-primary);
-        }
-
-    .wireframe-landing .history-close-btn {
-        background: transparent;
-        border: none;
-        font-size: 20px;
-        color: var(--wire-text-secondary);
-        cursor: pointer;
-        padding: 5px;
-        transition: all 0.2s ease;
-    }
-
-        .wireframe-landing .history-close-btn:hover {
-            color: var(--wire-text-primary);
-            transform: scale(1.1);
-        }
-
-    .wireframe-landing .new-chat-btn {
-        margin: 10px;
-        padding: 12px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-        .wireframe-landing .new-chat-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-    .wireframe-landing .chat-history-list {
-        padding: 8px;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .wireframe-landing .conversation-item {
-        background: white;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 2px solid transparent;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-        .wireframe-landing .conversation-item:hover {
-            border-color: var(--wire-primary);
-            transform: translateX(3px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .wireframe-landing .conversation-item.active {
-            border-color: var(--wire-primary);
-            background: #f0f3ff;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-        }
-
-    .wireframe-landing .conversation-item-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 5px;
-    }
-
-    .wireframe-landing .conversation-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        line-height: 1.3;
-    }
-
-    .wireframe-landing .conversation-time {
-        font-size: 11px;
-        color: var(--wire-text-secondary);
-        white-space: nowrap;
-        margin-left: 6px;
-        opacity: 0.8;
-    }
-
-    .wireframe-landing .conversation-preview {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-        overflow: hidden;
-        line-height: 1.4;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        margin-bottom: 5px;
-    }
-
-    .wireframe-landing .conversation-meta {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .wireframe-landing .conversation-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 10px;
-        padding: 3px 8px;
-        background: #e3f2fd;
-        color: #1976d2;
+        background: var(--mud-palette-surface, #ffffff);
+        border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
         border-radius: 12px;
-        font-weight: 600;
-        white-space: nowrap;
     }
-
-    .wireframe-landing .chat-main-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: var(--wire-surface);
-    }
-
-    .wireframe-landing .chat-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-    .wireframe-landing .chat-header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .wireframe-landing .history-toggle-btn {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: white;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 10px;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        line-height: 1;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-        .wireframe-landing .history-toggle-btn:hover {
-            background: rgba(255, 255, 255, 0.35);
-            transform: scale(1.08);
-        }
-
-    .wireframe-landing .chat-header-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .wireframe-landing .chat-ai-avatar {
-        width: 40px;
-        height: 40px;
-        background: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-    .wireframe-landing .chat-header-text h4 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    .wireframe-landing .chat-header-text p {
-        margin: 0;
-        font-size: 11px;
-        opacity: 0.9;
-    }
-
-    .wireframe-landing .chat-close-btn {
-        background: transparent;
-        border: none;
-        color: white;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 5px;
-        line-height: 1;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-        .wireframe-landing .chat-close-btn:hover {
-            transform: scale(1.2);
-        }
-
-    .wireframe-landing .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .wireframe-landing .chat-message {
-        display: flex;
-        gap: 12px;
-        animation: slideIn 0.3s ease;
-    }
-
-    @@keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .wireframe-landing .chat-message.user {
-        flex-direction: row-reverse;
-    }
-
-    .wireframe-landing .chat-message-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 12px;
-    }
-
-    .wireframe-landing .chat-message.ai .chat-message-avatar {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .wireframe-landing .chat-message.user .chat-message-avatar {
-        background: var(--wire-primary);
-        color: white;
-    }
-
-    .wireframe-landing .chat-message-content {
-        max-width: 75%;
-    }
-
-    .wireframe-landing .chat-bubble {
-        padding: 10px 14px;
-        border-radius: 12px;
-        font-size: 14px;
-        line-height: 1.4;
-    }
-
-    .wireframe-landing .chat-message.ai .chat-bubble {
-        background: var(--wire-hover);
-        color: var(--wire-text-primary);
-        border-bottom-left-radius: 4px;
-    }
-
-    .wireframe-landing .chat-message.user .chat-bubble {
-        background: var(--wire-primary);
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
-
-    .wireframe-landing .chat-message-time {
-        font-size: 11px;
-        color: var(--wire-text-secondary);
-        margin-top: 4px;
-        opacity: 0.7;
-    }
-
-    .wireframe-landing .chat-result-card {
-        background: white;
-        border-radius: 12px;
-        padding: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: 1px solid var(--wire-border);
-        margin-top: 8px;
-        max-width: 75%;
-    }
-
-        .wireframe-landing .chat-result-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-
-    .wireframe-landing .chat-result-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-
-    .wireframe-landing .chat-result-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        flex-shrink: 0;
-    }
-
-    .wireframe-landing .chat-result-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .wireframe-landing .chat-result-name {
-        font-weight: 600;
-        font-size: 14px;
-        margin-bottom: 2px;
-        color: var(--wire-text-primary);
-    }
-
-    .wireframe-landing .chat-result-type {
-        font-size: 11px;
-        color: var(--wire-text-secondary);
-    }
-
-    .wireframe-landing .chat-result-description {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-        line-height: 1.4;
-        margin-bottom: 8px;
-    }
-
-    .wireframe-landing .chat-result-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .wireframe-landing .chat-result-btn {
-        flex: 1;
-        padding: 8px;
-        border: none;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .wireframe-landing .chat-result-btn.primary {
-            background: var(--wire-primary);
-            color: white;
-        }
-
-        .wireframe-landing .chat-result-btn.secondary {
-            background: var(--wire-hover);
-            color: var(--wire-text-primary);
-            border: 1px solid var(--wire-border);
-        }
-
-    .wireframe-landing .chat-quick-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-    }
-
-        .wireframe-landing .chat-quick-actions .quick-action-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            background: #f0f3ff;
-            color: #667eea;
-            border: 1px solid #667eea;
-            border-radius: 15px;
-        }
-
-            .wireframe-landing .chat-quick-actions .quick-action-btn:hover {
-                background: #667eea;
-                color: white;
-            }
-
-    .wireframe-landing .chat-input-container {
-        padding: 16px;
-        border-top: 1px solid var(--wire-border);
-    }
-
-    .wireframe-landing .typing-indicator {
-        display: flex;
-        gap: 4px;
-        padding: 8px 0;
-    }
-
-    .wireframe-landing .typing-dot {
-        width: 8px;
-        height: 8px;
-        background: var(--wire-text-secondary);
-        border-radius: 50%;
-        animation: typing-dot 1.4s infinite;
-    }
-
-        .wireframe-landing .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .wireframe-landing .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-    @@keyframes typing-dot {
-        0%, 60%, 100% {
-            transform: translateY(0);
-            opacity: 0.5;
-        }
-
-        30% {
-            transform: translateY(-10px);
-            opacity: 1;
-        }
-    }
-
-    .wireframe-landing .ai-fab {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        cursor: pointer;
-        font-size: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        transition: all 0.3s;
-        z-index: 999;
-    }
-
-        .wireframe-landing .ai-fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-        }
-
-    /* Empty States */
-    .wireframe-landing .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 20px;
-        text-align: center;
-    }
-
-    .wireframe-landing .empty-state-icon {
-        font-size: 48px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-
-        .wireframe-landing .empty-state-icon.small {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-
-    .wireframe-landing .empty-state-text {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--wire-text-primary);
-        margin-bottom: 8px;
-    }
-
-        .wireframe-landing .empty-state-text.small {
-            font-size: 14px;
-        }
-
-    .wireframe-landing .empty-state-subtext {
-        font-size: 13px;
-        color: var(--wire-text-secondary);
-    }
-
-        .wireframe-landing .empty-state-subtext.small {
-            font-size: 12px;
-        }
 
     /* Responsive Styles */
     @@media (max-width: 1200px) {
-        .wireframe-landing .main-layout {
+        .main-layout {
             grid-template-columns: 1fr;
-        }
-
-        .wireframe-landing .sidebar,
-        .wireframe-landing .stats-panel {
-            display: none;
         }
     }
 
     @@media (max-width: 768px) {
-        .wireframe-landing .header {
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 12px;
-        }
-
-        .wireframe-landing .header-center {
-            order: 3;
-            width: 100%;
-        }
-
-        .wireframe-landing .main-layout {
+        .main-layout {
             padding: 8px;
             gap: 12px;
-        }
-
-        .wireframe-landing .post-card,
-        .wireframe-landing .post-composer {
-            padding: 12px;
-        }
-
-        .wireframe-landing .post-type-option {
-            padding: 6px 10px;
-            font-size: 11px;
-        }
-
-        .ai-chat-drawer {
-            width: 100% !important;
         }
     }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
     <Header @bind-UserName="@_userName"
             @bind-UserEmail="@_userEmail"
             UserInitials="@GetUserInitials()"
@@ -1790,28 +259,28 @@
     {
         try
         {
-            Console.WriteLine("[Home] ==================== OnInitializedAsync START ====================");
+            Logger.LogInformation("[Home] ==================== OnInitializedAsync START ====================");
             
             // Initialize sample data
             InitializeSampleData();
 
             // Ensure user and profile are created after Keycloak login
-            Console.WriteLine("[Home] Step 1: Ensuring user and profile are created");
+            Logger.LogInformation("[Home] Step 1: Ensuring user and profile are created");
             await EnsureUserAndProfileCreatedAsync();
             
             // Load current user info
-            Console.WriteLine("[Home] Step 2: Loading current user info");
+            Logger.LogInformation("[Home] Step 2: Loading current user info");
             await LoadCurrentUserAsync();
             
             // Load user profiles for switcher
-            Console.WriteLine("[Home] Step 2.5: Loading user profiles");
+            Logger.LogInformation("[Home] Step 2.5: Loading user profiles");
             await LoadUserProfilesAsync();
             
             // Verify active profile is set
-            Console.WriteLine($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
+            Logger.LogInformation($"[Home] Active profile after LoadCurrentUserAsync: {_currentProfileId}");
             if (_currentProfileId == Guid.Empty)
             {
-                Console.WriteLine("[Home] ⚠️ WARNING: Active profile ID is empty, trying to get from profiles list");
+                Logger.LogWarning("[Home] WARNING: Active profile ID is empty, trying to get from profiles list");
                 await LoadProfileTypesAsync();
                 await LoadUserProfilesAsync();
                 
@@ -1823,28 +292,27 @@
                     {
                         _currentProfileId = activeProf.Id;
                         _activeProfile = activeProf;
-                        Console.WriteLine($"[Home] ✓ Got active profile from list: {_currentProfileId}");
+                        Logger.LogInformation($"[Home] ? Got active profile from list: {_currentProfileId}");
                     }
                 }
             }
             
             // Load initial feed activities
-            Console.WriteLine("[Home] Step 3: Loading feed activities");
+            Logger.LogInformation("[Home] Step 3: Loading feed activities");
             await LoadFeedActivitiesAsync();
             
             // Load user statistics
-            Console.WriteLine("[Home] Step 4: Loading user statistics");
+            Logger.LogInformation("[Home] Step 4: Loading user statistics");
             await LoadUserStatsAsync();
             
-            Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
+            Logger.LogInformation($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
             
             // Notify Blazor that component state has changed so it re-renders with loaded data
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ❌ Error in OnInitializedAsync: {ex.Message}");
-            Console.WriteLine($"[Home] Stack trace: {ex.StackTrace}");
+            Logger.LogError(ex, "[Home] Error in OnInitializedAsync: {Message}", ex.Message);
         }
     }
 
@@ -1856,14 +324,14 @@
     {
         try
         {
-            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] START");
+            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] START");
             
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             
             if (!user.Identity?.IsAuthenticated ?? true)
             {
-                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ⚠️ User not authenticated");
+                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] User not authenticated");
                 return; // User not authenticated, nothing to do
             }
 
@@ -1872,17 +340,17 @@
 
             if (string.IsNullOrEmpty(keycloakId))
             {
-                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ❌ Missing required claim 'sub' (subject identifier)");
+                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Missing required claim 'sub' (subject identifier)");
                 return;
             }
 
             if (string.IsNullOrEmpty(email))
             {
-                Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] ❌ Missing required claim 'email' or 'preferred_username'");
+                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Missing required claim 'email' or 'preferred_username'");
                 return;
             }
 
-            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] Calling authentication service");
+            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] Calling authentication service");
 
             // Call authentication service via SivarClient
             var authInfo = new UserAuthenticationInfo
@@ -1902,32 +370,31 @@
                 
                 if (result.IsNewUser)
                 {
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ✓ New user and profile created");
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync] ? New user and profile created");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
                 else
                 {
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ✓ Existing user authenticated");
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
-                    Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync] ? Existing user authenticated");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {_currentUserId}");
+                    Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {_currentProfileId}");
                 }
             }
             else
             {
-                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ❌ Authentication failed: {result.ErrorMessage}");
-                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsSuccess: {result.IsSuccess}");
-                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - IsNewUser: {result.IsNewUser}");
-                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {result.User?.Id}");
-                Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {result.ActiveProfile?.Id}");
+                Logger.LogWarning("[Home.EnsureUserAndProfileCreatedAsync] Authentication failed: {ErrorMessage}", result.ErrorMessage);
+                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - IsSuccess: {result.IsSuccess}");
+                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - IsNewUser: {result.IsNewUser}");
+                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - User ID: {result.User?.Id}");
+                Logger.LogInformation($"[Home.EnsureUserAndProfileCreatedAsync]   - Profile ID: {result.ActiveProfile?.Id}");
             }
             
-            Console.WriteLine("[Home.EnsureUserAndProfileCreatedAsync] END");
+            Logger.LogInformation("[Home.EnsureUserAndProfileCreatedAsync] END");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] ❌ Error: {ex.Message}");
-            Console.WriteLine($"[Home.EnsureUserAndProfileCreatedAsync] Stack trace: {ex.StackTrace}");
+            Logger.LogError(ex, "[Home.EnsureUserAndProfileCreatedAsync] Error: {Message}", ex.Message);
             // Don't throw - this is a best-effort operation
         }
     }
@@ -1937,10 +404,10 @@
     /// </summary>
     private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
     {
-        Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
+        Logger.LogInformation("[Home] Extracting Keycloak claims - Available claims:");
         foreach (var claim in user.Claims)
         {
-            Console.WriteLine($"  {claim.Type}: {claim.Value}");
+            Logger.LogInformation($"  {claim.Type}: {claim.Value}");
         }
 
         string? keycloakId = user.FindFirst("sub")?.Value
@@ -1961,7 +428,7 @@
                        ?? user.FindFirst("surname")?.Value
                        ?? "";
 
-        Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+        Logger.LogInformation($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
         return (keycloakId, email, firstName, lastName);
     }
 
@@ -1969,10 +436,10 @@
     
     // private (string? keycloakId, string? email, string firstName, string lastName) ExtractKeycloakClaims(ClaimsPrincipal user)
     // {
-    //     Console.WriteLine("[Home] Extracting Keycloak claims - Available claims:");
+    //     Logger.LogInformation("[Home] Extracting Keycloak claims - Available claims:");
     //     foreach (var claim in user.Claims)
     //     {
-    //         Console.WriteLine($"  {claim.Type}: {claim.Value}");
+    //         Logger.LogInformation($"  {claim.Type}: {claim.Value}");
     //     }
 
     //     // Standard OIDC claims
@@ -1983,7 +450,7 @@
     //     var lastName = user.FindFirst("family_name")?.Value ?? "";
 
     //     // Log what we extracted
-    //     Console.WriteLine($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
+    //     Logger.LogInformation($"[Home] Extracted - Keycloak ID: {keycloakId}, Email: {email}, First Name: {firstName}, Last Name: {lastName}");
 
     //     return (keycloakId, email, firstName, lastName);
     // }
@@ -1999,27 +466,27 @@
             var authState = AuthStateProvider.GetAuthenticationStateAsync().Result;
             var user = authState.User;
             
-            Console.WriteLine("[Home] === DEBUG: Current User Claims ===");
+            Logger.LogInformation("[Home] === DEBUG: Current User Claims ===");
             if (user?.Identity?.IsAuthenticated == true)
             {
-                Console.WriteLine($"Authenticated: YES");
-                Console.WriteLine($"Name: {user.Identity.Name}");
-                Console.WriteLine($"Authentication Type: {user.Identity.AuthenticationType}");
-                Console.WriteLine("Claims:");
+                Logger.LogInformation($"Authenticated: YES");
+                Logger.LogInformation($"Name: {user.Identity.Name}");
+                Logger.LogInformation($"Authentication Type: {user.Identity.AuthenticationType}");
+                Logger.LogInformation("Claims:");
                 foreach (var claim in user.Claims)
                 {
-                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                    Logger.LogInformation($"  {claim.Type}: {claim.Value}");
                 }
             }
             else
             {
-                Console.WriteLine("Authenticated: NO");
+                Logger.LogInformation("Authenticated: NO");
             }
-            Console.WriteLine("[Home] === END DEBUG ===");
+            Logger.LogInformation("[Home] === END DEBUG ===");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Debug error: {ex.Message}");
+            Logger.LogError(ex, "[Home] Debug error: {Message}", ex.Message);
         }
     }
 
@@ -2049,7 +516,7 @@
     {
         _suggestedUsers = new List<ProfileDto>
         {
-            new() { Id = Guid.NewGuid(), DisplayName = "Alice Johnson", Bio = "Designer & art enthusiast 🎨", Avatar = "AJ" },
+            new() { Id = Guid.NewGuid(), DisplayName = "Alice Johnson", Bio = "Designer & art enthusiast ??", Avatar = "AJ" },
             new() { Id = Guid.NewGuid(), DisplayName = "Bob Smith", Bio = "Software engineer", Avatar = "BS" },
             new() { Id = Guid.NewGuid(), DisplayName = "Carol White", Bio = "Marketing professional", Avatar = "CW" }
         };
@@ -2105,20 +572,20 @@
             var dialogResult = await result.Result;
             if (dialogResult?.Canceled == false)
             {
-                Console.WriteLine($"[Home] Deleting post: {post.Id}");
+                Logger.LogInformation($"[Home] Deleting post: {post.Id}");
                 
                 await SivarClient.Posts.DeletePostAsync(post.Id);
                 
                 // Reload activities feed to reflect the deletion
                 await LoadFeedActivitiesAsync();
                 
-                Console.WriteLine($"[Home] Post deleted successfully");
+                Logger.LogInformation($"[Home] Post deleted successfully");
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error deleting post: {ex.Message}");
+            Logger.LogError(ex, "[Home] Error deleting post: {Message}", ex.Message);
         }
     }
 
@@ -2126,7 +593,7 @@
     {
         try
         {
-            Console.WriteLine($"[Home] Edit post: {post.Id}");
+            Logger.LogInformation($"[Home] Edit post: {post.Id}");
             
             // Show edit modal
             var result = await _dialogService.ShowAsync<PostEditModal>("Edit Post", 
@@ -2135,7 +602,7 @@
             var dialogResult = await result.Result;
             if (dialogResult?.Canceled == false && dialogResult?.Data is UpdatePostDto updateDto)
             {
-                Console.WriteLine($"[Home] Updating post: {post.Id}");
+                Logger.LogInformation($"[Home] Updating post: {post.Id}");
                 
                 // Call API to update post
                 await SivarClient.Posts.UpdatePostAsync(post.Id, updateDto);
@@ -2143,31 +610,31 @@
                 // Reload activities feed to reflect the update
                 await LoadFeedActivitiesAsync();
                 
-                Console.WriteLine($"[Home] Post updated successfully");
+                Logger.LogInformation($"[Home] Post updated successfully");
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error editing post: {ex.Message}");
+            Logger.LogError(ex, "[Home] Error editing post: {Message}", ex.Message);
         }
     }
 
     private void HandleViewAnalytics(PostDto post)
     {
-        Console.WriteLine($"[Home] View analytics for post: {post.Id}");
+        Logger.LogInformation($"[Home] View analytics for post: {post.Id}");
         // TODO: Implement analytics modal
     }
 
     private void HandleReportPost(PostDto post)
     {
-        Console.WriteLine($"[Home] Report post: {post.Id}");
+        Logger.LogInformation($"[Home] Report post: {post.Id}");
         // TODO: Implement report modal
     }
 
     private void HandleCopyPostLink(PostDto post)
     {
-        Console.WriteLine($"[Home] Copy link for post: {post.Id}");
+        Logger.LogInformation($"[Home] Copy link for post: {post.Id}");
         // TODO: Implement copy to clipboard via JS interop
     }
 
@@ -2189,7 +656,7 @@
         if (_currentPage > 1)
         {
             _currentPage--;
-            Console.WriteLine($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
+            Logger.LogInformation($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
             await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
@@ -2200,7 +667,7 @@
         if (_currentPage < _totalPages)
         {
             _currentPage++;
-            Console.WriteLine($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
+            Logger.LogInformation($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
             await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
@@ -2305,14 +772,14 @@
         {
             var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
 
-🔍 Find profiles and businesses
-📰 Search posts and content
-🍕 Discover local services
-👥 Explore activity streams
+?? Find profiles and businesses
+?? Search posts and content
+?? Discover local services
+?? Explore activity streams
 
 Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
             {
-                QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+                QuickActions = new List<string> { "?? Find pizza", "?? Tech companies", "?? Events", "?? Jobs" }
             };
             _chatMessages.Add(welcome);
         }
@@ -2345,7 +812,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             var last = messages.Last();
             var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
-            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}…" : previewText;
+            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}�" : previewText;
             conversation.LastUpdated = last.Time;
             conversation.MessageCount = messages.Count;
             conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
@@ -2391,9 +858,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             // Add result cards
             var pizzaResults = new[]
             {
-                new ChatResultCard("p1", "🍕", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza • 4.8★ • $$ • Open now"),
-                new ChatResultCard("p2", "🍕", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired • 4.9★ • $$$ • Closes 10pm"),
-                new ChatResultCard("p3", "🍕", "Pizza Express", "Fast Food", "Quick delivery & takeout • 4.2★ • $ • Open 24hrs")
+                new ChatResultCard("p1", "??", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza � 4.8? � $$ � Open now"),
+                new ChatResultCard("p2", "??", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired � 4.9? � $$$ � Closes 10pm"),
+                new ChatResultCard("p3", "??", "Pizza Express", "Fast Food", "Quick delivery & takeout � 4.2? � $ � Open 24hrs")
             };
 
             foreach (var card in pizzaResults)
@@ -2409,9 +876,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var techResults = new[]
             {
-                new ChatResultCard("t1", "💼", "TechCorp Solutions", "Technology", "Cloud services & AI development • 200+ employees"),
-                new ChatResultCard("t2", "💼", "Innovation Labs", "Startup", "Mobile app development • Series A funded"),
-                new ChatResultCard("t3", "💼", "DataWorks Inc", "Enterprise", "Big data analytics platform • Fortune 500")
+                new ChatResultCard("t1", "??", "TechCorp Solutions", "Technology", "Cloud services & AI development � 200+ employees"),
+                new ChatResultCard("t2", "??", "Innovation Labs", "Startup", "Mobile app development � Series A funded"),
+                new ChatResultCard("t3", "??", "DataWorks Inc", "Enterprise", "Big data analytics platform � Fortune 500")
             };
 
             foreach (var card in techResults)
@@ -2427,9 +894,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var eventResults = new[]
             {
-                new ChatResultCard("e1", "🎉", "Tech Conference 2024", "Conference", "3-day tech summit • Mar 15-17 • Downtown Center"),
-                new ChatResultCard("e2", "🎉", "Startup Pitch Night", "Networking", "Monthly startup showcase • Mar 10 • 6pm"),
-                new ChatResultCard("e3", "🎉", "Code & Coffee", "Meetup", "Weekly developer hangout • Every Saturday")
+                new ChatResultCard("e1", "??", "Tech Conference 2024", "Conference", "3-day tech summit � Mar 15-17 � Downtown Center"),
+                new ChatResultCard("e2", "??", "Startup Pitch Night", "Networking", "Monthly startup showcase � Mar 10 � 6pm"),
+                new ChatResultCard("e3", "??", "Code & Coffee", "Meetup", "Weekly developer hangout � Every Saturday")
             };
 
             foreach (var card in eventResults)
@@ -2445,9 +912,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
             var jobResults = new[]
             {
-                new ChatResultCard("j1", "💼", "Senior Developer", "TechCorp", "Full-stack position • $120k-150k • Remote available"),
-                new ChatResultCard("j2", "💼", "UX Designer", "Design Studio", "Lead designer role • $90k-110k • Hybrid"),
-                new ChatResultCard("j3", "💼", "Product Manager", "StartupXYZ", "PM for AI products • $130k-160k • On-site")
+                new ChatResultCard("j1", "??", "Senior Developer", "TechCorp", "Full-stack position � $120k-150k � Remote available"),
+                new ChatResultCard("j2", "??", "UX Designer", "Design Studio", "Lead designer role � $90k-110k � Hybrid"),
+                new ChatResultCard("j3", "??", "Product Manager", "StartupXYZ", "PM for AI products � $130k-160k � On-site")
             };
 
             foreach (var card in jobResults)
@@ -2529,19 +996,19 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         var lower = userText.ToLowerInvariant();
 
         // Pizza search - returns special handling flag
-        if (lower.Contains("pizza") || lower.Contains("🍕"))
+        if (lower.Contains("pizza") || lower.Contains("??"))
         {
             return "PIZZA_SEARCH";
         }
 
         // Tech companies search
-        if (lower.Contains("tech") || lower.Contains("company") || lower.Contains("companies") || lower.Contains("💼"))
+        if (lower.Contains("tech") || lower.Contains("company") || lower.Contains("companies") || lower.Contains("??"))
         {
             return "TECH_SEARCH";
         }
 
         // Events search
-        if (lower.Contains("event") || lower.Contains("🎉"))
+        if (lower.Contains("event") || lower.Contains("??"))
         {
             return "EVENT_SEARCH";
         }
@@ -2554,7 +1021,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
         {
-            return "Sure — what specifically do you need help with?";
+            return "Sure � what specifically do you need help with?";
         }
 
         if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
@@ -2564,7 +1031,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
         {
-            return "For design feedback, consider spacing, contrast, and alignment — need a checklist?";
+            return "For design feedback, consider spacing, contrast, and alignment � need a checklist?";
         }
 
         if (lower.Contains("yes") || lower.Contains("ok") || lower.Contains("thanks"))
@@ -2572,13 +1039,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             return _cannedReplies[_random.Next(_cannedReplies.Length)];
         }
 
-        var shortEcho = userText.Length > 70 ? $"{userText[..67]}…" : userText;
-        return $"You said: \"{shortEcho}\" — I can expand on that if you'd like.";
+        var shortEcho = userText.Length > 70 ? $"{userText[..67]}�" : userText;
+        return $"You said: \"{shortEcho}\" � I can expand on that if you'd like.";
     }
 
     private readonly string[] _cannedReplies =
     {
-        "Thanks — I noted that. Anything else you'd like to add?",
+        "Thanks � I noted that. Anything else you'd like to add?",
         "Interesting, tell me more about that.",
         "I'll keep that in mind. Want me to summarize it?",
         "Here's a suggestion: try simplifying the flow and testing again.",
@@ -2609,16 +1076,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("[HOME-CLIENT] ======================================");
-            Console.WriteLine("[HOME-CLIENT] 📍 START: LoadCurrentUserAsync");
-            Console.WriteLine("[HOME-CLIENT] Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Logger.LogInformation("[HOME-CLIENT] ======================================");
+            Logger.LogInformation("[HOME-CLIENT] ?? START: LoadCurrentUserAsync");
+            Logger.LogInformation("[HOME-CLIENT] Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            Logger.LogInformation("[HOME-CLIENT] ======================================");
             
             _isUserLoading = true;
             StateHasChanged();
             
             // Load user information
-            Console.WriteLine("[HOME-CLIENT] 🔄 Calling SivarClient.Users.GetMeAsync()...");
+            Logger.LogInformation("[HOME-CLIENT] ?? Calling SivarClient.Users.GetMeAsync()...");
             var userDto = await SivarClient.Users.GetMeAsync();
             
             if (userDto != null)
@@ -2627,16 +1094,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _userEmail = userDto.Email ?? "no-email";
                 _currentUserId = userDto.Id;
                 
-                Console.WriteLine("[HOME-CLIENT] ✅ User DTO Received:");
-                Console.WriteLine($"[HOME-CLIENT]   - ID: {userDto.Id}");
-                Console.WriteLine($"[HOME-CLIENT]   - First Name: {userDto.FirstName}");
-                Console.WriteLine($"[HOME-CLIENT]   - Last Name: {userDto.LastName}");
-                Console.WriteLine($"[HOME-CLIENT]   - Email: {userDto.Email}");
-                Console.WriteLine($"[HOME-CLIENT]   - Full Name: {_userName}");
-                Console.WriteLine($"[HOME-CLIENT]   - Combined Email: {_userEmail}");
+                Logger.LogInformation("[HOME-CLIENT] ? User DTO Received:");
+                Logger.LogInformation($"[HOME-CLIENT]   - ID: {userDto.Id}");
+                Logger.LogInformation($"[HOME-CLIENT]   - First Name: {userDto.FirstName}");
+                Logger.LogInformation($"[HOME-CLIENT]   - Last Name: {userDto.LastName}");
+                Logger.LogInformation($"[HOME-CLIENT]   - Email: {userDto.Email}");
+                Logger.LogInformation($"[HOME-CLIENT]   - Full Name: {_userName}");
+                Logger.LogInformation($"[HOME-CLIENT]   - Combined Email: {_userEmail}");
                 
                 // Also load the active profile to get profile-specific data
-                Console.WriteLine("[HOME-CLIENT] 🔄 Calling SivarClient.Profiles.GetMyActiveProfileAsync()...");
+                Logger.LogInformation("[HOME-CLIENT] ?? Calling SivarClient.Profiles.GetMyActiveProfileAsync()...");
                 try
                 {
                     var activeProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
@@ -2651,20 +1118,20 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                         
                         _currentProfileId = activeProfile.Id;
                         
-                        Console.WriteLine("[HOME-CLIENT] ✅ Active Profile DTO Received:");
-                        Console.WriteLine($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
-                        Console.WriteLine($"[HOME-CLIENT]   - DisplayName: {activeProfile.DisplayName}");
-                        Console.WriteLine($"[HOME-CLIENT]   - Avatar: {activeProfile.Avatar}");
-                        Console.WriteLine($"[HOME-CLIENT]   - LocationDisplay: {activeProfile.LocationDisplay}");
+                        Logger.LogInformation("[HOME-CLIENT] ? Active Profile DTO Received:");
+                        Logger.LogInformation($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
+                        Logger.LogInformation($"[HOME-CLIENT]   - DisplayName: {activeProfile.DisplayName}");
+                        Logger.LogInformation($"[HOME-CLIENT]   - Avatar: {activeProfile.Avatar}");
+                        Logger.LogInformation($"[HOME-CLIENT]   - LocationDisplay: {activeProfile.LocationDisplay}");
                     }
                     else
                     {
-                        Console.WriteLine("[HOME-CLIENT] ⚠️  Active Profile DTO is NULL!");
+                        Logger.LogWarning("[HOME-CLIENT] Active Profile DTO is NULL!");
                     }
                 }
                 catch (Exception profileEx)
                 {
-                    Console.WriteLine($"[HOME-CLIENT] ⚠️  Error loading active profile (non-fatal): {profileEx.Message}");
+                    Logger.LogWarning(profileEx, "[HOME-CLIENT] Error loading active profile (non-fatal): {Message}", profileEx.Message);
                     // Continue with user data even if profile loading fails
                 }
                 
@@ -2672,21 +1139,18 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _isUserLoading = false;
                 StateHasChanged();
                 
-                Console.WriteLine("[HOME-CLIENT] ✅ StateHasChanged() called");
-                Console.WriteLine("[HOME-CLIENT] ✅ User loaded successfully!");
+                Logger.LogInformation("[HOME-CLIENT] ? StateHasChanged() called");
+                Logger.LogInformation("[HOME-CLIENT] ? User loaded successfully!");
             }
             else
             {
-                Console.WriteLine("[HOME-CLIENT] ⚠️  User DTO is NULL!");
+                Logger.LogWarning("[HOME-CLIENT] User DTO is NULL!");
                 _isUserLoading = false;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine("[HOME-CLIENT] ❌ ERROR in LoadCurrentUserAsync:");
-            Console.WriteLine($"[HOME-CLIENT]   Exception: {ex.GetType().Name}");
-            Console.WriteLine($"[HOME-CLIENT]   Message: {ex.Message}");
-            Console.WriteLine($"[HOME-CLIENT]   Stack Trace: {ex.StackTrace}");
+            Logger.LogError(ex, "[HOME-CLIENT] ERROR in LoadCurrentUserAsync");
             
             _userName = "Error Loading";
             _userEmail = "Check console";
@@ -2695,9 +1159,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
         finally
         {
-            Console.WriteLine("[HOME-CLIENT] ======================================");
-            Console.WriteLine("[HOME-CLIENT] 📍 END: LoadCurrentUserAsync");
-            Console.WriteLine("[HOME-CLIENT] ======================================");
+            Logger.LogInformation("[HOME-CLIENT] ======================================");
+            Logger.LogInformation("[HOME-CLIENT] ?? END: LoadCurrentUserAsync");
+            Logger.LogInformation("[HOME-CLIENT] ======================================");
         }
     }
 
@@ -2708,18 +1172,18 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("[Home] Loading profile types...");
+            Logger.LogInformation("[Home] Loading profile types...");
             var profileTypes = await SivarClient.ProfileTypes.GetActiveProfileTypesAsync();
             
             if (profileTypes != null && profileTypes.Any())
             {
-                Console.WriteLine($"[Home] Loaded {profileTypes.Count()} profile types");
+                Logger.LogInformation($"[Home] Loaded {profileTypes.Count()} profile types");
                 // Profile type dropdown can be updated here if needed
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error loading profile types: {ex.Message}");
+            Logger.LogError(ex, "[Home] Error loading profile types: {Message}", ex.Message);
         }
     }
 
@@ -2730,90 +1194,82 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] START");
-            Console.WriteLine($"  Current Profile ID: {_currentProfileId}");
-            Console.WriteLine($"  Current Page: {_currentPage}");
-            Console.WriteLine($"  Current Activities Count: {_activities?.Count ?? 0}");
+            Logger.LogInformation("---------------------------------------------------------------");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] START");
+            Logger.LogInformation($"  Current Profile ID: {_currentProfileId}");
+            Logger.LogInformation($"  Current Page: {_currentPage}");
+            Logger.LogInformation($"  Current Activities Count: {_activities?.Count ?? 0}");
             
             // Check if we have a valid profile ID
             if (_currentProfileId == Guid.Empty)
             {
-                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No active profile ID - skipping activity load");
+                Logger.LogWarning("[Home.LoadFeedActivitiesAsync] No active profile ID - skipping activity load");
                 _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogInformation("---------------------------------------------------------------");
                 return;
             }
             
             // Load activities created BY the current profile (not the follower feed)
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📡 Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Calling API: GetProfileActivitiesAsync(profileId={_currentProfileId}, pageSize=10, pageNumber={_currentPage})");
             var feedDto = await SivarClient.Activities.GetProfileActivitiesAsync(_currentProfileId, pageSize: 10, pageNumber: _currentPage);
             
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📥 API Response received");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? API Response received");
             
             if (feedDto == null)
             {
-                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ❌ Feed DTO is null!");
+                Logger.LogWarning("[Home.LoadFeedActivitiesAsync] Feed DTO is null!");
                 _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogInformation("---------------------------------------------------------------");
                 return;
             }
             
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Feed DTO Details:");
-            Console.WriteLine($"  Activities: {feedDto.Activities?.Count ?? 0} items");
-            Console.WriteLine($"  TotalCount: {feedDto.TotalCount}");
-            Console.WriteLine($"  TotalPages: {feedDto.TotalPages}");
-            Console.WriteLine($"  CurrentPage: {feedDto.Page}");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] Feed DTO Details:");
+            Logger.LogInformation($"  Activities: {feedDto.Activities?.Count ?? 0} items");
+            Logger.LogInformation($"  TotalCount: {feedDto.TotalCount}");
+            Logger.LogInformation($"  TotalPages: {feedDto.TotalPages}");
+            Logger.LogInformation($"  CurrentPage: {feedDto.Page}");
             
             if (feedDto?.Activities != null && feedDto.Activities.Any())
             {
-                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📋 Processing {feedDto.Activities.Count} activities:");
+                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Processing {feedDto.Activities.Count} activities:");
                 for (int i = 0; i < feedDto.Activities.Count; i++)
                 {
                     var activity = feedDto.Activities[i];
-                    Console.WriteLine($"  Activity {i + 1}:");
-                    Console.WriteLine($"    ID: {activity.Id}");
-                    Console.WriteLine($"    Verb: {activity.Verb}");
-                    Console.WriteLine($"    Summary: {activity.Summary}");
-                    Console.WriteLine($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
-                    Console.WriteLine($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
+                    Logger.LogInformation($"  Activity {i + 1}:");
+                    Logger.LogInformation($"    ID: {activity.Id}");
+                    Logger.LogInformation($"    Verb: {activity.Verb}");
+                    Logger.LogInformation($"    Summary: {activity.Summary}");
+                    Logger.LogInformation($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
+                    Logger.LogInformation($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
                 }
                 
                 _activities = feedDto.Activities;
                 _totalPages = feedDto.TotalPages;
                 
-                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ Successfully assigned {_activities.Count} activities to _activities field");
-                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ Total pages: {_totalPages}");
+                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? Successfully assigned {_activities.Count} activities to _activities field");
+                Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? Total pages: {_totalPages}");
             }
             else
             {
-                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No activities in response - feed is empty");
+                Logger.LogInformation("[Home.LoadFeedActivitiesAsync] ?? No activities in response - feed is empty");
                 _activities = new List<ActivityDto>();
                 _totalPages = feedDto?.TotalPages ?? 0;
             }
             
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 🔄 Calling StateHasChanged()...");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ?? Calling StateHasChanged()...");
             StateHasChanged();
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✅ StateHasChanged() completed");
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] FINAL: _activities.Count = {_activities?.Count ?? 0}");
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] ? StateHasChanged() completed");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] FINAL: _activities.Count = {_activities?.Count ?? 0}");
+            Logger.LogInformation($"[Home.LoadFeedActivitiesAsync] FINAL: _currentPage = {_currentPage}, _totalPages = {_totalPages}");
+            Logger.LogInformation("---------------------------------------------------------------");
         }
         catch (Exception ex)
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ❌ ERROR!");
-            Console.WriteLine($"  Message: {ex.Message}");
-            Console.WriteLine($"  Type: {ex.GetType().Name}");
-            Console.WriteLine($"  Stack trace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
-            }
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Logger.LogError(ex, "[Home.LoadFeedActivitiesAsync] ERROR loading feed activities");
             _activities = new List<ActivityDto>();
             _totalPages = 0;
             StateHasChanged();
@@ -2827,7 +1283,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("[Home] Loading user statistics...");
+            Logger.LogInformation("[Home] Loading user statistics...");
             
             // Get follower stats
             var followerStats = await SivarClient.Followers.GetStatsAsync();
@@ -2841,12 +1297,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     Reach = 0,  // Will be calculated from posts
                     ResponseRate = 100  // Default to 100%
                 };
-                Console.WriteLine($"[Home] Stats loaded: {_stats.Followers} followers, {_stats.Following} following");
+                Logger.LogInformation($"[Home] Stats loaded: {_stats.Followers} followers, {_stats.Following} following");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error loading user statistics: {ex.Message}");
+            Logger.LogError(ex, "[Home] Error loading user statistics: {Message}", ex.Message);
             // Keep default mock values as fallback
         }
     }
@@ -2858,16 +1314,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
+            Logger.LogInformation($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
             
             // Validate post content
             if (string.IsNullOrWhiteSpace(_postText))
             {
-                Console.WriteLine("[Home] Post text is empty - cannot submit");
+                Logger.LogInformation("[Home] Post text is empty - cannot submit");
                 return;
             }
 
-            Console.WriteLine("[Home] Submitting new post...");
+            Logger.LogInformation("[Home] Submitting new post...");
 
             // Convert string to PostType enum
             var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
@@ -2896,7 +1352,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             
             if (newPost != null)
             {
-                Console.WriteLine($"[Home] Post created successfully: {newPost.Id}");
+                Logger.LogInformation($"[Home] Post created successfully: {newPost.Id}");
                 
                 // Reload activities feed to show the new post activity
                 // The ActivityService should automatically record the Create activity
@@ -2922,15 +1378,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
         catch (SivarApiException apiEx)
         {
-            Console.WriteLine($"[Home] ❌ API Error submitting post:");
-            Console.WriteLine($"[Home]   Status: {apiEx.StatusCode}");
-            Console.WriteLine($"[Home]   Reason: {apiEx.ReasonPhrase}");
-            Console.WriteLine($"[Home]   Details: {apiEx.Content}");
+            Logger.LogError(apiEx, "[Home] API Error submitting post - Status: {StatusCode}, Reason: {ReasonPhrase}", 
+                apiEx.StatusCode, apiEx.ReasonPhrase);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ❌ Error submitting post: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[Home] Stack Trace: {ex.StackTrace}");
+            Logger.LogError(ex, "[Home] Error submitting post: {ExceptionType}", ex.GetType().Name);
         }
     }
 
@@ -2942,23 +1395,23 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         try
         {
             _isLoadingProfiles = true;
-            Console.WriteLine("[Home] Loading user profiles for switcher");
+            Logger.LogInformation("[Home] Loading user profiles for switcher");
 
             _userProfiles = await ProfileSwitcherService.GetUserProfilesAsync();
             _activeProfile = _userProfiles?.FirstOrDefault(p => p.IsActive) ?? _userProfiles?.FirstOrDefault();
 
-            Console.WriteLine($"[Home] ✓ Loaded {_userProfiles?.Count ?? 0} profiles. Active: {_activeProfile?.DisplayName}");
+            Logger.LogInformation($"[Home] ? Loaded {_userProfiles?.Count ?? 0} profiles. Active: {_activeProfile?.DisplayName}");
             if (_userProfiles?.Any() == true)
             {
                 foreach (var profile in _userProfiles)
                 {
-                    Console.WriteLine($"[Home]   - Profile: {profile.DisplayName}, Type ID: {profile.ProfileTypeId}, Type: {profile.ProfileType?.DisplayName}");
+                    Logger.LogInformation($"[Home]   - Profile: {profile.DisplayName}, Type ID: {profile.ProfileTypeId}, Type: {profile.ProfileType?.DisplayName}");
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ❌ Error loading profiles: {ex.Message}");
+            Logger.LogError(ex, "[Home] Error loading profiles: {Message}", ex.Message);
             _userProfiles = new();
             _activeProfile = null;
         }
@@ -2975,51 +1428,46 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine($"[Home.HandleProfileChanged] START - Switching to profile");
-            Console.WriteLine($"  Profile Name: {selectedProfile.DisplayName}");
-            Console.WriteLine($"  Profile ID: {selectedProfile.Id}");
-            Console.WriteLine($"  Profile Type: {selectedProfile.ProfileType?.DisplayName}");
-            Console.WriteLine($"  Previous Active Profile: {_activeProfile?.DisplayName} ({_activeProfile?.Id})");
+            Logger.LogInformation("---------------------------------------------------------------");
+            Logger.LogInformation($"[Home.HandleProfileChanged] START - Switching to profile");
+            Logger.LogInformation($"  Profile Name: {selectedProfile.DisplayName}");
+            Logger.LogInformation($"  Profile ID: {selectedProfile.Id}");
+            Logger.LogInformation($"  Profile Type: {selectedProfile.ProfileType?.DisplayName}");
+            Logger.LogInformation($"  Previous Active Profile: {_activeProfile?.DisplayName} ({_activeProfile?.Id})");
 
             if (await ProfileSwitcherService.SwitchProfileAsync(selectedProfile.Id))
             {
-                Console.WriteLine($"[Home.HandleProfileChanged] ✅ Server acknowledged profile switch");
+                Logger.LogInformation($"[Home.HandleProfileChanged] ? Server acknowledged profile switch");
                 
                 _activeProfile = selectedProfile;
                 _currentProfileId = selectedProfile.Id;
                 
-                Console.WriteLine($"[Home.HandleProfileChanged] Updated local state:");
-                Console.WriteLine($"  _activeProfile: {_activeProfile.DisplayName}");
-                Console.WriteLine($"  _currentProfileId: {_currentProfileId}");
+                Logger.LogInformation($"[Home.HandleProfileChanged] Updated local state:");
+                Logger.LogInformation($"  _activeProfile: {_activeProfile.DisplayName}");
+                Logger.LogInformation($"  _currentProfileId: {_currentProfileId}");
                 
                 // Reset pagination when switching profiles
                 _currentPage = 1;
-                Console.WriteLine($"[Home.HandleProfileChanged] Reset pagination to page 1");
+                Logger.LogInformation($"[Home.HandleProfileChanged] Reset pagination to page 1");
                 
                 // Reload feed activities for the new profile
-                Console.WriteLine($"[Home.HandleProfileChanged] Loading activities for profile: {selectedProfile.DisplayName}");
+                Logger.LogInformation($"[Home.HandleProfileChanged] Loading activities for profile: {selectedProfile.DisplayName}");
                 await LoadFeedActivitiesAsync();
-                Console.WriteLine($"[Home.HandleProfileChanged] ✅ Activities loaded: {_activities.Count} activities");
+                Logger.LogInformation($"[Home.HandleProfileChanged] ? Activities loaded: {_activities.Count} activities");
                 
                 StateHasChanged();
-                Console.WriteLine($"[Home.HandleProfileChanged] ✅ UI refreshed");
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogInformation($"[Home.HandleProfileChanged] ? UI refreshed");
+                Logger.LogInformation("---------------------------------------------------------------");
             }
             else
             {
-                Console.WriteLine("[Home.HandleProfileChanged] ❌ Failed to switch profile on server");
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogWarning("[Home.HandleProfileChanged] Failed to switch profile on server");
+                Logger.LogInformation("---------------------------------------------------------------");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine($"[Home.HandleProfileChanged] ❌ Error switching profile");
-            Console.WriteLine($"  Exception: {ex.GetType().Name}");
-            Console.WriteLine($"  Message: {ex.Message}");
-            Console.WriteLine($"  Stack: {ex.StackTrace}");
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Logger.LogError(ex, "[Home.HandleProfileChanged] Error switching profile");
         }
     }
 
@@ -3030,97 +1478,87 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     {
         try
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine("[Home.HandleCreateProfile] START - Creating new profile");
-            Console.WriteLine($"  DisplayName: {request.DisplayName}");
-            Console.WriteLine($"  ProfileTypeId: {request.ProfileTypeId}");
-            Console.WriteLine($"  SetAsActive: {request.SetAsActive}");
-            Console.WriteLine($"  Visibility: {request.VisibilityLevel}");
-            Console.WriteLine($"  Bio: {request.Bio}");
-            Console.WriteLine($"  Avatar: {request.Avatar}");
-            Console.WriteLine($"  Tags: {request.Tags}");
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Logger.LogInformation("---------------------------------------------------------------");
+            Logger.LogInformation("[Home.HandleCreateProfile] START - Creating new profile");
+            Logger.LogInformation($"  DisplayName: {request.DisplayName}");
+            Logger.LogInformation($"  ProfileTypeId: {request.ProfileTypeId}");
+            Logger.LogInformation($"  SetAsActive: {request.SetAsActive}");
+            Logger.LogInformation($"  Visibility: {request.VisibilityLevel}");
+            Logger.LogInformation($"  Bio: {request.Bio}");
+            Logger.LogInformation($"  Avatar: {request.Avatar}");
+            Logger.LogInformation($"  Tags: {request.Tags}");
+            Logger.LogInformation("---------------------------------------------------------------");
 
             // Step 1: Call the SivarClient to create the profile
-            Console.WriteLine("[Home.HandleCreateProfile] STEP 1: Calling SivarClient.Profiles.CreateProfileAsync()");
+            Logger.LogInformation("[Home.HandleCreateProfile] STEP 1: Calling SivarClient.Profiles.CreateProfileAsync()");
             var newProfile = await SivarClient.Profiles.CreateProfileAsync(request);
             
             if (newProfile != null)
             {
-                Console.WriteLine($"[Home.HandleCreateProfile] STEP 2: ✅ Profile created successfully!");
-                Console.WriteLine($"  Profile ID: {newProfile.Id}");
-                Console.WriteLine($"  Profile Name: {newProfile.DisplayName}");
-                Console.WriteLine($"  Profile Type: {newProfile.ProfileType?.DisplayName}");
+                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 2: ? Profile created successfully!");
+                Logger.LogInformation($"  Profile ID: {newProfile.Id}");
+                Logger.LogInformation($"  Profile Name: {newProfile.DisplayName}");
+                Logger.LogInformation($"  Profile Type: {newProfile.ProfileType?.DisplayName}");
                 
-                // ✅ ALWAYS auto-select the new profile (if SetAsActive is true)
-                Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: SetAsActive={request.SetAsActive}, attempting to auto-select");
+                // ? ALWAYS auto-select the new profile (if SetAsActive is true)
+                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: SetAsActive={request.SetAsActive}, attempting to auto-select");
                 
                 if (request.SetAsActive)
                 {
                     try
                     {
                         var activeProfileResult = await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
-                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ✅ SetMyActiveProfileAsync succeeded!");
-                        Console.WriteLine($"  Returned Profile ID: {activeProfileResult?.Id}");
+                        Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: ? SetMyActiveProfileAsync succeeded!");
+                        Logger.LogInformation($"  Returned Profile ID: {activeProfileResult?.Id}");
                     }
                     catch (Exception setActiveEx)
                     {
-                        Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: ⚠️ SetMyActiveProfileAsync failed!");
-                        Console.WriteLine($"  Exception: {setActiveEx.GetType().Name}");
-                        Console.WriteLine($"  Message: {setActiveEx.Message}");
-                        Console.WriteLine("  Continuing anyway - profile was created successfully");
+                        Logger.LogWarning(setActiveEx, "[Home.HandleCreateProfile] STEP 3: SetMyActiveProfileAsync failed - Continuing anyway - profile was created successfully");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
+                    Logger.LogInformation($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
                 }
                 
                 _activeProfile = newProfile;
                 
-                // ✅ Update current profile ID (required for feed loading)
+                // ? Update current profile ID (required for feed loading)
                 _currentProfileId = newProfile.Id;
-                Console.WriteLine($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
+                Logger.LogInformation($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
                 
-                // ✅ Reset pagination
+                // ? Reset pagination
                 _currentPage = 1;
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
                 
-                // ✅ Reload activities for the new profile
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
+                // ? Reload activities for the new profile
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
                 await LoadFeedActivitiesAsync();
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
 
                 // Reload profiles after creation
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
                 await LoadUserProfilesAsync();
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
                 
                 StateHasChanged();
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 8: ✅ STATE CHANGED - UI updated");
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
-                Console.WriteLine("[Home.HandleCreateProfile] ✅✅✅ PROFILE CREATION COMPLETE ✅✅✅");
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogInformation("[Home.HandleCreateProfile] STEP 8: ? STATE CHANGED - UI updated");
+                Logger.LogInformation("---------------------------------------------------------------");
+                Logger.LogInformation("[Home.HandleCreateProfile] ??? PROFILE CREATION COMPLETE ???");
+                Logger.LogInformation("---------------------------------------------------------------");
             }
             else
             {
-                Console.WriteLine("[Home.HandleCreateProfile] ❌ STEP 2 FAILED: Profile creation returned null");
-                Console.WriteLine("[Home.HandleCreateProfile] This means the API call failed or returned no data");
-                Console.WriteLine("═══════════════════════════════════════════════════════════════");
+                Logger.LogWarning("[Home.HandleCreateProfile] STEP 2 FAILED: Profile creation returned null - API call failed or returned no data");
+                Logger.LogInformation("---------------------------------------------------------------");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
-            Console.WriteLine($"[Home.HandleCreateProfile] ❌ EXCEPTION CAUGHT!");
-            Console.WriteLine($"  Exception Type: {ex.GetType().Name}");
-            Console.WriteLine($"  Message: {ex.Message}");
-            Console.WriteLine($"  Stack Trace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
-            }
-            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Logger.LogError(ex, "[Home.HandleCreateProfile] EXCEPTION during profile creation");
         }
     }
 }
+
+
+
