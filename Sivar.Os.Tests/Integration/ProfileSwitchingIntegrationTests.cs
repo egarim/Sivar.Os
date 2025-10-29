@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Sivar.Os.Client.Services;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
@@ -35,6 +36,7 @@ public class ProfileSwitchingIntegrationTests
     private readonly Mock<IPostService> _postServiceMock;
     private readonly Mock<IProfileRepository> _profileRepositoryMock;
     private readonly Mock<IPostRepository> _postRepositoryMock;
+    private readonly Mock<IProfileSwitcherService> _profileSwitcherServiceMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
     private readonly Mock<ILogger<Sivar.Os.Services.Clients.ProfilesClient>> _profilesClientLoggerMock;
     private readonly Mock<ILogger<Sivar.Os.Services.Clients.PostsClient>> _postsClientLoggerMock;
@@ -56,6 +58,7 @@ public class ProfileSwitchingIntegrationTests
         _postServiceMock = new Mock<IPostService>();
         _profileRepositoryMock = new Mock<IProfileRepository>();
         _postRepositoryMock = new Mock<IPostRepository>();
+        _profileSwitcherServiceMock = new Mock<IProfileSwitcherService>();
         _httpContextAccessorMock = AuthenticationTestFixture
             .CreateMockHttpContextAccessor(_keycloakId);
         _profilesClientLoggerMock = new Mock<ILogger<Sivar.Os.Services.Clients.ProfilesClient>>();
@@ -65,6 +68,7 @@ public class ProfileSwitchingIntegrationTests
         _profilesClient = new Sivar.Os.Services.Clients.ProfilesClient(
             _profileServiceMock.Object,
             _profileRepositoryMock.Object,
+            _profileSwitcherServiceMock.Object,
             _httpContextAccessorMock.Object,
             _profilesClientLoggerMock.Object
         );
