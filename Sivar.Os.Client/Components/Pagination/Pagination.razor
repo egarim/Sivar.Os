@@ -1,12 +1,12 @@
 @* Pagination component *@
 
 <div class="pagination">
-    <button class="pagination-btn" @onclick="OnPrevious" disabled="@(CurrentPage == 1)">Previous</button>
+    <button class="pagination-btn" @onclick="HandlePrevious" disabled="@(CurrentPage == 1)">Previous</button>
     <div class="pagination-info">
         <div class="page-indicator">Page <span id="current-page">@CurrentPage</span> of @PageCount</div>
         <div class="posts-info">@TotalItems total @ItemName</div>
     </div>
-    <button class="pagination-btn" @onclick="OnNext" disabled="@(CurrentPage == PageCount)">Next</button>
+    <button class="pagination-btn" @onclick="HandleNext" disabled="@(CurrentPage == PageCount)">Next</button>
 </div>
 
 @code {
@@ -45,4 +45,14 @@
     /// </summary>
     [Parameter]
     public EventCallback OnPrevious { get; set; }
+
+    private async Task HandlePrevious()
+    {
+        await OnPrevious.InvokeAsync();
+    }
+
+    private async Task HandleNext()
+    {
+        await OnNext.InvokeAsync();
+    }
 }
