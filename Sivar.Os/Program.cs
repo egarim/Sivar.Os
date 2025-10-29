@@ -55,6 +55,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
+builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 
 // --- AI Client Registration (Ollama) ---
 // Register IChatClient for ChatService
@@ -85,6 +86,7 @@ builder.Services.AddScoped<IProfileFollowerService, ProfileFollowerService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISavedResultService, SavedResultService>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
 
 // --- Utility Services Registration ---
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
@@ -137,6 +139,7 @@ builder.Services.AddScoped<IFollowersClient, FollowersClient>();
 builder.Services.AddScoped<INotificationsClient, NotificationsClient>();
 builder.Services.AddScoped<ISivarChatClient, ChatClient>();
 builder.Services.AddScoped<IFilesClient, FilesClient>();
+builder.Services.AddScoped<IActivitiesClient, ActivitiesClient>();
 
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();

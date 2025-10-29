@@ -80,6 +80,11 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<SavedResult> SavedResults { get; set; } = null!;
 
+    /// <summary>
+    /// Activity stream events (Actor-Verb-Object pattern)
+    /// </summary>
+    public DbSet<Activity> Activities { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -97,6 +102,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ConversationConfiguration());
         modelBuilder.ApplyConfiguration(new ChatMessageConfiguration());
         modelBuilder.ApplyConfiguration(new SavedResultConfiguration());
+        modelBuilder.ApplyConfiguration(new ActivityConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

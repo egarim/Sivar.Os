@@ -25,6 +25,7 @@ public class SivarClient : ISivarClient
     private IFilesClient? _files;
     private IUsersClient? _users;
     private IProfileTypesClient? _profileTypes;
+    private IActivitiesClient? _activities;
 
     public SivarClient(HttpClient httpClient, IOptions<SivarClientOptions> options)
     {
@@ -86,4 +87,9 @@ public class SivarClient : ISivarClient
     /// Profile types operations (CRUD, admin)
     /// </summary>
     public IProfileTypesClient ProfileTypes => _profileTypes ??= new ProfileTypesClient(_httpClient, _options);
+
+    /// <summary>
+    /// Activity stream operations (feed, profile activities, trending)
+    /// </summary>
+    public IActivitiesClient Activities => _activities ??= new ActivitiesClient(_httpClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<ActivitiesClient>.Instance);
 }

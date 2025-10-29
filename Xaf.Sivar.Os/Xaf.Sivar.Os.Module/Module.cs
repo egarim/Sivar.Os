@@ -26,7 +26,7 @@ namespace Xaf.Sivar.Os.Module
             // OsModule
             //
 
-
+            AdditionalExportedTypes.Add(typeof(Activity));
             AdditionalExportedTypes.Add(typeof(Post));
             AdditionalExportedTypes.Add(typeof(User));
             AdditionalExportedTypes.Add(typeof(Profile));
@@ -169,6 +169,11 @@ namespace Xaf.Sivar.Os.Module
             if (savedResultTypeInfo != null)
             {
                 savedResultTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
+            }
+            var activityTypeInfo = typesInfo.FindTypeInfo(typeof(Activity));
+            if (activityTypeInfo != null)
+            {
+                activityTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
             }
         }
     }

@@ -24,6 +24,7 @@ public class PostService : IPostService
     private readonly IPostAttachmentRepository _postAttachmentRepository;
     private readonly IFileStorageService _fileStorageService;
     private readonly IVectorEmbeddingService? _vectorEmbeddingService;
+    private readonly IActivityService _activityService;
     private readonly ILogger<PostService> _logger;
 
     public PostService(
@@ -34,6 +35,7 @@ public class PostService : IPostService
         ICommentRepository commentRepository,
         IPostAttachmentRepository postAttachmentRepository,
         IFileStorageService fileStorageService,
+        IActivityService activityService,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -44,6 +46,7 @@ public class PostService : IPostService
         _postAttachmentRepository = postAttachmentRepository ?? throw new ArgumentNullException(nameof(postAttachmentRepository));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
         _vectorEmbeddingService = null; // Disabled until properly configured
+        _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -146,6 +149,18 @@ public class PostService : IPostService
             await _postRepository.SaveChangesAsync();
 
             _logger.LogInformation("[CreatePostAsync] Post saved successfully: PostId={postId}", post.Id);
+
+            // Record activity for the post creation
+            try
+            {
+                await _activityService.RecordPostCreatedAsync(post);
+                _logger.LogInformation("[CreatePostAsync] Activity recorded for post: PostId={postId}", post.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CreatePostAsync] Failed to record activity for post: PostId={postId}", post.Id);
+                // Don't fail the post creation if activity recording fails
+            }
 
             // Process attachments if provided
             if (createPostDto.Attachments?.Any() == true)

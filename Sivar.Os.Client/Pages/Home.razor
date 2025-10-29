@@ -1656,26 +1656,36 @@
                           @bind-PostBusinessMetadata="@_postBusinessMetadata"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
-            @foreach (var post in _posts)
+            @foreach (var activity in _activities)
             {
-                <PostCard Post="@post"
-                          CurrentUserId="@_currentUserId"
-                          OnLike="@(() => ToggleLike(post))"
-                          OnCommentClick="@(() => ToggleComments(post))"
-                          OnShare="@(() => SharePost(post))"
-                          OnSave="@(() => SavePost(post))"
-                          OnEdit="@(() => HandleEditPost(post))"
-                          OnDelete="@(() => HandleDeletePost(post))"
-                          OnViewAnalytics="@(() => HandleViewAnalytics(post))"
-                          OnReport="@(() => HandleReportPost(post))"
-                          OnCopyLink="@(() => HandleCopyPostLink(post))"
-                          OnAuthorClick="@((author) => ViewProfile(author))" />
+                @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
+                {
+                    <PostCard Post="@activity.Post"
+                              CurrentUserId="@_currentUserId"
+                              OnLike="@(() => ToggleLike(activity.Post))"
+                              OnCommentClick="@(() => ToggleComments(activity.Post))"
+                              OnShare="@(() => SharePost(activity.Post))"
+                              OnSave="@(() => SavePost(activity.Post))"
+                              OnEdit="@(() => HandleEditPost(activity.Post))"
+                              OnDelete="@(() => HandleDeletePost(activity.Post))"
+                              OnViewAnalytics="@(() => HandleViewAnalytics(activity.Post))"
+                              OnReport="@(() => HandleReportPost(activity.Post))"
+                              OnCopyLink="@(() => HandleCopyPostLink(activity.Post))"
+                              OnAuthorClick="@((author) => ViewProfile(author))" />
+                }
+                else
+                {
+                    <!-- TODO: Render other activity types (Comment, Like, Follow, Share, etc.) -->
+                    <div class="activity-card">
+                        <p>@activity.Summary - @activity.TimeAgo</p>
+                    </div>
+                }
             }
 
             <Pagination CurrentPage="@_currentPage"
                         PageCount="@_totalPages"
-                        TotalItems="@(_posts.Count)"
-                        ItemName="posts"
+                        TotalItems="@(_activities.Count)"
+                        ItemName="activities"
                         OnPrevious="@(() => PreviousPage())"
                         OnNext="@(() => NextPage())" />
         </div>
@@ -1743,7 +1753,7 @@
     private string _postBusinessMetadata = string.Empty;
 
     // Feed & Pagination
-    private List<PostDto> _posts = new();
+    private List<ActivityDto> _activities = new();
     private int _currentPage = 1;
     private int _totalPages = 12;
 
@@ -1819,15 +1829,15 @@
                 }
             }
             
-            // Load initial feed posts
-            Console.WriteLine("[Home] Step 3: Loading feed posts");
-            await LoadFeedPostsAsync();
+            // Load initial feed activities
+            Console.WriteLine("[Home] Step 3: Loading feed activities");
+            await LoadFeedActivitiesAsync();
             
             // Load user statistics
             Console.WriteLine("[Home] Step 4: Loading user statistics");
             await LoadUserStatsAsync();
             
-            Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Posts loaded: {_posts.Count} ====================");
+            Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
             
             // Notify Blazor that component state has changed so it re-renders with loaded data
             StateHasChanged();
@@ -2100,8 +2110,8 @@
                 
                 await SivarClient.Posts.DeletePostAsync(post.Id);
                 
-                // Remove post from list
-                _posts.Remove(post);
+                // Reload activities feed to reflect the deletion
+                await LoadFeedActivitiesAsync();
                 
                 Console.WriteLine($"[Home] Post deleted successfully");
                 StateHasChanged();
@@ -2131,14 +2141,8 @@
                 // Call API to update post
                 await SivarClient.Posts.UpdatePostAsync(post.Id, updateDto);
                 
-                // Find and update post in list
-                var postIndex = _posts.FindIndex(p => p.Id == post.Id);
-                if (postIndex >= 0)
-                {
-                    // Refresh the post from API to get the latest data
-                    var updatedPost = await SivarClient.Posts.GetPostAsync(post.Id);
-                    _posts[postIndex] = updatedPost;
-                }
+                // Reload activities feed to reflect the update
+                await LoadFeedActivitiesAsync();
                 
                 Console.WriteLine($"[Home] Post updated successfully");
                 StateHasChanged();
@@ -2187,7 +2191,7 @@
         {
             _currentPage--;
             Console.WriteLine($"[Home.PreviousPage] Page changed to {_currentPage}, reloading feed");
-            await LoadFeedPostsAsync();
+            await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
     }
@@ -2198,7 +2202,7 @@
         {
             _currentPage++;
             Console.WriteLine($"[Home.NextPage] Page changed to {_currentPage}, reloading feed");
-            await LoadFeedPostsAsync();
+            await LoadFeedActivitiesAsync();
             StateHasChanged();
         }
     }
@@ -2723,41 +2727,41 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     /// <summary>
     /// Load feed posts from API
     /// </summary>
-    private async Task LoadFeedPostsAsync()
+    private async Task LoadFeedActivitiesAsync()
     {
         try
         {
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] START - Current profile: {_currentProfileId}, Page: {_currentPage}");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] START - Current profile: {_currentProfileId}, Page: {_currentPage}");
             
-            // Note: We use GetFeedPostsAsync() which gets the activity feed for the authenticated user
+            // Note: We use GetFeedActivitiesAsync() which gets the activity feed for the authenticated user
             // This doesn't require a profileId - it automatically uses the user's Keycloak ID
-            // The feed shows posts from profiles the user follows (or their own posts in a future implementation)
+            // The feed shows activities from profiles the user follows (or their own activities)
             
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] Calling GetFeedPostsAsync with pageSize=10, pageNumber={_currentPage}");
-            var feedDto = await SivarClient.Posts.GetFeedPostsAsync(pageSize: 10, pageNumber: _currentPage);
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Calling GetFeedActivitiesAsync with pageSize=10, pageNumber={_currentPage}");
+            var feedDto = await SivarClient.Activities.GetFeedActivitiesAsync(pageSize: 10, pageNumber: _currentPage);
             
             if (feedDto == null)
             {
-                Console.WriteLine("[Home.LoadFeedPostsAsync] ❌ Feed DTO is null");
-                _posts = new List<PostDto>();
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ❌ Feed DTO is null");
+                _activities = new List<ActivityDto>();
                 _totalPages = 0;
                 StateHasChanged();
                 return;
             }
             
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] Feed DTO received - Posts count: {feedDto.Posts?.Count ?? 0}, Total: {feedDto.TotalCount}, Pages: {feedDto.TotalPages}");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Feed DTO received - Activities count: {feedDto.Activities?.Count ?? 0}, Total: {feedDto.TotalCount}, Pages: {feedDto.TotalPages}");
             
-            if (feedDto?.Posts != null && feedDto.Posts.Any())
+            if (feedDto?.Activities != null && feedDto.Activities.Any())
             {
-                _posts = feedDto.Posts;
+                _activities = feedDto.Activities;
                 _totalPages = feedDto.TotalPages;
                 
-                Console.WriteLine($"[Home.LoadFeedPostsAsync] ✓ Successfully loaded {_posts.Count} posts (Page {feedDto.Page + 1} of {feedDto.TotalPages})");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ✓ Successfully loaded {_activities.Count} activities (Page {feedDto.Page + 1} of {feedDto.TotalPages})");
             }
             else
             {
-                Console.WriteLine("[Home.LoadFeedPostsAsync] ⚠️ No posts found in feed (this is OK - feed is empty)");
-                _posts = new List<PostDto>();
+                Console.WriteLine("[Home.LoadFeedActivitiesAsync] ⚠️ No activities found in feed (this is OK - feed is empty)");
+                _activities = new List<ActivityDto>();
                 _totalPages = feedDto?.TotalPages ?? 0;
             }
             
@@ -2765,9 +2769,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] ❌ Error loading feed posts: {ex.Message}");
-            Console.WriteLine($"[Home.LoadFeedPostsAsync] Stack trace: {ex.StackTrace}");
-            _posts = new List<PostDto>();
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ❌ Error loading feed activities: {ex.Message}");
+            Console.WriteLine($"[Home.LoadFeedActivitiesAsync] Stack trace: {ex.StackTrace}");
+            _activities = new List<ActivityDto>();
             _totalPages = 0;
             StateHasChanged();
         }
@@ -2861,8 +2865,9 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             {
                 Console.WriteLine($"[Home] Post created successfully: {newPost.Id}");
                 
-                // Add new post to beginning of feed (most recent first)
-                _posts.Insert(0, newPost);
+                // Reload activities feed to show the new post activity
+                // The ActivityService should automatically record the Create activity
+                await LoadFeedActivitiesAsync();
                 
                 // Clear form
                 _postText = string.Empty;
@@ -2945,8 +2950,8 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _currentProfileId = selectedProfile.Id;
                 Console.WriteLine($"[Home] ✓ Profile switched successfully");
                 
-                // Reload feed posts for the new profile
-                await LoadFeedPostsAsync();
+                // Reload feed activities for the new profile
+                await LoadFeedActivitiesAsync();
                 StateHasChanged();
             }
             else
@@ -3025,7 +3030,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 
                 // ✅ Reload activities for the new profile
                 Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
-                await LoadFeedPostsAsync();
+                await LoadFeedActivitiesAsync();
                 Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
 
                 // Reload profiles after creation

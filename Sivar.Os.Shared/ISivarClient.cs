@@ -64,4 +64,9 @@ public interface ISivarClient
     /// Profile types operations (CRUD, admin)
     /// </summary>
     IProfileTypesClient ProfileTypes { get; }
+
+    /// <summary>
+    /// Activity stream operations (feed, profile activities, trending)
+    /// </summary>
+    IActivitiesClient Activities { get; }
 }
