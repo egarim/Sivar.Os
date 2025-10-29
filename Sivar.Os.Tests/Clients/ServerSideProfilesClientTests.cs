@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Sivar.Os.Client.Services;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
@@ -19,6 +20,7 @@ public class ServerSideProfilesClientTests : ProfilesClientContractTests
 {
     private Mock<IProfileService> _profileServiceMock = null!;
     private Mock<IProfileRepository> _profileRepositoryMock = null!;
+    private Mock<IProfileSwitcherService> _profileSwitcherServiceMock = null!;
     private Mock<IHttpContextAccessor> _httpContextAccessorMock = null!;
     private Mock<ILogger<Sivar.Os.Services.Clients.ProfilesClient>> _loggerMock = null!;
 
@@ -26,6 +28,7 @@ public class ServerSideProfilesClientTests : ProfilesClientContractTests
     {
         _profileServiceMock = new Mock<IProfileService>();
         _profileRepositoryMock = new Mock<IProfileRepository>();
+        _profileSwitcherServiceMock = new Mock<IProfileSwitcherService>();
         _httpContextAccessorMock = AuthenticationTestFixture
             .CreateMockHttpContextAccessor(ProfilesTestDataFixture.TestKeycloakId);
         _loggerMock = new Mock<ILogger<Sivar.Os.Services.Clients.ProfilesClient>>();
@@ -33,6 +36,7 @@ public class ServerSideProfilesClientTests : ProfilesClientContractTests
         Client = new Sivar.Os.Services.Clients.ProfilesClient(
             _profileServiceMock.Object,
             _profileRepositoryMock.Object,
+            _profileSwitcherServiceMock.Object,
             _httpContextAccessorMock.Object,
             _loggerMock.Object
         );
@@ -126,6 +130,7 @@ public class ServerSideProfilesClientTests : ProfilesClientContractTests
         Client = new Sivar.Os.Services.Clients.ProfilesClient(
             _profileServiceMock.Object,
             _profileRepositoryMock.Object,
+            _profileSwitcherServiceMock.Object,
             _httpContextAccessorMock.Object,
             _loggerMock.Object
         );

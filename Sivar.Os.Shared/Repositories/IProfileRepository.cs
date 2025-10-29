@@ -39,6 +39,13 @@ public interface IProfileRepository : IBaseRepository<Profile>
     Task<Profile?> GetActiveProfileByKeycloakIdAsync(string keycloakId);
 
     /// <summary>
+    /// Gets a profile by its unique handle (URL-friendly identifier)
+    /// </summary>
+    /// <param name="handle">URL-friendly handle (e.g., "jose-ojeda")</param>
+    /// <returns>Matching profile if found, null otherwise</returns>
+    Task<Profile?> GetByHandleAsync(string handle);
+
+    /// <summary>
     /// Gets profiles by profile type
     /// </summary>
     /// <param name="profileTypeId">Profile type ID</param>

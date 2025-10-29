@@ -34,6 +34,11 @@ public class ProfileDto
     public string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique URL-friendly handle (e.g., "jose-ojeda")
+    /// </summary>
+    public string Handle { get; set; } = string.Empty;
+
+    /// <summary>
     /// Biography or description
     /// </summary>
     public string Bio { get; set; } = string.Empty;
@@ -230,6 +235,11 @@ public class ProfileSummaryDto
     /// Display name for the profile
     /// </summary>
     public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Unique URL-friendly handle (e.g., "jose-ojeda")
+    /// </summary>
+    public string Handle { get; set; } = string.Empty;
 
     /// <summary>
     /// Short bio preview (truncated)

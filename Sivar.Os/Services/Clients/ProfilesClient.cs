@@ -76,6 +76,36 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
         return new List<ProfileSummaryDto>();
     }
 
+    public async Task<ProfileDto> GetProfileByIdentifierAsync(string identifier, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            _logger.LogWarning("[ProfilesClient.GetProfileByIdentifierAsync] Empty identifier provided");
+            return new ProfileDto();
+        }
+
+        try
+        {
+            _logger.LogInformation("[ProfilesClient.GetProfileByIdentifierAsync] Fetching profile by identifier: {Identifier}", identifier);
+            var profile = await _profileService.GetProfileByIdentifierAsync(identifier);
+            
+            if (profile == null)
+            {
+                _logger.LogWarning("[ProfilesClient.GetProfileByIdentifierAsync] Profile not found for identifier: {Identifier}", identifier);
+                return new ProfileDto();
+            }
+
+            _logger.LogInformation("[ProfilesClient.GetProfileByIdentifierAsync] Profile found: {ProfileId}, {DisplayName}", 
+                profile.Id, profile.DisplayName);
+            return profile;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesClient.GetProfileByIdentifierAsync] Error fetching profile by identifier: {Identifier}", identifier);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<ProfileSearchDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(query))
