@@ -476,9 +476,136 @@
         // Remove the old mock implementation
     }
 
-    private void ToggleLike(PostDto post)
+    private async Task ToggleLike(PostDto post)
     {
-        // This will be handled by API reaction toggle
+        try
+        {
+            Console.WriteLine($"[Home.ToggleLike] Toggling like for post {post.Id}");
+            Console.WriteLine($"[Home.ToggleLike] Current ReactionSummary: {post.ReactionSummary?.TotalReactions ?? 0} reactions");
+            Console.WriteLine($"[Home.ToggleLike] Current UserReaction: {post.ReactionSummary?.UserReaction}");
+
+            // Determine if user has already liked (has any reaction)
+            var hasUserReacted = post.ReactionSummary?.HasUserReacted ?? false;
+
+            // Find the activity in our list to update it
+            var activity = _activities.FirstOrDefault(a => a.Post?.Id == post.Id);
+            if (activity == null)
+            {
+                Console.WriteLine($"[Home.ToggleLike] Activity not found for post {post.Id}");
+                return;
+            }
+
+            if (hasUserReacted)
+            {
+                // Remove the existing reaction
+                Console.WriteLine($"[Home.ToggleLike] Removing reaction for post {post.Id}");
+                await SivarClient.Reactions.RemovePostReactionAsync(post.Id);
+                
+                // Create updated reaction summary
+                var currentReactionType = post.ReactionSummary!.UserReaction;
+                var updatedSummary = post.ReactionSummary with
+                {
+                    TotalReactions = Math.Max(0, post.ReactionSummary.TotalReactions - 1),
+                    UserReaction = null,
+                    HasUserReacted = false,
+                    ReactionCounts = UpdateReactionCounts(post.ReactionSummary.ReactionCounts, currentReactionType, false)
+                };
+
+                // Create updated post with new reaction summary
+                var updatedPost = post with { ReactionSummary = updatedSummary };
+                
+                // Update the activity's post reference
+                activity.Post = updatedPost;
+                
+                Console.WriteLine($"[Home.ToggleLike] Reaction removed successfully");
+            }
+            else
+            {
+                // Add a new Like reaction
+                Console.WriteLine($"[Home.ToggleLike] Adding Like reaction for post {post.Id}");
+                var request = new CreatePostReactionDto
+                {
+                    PostId = post.Id,
+                    ReactionType = ReactionType.Like
+                };
+                
+                var reaction = await SivarClient.Reactions.AddPostReactionAsync(request);
+                
+                // Create updated reaction summary
+                PostReactionSummaryDto updatedSummary;
+                if (post.ReactionSummary != null)
+                {
+                    updatedSummary = post.ReactionSummary with
+                    {
+                        TotalReactions = post.ReactionSummary.TotalReactions + 1,
+                        UserReaction = ReactionType.Like,
+                        HasUserReacted = true,
+                        ReactionCounts = UpdateReactionCounts(post.ReactionSummary.ReactionCounts, ReactionType.Like, true)
+                    };
+                }
+                else
+                {
+                    // Initialize reaction summary if it doesn't exist
+                    updatedSummary = new PostReactionSummaryDto
+                    {
+                        PostId = post.Id,
+                        TotalReactions = 1,
+                        UserReaction = ReactionType.Like,
+                        HasUserReacted = true,
+                        ReactionCounts = new Dictionary<ReactionType, int> { { ReactionType.Like, 1 } }
+                    };
+                }
+
+                // Create updated post with new reaction summary
+                var updatedPost = post with { ReactionSummary = updatedSummary };
+                
+                // Update the activity's post reference
+                activity.Post = updatedPost;
+                
+                Console.WriteLine($"[Home.ToggleLike] Like added successfully");
+            }
+
+            // Trigger UI update
+            StateHasChanged();
+            Console.WriteLine($"[Home.ToggleLike] State updated - Activity list refreshed");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home.ToggleLike] Error toggling like: {ex.Message}");
+            Console.WriteLine($"[Home.ToggleLike] Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Helper method to update reaction counts when adding or removing a reaction
+    /// </summary>
+    private Dictionary<ReactionType, int> UpdateReactionCounts(
+        Dictionary<ReactionType, int> currentCounts, 
+        ReactionType? reactionType, 
+        bool isAdding)
+    {
+        if (reactionType == null) return currentCounts;
+
+        var updatedCounts = new Dictionary<ReactionType, int>(currentCounts);
+        var type = reactionType.Value;
+
+        if (isAdding)
+        {
+            updatedCounts[type] = updatedCounts.ContainsKey(type) ? updatedCounts[type] + 1 : 1;
+        }
+        else
+        {
+            if (updatedCounts.ContainsKey(type))
+            {
+                updatedCounts[type] = Math.Max(0, updatedCounts[type] - 1);
+                if (updatedCounts[type] == 0)
+                {
+                    updatedCounts.Remove(type);
+                }
+            }
+        }
+
+        return updatedCounts;
     }
 
     private void ToggleComments(PostDto post)
