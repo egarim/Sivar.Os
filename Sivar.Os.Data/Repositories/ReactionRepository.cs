@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Sivar.Os.Data.Context;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
@@ -12,8 +13,11 @@ namespace Sivar.Os.Data.Repositories;
 /// </summary>
 public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
 {
-    public ReactionRepository(SivarDbContext context) : base(context)
+    private readonly ILogger<ReactionRepository> _logger;
+
+    public ReactionRepository(SivarDbContext context, ILogger<ReactionRepository> logger) : base(context)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Basic CRUD Operations
@@ -312,9 +316,17 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         Guid? postId = null, 
         Guid? commentId = null)
     {
+        var requestId = Guid.NewGuid().ToString("N");
+        _logger.LogInformation(
+            "[ReactionRepository.ToggleReactionAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, ReactionType={ReactionType}, PostId={PostId}, CommentId={CommentId}",
+            requestId, profileId, reactionType, postId?.ToString() ?? "NULL", commentId?.ToString() ?? "NULL");
+
         // Validate input
         if (!postId.HasValue && !commentId.HasValue)
         {
+            _logger.LogWarning(
+                "[ReactionRepository.ToggleReactionAsync] VALIDATION_FAILED - RequestId={RequestId}, Reason=No PostId or CommentId provided",
+                requestId);
             return new ReactionResult 
             { 
                 Action = ReactionAction.NoChange, 
@@ -324,6 +336,9 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
 
         if (postId.HasValue && commentId.HasValue)
         {
+            _logger.LogWarning(
+                "[ReactionRepository.ToggleReactionAsync] VALIDATION_FAILED - RequestId={RequestId}, Reason=Both PostId and CommentId provided",
+                requestId);
             return new ReactionResult 
             { 
                 Action = ReactionAction.NoChange, 
@@ -332,6 +347,10 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         }
 
         // Find existing reaction
+        _logger.LogInformation(
+            "[ReactionRepository.ToggleReactionAsync] Checking for existing reaction - RequestId={RequestId}",
+            requestId);
+        
         Reaction? existingReaction = null;
         if (postId.HasValue)
         {
@@ -342,9 +361,19 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
             existingReaction = await GetUserReactionToCommentAsync(commentId.Value, profileId);
         }
 
+        _logger.LogInformation(
+            "[ReactionRepository.ToggleReactionAsync] Existing reaction check - RequestId={RequestId}, ExistingReaction={ExistingReaction}, ExistingReactionType={ExistingReactionType}",
+            requestId, 
+            existingReaction != null ? "Found" : "Not Found",
+            existingReaction?.ReactionType.ToString() ?? "NULL");
+
         if (existingReaction == null)
         {
             // Add new reaction
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] ADDING new reaction - RequestId={RequestId}",
+                requestId);
+
             var newReaction = new Reaction
             {
                 Id = Guid.NewGuid(),
@@ -356,8 +385,23 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
                 UpdatedAt = DateTime.UtcNow
             };
 
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] Created new Reaction entity - RequestId={RequestId}, ReactionId={ReactionId}",
+                requestId, newReaction.Id);
+
             await AddAsync(newReaction);
-            await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] Called AddAsync - RequestId={RequestId}",
+                requestId);
+
+            var saveResult = await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SaveChangesAsync completed - RequestId={RequestId}, RowsAffected={RowsAffected}",
+                requestId, saveResult);
+
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SUCCESS - ADDED - RequestId={RequestId}, ReactionId={ReactionId}",
+                requestId, newReaction.Id);
 
             return new ReactionResult 
             { 
@@ -369,8 +413,23 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         else if (existingReaction.ReactionType == reactionType)
         {
             // Same reaction type - remove it
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] REMOVING existing reaction (same type) - RequestId={RequestId}, ReactionId={ReactionId}",
+                requestId, existingReaction.Id);
+
             _context.Reactions.Remove(existingReaction);
-            await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] Called Remove - RequestId={RequestId}",
+                requestId);
+
+            var saveResult = await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SaveChangesAsync completed - RequestId={RequestId}, RowsAffected={RowsAffected}",
+                requestId, saveResult);
+
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SUCCESS - REMOVED - RequestId={RequestId}, ReactionId={ReactionId}",
+                requestId, existingReaction.Id);
 
             return new ReactionResult 
             { 
@@ -381,11 +440,26 @@ public class ReactionRepository : BaseRepository<Reaction>, IReactionRepository
         else
         {
             // Different reaction type - update it
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] UPDATING existing reaction (different type) - RequestId={RequestId}, ReactionId={ReactionId}, OldType={OldType}, NewType={NewType}",
+                requestId, existingReaction.Id, existingReaction.ReactionType, reactionType);
+
             existingReaction.ReactionType = reactionType;
             existingReaction.UpdatedAt = DateTime.UtcNow;
 
             await UpdateAsync(existingReaction);
-            await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] Called UpdateAsync - RequestId={RequestId}",
+                requestId);
+
+            var saveResult = await SaveChangesAsync();
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SaveChangesAsync completed - RequestId={RequestId}, RowsAffected={RowsAffected}",
+                requestId, saveResult);
+
+            _logger.LogInformation(
+                "[ReactionRepository.ToggleReactionAsync] SUCCESS - UPDATED - RequestId={RequestId}, ReactionId={ReactionId}",
+                requestId, existingReaction.Id);
 
             return new ReactionResult 
             { 
