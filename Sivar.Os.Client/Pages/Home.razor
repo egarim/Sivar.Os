@@ -497,12 +497,19 @@
 
             if (hasUserReacted)
             {
-                // Remove the existing reaction
-                Console.WriteLine($"[Home.ToggleLike] Removing reaction for post {post.Id}");
-                await SivarClient.Reactions.RemovePostReactionAsync(post.Id);
+                // Toggle off the existing reaction by sending the same reaction type
+                Console.WriteLine($"[Home.ToggleLike] Removing reaction for post {post.Id} (toggling off)");
+                var currentReactionType = post.ReactionSummary!.UserReaction!.Value;
+                var toggleRequest = new CreatePostReactionDto
+                {
+                    PostId = post.Id,
+                    ReactionType = currentReactionType
+                };
+                
+                // Calling AddPostReactionAsync with the same reaction type will toggle it off
+                var result = await SivarClient.Reactions.AddPostReactionAsync(toggleRequest);
                 
                 // Create updated reaction summary
-                var currentReactionType = post.ReactionSummary!.UserReaction;
                 var updatedSummary = post.ReactionSummary with
                 {
                     TotalReactions = Math.Max(0, post.ReactionSummary.TotalReactions - 1),
