@@ -9,35 +9,93 @@ using Sivar.Os.Shared.Services;
 namespace Sivar.Os.Services.Clients;
 
 /// <summary>
-/// Server-side implementation of comments client
+/// Server-side implementation of comments client using repositories and services
+/// Provides the same interface as the HTTP client but operates directly on the service layer
 /// </summary>
 public class CommentsClient : BaseRepositoryClient, ICommentsClient
 {
     private readonly ICommentService _commentService;
     private readonly ICommentRepository _commentRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CommentsClient> _logger;
 
     public CommentsClient(
         ICommentService commentService,
         ICommentRepository commentRepository,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<CommentsClient> logger)
     {
         _commentService = commentService ?? throw new ArgumentNullException(nameof(commentService));
         _commentRepository = commentRepository ?? throw new ArgumentNullException(nameof(commentRepository));
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     // CRUD operations
     public async Task<CommentDto> CreateCommentAsync(CreateCommentDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("CreateCommentAsync");
-        return new CommentDto { Id = Guid.NewGuid() };
+        if (request == null)
+        {
+            _logger.LogWarning("CreateCommentAsync called with null request");
+            return null!;
+        }
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("CreateCommentAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("CreateCommentAsync: {KeycloakId}, PostId={PostId}, Content length={Length}", 
+                keycloakId, request.PostId, request.Content?.Length ?? 0);
+            
+            var comment = await _commentService.CreateCommentAsync(keycloakId, request);
+            return comment ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating comment");
+            throw;
+        }
     }
 
     public async Task<CommentDto> CreateReplyAsync(Guid parentCommentId, CreateCommentDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("CreateReplyAsync: {ParentCommentId}", parentCommentId);
-        return new CommentDto { Id = Guid.NewGuid() };
+        if (request == null)
+        {
+            _logger.LogWarning("CreateReplyAsync called with null request");
+            return null!;
+        }
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("CreateReplyAsync: No authenticated user");
+                return null!;
+            }
+
+            _logger.LogInformation("CreateReplyAsync: {KeycloakId}, ParentCommentId={ParentCommentId}", 
+                keycloakId, parentCommentId);
+
+            var createReplyDto = new CreateReplyDto
+            {
+                Content = request.Content,
+                Language = request.Language
+            };
+
+            var reply = await _commentService.CreateReplyAsync(keycloakId, parentCommentId, createReplyDto);
+            return reply ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating reply to comment {ParentCommentId}", parentCommentId);
+            throw;
+        }
     }
 
     public async Task<CommentDto> GetCommentAsync(Guid commentId, CancellationToken cancellationToken = default)
@@ -77,8 +135,15 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
 
         try
         {
-            await _commentRepository.DeleteAsync(commentId);
-            _logger.LogInformation("Comment deleted: {CommentId}", commentId);
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("DeleteCommentAsync: No authenticated user");
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+
+            await _commentService.DeleteCommentAsync(commentId, keycloakId);
+            _logger.LogInformation("Comment deleted: {CommentId} by {KeycloakId}", commentId, keycloakId);
         }
         catch (Exception ex)
         {
@@ -98,8 +163,10 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
 
         try
         {
-            _logger.LogInformation("Comments retrieved for post {PostId}", postId);
-            return new List<CommentDto>();
+            var keycloakId = GetKeycloakIdFromContext();
+            var result = await _commentService.GetCommentsByPostAsync(postId, keycloakId);
+            _logger.LogInformation("Comments retrieved for post {PostId}: {Count} comments", postId, result.TotalCount);
+            return result.Comments ?? new List<CommentDto>();
         }
         catch (Exception ex)
         {
@@ -142,5 +209,35 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
             PostId = comment.PostId,
             CreatedAt = comment.CreatedAt
         };
+    }
+
+    /// <summary>
+    /// Extracts the Keycloak ID from the current HTTP context
+    /// </summary>
+    private string? GetKeycloakIdFromContext()
+    {
+        var httpContext = _httpContextAccessor?.HttpContext;
+        if (httpContext?.User == null)
+        {
+            return null;
+        }
+
+        // Check for mock authentication header (for integration tests)
+        if (httpContext.Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader))
+        {
+            return keycloakIdHeader.ToString();
+        }
+
+        // Check if user is authenticated via claims
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            var subClaim = httpContext.User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim))
+            {
+                return subClaim;
+            }
+        }
+
+        return null;
     }
 }
