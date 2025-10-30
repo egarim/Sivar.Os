@@ -909,9 +909,15 @@ public class PostService : IPostService
         {
             Id = profile.Id,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,  // ⭐ CRITICAL: Include Handle for profile navigation
             Avatar = profile.Avatar ?? "",
             Bio = profile.Bio ?? "",
-            // Add other profile properties as needed
+            UserId = profile.UserId,
+            ProfileTypeId = profile.ProfileTypeId,
+            IsActive = profile.IsActive,
+            VisibilityLevel = profile.VisibilityLevel,
+            CreatedAt = profile.CreatedAt,
+            UpdatedAt = profile.UpdatedAt
         };
     }
 

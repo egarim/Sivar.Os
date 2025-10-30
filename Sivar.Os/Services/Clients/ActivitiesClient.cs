@@ -273,6 +273,7 @@ public class ActivitiesClient : IActivitiesClient
             UserId = profile.UserId,
             ProfileTypeId = profile.ProfileTypeId,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,  // ⭐ CRITICAL: Include Handle for profile navigation
             Bio = profile.Bio,
             Avatar = profile.Avatar,
             AvatarFileId = profile.AvatarFileId,
