@@ -3,9 +3,9 @@
 @* PostHeader component *@
 
 <header class="post-header">
-    <Avatar Initials="@AuthorInitials" Size="large" IsClickable="true" OnClick="@OnAuthorClick" CssClass="post-avatar" />
+    <Avatar Initials="@AuthorInitials" Size="large" IsClickable="true" OnClick="@HandleAuthorClick" CssClass="post-avatar" />
     <div class="post-author-info">
-        <div class="post-author-name clickable" @onclick="OnAuthorClick">@Author</div>
+        <div class="post-author-name clickable" @onclick="HandleAuthorClick">@Author</div>
         <div class="post-time">@Time.ToString("MMM dd, yyyy h:mm tt")</div>
     </div>
     <div class="post-header-tags">
@@ -56,4 +56,19 @@
     /// </summary>
     [Parameter]
     public EventCallback OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Handle author click and invoke callback with debugging
+    /// </summary>
+    private async Task HandleAuthorClick()
+    {
+        Console.WriteLine("=============================================================");
+        Console.WriteLine($"[PostHeader.HandleAuthorClick] Clicked on author: {Author}");
+        Console.WriteLine($"[PostHeader.HandleAuthorClick] Invoking OnAuthorClick callback");
+        
+        await OnAuthorClick.InvokeAsync();
+        
+        Console.WriteLine($"[PostHeader.HandleAuthorClick] Callback invoked successfully");
+        Console.WriteLine("=============================================================");
+    }
 }
