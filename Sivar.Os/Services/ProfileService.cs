@@ -59,6 +59,40 @@ public class ProfileService : IProfileService
         return personalTypeId ?? Guid.Empty;
     }
 
+    /// <summary>
+    /// Generates a unique handle by appending a number suffix if the base handle already exists
+    /// </summary>
+    /// <param name="baseHandle">The base handle generated from display name</param>
+    /// <returns>A unique handle that doesn't exist in the database</returns>
+    private async Task<string> GenerateUniqueHandleAsync(string baseHandle)
+    {
+        if (string.IsNullOrWhiteSpace(baseHandle))
+        {
+            // Fallback to a random handle if base is empty
+            baseHandle = $"profile-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+        }
+
+        var handle = baseHandle;
+        var suffix = 1;
+        
+        // Check if handle exists, if so, append incrementing number until unique
+        while (await _profileRepository.HandleExistsAsync(handle))
+        {
+            handle = $"{baseHandle}-{suffix}";
+            suffix++;
+            
+            // Safety limit to prevent infinite loop
+            if (suffix > 1000)
+            {
+                _logger.LogWarning("[GenerateUniqueHandleAsync] Reached suffix limit for handle: {BaseHandle}", baseHandle);
+                handle = $"{baseHandle}-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+                break;
+            }
+        }
+        
+        return handle;
+    }
+
     #endregion
 
     /// <summary>
@@ -365,15 +399,33 @@ public class ProfileService : IProfileService
         }
 
         _logger.LogInformation("[SetActiveProfileAsync] ✅ Profile validation passed");
-        _logger.LogInformation("[SetActiveProfileAsync] Setting ActiveProfileId directly");
+        _logger.LogInformation("[SetActiveProfileAsync] Setting ActiveProfileId and Profile.IsActive");
         _logger.LogInformation("[SetActiveProfileAsync] User: Id={UserId}", user.Id);
         _logger.LogInformation("[SetActiveProfileAsync] BEFORE: ActiveProfileId={OldValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+        _logger.LogInformation("[SetActiveProfileAsync] BEFORE: Profile.IsActive={OldValue}", profile.IsActive);
         
-        // Set active profile directly
+        // Deactivate all other profiles for this user
+        var allUserProfiles = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: true);
+        foreach (var p in allUserProfiles)
+        {
+            if (p.IsActive && p.Id != profileId)
+            {
+                p.IsActive = false;
+                await _profileRepository.UpdateAsync(p);
+                _logger.LogInformation("[SetActiveProfileAsync] Deactivated profile: {ProfileId} ({DisplayName})", p.Id, p.DisplayName);
+            }
+        }
+        
+        // Set the selected profile as active
+        profile.IsActive = true;
+        await _profileRepository.UpdateAsync(profile);
+        
+        // Set active profile ID on user
         user.ActiveProfileId = profileId;
         user.UpdatedAt = DateTime.UtcNow;
         
         _logger.LogInformation("[SetActiveProfileAsync] AFTER (in-memory): ActiveProfileId={NewValue}", user.ActiveProfileId?.ToString() ?? "NULL");
+        _logger.LogInformation("[SetActiveProfileAsync] AFTER (in-memory): Profile.IsActive={NewValue}", profile.IsActive);
         
         // Update and save
         await _userRepository.UpdateAsync(user);
@@ -584,13 +636,15 @@ public class ProfileService : IProfileService
         // Determine profile type from metadata if not provided
         var targetProfileTypeId = profileTypeId ?? await DetermineProfileTypeFromMetadataAsync(profileData.Metadata);
 
+        // Get profile type for validation
+        var targetProfileType = await _profileTypeRepository.GetByIdAsync(targetProfileTypeId);
+
         // Validate metadata if provided
         if (!string.IsNullOrWhiteSpace(profileData.Metadata))
         {
-            var profileType = await _profileTypeRepository.GetByIdAsync(targetProfileTypeId);
-            if (profileType != null)
+            if (targetProfileType != null)
             {
-                var metadataValidation = await _metadataValidator.ValidateMetadataAsync(profileData.Metadata, profileType);
+                var metadataValidation = await _metadataValidator.ValidateMetadataAsync(profileData.Metadata, targetProfileType);
                 if (!metadataValidation.IsValid)
                 {
                     errors.AddRange(metadataValidation.Errors);
@@ -607,11 +661,16 @@ public class ProfileService : IProfileService
             }
         }
 
-        // Check if user already has a profile of this type (for now, limit to one per type)
-        var hasExistingProfile = await _profileRepository.UserHasProfileOfTypeAsync(user.Id, targetProfileTypeId);
-        if (hasExistingProfile)
+        // Check if user has reached the maximum number of profiles for this type
+        if (targetProfileType != null)
         {
-            errors.Add("User already has a profile of this type");
+            var existingProfilesOfType = await _profileRepository.GetProfilesByUserIdAsync(user.Id, includeInactive: false);
+            var currentCount = existingProfilesOfType.Count(p => p.ProfileTypeId == targetProfileTypeId);
+            
+            if (currentCount >= targetProfileType.MaxProfilesPerUser)
+            {
+                errors.Add($"Maximum number of {targetProfileType.DisplayName} profiles ({targetProfileType.MaxProfilesPerUser}) reached");
+            }
         }
 
         // Check for duplicate display names within user's profiles
@@ -835,12 +894,20 @@ public class ProfileService : IProfileService
         var visibilityLevel = createDto.VisibilityLevel ?? 
             (createDto.IsPublic ? VisibilityLevel.Public : VisibilityLevel.Private);
 
+        // Generate unique handle from display name
+        var baseHandle = Profile.GenerateHandle(createDto.DisplayName);
+        var uniqueHandle = await GenerateUniqueHandleAsync(baseHandle);
+        
+        _logger.LogInformation("[CreateProfileAsync] Generated handle: {Handle} from DisplayName: {DisplayName}", 
+            uniqueHandle, createDto.DisplayName);
+
         // Create profile (supports any profile type, not just personal)
         var profile = new Profile
         {
             UserId = user.Id,
             ProfileTypeId = profileTypeId, // Dynamically determined from metadata
             DisplayName = createDto.DisplayName,
+            Handle = uniqueHandle, // ✅ Set unique handle
             Bio = createDto.Bio,
             Avatar = createDto.Avatar,
             Location = createDto.Location,

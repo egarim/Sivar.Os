@@ -46,6 +46,13 @@ public interface IProfileRepository : IBaseRepository<Profile>
     Task<Profile?> GetByHandleAsync(string handle);
 
     /// <summary>
+    /// Checks if a handle already exists in the database
+    /// </summary>
+    /// <param name="handle">The handle to check</param>
+    /// <returns>True if handle exists, false otherwise</returns>
+    Task<bool> HandleExistsAsync(string handle);
+
+    /// <summary>
     /// Gets profiles by profile type
     /// </summary>
     /// <param name="profileTypeId">Profile type ID</param>

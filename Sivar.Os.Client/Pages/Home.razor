@@ -1481,25 +1481,24 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     Console.WriteLine($"[Home.HandleCreateProfile] STEP 3: Skipping auto-select (SetAsActive=false)");
                 }
                 
-                _activeProfile = newProfile;
-                
-                // ? Update current profile ID (required for feed loading)
-                _currentProfileId = newProfile.Id;
-                Console.WriteLine($"[Home.HandleCreateProfile] STEP 4: Updated _currentProfileId to {_currentProfileId}");
-                
                 // ? Reset pagination
                 _currentPage = 1;
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: Reset pagination to page 1");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 4: Reset pagination to page 1");
+                
+                // Reload profiles after creation to get the updated list with the new profile
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: Reloading user profiles");
+                await LoadUserProfilesAsync();
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 5: User profiles reloaded");
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 5: Active profile is now: {_activeProfile?.DisplayName} (ID: {_activeProfile?.Id})");
+                
+                // Update current profile ID to match the active profile (which should be the newly created one if SetAsActive=true)
+                _currentProfileId = _activeProfile?.Id ?? newProfile.Id;
+                Console.WriteLine($"[Home.HandleCreateProfile] STEP 6: Updated _currentProfileId to {_currentProfileId}");
                 
                 // ? Reload activities for the new profile
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Loading feed for new profile");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Loading feed for new profile");
                 await LoadFeedActivitiesAsync();
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 6: Feed loaded successfully");
-
-                // Reload profiles after creation
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Reloading user profiles");
-                await LoadUserProfilesAsync();
-                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: User profiles reloaded");
+                Console.WriteLine("[Home.HandleCreateProfile] STEP 7: Feed loaded successfully");
                 
                 StateHasChanged();
                 Console.WriteLine("[Home.HandleCreateProfile] STEP 8: ? STATE CHANGED - UI updated");

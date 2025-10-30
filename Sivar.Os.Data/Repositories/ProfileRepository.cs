@@ -95,6 +95,19 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
     }
 
     /// <summary>
+    /// Checks if a handle already exists in the database
+    /// </summary>
+    public async Task<bool> HandleExistsAsync(string handle)
+    {
+        if (string.IsNullOrWhiteSpace(handle))
+            return false;
+
+        // Check if any profile (public or private) has this handle
+        return await _dbSet
+            .AnyAsync(p => p.Handle.ToLower() == handle.ToLower());
+    }
+
+    /// <summary>
     /// Gets profiles by profile type
     /// </summary>
     public async Task<IEnumerable<Profile>> GetProfilesByTypeAsync(Guid profileTypeId)

@@ -34,6 +34,21 @@ public class ProfileType : BaseEntity
     public virtual int SortOrder { get; set; } = 0;
 
     /// <summary>
+    /// Icon or emoji representing this profile type (e.g., "👤", "💼", "🏢")
+    /// </summary>
+    public virtual string? Icon { get; set; }
+
+    /// <summary>
+    /// Maximum number of profiles of this type a user can create (e.g., 3 for Personal, 5 for Business)
+    /// </summary>
+    public virtual int MaxProfilesPerUser { get; set; } = 1;
+
+    /// <summary>
+    /// Allowed features for this profile type (stored as JSON array, e.g., ["posts", "messaging"])
+    /// </summary>
+    public virtual string AllowedFeatures { get; set; } = "[]";
+
+    /// <summary>
     /// Feature flags for this profile type (stored as JSON for flexibility)
     /// </summary>
     public virtual string FeatureFlags { get; set; } = "{}";

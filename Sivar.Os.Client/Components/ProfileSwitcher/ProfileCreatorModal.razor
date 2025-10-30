@@ -66,42 +66,6 @@
                                       MaxLength="500"
                                       HelperText="@($"{ProfileDescription.Length} / 500 characters")" />
 
-                        <!-- Visibility Level -->
-                        <MudSelect @bind-Value="SelectedVisibility"
-                                   Label="Visibility"
-                                   FullWidth="true"
-                                   Variant="Variant.Outlined">
-                            <MudSelectItem Value="VisibilityLevel.Public">
-                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Public" Size="Size.Small" />
-                                    <span>Public - Everyone can see this profile</span>
-                                </MudStack>
-                            </MudSelectItem>
-                            <MudSelectItem Value="VisibilityLevel.ConnectionsOnly">
-                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Outlined.PeopleAlt" Size="Size.Small" />
-                                    <span>Connections - Only your connections can see this</span>
-                                </MudStack>
-                            </MudSelectItem>
-                            <MudSelectItem Value="VisibilityLevel.Private">
-                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
-                                    <span>Private - Only you can see this profile</span>
-                                </MudStack>
-                            </MudSelectItem>
-                        </MudSelect>
-
-                        <!-- Visibility Description -->
-                        <MudAlert Severity="Severity.Info" Dense="true">
-                            @GetVisibilityDescription()
-                        </MudAlert>
-
-                <!-- Quick Settings -->
-                <MudCheckBox @bind-Checked="SetAsActive" 
-                             Label="Set as active profile"
-                             Color="Color.Primary"
-                             T="bool" />
-
                 <!-- Error Message -->
                 @if (IsSubmitting)
                 {
@@ -206,8 +170,6 @@
     private Guid SelectedProfileType { get; set; }
     private string ProfileName { get; set; } = string.Empty;
     private string ProfileDescription { get; set; } = string.Empty;
-    private VisibilityLevel SelectedVisibility { get; set; } = VisibilityLevel.Public;
-    private bool SetAsActive { get; set; } = true;  // ✅ Default to true for auto-selection of new profiles
     private bool IsSubmitting { get; set; } = false;
     private string ProfileNameError { get; set; } = string.Empty;
 
@@ -248,8 +210,6 @@
     {
         ProfileName = string.Empty;
         ProfileDescription = string.Empty;
-        SelectedVisibility = VisibilityLevel.Public;
-        SetAsActive = true;  // ✅ Default to true for auto-selection
         ProfileNameError = string.Empty;
         IsSubmitting = false;
     }
@@ -269,18 +229,6 @@
     private string GetProfileTypeClass(Guid typeId)
     {
         return SelectedProfileType == typeId ? "profile-type-selected" : "";
-    }
-
-    private string GetVisibilityDescription()
-    {
-        return SelectedVisibility switch
-        {
-            VisibilityLevel.Private => "Only you can see this profile",
-            VisibilityLevel.ConnectionsOnly => "Only your connections can see this profile",
-            VisibilityLevel.Public => "Everyone can see this profile",
-            VisibilityLevel.Restricted => "Visible to specific users only",
-            _ => "Select a visibility level"
-        };
     }
 
     private void SelectProfileType(ProfileTypeDto type)
@@ -349,16 +297,16 @@
             Console.WriteLine($"  Name: {ProfileName.Trim()}");
             Console.WriteLine($"  Type: {selectedTypeName} (ID: {SelectedProfileType})");
             Console.WriteLine($"  Bio: {ProfileDescription.Trim()}");
-            Console.WriteLine($"  Visibility: {SelectedVisibility}");
-            Console.WriteLine($"  SetAsActive: {SetAsActive}");
+            Console.WriteLine($"  Visibility: Public (default)");
+            Console.WriteLine($"  SetAsActive: True (default - new profile will be auto-selected)");
 
             var request = new CreateAnyProfileDto
             {
                 ProfileTypeId = SelectedProfileType,
                 DisplayName = ProfileName.Trim(),
                 Bio = ProfileDescription.Trim(),
-                VisibilityLevel = SelectedVisibility,
-                SetAsActive = SetAsActive
+                VisibilityLevel = VisibilityLevel.Public,  // ✅ Always public by default
+                SetAsActive = true  // ✅ Always set as active profile (auto-select in profile switcher)
             };
 
             Console.WriteLine("[ProfileCreatorModal.SubmitForm] Invoking OnCreate callback");
