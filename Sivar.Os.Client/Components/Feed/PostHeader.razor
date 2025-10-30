@@ -1,4 +1,6 @@
 @using Sivar.Os.Client.Components.Shared
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostHeader> Logger
 
 @* PostHeader component *@
 
@@ -62,13 +64,13 @@
     /// </summary>
     private async Task HandleAuthorClick()
     {
-        Console.WriteLine("=============================================================");
-        Console.WriteLine($"[PostHeader.HandleAuthorClick] Clicked on author: {Author}");
-        Console.WriteLine($"[PostHeader.HandleAuthorClick] Invoking OnAuthorClick callback");
+        Logger.LogInformation("=============================================================");
+        Logger.LogInformation("[PostHeader.HandleAuthorClick] Clicked on author: {Author}", Author);
+        Logger.LogInformation("[PostHeader.HandleAuthorClick] Invoking OnAuthorClick callback");
         
         await OnAuthorClick.InvokeAsync();
         
-        Console.WriteLine($"[PostHeader.HandleAuthorClick] Callback invoked successfully");
-        Console.WriteLine("=============================================================");
+        Logger.LogInformation("[PostHeader.HandleAuthorClick] Callback invoked successfully");
+        Logger.LogInformation("=============================================================");
     }
 }

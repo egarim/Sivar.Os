@@ -1,5 +1,7 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostCard> Logger
 
 @* PostCard component for displaying a complete post *@
 
@@ -153,18 +155,18 @@
     private async Task HandleAuthorClick()
     {
         var handle = Post.Profile?.Handle ?? string.Empty;
-        Console.WriteLine("=============================================================");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Called");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Post Profile DisplayName: '{Post.Profile?.DisplayName}'");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Post Profile Handle: '{handle}'");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Handle IsNull: {Post.Profile?.Handle == null}");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Handle IsEmpty: {string.IsNullOrEmpty(handle)}");
-        Console.WriteLine($"[PostCard.HandleAuthorClick] Invoking OnAuthorClick with: '{handle}'");
+        Logger.LogInformation("=============================================================");
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Called");
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Post Profile DisplayName: '{DisplayName}'", Post.Profile?.DisplayName);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Post Profile Handle: '{Handle}'", handle);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Handle IsNull: {IsNull}", Post.Profile?.Handle == null);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Handle IsEmpty: {IsEmpty}", string.IsNullOrEmpty(handle));
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Invoking OnAuthorClick with: '{Handle}'", handle);
         
         await OnAuthorClick.InvokeAsync(handle);
         
-        Console.WriteLine($"[PostCard.HandleAuthorClick] OnAuthorClick.InvokeAsync completed");
-        Console.WriteLine("=============================================================");
+        Logger.LogInformation("[PostCard.HandleAuthorClick] OnAuthorClick.InvokeAsync completed");
+        Logger.LogInformation("=============================================================");
     }
 
     private string GetInitials(string? name)
