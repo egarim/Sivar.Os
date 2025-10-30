@@ -11,7 +11,7 @@
         Visibility="@Post.Visibility.ToString()"
         Type="@Post.PostType.ToString()"
         TypeLabel="@Post.PostType.ToString()"
-        OnAuthorClick="@HandleAuthorClick" />
+        OnAuthorClick="@(async () => await HandleAuthorClick())" />
 
     <div class="post-content">@Post.Content</div>
 
