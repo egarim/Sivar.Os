@@ -267,6 +267,9 @@ public class ActivitiesClient : IActivitiesClient
     /// </summary>
     private ProfileDto MapProfileToDto(Shared.Entities.Profile profile)
     {
+        _logger.LogDebug("[ActivitiesClient.MapProfileToDto] Mapping profile: Id={ProfileId}, DisplayName={DisplayName}, Handle={Handle}",
+            profile.Id, profile.DisplayName, profile.Handle);
+            
         return new ProfileDto
         {
             Id = profile.Id,

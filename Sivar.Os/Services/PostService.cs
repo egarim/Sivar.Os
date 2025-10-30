@@ -904,6 +904,9 @@ public class PostService : IPostService
     /// </summary>
     private async Task<ProfileDto> MapToProfileDtoAsync(Profile profile)
     {
+        _logger.LogDebug("[PostService.MapToProfileDtoAsync] Mapping profile: Id={ProfileId}, DisplayName={DisplayName}, Handle={Handle}",
+            profile.Id, profile.DisplayName, profile.Handle);
+            
         // TODO: Use proper ProfileService mapping when available
         return new ProfileDto
         {
