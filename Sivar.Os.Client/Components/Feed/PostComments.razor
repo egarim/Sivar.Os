@@ -23,7 +23,7 @@
                         Text="@comment.Content"
                         Time="@comment.CreatedAt"
                         Likes="@(comment.ReactionSummary?.TotalReactions ?? 0)"
-                        OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Profile?.DisplayName ?? string.Empty))" />
+                        OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Profile?.Handle ?? string.Empty))" />
                 }
             </div>
         }

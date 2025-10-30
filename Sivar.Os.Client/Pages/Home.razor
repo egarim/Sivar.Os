@@ -576,11 +576,14 @@
         // TODO: Implement copy to clipboard via JS interop
     }
 
-    private void ViewProfile(string author)
+    private void ViewProfile(string authorNameOrHandle)
     {
-        // Convert author name to URL-friendly slug (e.g., "Alice Doe" -> "alice-doe")
-        var profileSlug = author.ToLower().Replace(" ", "-");
-        Navigation.NavigateTo($"/profile/{profileSlug}");
+        // Navigate to profile using the handle or name
+        // The ProfilePage route is "/{Identifier}" which expects a handle
+        if (!string.IsNullOrEmpty(authorNameOrHandle))
+        {
+            Navigation.NavigateTo($"/{authorNameOrHandle}");
+        }
     }
 
     private void LikeComment(PostDto post, PostComment comment)

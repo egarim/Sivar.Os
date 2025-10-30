@@ -18,7 +18,7 @@
             Initials="@GetInitials(user.DisplayName)"
             IsFollowing="false"
             OnFollowToggle="@(() => OnFollowToggle.InvokeAsync(user))"
-            OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.DisplayName ?? string.Empty))" />
+            OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.Handle ?? string.Empty))" />
     }
     <div class="sidebar-footnote">Suggestions refresh daily based on activity.</div>
 </aside>
