@@ -45,5 +45,8 @@
 		<!-- OpenAi Implementation -->
 		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.0.1-preview.1.24570.5" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="logs\" />
+	</ItemGroup>
 
 </Project>

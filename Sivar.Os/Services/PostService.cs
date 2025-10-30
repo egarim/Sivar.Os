@@ -904,14 +904,23 @@ public class PostService : IPostService
     /// </summary>
     private async Task<ProfileDto> MapToProfileDtoAsync(Profile profile)
     {
+        _logger.LogDebug("[PostService.MapToProfileDtoAsync] Mapping profile: Id={ProfileId}, DisplayName={DisplayName}, Handle={Handle}",
+            profile.Id, profile.DisplayName, profile.Handle);
+            
         // TODO: Use proper ProfileService mapping when available
         return new ProfileDto
         {
             Id = profile.Id,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,  // ⭐ CRITICAL: Include Handle for profile navigation
             Avatar = profile.Avatar ?? "",
             Bio = profile.Bio ?? "",
-            // Add other profile properties as needed
+            UserId = profile.UserId,
+            ProfileTypeId = profile.ProfileTypeId,
+            IsActive = profile.IsActive,
+            VisibilityLevel = profile.VisibilityLevel,
+            CreatedAt = profile.CreatedAt,
+            UpdatedAt = profile.UpdatedAt
         };
     }
 

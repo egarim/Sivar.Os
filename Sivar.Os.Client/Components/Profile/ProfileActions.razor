@@ -3,14 +3,14 @@
                Color="Color.Primary" 
                StartIcon="@Icons.Material.Filled.PersonAdd"
                Class="action-button primary"
-               OnClick="OnFollowClick">
+               OnClick="HandleFollowClick">
         @FollowButtonText
     </MudButton>
     <MudButton Variant="Variant.Outlined" 
                Color="Color.Default"
                StartIcon="@Icons.Material.Filled.Message"
                Class="action-button secondary"
-               OnClick="OnMessageClick">
+               OnClick="HandleMessageClick">
         Message
     </MudButton>
 </div>
@@ -24,4 +24,14 @@
 
     [Parameter]
     public EventCallback OnMessageClick { get; set; }
+
+    private async Task HandleFollowClick()
+    {
+        await OnFollowClick.InvokeAsync();
+    }
+
+    private async Task HandleMessageClick()
+    {
+        await OnMessageClick.InvokeAsync();
+    }
 }

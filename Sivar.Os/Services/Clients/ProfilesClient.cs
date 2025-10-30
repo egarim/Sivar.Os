@@ -457,9 +457,23 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
         return new ProfileDto
         {
             Id = profile.Id,
+            UserId = profile.UserId,
+            ProfileTypeId = profile.ProfileTypeId,
             DisplayName = profile.DisplayName,
+            Handle = profile.Handle,  // ⭐ CRITICAL: Include Handle for profile navigation
             Bio = profile.Bio,
-            CreatedAt = profile.CreatedAt
+            Avatar = profile.Avatar,
+            AvatarFileId = profile.AvatarFileId,
+            Location = profile.Location,
+            LocationDisplay = profile.LocationDisplay,
+            IsActive = profile.IsActive,
+            VisibilityLevel = profile.VisibilityLevel,
+            ViewCount = profile.ViewCount,
+            Tags = profile.Tags?.ToList() ?? new List<string>(),
+            SocialMediaLinks = profile.GetSocialMediaLinks(),
+            Metadata = profile.Metadata,
+            CreatedAt = profile.CreatedAt,
+            UpdatedAt = profile.UpdatedAt
         };
     }
 }

@@ -5,12 +5,16 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Profile
+@using Sivar.Os.Client.Components.Feed
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Logging
 @inject NavigationManager Navigation
 @inject IProfilesClient ProfilesClient
 @inject IFollowersClient FollowersClient
+@inject IPostsClient PostsClient
+@inject ILogger<ProfilePage> Logger
 
 @if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
 {
@@ -160,6 +164,32 @@
         margin-top: 4px;
     }
 
+    /* Posts Section */
+    .profile-page .profile-posts-section {
+        margin-top: 24px;
+    }
+
+    .profile-page .profile-posts-section > h6,
+    .profile-page .profile-posts-section > .mud-typography-h6 {
+        color: var(--wire-text-primary);
+        font-weight: 600;
+        margin-bottom: 16px;
+        letter-spacing: -0.2px;
+    }
+
+    .profile-page .posts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .profile-page .post-wrapper {
+        width: 100%;
+    }
+
+    /* Don't override wireframe-landing post-card styles - they're already perfect */
+    /* Just add small spacing adjustments if needed */
+
     /* Action Buttons */
     .profile-page .profile-actions {
         display: flex;
@@ -242,7 +272,7 @@
     }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="profile-page">
+<MudContainer MaxWidth="MaxWidth.False" Class="profile-page wireframe-landing">
     <ProfileHeader Title="Profile" OnBackClick="GoBack" />
 
     <div class="profile-container">
@@ -253,6 +283,7 @@
                 Initials="@profileData.Initials"
                 Stats="@profileData.Stats"
                 FollowButtonText="@GetFollowButtonText()"
+                ShowActions="@(!IsOwnProfile)"
                 OnFollowClick="HandleFollow"
                 OnMessageClick="HandleMessage" />
 
@@ -264,6 +295,66 @@
         <ComingSoonAlert 
             Title="Profile Features Coming Soon"
             Message="Full profile details, activity feed, and customization options will be available soon." />
+
+        @if (isLoadingPosts)
+        {
+            <MudCard Class="mt-4">
+                <MudCardContent>
+                    <div style="text-align: center; padding: 20px;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.body1" Class="mt-2">Loading posts...</MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
+        else if (posts.Any())
+        {
+            <div class="profile-posts-section">
+                <MudText Typo="Typo.h6" Class="mb-3" style="color: var(--wire-text-primary); font-weight: 600;">Posts</MudText>
+                <div class="posts-list">
+                    @foreach (var post in posts)
+                    {
+                        <div class="post-wrapper">
+                            <PostCard 
+                                Post="@post"
+                                CurrentUserId="@Guid.Empty"
+                                OnLike="@HandleLike"
+                                OnCommentClick="@HandleComment"
+                                OnShare="@HandleShare"
+                                OnSave="@HandleSave"
+                                OnMore="@HandleMore"
+                                OnAuthorClick="@HandleAuthorClick"
+                                OnEdit="@HandleEdit"
+                                OnDelete="@HandleDelete"
+                                OnViewAnalytics="@HandleViewAnalytics"
+                                OnReport="@HandleReport"
+                                OnCopyLink="@HandleCopyLink" />
+                        </div>
+                    }
+                </div>
+                
+                @if (totalPostCount > posts.Count)
+                {
+                    <div class="text-center mt-4">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadMorePosts">
+                            Load More Posts (@posts.Count of @totalPostCount)
+                        </MudButton>
+                    </div>
+                }
+            </div>
+        }
+        else if (!isLoadingPosts && viewedProfileId.HasValue)
+        {
+            <MudCard Class="mt-4">
+                <MudCardContent>
+                    <div style="text-align: center; padding: 20px;">
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">
+                            No posts yet from this profile.
+                        </MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
     </div>
 </MudContainer>
 
@@ -277,9 +368,26 @@
     private bool isFollowing = false;
     private bool isFollowActionInProgress = false;
     private Guid? viewedProfileId = null;
+    private Guid? currentUserActiveProfileId = null;
+    
+    // Posts-related state
+    private List<PostDto> posts = new();
+    private bool isLoadingPosts = false;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPostCount = 0;
+    
+    // Helper to check if viewing own profile
+    private bool IsOwnProfile => viewedProfileId.HasValue && 
+                                  currentUserActiveProfileId.HasValue && 
+                                  viewedProfileId.Value == currentUserActiveProfileId.Value;
 
     protected override async Task OnInitializedAsync()
     {
+        // Load current user's active profile
+        await LoadCurrentUserActiveProfileAsync();
+        
+        // Load the profile being viewed
         await LoadProfileAsync();
     }
 
@@ -289,6 +397,31 @@
         await LoadProfileAsync();
     }
 
+    private async Task LoadCurrentUserActiveProfileAsync()
+    {
+        try
+        {
+            Logger.LogInformation("[LoadCurrentUserActiveProfileAsync] Loading current user's active profile");
+            var activeProfile = await ProfilesClient.GetMyActiveProfileAsync();
+            
+            if (activeProfile != null && activeProfile.Id != Guid.Empty)
+            {
+                currentUserActiveProfileId = activeProfile.Id;
+                Logger.LogInformation("[LoadCurrentUserActiveProfileAsync] Current user's active profile: {ProfileId}", 
+                    currentUserActiveProfileId);
+            }
+            else
+            {
+                Logger.LogWarning("[LoadCurrentUserActiveProfileAsync] No active profile found for current user");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadCurrentUserActiveProfileAsync] Error loading current user's active profile");
+            // Don't throw - this is not critical for viewing profiles
+        }
+    }
+
     private async Task LoadProfileAsync()
     {
         isLoading = true;
@@ -296,25 +429,26 @@
 
         try
         {
-            Console.WriteLine($"[ProfilePage] Loading profile for identifier: {Identifier}");
+            Logger.LogInformation("[LoadProfileAsync] Loading profile for identifier: {Identifier}", Identifier);
             
             var profile = await ProfilesClient.GetProfileByIdentifierAsync(Identifier);
             
             if (profile == null || profile.Id == Guid.Empty)
             {
-                Console.WriteLine($"[ProfilePage] Profile not found for identifier: {Identifier}");
+                Logger.LogWarning("[LoadProfileAsync] Profile not found for identifier: {Identifier}", Identifier);
                 errorMessage = $"Profile not found for '{Identifier}'";
                 profileData = GetFallbackProfileData();
             }
             else
             {
-                Console.WriteLine($"[ProfilePage] Profile loaded: {profile.DisplayName} (ID: {profile.Id})");
+                Logger.LogInformation("[LoadProfileAsync] Profile loaded: {DisplayName} (ID: {ProfileId})", 
+                    profile.DisplayName, profile.Id);
                 viewedProfileId = profile.Id;
                 
                 // SEO: Redirect from GUID to handle for better URLs
                 if (Guid.TryParse(Identifier, out _) && !string.IsNullOrEmpty(profile.Handle))
                 {
-                    Console.WriteLine($"[ProfilePage] Redirecting from GUID to handle: /{profile.Handle}");
+                    Logger.LogInformation("[LoadProfileAsync] Redirecting from GUID to handle: /{Handle}", profile.Handle);
                     Navigation.NavigateTo($"/{profile.Handle}", replace: true);
                     return; // Don't set profile data, the redirect will trigger a reload
                 }
@@ -331,11 +465,14 @@
                     Bio = profile.Bio ?? "No bio available",
                     Stats = stats
                 };
+                
+                // Load posts for this profile
+                await LoadPostsAsync();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error loading profile: {ex.Message}");
+            Logger.LogError(ex, "[LoadProfileAsync] Error loading profile for identifier: {Identifier}", Identifier);
             errorMessage = "An error occurred while loading the profile";
             profileData = GetFallbackProfileData();
         }
@@ -350,11 +487,12 @@
     {
         try
         {
-            Console.WriteLine($"[ProfilePage] Loading follower stats for profile: {profileId}");
+            Logger.LogInformation("[LoadFollowerStatsAsync] Loading follower stats for profile: {ProfileId}", profileId);
             var stats = await FollowersClient.GetStatsForProfileAsync(profileId);
             
             isFollowing = stats.IsFollowedByCurrentUser;
-            Console.WriteLine($"[ProfilePage] Stats loaded - Followers: {stats.FollowersCount}, Following: {stats.FollowingCount}, IsFollowing: {isFollowing}");
+            Logger.LogInformation("[LoadFollowerStatsAsync] Stats loaded - Followers: {FollowersCount}, Following: {FollowingCount}, IsFollowing: {IsFollowing}", 
+                stats.FollowersCount, stats.FollowingCount, isFollowing);
             
             return new ProfileStats
             {
@@ -365,7 +503,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error loading follower stats: {ex.Message}");
+            Logger.LogError(ex, "[LoadFollowerStatsAsync] Error loading follower stats for profile: {ProfileId}", profileId);
             return new ProfileStats
             {
                 Posts = 0,
@@ -446,8 +584,17 @@
 
     private async Task HandleFollow()
     {
+        Logger.LogInformation("=============================================================");
+        Logger.LogInformation("[HandleFollow] START - IsFollowActionInProgress: {InProgress}, ViewedProfileId: {ProfileId}, IsFollowing: {IsFollowing}",
+            isFollowActionInProgress, viewedProfileId?.ToString() ?? "NULL", isFollowing);
+        
         if (isFollowActionInProgress || !viewedProfileId.HasValue)
+        {
+            Logger.LogWarning("[HandleFollow] Aborting - InProgress: {InProgress}, HasProfileId: {HasProfileId}",
+                isFollowActionInProgress, viewedProfileId.HasValue);
+            Logger.LogInformation("=============================================================");
             return;
+        }
 
         isFollowActionInProgress = true;
         StateHasChanged();
@@ -456,45 +603,64 @@
         {
             if (isFollowing)
             {
-                Console.WriteLine($"[ProfilePage] Unfollowing profile: {viewedProfileId}");
+                Logger.LogInformation("[HandleFollow] Attempting to UNFOLLOW profile: {ProfileId}", viewedProfileId.Value);
                 await FollowersClient.UnfollowAsync(viewedProfileId.Value);
+                
                 isFollowing = false;
                 profileData.Stats.Followers = Math.Max(0, profileData.Stats.Followers - 1);
-                Console.WriteLine($"[ProfilePage] Unfollowed successfully");
+                
+                Logger.LogInformation("[HandleFollow] UNFOLLOW SUCCESS - New follower count: {FollowerCount}", 
+                    profileData.Stats.Followers);
             }
             else
             {
-                Console.WriteLine($"[ProfilePage] Following profile: {viewedProfileId}");
-                var result = await FollowersClient.FollowAsync(new FollowActionDto 
+                Logger.LogInformation("[HandleFollow] Attempting to FOLLOW profile: {ProfileId}", viewedProfileId.Value);
+                
+                var followDto = new FollowActionDto 
                 { 
                     ProfileToFollowId = viewedProfileId.Value 
-                });
+                };
+                
+                Logger.LogInformation("[HandleFollow] FollowActionDto created - ProfileToFollowId: {ProfileToFollowId}", 
+                    followDto.ProfileToFollowId);
+                
+                var result = await FollowersClient.FollowAsync(followDto);
+                
+                Logger.LogInformation("[HandleFollow] FollowAsync returned - Success: {Success}, Message: {Message}", 
+                    result.Success, result.Message ?? "NULL");
                 
                 if (result.Success)
                 {
                     isFollowing = true;
                     profileData.Stats.Followers++;
-                    Console.WriteLine($"[ProfilePage] Followed successfully");
+                    
+                    Logger.LogInformation("[HandleFollow] FOLLOW SUCCESS - New follower count: {FollowerCount}", 
+                        profileData.Stats.Followers);
                 }
                 else
                 {
-                    Console.WriteLine($"[ProfilePage] Follow failed: {result.Message}");
+                    Logger.LogWarning("[HandleFollow] FOLLOW FAILED - Message: {Message}", result.Message ?? "NULL");
                     // TODO: Show error message to user
                 }
             }
             
-            // Force UI update to reflect new button state
+            Logger.LogInformation("[HandleFollow] Calling StateHasChanged to update UI");
             StateHasChanged();
+            
+            Logger.LogInformation("[HandleFollow] COMPLETED SUCCESSFULLY");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error during follow/unfollow: {ex.Message}");
+            Logger.LogError(ex, "[HandleFollow] EXCEPTION during follow/unfollow - ProfileId: {ProfileId}, IsFollowing: {IsFollowing}", 
+                viewedProfileId, isFollowing);
             // TODO: Show error message to user
         }
         finally
         {
             isFollowActionInProgress = false;
+            Logger.LogInformation("[HandleFollow] Finally block - Setting InProgress to false");
             StateHasChanged();
+            Logger.LogInformation("=============================================================");
         }
     }
 
@@ -502,4 +668,156 @@
     {
         // TODO: Implement message logic
     }
+
+    #region Post Loading and Interaction Methods
+
+    private async Task LoadPostsAsync()
+    {
+        if (!viewedProfileId.HasValue)
+        {
+            Logger.LogWarning("[LoadPostsAsync] Cannot load posts - viewedProfileId is null");
+            return;
+        }
+
+        isLoadingPosts = true;
+        currentPage = 1;
+        posts.Clear();
+        
+        try
+        {
+            Logger.LogInformation("[LoadPostsAsync] Loading posts for profile: {ProfileId}", viewedProfileId.Value);
+            
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            
+            if (postFeed != null)
+            {
+                posts = postFeed.Posts ?? new List<PostDto>();
+                totalPostCount = postFeed.TotalCount;
+                
+                // Update the post count in profile stats
+                profileData.Stats.Posts = totalPostCount;
+                
+                Logger.LogInformation("[LoadPostsAsync] Loaded {PostCount} posts (Total: {TotalCount})", 
+                    posts.Count, totalPostCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadPostsAsync] Error loading posts for profile: {ProfileId}", viewedProfileId);
+            posts = new List<PostDto>();
+            totalPostCount = 0;
+        }
+        finally
+        {
+            isLoadingPosts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMorePosts()
+    {
+        if (!viewedProfileId.HasValue || isLoadingPosts)
+            return;
+
+        isLoadingPosts = true;
+        currentPage++;
+        
+        try
+        {
+            Logger.LogInformation("[LoadMorePosts] Loading page {Page} for profile: {ProfileId}", 
+                currentPage, viewedProfileId.Value);
+            
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            
+            if (postFeed?.Posts != null && postFeed.Posts.Any())
+            {
+                posts.AddRange(postFeed.Posts);
+                Logger.LogInformation("[LoadMorePosts] Added {NewPostCount} posts. Total loaded: {TotalLoaded}", 
+                    postFeed.Posts.Count, posts.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadMorePosts] Error loading more posts for profile: {ProfileId}", viewedProfileId);
+            currentPage--; // Revert page increment on error
+        }
+        finally
+        {
+            isLoadingPosts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLike(PostDto post)
+    {
+        Logger.LogInformation("[HandleLike] Post: {PostId}", post.Id);
+        // TODO: Implement like functionality
+    }
+
+    private async Task HandleComment(PostDto post)
+    {
+        Logger.LogInformation("[HandleComment] Post: {PostId}", post.Id);
+        Navigation.NavigateTo($"/posts/{post.Id}");
+    }
+
+    private async Task HandleShare(PostDto post)
+    {
+        Logger.LogInformation("[HandleShare] Post: {PostId}", post.Id);
+        // TODO: Implement share functionality
+    }
+
+    private async Task HandleSave(PostDto post)
+    {
+        Logger.LogInformation("[HandleSave] Post: {PostId}", post.Id);
+        // TODO: Implement save functionality
+    }
+
+    private async Task HandleMore(PostDto post)
+    {
+        Logger.LogInformation("[HandleMore] Post: {PostId}", post.Id);
+        // TODO: Implement more options menu
+    }
+
+    private async Task HandleAuthorClick(string handle)
+    {
+        Logger.LogInformation("[HandleAuthorClick] Handle: {Handle}", handle);
+        if (!string.IsNullOrEmpty(handle))
+        {
+            Navigation.NavigateTo($"/{handle}");
+        }
+    }
+
+    private async Task HandleEdit(PostDto post)
+    {
+        Logger.LogInformation("[HandleEdit] Post: {PostId}", post.Id);
+        // TODO: Implement edit functionality
+    }
+
+    private async Task HandleDelete(PostDto post)
+    {
+        Logger.LogInformation("[HandleDelete] Post: {PostId}", post.Id);
+        // TODO: Implement delete functionality with confirmation
+    }
+
+    private async Task HandleViewAnalytics(PostDto post)
+    {
+        Logger.LogInformation("[HandleViewAnalytics] Post: {PostId}", post.Id);
+        // TODO: Implement analytics view
+    }
+
+    private async Task HandleReport(PostDto post)
+    {
+        Logger.LogInformation("[HandleReport] Post: {PostId}", post.Id);
+        // TODO: Implement report functionality
+    }
+
+    private async Task HandleCopyLink(PostDto post)
+    {
+        Logger.LogInformation("[HandleCopyLink] Post: {PostId}", post.Id);
+        var postUrl = $"{Navigation.BaseUri}posts/{post.Id}";
+        // TODO: Implement clipboard copy functionality
+        Logger.LogInformation("[HandleCopyLink] Post URL: {PostUrl}", postUrl);
+    }
+
+    #endregion
 }

@@ -1,5 +1,7 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostCard> Logger
 
 @* PostCard component for displaying a complete post *@
 
@@ -11,7 +13,7 @@
         Visibility="@Post.Visibility.ToString()"
         Type="@Post.PostType.ToString()"
         TypeLabel="@Post.PostType.ToString()"
-        OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Profile?.DisplayName ?? string.Empty))" />
+        OnAuthorClick="@(async () => await HandleAuthorClick())" />
 
     <div class="post-content">@Post.Content</div>
 
@@ -146,6 +148,26 @@
     /// </summary>
     [Parameter]
     public EventCallback<PostDto> OnCopyLink { get; set; }
+
+    /// <summary>
+    /// Handle author click with debugging
+    /// </summary>
+    private async Task HandleAuthorClick()
+    {
+        var handle = Post.Profile?.Handle ?? string.Empty;
+        Logger.LogInformation("=============================================================");
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Called");
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Post Profile DisplayName: '{DisplayName}'", Post.Profile?.DisplayName);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Post Profile Handle: '{Handle}'", handle);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Handle IsNull: {IsNull}", Post.Profile?.Handle == null);
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Handle IsEmpty: {IsEmpty}", string.IsNullOrEmpty(handle));
+        Logger.LogInformation("[PostCard.HandleAuthorClick] Invoking OnAuthorClick with: '{Handle}'", handle);
+        
+        await OnAuthorClick.InvokeAsync(handle);
+        
+        Logger.LogInformation("[PostCard.HandleAuthorClick] OnAuthorClick.InvokeAsync completed");
+        Logger.LogInformation("=============================================================");
+    }
 
     private string GetInitials(string? name)
     {
