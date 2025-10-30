@@ -19,26 +19,39 @@ Updated the profile navigation flow to use the actual `Handle` property from `Pr
 #### 1. **Home.razor** (Client/Pages/)
 - **Method Updated**: `ViewProfile(string authorNameOrHandle)`
 - **Change**: Now navigates to `/{authorNameOrHandle}` instead of `/profile/{profileSlug}`
+- **Added**: Comprehensive console logging for debugging
 - **Before**: `Navigation.NavigateTo($"/profile/{profileSlug}");`
 - **After**: `Navigation.NavigateTo($"/{authorNameOrHandle}");`
 
 #### 2. **PostCard.razor** (Client/Components/Feed/)
 - **Property Updated**: `OnAuthorClick` event callback parameter
 - **Change**: Pass `Post.Profile?.Handle` instead of `Post.Profile?.DisplayName`
+- **Added**: `HandleAuthorClick()` method with debugging logs
 - **Before**: `OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Profile?.DisplayName ?? string.Empty))"`
-- **After**: `OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Profile?.Handle ?? string.Empty))"`
+- **After**: `OnAuthorClick="@HandleAuthorClick"`
 
-#### 3. **WhoToFollowSidebar.razor** (Client/Components/Sidebar/)
+#### 3. **ProfilesClient.cs** (Services/Clients/)
+- **⭐ CRITICAL FIX**: Updated `MapToDto()` method to include Handle property
+- **Issue**: The Handle field was NOT being mapped from Profile entity to ProfileDto
+- **Before**: Only mapped Id, DisplayName, Bio, CreatedAt
+- **After**: Maps ALL profile fields including Handle (20+ properties)
+- **Impact**: This was causing Handle to always be null/empty in the UI
+
+#### 4. **WhoToFollowSidebar.razor** (Client/Components/Sidebar/)
 - **Property Updated**: `OnUserNameClick` event callback parameter
 - **Change**: Pass `user.Handle` instead of `user.DisplayName`
 - **Before**: `OnUserNameClick="@(() => OnUserNameClick.InvokeAsync(user.DisplayName ?? string.Empty))"`
 - **After**: `OnUserNameClick="@(() => OnUserNameClick.InvokeAsync(user.Handle ?? string.Empty))"`
 
-#### 4. **PostComments.razor** (Client/Components/Feed/)
+#### 5. **PostComments.razor** (Client/Components/Feed/)
 - **Property Updated**: `OnCommentAuthorClick` event callback parameter
 - **Change**: Pass `comment.Profile?.Handle` instead of `comment.Profile?.DisplayName`
 - **Before**: `OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Profile?.DisplayName ?? string.Empty))"`
 - **After**: `OnAuthorClick="@(() => OnCommentAuthorClick.InvokeAsync(comment.Profile?.Handle ?? string.Empty))"`
+
+#### 6. **Home.razor** - Feed Loading
+- **Added**: Detailed logging to track Handle values in loaded activities
+- **Purpose**: Debug and verify Handle is populated correctly from API
 
 ## Technical Details
 
