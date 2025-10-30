@@ -8,9 +8,11 @@
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Logging
 @inject NavigationManager Navigation
 @inject IProfilesClient ProfilesClient
 @inject IFollowersClient FollowersClient
+@inject ILogger<ProfilePage> Logger
 
 @if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
 {
@@ -296,25 +298,26 @@
 
         try
         {
-            Console.WriteLine($"[ProfilePage] Loading profile for identifier: {Identifier}");
+            Logger.LogInformation("[LoadProfileAsync] Loading profile for identifier: {Identifier}", Identifier);
             
             var profile = await ProfilesClient.GetProfileByIdentifierAsync(Identifier);
             
             if (profile == null || profile.Id == Guid.Empty)
             {
-                Console.WriteLine($"[ProfilePage] Profile not found for identifier: {Identifier}");
+                Logger.LogWarning("[LoadProfileAsync] Profile not found for identifier: {Identifier}", Identifier);
                 errorMessage = $"Profile not found for '{Identifier}'";
                 profileData = GetFallbackProfileData();
             }
             else
             {
-                Console.WriteLine($"[ProfilePage] Profile loaded: {profile.DisplayName} (ID: {profile.Id})");
+                Logger.LogInformation("[LoadProfileAsync] Profile loaded: {DisplayName} (ID: {ProfileId})", 
+                    profile.DisplayName, profile.Id);
                 viewedProfileId = profile.Id;
                 
                 // SEO: Redirect from GUID to handle for better URLs
                 if (Guid.TryParse(Identifier, out _) && !string.IsNullOrEmpty(profile.Handle))
                 {
-                    Console.WriteLine($"[ProfilePage] Redirecting from GUID to handle: /{profile.Handle}");
+                    Logger.LogInformation("[LoadProfileAsync] Redirecting from GUID to handle: /{Handle}", profile.Handle);
                     Navigation.NavigateTo($"/{profile.Handle}", replace: true);
                     return; // Don't set profile data, the redirect will trigger a reload
                 }
@@ -335,7 +338,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error loading profile: {ex.Message}");
+            Logger.LogError(ex, "[LoadProfileAsync] Error loading profile for identifier: {Identifier}", Identifier);
             errorMessage = "An error occurred while loading the profile";
             profileData = GetFallbackProfileData();
         }
@@ -350,11 +353,12 @@
     {
         try
         {
-            Console.WriteLine($"[ProfilePage] Loading follower stats for profile: {profileId}");
+            Logger.LogInformation("[LoadFollowerStatsAsync] Loading follower stats for profile: {ProfileId}", profileId);
             var stats = await FollowersClient.GetStatsForProfileAsync(profileId);
             
             isFollowing = stats.IsFollowedByCurrentUser;
-            Console.WriteLine($"[ProfilePage] Stats loaded - Followers: {stats.FollowersCount}, Following: {stats.FollowingCount}, IsFollowing: {isFollowing}");
+            Logger.LogInformation("[LoadFollowerStatsAsync] Stats loaded - Followers: {FollowersCount}, Following: {FollowingCount}, IsFollowing: {IsFollowing}", 
+                stats.FollowersCount, stats.FollowingCount, isFollowing);
             
             return new ProfileStats
             {
@@ -365,7 +369,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error loading follower stats: {ex.Message}");
+            Logger.LogError(ex, "[LoadFollowerStatsAsync] Error loading follower stats for profile: {ProfileId}", profileId);
             return new ProfileStats
             {
                 Posts = 0,
@@ -446,8 +450,17 @@
 
     private async Task HandleFollow()
     {
+        Logger.LogInformation("=============================================================");
+        Logger.LogInformation("[HandleFollow] START - IsFollowActionInProgress: {InProgress}, ViewedProfileId: {ProfileId}, IsFollowing: {IsFollowing}",
+            isFollowActionInProgress, viewedProfileId?.ToString() ?? "NULL", isFollowing);
+        
         if (isFollowActionInProgress || !viewedProfileId.HasValue)
+        {
+            Logger.LogWarning("[HandleFollow] Aborting - InProgress: {InProgress}, HasProfileId: {HasProfileId}",
+                isFollowActionInProgress, viewedProfileId.HasValue);
+            Logger.LogInformation("=============================================================");
             return;
+        }
 
         isFollowActionInProgress = true;
         StateHasChanged();
@@ -456,45 +469,64 @@
         {
             if (isFollowing)
             {
-                Console.WriteLine($"[ProfilePage] Unfollowing profile: {viewedProfileId}");
+                Logger.LogInformation("[HandleFollow] Attempting to UNFOLLOW profile: {ProfileId}", viewedProfileId.Value);
                 await FollowersClient.UnfollowAsync(viewedProfileId.Value);
+                
                 isFollowing = false;
                 profileData.Stats.Followers = Math.Max(0, profileData.Stats.Followers - 1);
-                Console.WriteLine($"[ProfilePage] Unfollowed successfully");
+                
+                Logger.LogInformation("[HandleFollow] UNFOLLOW SUCCESS - New follower count: {FollowerCount}", 
+                    profileData.Stats.Followers);
             }
             else
             {
-                Console.WriteLine($"[ProfilePage] Following profile: {viewedProfileId}");
-                var result = await FollowersClient.FollowAsync(new FollowActionDto 
+                Logger.LogInformation("[HandleFollow] Attempting to FOLLOW profile: {ProfileId}", viewedProfileId.Value);
+                
+                var followDto = new FollowActionDto 
                 { 
                     ProfileToFollowId = viewedProfileId.Value 
-                });
+                };
+                
+                Logger.LogInformation("[HandleFollow] FollowActionDto created - ProfileToFollowId: {ProfileToFollowId}", 
+                    followDto.ProfileToFollowId);
+                
+                var result = await FollowersClient.FollowAsync(followDto);
+                
+                Logger.LogInformation("[HandleFollow] FollowAsync returned - Success: {Success}, Message: {Message}", 
+                    result.Success, result.Message ?? "NULL");
                 
                 if (result.Success)
                 {
                     isFollowing = true;
                     profileData.Stats.Followers++;
-                    Console.WriteLine($"[ProfilePage] Followed successfully");
+                    
+                    Logger.LogInformation("[HandleFollow] FOLLOW SUCCESS - New follower count: {FollowerCount}", 
+                        profileData.Stats.Followers);
                 }
                 else
                 {
-                    Console.WriteLine($"[ProfilePage] Follow failed: {result.Message}");
+                    Logger.LogWarning("[HandleFollow] FOLLOW FAILED - Message: {Message}", result.Message ?? "NULL");
                     // TODO: Show error message to user
                 }
             }
             
-            // Force UI update to reflect new button state
+            Logger.LogInformation("[HandleFollow] Calling StateHasChanged to update UI");
             StateHasChanged();
+            
+            Logger.LogInformation("[HandleFollow] COMPLETED SUCCESSFULLY");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ProfilePage] Error during follow/unfollow: {ex.Message}");
+            Logger.LogError(ex, "[HandleFollow] EXCEPTION during follow/unfollow - ProfileId: {ProfileId}, IsFollowing: {IsFollowing}", 
+                viewedProfileId, isFollowing);
             // TODO: Show error message to user
         }
         finally
         {
             isFollowActionInProgress = false;
+            Logger.LogInformation("[HandleFollow] Finally block - Setting InProgress to false");
             StateHasChanged();
+            Logger.LogInformation("=============================================================");
         }
     }
 
