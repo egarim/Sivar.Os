@@ -18,11 +18,12 @@
                           Label="Add a comment..."
                           Variant="Variant.Outlined"
                           Lines="2"
-                          MaxLength="500" />
+                          MaxLength="500"
+                          Immediate="true" />
             <MudButton Color="Color.Primary" 
                        Variant="Variant.Filled" 
                        OnClick="SubmitComment"
-                       Disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">
+                       Disabled="@_isButtonDisabled">
                 Send
             </MudButton>
         </div>
@@ -76,6 +77,8 @@
     private int _totalComments = 0;
     private Guid? _currentUserProfileId;
     private const int PageSize = 10;
+
+    private bool _isButtonDisabled => string.IsNullOrWhiteSpace(_newCommentText);
 
     protected override async Task OnInitializedAsync()
     {
