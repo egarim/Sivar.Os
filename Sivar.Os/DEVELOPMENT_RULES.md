@@ -917,7 +917,23 @@ Before committing CSS changes:
 
 ## Logging Standards
 
-### ⭐ Logging is MANDATORY for all services
+### ⭐ Logging is MANDATORY for ALL code (Services, Repositories, Components)
+
+### ⚠️ CRITICAL: NEVER use Console.WriteLine - ALWAYS use ILogger
+
+**Console.WriteLine is BANNED** in production code. Use `ILogger<T>` injection for all logging.
+
+### Why ILogger Instead of Console?
+
+| Feature | Console.WriteLine | ILogger |
+|---------|------------------|---------|
+| **Log Levels** | ❌ No levels | ✅ Info, Warning, Error, Debug |
+| **Structured Logging** | ❌ String only | ✅ Named parameters, searchable |
+| **Production Ready** | ❌ Not configurable | ✅ File, database, cloud sinks |
+| **Filtering** | ❌ Can't filter | ✅ Filter by level, category |
+| **Performance** | ❌ Synchronous only | ✅ Async, buffered |
+| **Context** | ❌ No context | ✅ Timestamps, thread, machine |
+| **Searchability** | ❌ Hard to search | ✅ Structured, queryable |
 
 ### Logging Framework: Serilog
 
@@ -942,6 +958,84 @@ builder.Host.UseSerilog((context, configuration) =>
 | `LogTrace` | Very detailed diagnostic info | Rarely used |
 
 ### Logging Pattern
+
+#### ❌ NEVER Use Console.WriteLine
+
+```csharp
+// ❌ BANNED - Do NOT use Console.WriteLine
+Console.WriteLine("User created");
+Console.WriteLine($"User ID: {userId}");
+
+// ❌ BANNED - Even in components
+@code {
+    private void DoSomething()
+    {
+        Console.WriteLine("Doing something");  // ❌ WRONG!
+    }
+}
+```
+
+#### ✅ ALWAYS Use ILogger
+
+**In Services:**
+```csharp
+public class UserService : IUserService
+{
+    private readonly ILogger<UserService> _logger;
+
+    public UserService(ILogger<UserService> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task CreateUserAsync(string email)
+    {
+        _logger.LogInformation("Creating user: {Email}", email);  // ✅ CORRECT
+    }
+}
+```
+
+**In Repositories:**
+```csharp
+public class UserRepository : IUserRepository
+{
+    private readonly ILogger<UserRepository> _logger;
+
+    public UserRepository(SivarDbContext context, ILogger<UserRepository> logger)
+    {
+        _context = context;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        _logger.LogDebug("Getting user by ID: {UserId}", id);  // ✅ CORRECT
+        return await _context.Users.FindAsync(id);
+    }
+}
+```
+
+**In Blazor Components:**
+```razor
+@inject ILogger<MyComponent> Logger
+
+@code {
+    private async Task LoadData()
+    {
+        Logger.LogInformation("Loading data for component");  // ✅ CORRECT
+        
+        try
+        {
+            var data = await Service.GetDataAsync();
+            Logger.LogInformation("Data loaded: {Count} items", data.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load data");
+        }
+    }
+}
+```
 
 #### Method Entry Logging
 
@@ -1002,19 +1096,222 @@ catch (Exception ex)
 ### Structured Logging Rules
 
 ✅ **DO:**
+- **ALWAYS inject `ILogger<T>` in services, repositories, and components**
 - Use structured logging with named parameters: `{keycloakId}`, `{userId}`
 - Include method name in brackets: `[CreatePostAsync]`
 - Log START, key decisions, and SUCCESS/FAILED
 - Use NULL-safe logging: `userId?.ToString() ?? "NULL"`
 - Log parameters that help with debugging
 - Log all exceptions with `LogError(ex, ...)`
+- Use appropriate log levels (Information, Warning, Error, Debug)
 
 ❌ **DON'T:**
-- Don't use string interpolation: ~~`$"User {userId}"`~~
+- **NEVER use `Console.WriteLine` or `Console.Write`** - Use `ILogger` instead
+- Don't use string interpolation: ~~`$"User {userId}"`~~ - Use structured logging
 - Don't log sensitive data (passwords, tokens, credit cards)
 - Don't log excessively in tight loops
 - Don't skip exception logging
 - Don't use generic error messages
+
+### Logging in Different Layers
+
+#### Services (Business Logic Layer)
+
+```csharp
+using Microsoft.Extensions.Logging;
+
+public class PostService : IPostService
+{
+    private readonly IPostRepository _repository;
+    private readonly ILogger<PostService> _logger;  // ✅ REQUIRED
+
+    public PostService(
+        IPostRepository repository,
+        ILogger<PostService> logger)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));  // ✅ Validate
+    }
+
+    public async Task<PostDto?> CreatePostAsync(string keycloakId, CreatePostDto dto)
+    {
+        _logger.LogInformation(
+            "[CreatePostAsync] START - KeycloakId={KeycloakId}, Content={ContentLength}",
+            keycloakId,
+            dto.Content?.Length ?? 0);
+
+        try
+        {
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            
+            if (user == null)
+            {
+                _logger.LogWarning(
+                    "[CreatePostAsync] User not found - KeycloakId={KeycloakId}",
+                    keycloakId);
+                return null;
+            }
+
+            _logger.LogInformation(
+                "[CreatePostAsync] User found - UserId={UserId}",
+                user.Id);
+
+            // Business logic...
+            
+            _logger.LogInformation(
+                "[CreatePostAsync] SUCCESS - PostId={PostId}",
+                newPost.Id);
+
+            return postDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[CreatePostAsync] FAILED - KeycloakId={KeycloakId}",
+                keycloakId);
+            throw;
+        }
+    }
+}
+```
+
+#### Repositories (Data Access Layer)
+
+```csharp
+using Microsoft.Extensions.Logging;
+
+public class PostRepository : IPostRepository
+{
+    private readonly SivarDbContext _context;
+    private readonly ILogger<PostRepository> _logger;  // ✅ REQUIRED
+
+    public PostRepository(
+        SivarDbContext context,
+        ILogger<PostRepository> logger)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));  // ✅ Validate
+    }
+
+    public async Task<Post?> GetByIdAsync(Guid id)
+    {
+        _logger.LogDebug(
+            "[GetByIdAsync] Retrieving post - PostId={PostId}",
+            id);
+
+        var post = await _context.Posts
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .Include(p => p.Profile)
+            .FirstOrDefaultAsync();
+
+        _logger.LogDebug(
+            "[GetByIdAsync] Post retrieved - PostId={PostId}, Found={Found}",
+            id,
+            post != null);
+
+        return post;
+    }
+
+    public async Task<Post> CreateAsync(Post post)
+    {
+        _logger.LogDebug(
+            "[CreateAsync] Creating post - ProfileId={ProfileId}",
+            post.ProfileId);
+
+        post.CreatedAt = DateTime.UtcNow;
+        _context.Posts.Add(post);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "[CreateAsync] Post created - PostId={PostId}",
+            post.Id);
+
+        return post;
+    }
+}
+```
+
+#### Blazor Components
+
+```razor
+@using Microsoft.Extensions.Logging
+@inject ILogger<PostCard> Logger  @* ✅ REQUIRED - Inject logger *@
+@inject IPostService PostService
+
+<article class="post-card">
+    <!-- Component markup -->
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public PostDto Post { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation(
+            "[OnInitializedAsync] Initializing PostCard - PostId={PostId}",
+            Post.Id);
+
+        try
+        {
+            await LoadCommentsAsync();
+            
+            Logger.LogInformation(
+                "[OnInitializedAsync] PostCard initialized successfully - PostId={PostId}",
+                Post.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex,
+                "[OnInitializedAsync] Failed to initialize PostCard - PostId={PostId}",
+                Post.Id);
+        }
+    }
+
+    private async Task HandleAuthorClick()
+    {
+        var handle = Post.Profile?.Handle ?? string.Empty;
+        
+        Logger.LogInformation(
+            "[HandleAuthorClick] Author clicked - Handle={Handle}, DisplayName={DisplayName}",
+            handle,
+            Post.Profile?.DisplayName);
+
+        if (string.IsNullOrEmpty(handle))
+        {
+            Logger.LogWarning(
+                "[HandleAuthorClick] Handle is empty - PostId={PostId}",
+                Post.Id);
+            return;
+        }
+
+        await OnAuthorClick.InvokeAsync(handle);
+        
+        Logger.LogInformation(
+            "[HandleAuthorClick] Navigation invoked - Handle={Handle}",
+            handle);
+    }
+}
+```
+
+### Logging Configuration by Layer
+
+**Services:**
+- Use `LogInformation` for main operations
+- Use `LogWarning` for business rule violations
+- Use `LogError` for exceptions
+
+**Repositories:**
+- Use `LogDebug` for data access operations (can be disabled in production)
+- Use `LogInformation` for significant database operations (create, update, delete)
+- Let exceptions bubble up to services (don't catch and log here)
+
+**Components:**
+- Use `LogInformation` for user interactions and navigation
+- Use `LogWarning` for validation issues
+- Use `LogError` for exceptions that prevent rendering
+
+### Structured Logging Rules
 
 ### Log File Location
 
@@ -1026,6 +1323,50 @@ Sivar.Os/logs/
 ```
 
 Configured in `appsettings.json`.
+
+### Where Logs Appear
+
+| Code Location | Log Output |
+|--------------|------------|
+| Services (PostService, UserService, etc.) | Server terminal/console + log files |
+| Repositories (PostRepository, etc.) | Server terminal/console + log files |
+| Blazor Components (PostCard, Home, etc.) | Server terminal/console + log files |
+| Client-side JavaScript (if needed) | Browser console only |
+
+**Note:** Since we use Blazor Server (not WebAssembly), all `ILogger` logs appear in the **server terminal/console**, NOT the browser console.
+
+### Enabling Debug Logs
+
+To see detailed `LogDebug` messages in development, update `appsettings.Development.json`:
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning",
+        "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+      }
+    }
+  }
+}
+```
+
+For production (`appsettings.json`):
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning"
+      }
+    }
+  }
+}
+```
 
 ### Viewing Logs
 
@@ -1352,14 +1693,17 @@ Check browser console for:
 
 ### Before Committing Code
 
-- [ ] Services have comprehensive logging
+- [ ] **Services use `ILogger<T>`, NOT `Console.WriteLine`**
+- [ ] **Repositories use `ILogger<T>`, NOT `Console.WriteLine`**
+- [ ] **Components use `ILogger<T>`, NOT `Console.WriteLine`**
+- [ ] Services have comprehensive logging (START, key decisions, SUCCESS/FAILED)
 - [ ] All repository calls are wrapped in services
 - [ ] No direct DbContext access from services
 - [ ] No entities exposed to components (only DTOs)
 - [ ] **All UI components use MudBlazor** (no raw HTML inputs/buttons)
 - [ ] CSS is in centralized files, not component-scoped
 - [ ] No inline styles
-- [ ] Error handling is implemented
+- [ ] Error handling is implemented with proper logging
 - [ ] NULL checks are in place
 - [ ] Using `InteractiveServer` render mode
 - [ ] **Code is compatible with both Blazor Server and WebAssembly**
