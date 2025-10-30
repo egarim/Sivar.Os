@@ -11,7 +11,7 @@
         Visibility="@Post.Visibility.ToString()"
         Type="@Post.PostType.ToString()"
         TypeLabel="@Post.PostType.ToString()"
-        OnAuthorClick="@(() => OnAuthorClick.InvokeAsync(Post.Profile?.Handle ?? string.Empty))" />
+        OnAuthorClick="@HandleAuthorClick" />
 
     <div class="post-content">@Post.Content</div>
 
@@ -146,6 +146,26 @@
     /// </summary>
     [Parameter]
     public EventCallback<PostDto> OnCopyLink { get; set; }
+
+    /// <summary>
+    /// Handle author click with debugging
+    /// </summary>
+    private async Task HandleAuthorClick()
+    {
+        var handle = Post.Profile?.Handle ?? string.Empty;
+        Console.WriteLine("=============================================================");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Called");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Post Profile DisplayName: '{Post.Profile?.DisplayName}'");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Post Profile Handle: '{handle}'");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Handle IsNull: {Post.Profile?.Handle == null}");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Handle IsEmpty: {string.IsNullOrEmpty(handle)}");
+        Console.WriteLine($"[PostCard.HandleAuthorClick] Invoking OnAuthorClick with: '{handle}'");
+        
+        await OnAuthorClick.InvokeAsync(handle);
+        
+        Console.WriteLine($"[PostCard.HandleAuthorClick] OnAuthorClick.InvokeAsync completed");
+        Console.WriteLine("=============================================================");
+    }
 
     private string GetInitials(string? name)
     {

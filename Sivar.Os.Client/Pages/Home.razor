@@ -580,10 +580,22 @@
     {
         // Navigate to profile using the handle or name
         // The ProfilePage route is "/{Identifier}" which expects a handle
+        Console.WriteLine("=============================================================");
+        Console.WriteLine($"[Home.ViewProfile] Called with: '{authorNameOrHandle}'");
+        Console.WriteLine($"[Home.ViewProfile] Is null or empty: {string.IsNullOrEmpty(authorNameOrHandle)}");
+        
         if (!string.IsNullOrEmpty(authorNameOrHandle))
         {
-            Navigation.NavigateTo($"/{authorNameOrHandle}");
+            var targetUrl = $"/{authorNameOrHandle}";
+            Console.WriteLine($"[Home.ViewProfile] Navigating to: {targetUrl}");
+            Navigation.NavigateTo(targetUrl);
+            Console.WriteLine($"[Home.ViewProfile] Navigation.NavigateTo() completed");
         }
+        else
+        {
+            Console.WriteLine($"[Home.ViewProfile] ⚠️ Cannot navigate - handle is null or empty");
+        }
+        Console.WriteLine("=============================================================");
     }
 
     private void LikeComment(PostDto post, PostComment comment)
@@ -1179,7 +1191,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             
             if (feedDto?.Activities != null && feedDto.Activities.Any())
             {
-                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] ?? Processing {feedDto.Activities.Count} activities:");
+                Console.WriteLine($"[Home.LoadFeedActivitiesAsync] 📊 Processing {feedDto.Activities.Count} activities:");
                 for (int i = 0; i < feedDto.Activities.Count; i++)
                 {
                     var activity = feedDto.Activities[i];
@@ -1188,7 +1200,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     Console.WriteLine($"    Verb: {activity.Verb}");
                     Console.WriteLine($"    Summary: {activity.Summary}");
                     Console.WriteLine($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
+                    Console.WriteLine($"    Actor Handle: '{activity.Actor?.Handle}' (IsNull: {activity.Actor?.Handle == null})");
                     Console.WriteLine($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
+                    if (activity.Post?.Profile != null)
+                    {
+                        Console.WriteLine($"    Post Profile: {activity.Post.Profile.DisplayName}");
+                        Console.WriteLine($"    Post Profile Handle: '{activity.Post.Profile.Handle}' (IsNull: {activity.Post.Profile.Handle == null}, IsEmpty: {string.IsNullOrEmpty(activity.Post.Profile.Handle)})");
+                    }
                 }
                 
                 _activities = feedDto.Activities;
