@@ -10,6 +10,7 @@
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Sidebar
 @using Sivar.Os.Client.Components.Feed
+@using Sivar.Os.Client.Components.Modals
 @using Sivar.Os.Client.Components.Stats
 @using Sivar.Os.Client.Components.Pagination
 @using Sivar.Os.Client.Components.AIChat
@@ -229,6 +230,7 @@
                     if (activeProf != null)
                     {
                         _currentProfileId = activeProf.Id;
+                        _currentUserId = activeProf.Id; // Set current user ID for ownership checks
                         _activeProfile = activeProf;
                         Console.WriteLine($"[Home] ? Got active profile from list: {_currentProfileId}");
                     }
@@ -694,10 +696,35 @@
         }
     }
 
-    private void HandleViewAnalytics(PostDto post)
+    private async Task HandleViewAnalytics(PostDto post)
     {
-        Console.WriteLine($"[Home] View analytics for post: {post.Id}");
-        // TODO: Implement analytics modal
+        try
+        {
+            Console.WriteLine($"[Home] View analytics for post: {post.Id}");
+            
+            var parameters = new DialogParameters 
+            { 
+                { "Post", post } 
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            await _dialogService.ShowAsync<PostAnalyticsModal>(
+                "Post Analytics", 
+                parameters, 
+                options);
+                
+            Console.WriteLine($"[Home] Analytics modal closed for post: {post.Id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error showing analytics modal: {ex.Message}");
+        }
     }
 
     private void HandleReportPost(PostDto post)
@@ -1206,6 +1233,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                         }
                         
                         _currentProfileId = activeProfile.Id;
+                        _currentUserId = activeProfile.Id; // Use profile ID for post ownership checks
                         
                         Console.WriteLine("[HOME-CLIENT] ? Active Profile DTO Received:");
                         Console.WriteLine($"[HOME-CLIENT]   - ID: {activeProfile.Id}");

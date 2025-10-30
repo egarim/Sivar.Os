@@ -1,0 +1,157 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using MudBlazor
+@inject ILogger<PostAnalyticsModal> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Post Analytics</MudText>
+
+        @if (Post != null)
+        {
+            <!-- Post Preview -->
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @Post.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mt-2">
+                    @(Post.Content.Length > 100 ? Post.Content.Substring(0, 100) + "..." : Post.Content)
+                </MudText>
+            </MudPaper>
+
+            <!-- Engagement Metrics -->
+            <MudText Typo="Typo.h6" Class="mb-3">Engagement</MudText>
+            
+            <MudGrid>
+                <!-- Total Reactions -->
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Favorite" 
+                                 Color="Color.Error" Size="Size.Large" />
+                        <MudText Typo="Typo.h4">@TotalReactions</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reactions</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Total Comments -->
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Comment" 
+                                 Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h4">@Post.CommentCount</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Comments</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Total Shares -->
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Share" 
+                                 Color="Color.Info" Size="Size.Large" />
+                        <MudText Typo="Typo.h4">0</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Shares</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Engagement Rate -->
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="1">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" 
+                                 Color="Color.Success" Size="Size.Large" />
+                        <MudText Typo="Typo.h4">@EngagementRate%</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Engagement</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Reaction Breakdown -->
+            @if (Post.ReactionSummary?.ReactionCounts?.Any() == true)
+            {
+                <MudText Typo="Typo.h6" Class="mt-6 mb-3">Reaction Breakdown</MudText>
+                
+                <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                    @foreach (var reaction in Post.ReactionSummary.ReactionCounts.OrderByDescending(r => r.Value))
+                    {
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <MudText Typo="Typo.body2">
+                                @GetReactionEmoji(reaction.Key) @reaction.Key.ToString()
+                            </MudText>
+                                                    {
+                            <MudChip T="string" Size="Size.Small">@reaction.Value</MudChip>
+                        </div>
+                    }
+                </MudPaper>
+            }
+
+            <!-- Post Metadata -->
+            <MudText Typo="Typo.h6" Class="mt-6 mb-3">Post Information</MudText>
+            
+            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Visibility</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@Post.Visibility</MudChip>
+                </div>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Post Type</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@Post.PostType</MudChip>
+                </div>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Created</MudText>
+                    <MudText Typo="Typo.body2">@Post.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                </div>
+                @if (Post.Attachments?.Any() == true)
+                {
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Attachments</MudText>
+                        <MudText Typo="Typo.body2">@Post.Attachments.Count image(s)</MudText>
+                    </div>
+                }
+            </MudPaper>
+        }
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private dynamic Dialog { get; set; } = null!;
+    
+    [Parameter] public PostDto? Post { get; set; }
+
+    private int TotalReactions => Post?.ReactionSummary?.TotalReactions ?? 0;
+    
+    private int EngagementRate
+    {
+        get
+        {
+            if (Post == null) return 0;
+            
+            var totalEngagement = TotalReactions + Post.CommentCount;
+            // In a real app, divide by view count
+            // For now, just return a percentage based on engagement
+            return Math.Min(100, totalEngagement * 5); // Mock calculation
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[PostAnalyticsModal] Opening analytics for Post: {PostId}", Post?.Id);
+    }
+
+    private void Close() => Dialog?.Close(DialogResult.Ok(true));
+
+    private string GetReactionEmoji(ReactionType type) => type switch
+    {
+        ReactionType.Like => "👍",
+        ReactionType.Love => "❤️",
+        ReactionType.Laugh => "😂",
+        ReactionType.Wow => "😮",
+        ReactionType.Sad => "😢",
+        ReactionType.Angry => "😠",
+        ReactionType.Care => "🤗",
+        _ => "👍"
+    };
+}
