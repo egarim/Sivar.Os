@@ -8,10 +8,13 @@
         <MudText Typo="Typo.h4" Class="profile-name">@DisplayName</MudText>
         <MudText Typo="Typo.body1" Class="profile-username">@("@" + Username)</MudText>
         <ProfileStats Stats="@Stats" />
-        <ProfileActions 
-            FollowButtonText="@FollowButtonText"
-            OnFollowClick="OnFollowClick"
-            OnMessageClick="OnMessageClick" />
+        @if (ShowActions)
+        {
+            <ProfileActions 
+                FollowButtonText="@FollowButtonText"
+                OnFollowClick="OnFollowClick"
+                OnMessageClick="OnMessageClick" />
+        }
     </div>
 </div>
 
@@ -30,6 +33,9 @@
 
     [Parameter]
     public string FollowButtonText { get; set; } = "Follow";
+
+    [Parameter]
+    public bool ShowActions { get; set; } = true;
 
     [Parameter]
     public EventCallback OnFollowClick { get; set; }

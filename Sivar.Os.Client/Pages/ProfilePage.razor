@@ -283,6 +283,7 @@
                 Initials="@profileData.Initials"
                 Stats="@profileData.Stats"
                 FollowButtonText="@GetFollowButtonText()"
+                ShowActions="@(!IsOwnProfile)"
                 OnFollowClick="HandleFollow"
                 OnMessageClick="HandleMessage" />
 
@@ -367,6 +368,7 @@
     private bool isFollowing = false;
     private bool isFollowActionInProgress = false;
     private Guid? viewedProfileId = null;
+    private Guid? currentUserActiveProfileId = null;
     
     // Posts-related state
     private List<PostDto> posts = new();
@@ -374,9 +376,18 @@
     private int currentPage = 1;
     private int pageSize = 10;
     private int totalPostCount = 0;
+    
+    // Helper to check if viewing own profile
+    private bool IsOwnProfile => viewedProfileId.HasValue && 
+                                  currentUserActiveProfileId.HasValue && 
+                                  viewedProfileId.Value == currentUserActiveProfileId.Value;
 
     protected override async Task OnInitializedAsync()
     {
+        // Load current user's active profile
+        await LoadCurrentUserActiveProfileAsync();
+        
+        // Load the profile being viewed
         await LoadProfileAsync();
     }
 
@@ -384,6 +395,31 @@
     {
         // Reload profile if the identifier changes
         await LoadProfileAsync();
+    }
+
+    private async Task LoadCurrentUserActiveProfileAsync()
+    {
+        try
+        {
+            Logger.LogInformation("[LoadCurrentUserActiveProfileAsync] Loading current user's active profile");
+            var activeProfile = await ProfilesClient.GetMyActiveProfileAsync();
+            
+            if (activeProfile != null && activeProfile.Id != Guid.Empty)
+            {
+                currentUserActiveProfileId = activeProfile.Id;
+                Logger.LogInformation("[LoadCurrentUserActiveProfileAsync] Current user's active profile: {ProfileId}", 
+                    currentUserActiveProfileId);
+            }
+            else
+            {
+                Logger.LogWarning("[LoadCurrentUserActiveProfileAsync] No active profile found for current user");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadCurrentUserActiveProfileAsync] Error loading current user's active profile");
+            // Don't throw - this is not critical for viewing profiles
+        }
     }
 
     private async Task LoadProfileAsync()
