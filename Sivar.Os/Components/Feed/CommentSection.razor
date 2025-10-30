@@ -1,0 +1,224 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared
+@using MudBlazor
+@inject ISivarClient SivarClient
+@inject ILogger<CommentSection> Logger
+
+<div class="comment-section">
+    <div class="comment-header" @onclick="ToggleExpanded">
+        <span class="comment-count">💬 @_totalComments Comments</span>
+        <MudIconButton Icon="@(IsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" 
+                       Size="Size.Small" />
+    </div>
+
+    @if (IsExpanded)
+    {
+        <div class="comment-input-area">
+            <MudTextField @bind-Value="_newCommentText"
+                          Label="Add a comment..."
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          MaxLength="500" />
+            <MudButton Color="Color.Primary" 
+                       Variant="Variant.Filled" 
+                       OnClick="SubmitComment"
+                       Disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">
+                Send
+            </MudButton>
+        </div>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_comments.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4 text-center">
+                No comments yet. Be the first to comment!
+            </MudText>
+        }
+        else
+        {
+            <div class="comment-list">
+                @foreach (var comment in _comments)
+                {
+                    <CommentItem Comment="@comment" 
+                                 OnDelete="HandleDeleteComment" 
+                                 OnReply="HandleReplyToComment"
+                                 CurrentUserProfileId="@_currentUserProfileId" />
+                }
+            </div>
+
+            @if (_currentPage < _totalPages)
+            {
+                <MudButton Variant="Variant.Text" 
+                           OnClick="LoadMoreComments"
+                           FullWidth="true"
+                           Class="mt-2">
+                    Load More Comments
+                </MudButton>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid PostId { get; set; }
+    [Parameter] public int InitialCommentCount { get; set; }
+    [Parameter] public bool IsExpanded { get; set; } = false;
+    [Parameter] public EventCallback OnCommentAdded { get; set; }
+
+    private List<CommentDto> _comments = new();
+    private string _newCommentText = string.Empty;
+    private bool _isLoading = false;
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private int _totalComments = 0;
+    private Guid? _currentUserProfileId;
+    private const int PageSize = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _totalComments = InitialCommentCount;
+        
+        try
+        {
+            // Get current user's active profile ID
+            var currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+            _currentUserProfileId = currentProfile?.Id;
+            
+            Logger.LogInformation("[CommentSection] Current user profile ID: {ProfileId}", _currentUserProfileId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentSection] Error getting current user profile");
+        }
+        
+        if (IsExpanded)
+        {
+            await LoadCommentsAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsExpanded && _comments.Count == 0)
+        {
+            await LoadCommentsAsync();
+        }
+    }
+
+    private async Task ToggleExpanded()
+    {
+        IsExpanded = !IsExpanded;
+        
+        if (IsExpanded && _comments.Count == 0)
+        {
+            await LoadCommentsAsync();
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task LoadCommentsAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("[CommentSection] Loading comments for PostId={PostId}, Page={Page}", 
+                PostId, _currentPage);
+
+            var comments = await SivarClient.Comments.GetPostCommentsAsync(PostId);
+
+            _comments = comments.ToList();
+            _totalComments = _comments.Count;
+            _totalPages = (int)Math.Ceiling(_totalComments / (double)PageSize);
+
+            Logger.LogInformation("[CommentSection] Loaded {Count} comments, Total={Total}", 
+                _comments.Count, _totalComments);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentSection] Error loading comments for PostId={PostId}", PostId);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMoreComments()
+    {
+        _currentPage++;
+        await LoadCommentsAsync();
+    }
+
+    private async Task SubmitComment()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentText))
+            return;
+
+        try
+        {
+            Logger.LogInformation("[CommentSection] Submitting comment for PostId={PostId}", PostId);
+
+            var createDto = new CreateCommentDto
+            {
+                PostId = PostId,
+                Content = _newCommentText.Trim(),
+                Language = "en"
+            };
+
+            var newComment = await SivarClient.Comments.CreateCommentAsync(createDto);
+
+            if (newComment != null)
+            {
+                _comments.Insert(0, newComment); // Add to top of list
+                _newCommentText = string.Empty;
+                _totalComments++;
+
+                await OnCommentAdded.InvokeAsync();
+                
+                Logger.LogInformation("[CommentSection] Comment created successfully: {CommentId}", 
+                    newComment.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentSection] Error creating comment");
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task HandleDeleteComment(Guid commentId)
+    {
+        try
+        {
+            Logger.LogInformation("[CommentSection] Deleting comment: {CommentId}", commentId);
+            
+            await SivarClient.Comments.DeleteCommentAsync(commentId);
+            
+            _comments.RemoveAll(c => c.Id == commentId);
+            _totalComments--;
+            
+            Logger.LogInformation("[CommentSection] Comment deleted successfully");
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentSection] Error deleting comment");
+        }
+    }
+
+    private async Task HandleReplyToComment(Guid parentCommentId)
+    {
+        // TODO: Implement reply functionality in Phase 1.3 (Optional)
+        Logger.LogInformation("[CommentSection] Reply to comment: {CommentId}", parentCommentId);
+        await Task.CompletedTask;
+    }
+}

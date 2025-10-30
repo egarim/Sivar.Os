@@ -85,7 +85,7 @@
         IsPostOwner="@IsCurrentUserOwner"
         PostLink="@GetPostLink()"
         OnLike="@(() => OnLike.InvokeAsync(Post))"
-        OnComment="@(() => OnCommentClick.InvokeAsync(Post))"
+        OnComment="@HandleCommentClick"
         OnShare="@(() => OnShare.InvokeAsync(Post))"
         OnSave="@(() => OnSave.InvokeAsync(Post))"
         OnMore="@(() => OnMore.InvokeAsync(Post))"
@@ -95,11 +95,10 @@
         OnReport="@(() => OnReport.InvokeAsync(Post))"
         OnCopyLink="@(() => OnCopyLink.InvokeAsync(Post))" />
 
-    <PostComments 
-        Comments="@Post.Comments"
-        ShowComments="false"
-        OnToggleComments="@(() => OnCommentClick.InvokeAsync(Post))"
-        OnCommentAuthorClick="@((author) => OnAuthorClick.InvokeAsync(author))" />
+    <CommentSection PostId="@Post.Id"
+                    InitialCommentCount="@Post.CommentCount"
+                    IsExpanded="@_showComments"
+                    OnCommentAdded="HandleCommentAdded" />
 </article>
 
 @code {
@@ -252,5 +251,21 @@
         };
 
         dialogRef = await DialogService.ShowAsync<ImageViewerDialog>("", parameters, options);
+    }
+
+    // Comment section state
+    private bool _showComments = false;
+
+    private async Task HandleCommentClick()
+    {
+        _showComments = !_showComments;
+        await OnCommentClick.InvokeAsync(Post);
+        StateHasChanged();
+    }
+
+    private void HandleCommentAdded()
+    {
+        Post = Post with { CommentCount = Post.CommentCount + 1 };
+        StateHasChanged();
     }
 }

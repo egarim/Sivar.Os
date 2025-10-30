@@ -1578,3 +1578,110 @@
 .wireframe-landing .empty-state-subtext.small {
     font-size: 12px;
 }
+
+/* ===== Comment Section Component ===== */
+.comment-section {
+    margin-top: 16px;
+    border-top: 1px solid var(--wire-border);
+    padding-top: 16px;
+}
+
+.comment-section .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.comment-section .comment-header:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.comment-section .comment-count {
+    font-weight: 600;
+    color: var(--wire-text-primary);
+    font-size: 14px;
+}
+
+.comment-section .comment-input-area {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    align-items: flex-start;
+}
+
+.comment-section .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* ===== Comment Item Component ===== */
+.comment-item {
+    padding: 12px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    transition: background-color 0.2s;
+}
+
+.comment-item:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.comment-item .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.comment-item .comment-meta {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.comment-item .comment-author {
+    font-weight: 600;
+    color: var(--wire-text-primary);
+}
+
+.comment-item .comment-time {
+    color: var(--wire-text-secondary);
+    font-size: 13px;
+}
+
+.comment-item .comment-edited {
+    color: var(--wire-text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.comment-item .comment-content {
+    margin-left: 44px; /* Align with avatar */
+    color: var(--wire-text-primary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.comment-item .comment-actions {
+    margin-left: 44px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 13px;
+}
+
+.comment-item .comment-likes {
+    color: var(--wire-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
