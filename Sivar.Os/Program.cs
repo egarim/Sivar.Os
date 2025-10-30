@@ -136,6 +136,10 @@ builder.Services.Configure<VectorEmbeddingOptions>(options =>
 
 builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
 
+// Configure Azure Blob Storage options
+builder.Services.Configure<Sivar.Os.Shared.Configuration.AzureBlobStorageConfiguration>(
+    builder.Configuration.GetSection("AzureBlobStorage"));
+
 // --- Client Registration (Sivar.Os.Services.Clients) ---
 builder.Services.AddScoped<IAuthClient, AuthClient>();
 builder.Services.AddScoped<IUsersClient, UsersClient>();
