@@ -1,0 +1,557 @@
+@using Sivar.Os.Shared.DTOs
+@using MudBlazor
+
+<MudDialog Class="image-viewer-dialog" Options="_dialogOptions">
+    <DialogContent>
+        <div class="image-viewer-layout">
+            <!-- Close Button (Top Right) -->
+            <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                          Color="Color.Default" 
+                          Class="viewer-close-button"
+                          OnClick="@CloseDialog" />
+            
+            <!-- Left Side: Image -->
+            <div class="image-viewer-left">
+                @if (Attachments != null && Attachments.Any())
+                {
+                    @if (Attachments.Count == 1)
+                    {
+                        <!-- Single Image View -->
+                        <div class="single-image-viewer">
+                            <img src="@Attachments[0].FilePath" 
+                                 alt="@(Attachments[0].AltText ?? Attachments[0].OriginalFilename)" 
+                                 class="fullscreen-image" />
+                            
+                            @if (Attachments[0].MimeType == "image/gif")
+                            {
+                                <div class="gif-badge-large">GIF</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Multiple Images with Carousel -->
+                        <MudCarousel Class="image-viewer-carousel" 
+                                     Style="height: 100%;"
+                                     @bind-SelectedIndex="_currentIndex"
+                                     ShowArrows="true" 
+                                     ShowBullets="false"
+                                     ShowDelimiters="false"
+                                     EnableSwipeGesture="true"
+                                     AutoCycle="false"
+                                     TData="object">
+                            @foreach (var attachment in Attachments)
+                            {
+                                <MudCarouselItem Transition="Transition.Slide" Class="d-flex justify-center align-center">
+                                    <div class="carousel-fullscreen-container">
+                                        <img src="@attachment.FilePath" 
+                                             alt="@(attachment.AltText ?? attachment.OriginalFilename)" 
+                                             class="fullscreen-image" />
+                                        
+                                        @if (attachment.MimeType == "image/gif")
+                                        {
+                                            <div class="gif-badge-large">GIF</div>
+                                        }
+                                    </div>
+                                </MudCarouselItem>
+                            }
+                        </MudCarousel>
+                        
+                        <!-- Image Counter -->
+                        <div class="image-counter">
+                            @(_currentIndex + 1) / @Attachments.Count
+                        </div>
+                    }
+                }
+            </div>
+            
+            <!-- Right Side: Post Details -->
+            <div class="image-viewer-right">
+                @if (Post != null)
+                {
+                    <!-- Post Header -->
+                    <div class="viewer-post-header">
+                        <div class="viewer-profile-info">
+                            <MudAvatar Size="Size.Medium" Class="viewer-avatar">
+                                @if (!string.IsNullOrEmpty(Post.Profile.Avatar))
+                                {
+                                    <MudImage Src="@Post.Profile.Avatar" />
+                                }
+                                else
+                                {
+                                    <span>@Post.Profile.DisplayName?.Substring(0, 1).ToUpper()</span>
+                                }
+                            </MudAvatar>
+                            <div class="viewer-profile-details">
+                                <div class="viewer-profile-name">@Post.Profile.DisplayName</div>
+                                <div class="viewer-post-time">@FormatTimeAgo(Post.CreatedAt)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post Content -->
+                    <div class="viewer-post-content">
+                        @if (!string.IsNullOrEmpty(Post.Content))
+                        {
+                            <div class="viewer-post-text">
+                                @Post.Content
+                            </div>
+                        }
+                    </div>
+                    
+                    <!-- Reactions Summary -->
+                    <div class="viewer-reactions-section">
+                        @if (Post.ReactionSummary != null && Post.ReactionSummary.TotalReactions > 0)
+                        {
+                            <div class="viewer-reactions-summary">
+                                <MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Color="Color.Primary" />
+                                <span>@Post.ReactionSummary.TotalReactions</span>
+                            </div>
+                        }
+                        @if (Post.CommentCount > 0)
+                        {
+                            <div class="viewer-comment-count">
+                                @Post.CommentCount @(Post.CommentCount == 1 ? "Comment" : "Comments")
+                            </div>
+                        }
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="viewer-actions">
+                        <MudButton StartIcon="@Icons.Material.Filled.ThumbUp" 
+                                   Color="Color.Default" 
+                                   Variant="Variant.Text"
+                                   Class="viewer-action-button">
+                            Like
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Filled.Comment" 
+                                   Color="Color.Default" 
+                                   Variant="Variant.Text"
+                                   Class="viewer-action-button">
+                            Comment
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Filled.Share" 
+                                   Color="Color.Default" 
+                                   Variant="Variant.Text"
+                                   Class="viewer-action-button">
+                            Share
+                        </MudButton>
+                    </div>
+                    
+                    <!-- Comments Section -->
+                    <div class="viewer-comments-section">
+                        @if (Post.Comments != null && Post.Comments.Any())
+                        {
+                            @foreach (var comment in Post.Comments)
+                            {
+                                <div class="viewer-comment">
+                                    <MudAvatar Size="Size.Small" Class="viewer-comment-avatar">
+                                        @if (!string.IsNullOrEmpty(comment.Profile.Avatar))
+                                        {
+                                            <MudImage Src="@comment.Profile.Avatar" />
+                                        }
+                                        else
+                                        {
+                                            <span>@comment.Profile.DisplayName?.Substring(0, 1).ToUpper()</span>
+                                        }
+                                    </MudAvatar>
+                                    <div class="viewer-comment-content">
+                                        <div class="viewer-comment-bubble">
+                                            <div class="viewer-comment-author">@comment.Profile.DisplayName</div>
+                                            <div class="viewer-comment-text">@comment.Content</div>
+                                        </div>
+                                        <div class="viewer-comment-meta">
+                                            @FormatTimeAgo(comment.CreatedAt)
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="viewer-no-comments">No comments yet</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public PostDto? Post { get; set; }
+    
+    [Parameter]
+    public List<PostAttachmentDto>? Attachments { get; set; }
+
+    [Parameter]
+    public int StartIndex { get; set; } = 0;
+    
+    [Parameter]
+    public Action? OnClose { get; set; }
+
+    private int _currentIndex;
+    
+    private DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.ExtraExtraLarge,
+        FullWidth = true,
+        CloseButton = false,
+        CloseOnEscapeKey = true,
+        BackdropClick = true,
+        NoHeader = true
+    };
+
+    protected override void OnInitialized()
+    {
+        _currentIndex = StartIndex;
+    }
+
+    private void CloseDialog()
+    {
+        OnClose?.Invoke();
+    }
+    
+    private string FormatTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime.ToUniversalTime();
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "just now";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes}m";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours}h";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d";
+        if (timeSpan.TotalDays < 30)
+            return $"{(int)(timeSpan.TotalDays / 7)}w";
+        if (timeSpan.TotalDays < 365)
+            return $"{(int)(timeSpan.TotalDays / 30)}mo";
+        
+        return dateTime.ToString("MMM d, yyyy");
+    }
+}
+
+<style>
+    /* Dialog overrides */
+    .image-viewer-dialog .mud-dialog-container {
+        background: rgba(0, 0, 0, 0.92) !important;
+    }
+    
+    .image-viewer-dialog .mud-dialog {
+        max-width: none !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        background: transparent !important;
+    }
+    
+    .image-viewer-dialog .mud-dialog-content {
+        padding: 0 !important;
+        overflow: hidden;
+        height: 100vh;
+    }
+
+    /* Main layout */
+    .image-viewer-layout {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.95);
+        position: relative;
+    }
+
+    /* Close button */
+    .viewer-close-button {
+        position: fixed !important;
+        top: 20px;
+        right: 20px;
+        background: rgba(60, 60, 60, 0.95) !important;
+        color: white !important;
+        z-index: 9999;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .viewer-close-button:hover {
+        background: rgba(80, 80, 80, 1) !important;
+        transform: scale(1.1);
+    }
+    
+    .viewer-close-button .mud-icon-root {
+        font-size: 24px !important;
+    }
+
+    /* Left side - Image */
+    .image-viewer-left {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .single-image-viewer {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .carousel-fullscreen-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fullscreen-image {
+        max-width: 100%;
+        max-height: 100vh;
+        object-fit: contain;
+    }
+
+    .image-viewer-carousel {
+        width: 100%;
+        height: 100vh !important;
+    }
+
+    .image-viewer-carousel .mud-carousel-item {
+        height: 100vh !important;
+    }
+
+    .image-counter {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 1000;
+    }
+
+    .gif-badge-large {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        background: rgba(76, 175, 80, 0.95);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        border: 3px solid #4caf50;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+    }
+
+    /* Right side - Post details */
+    .image-viewer-right {
+        width: 400px;
+        background: var(--mud-palette-surface);
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--mud-palette-divider);
+        overflow: hidden;
+    }
+
+    /* Post header */
+    .viewer-post-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--mud-palette-divider);
+        background: var(--mud-palette-surface);
+    }
+
+    .viewer-profile-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .viewer-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .viewer-profile-details {
+        flex: 1;
+    }
+
+    .viewer-profile-name {
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .viewer-post-time {
+        font-size: 13px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    /* Post content */
+    .viewer-post-content {
+        padding: 16px;
+        border-bottom: 1px solid var(--mud-palette-divider);
+    }
+
+    .viewer-post-text {
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--mud-palette-text-primary);
+        word-wrap: break-word;
+    }
+
+    /* Reactions section */
+    .viewer-reactions-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--mud-palette-divider);
+        font-size: 14px;
+    }
+
+    .viewer-reactions-summary {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .viewer-comment-count {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    /* Action buttons */
+    .viewer-actions {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--mud-palette-divider);
+    }
+
+    .viewer-action-button {
+        flex: 1;
+        color: var(--mud-palette-text-secondary) !important;
+        text-transform: none !important;
+        font-weight: 600 !important;
+    }
+
+    .viewer-action-button:hover {
+        background: var(--mud-palette-action-default-hover) !important;
+    }
+
+    /* Comments section */
+    .viewer-comments-section {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    .viewer-comment {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .viewer-comment-avatar {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+    }
+
+    .viewer-comment-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .viewer-comment-bubble {
+        background: var(--mud-palette-background-grey);
+        padding: 10px 12px;
+        border-radius: 18px;
+        margin-bottom: 4px;
+    }
+
+    .viewer-comment-author {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 2px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .viewer-comment-text {
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .viewer-comment-meta {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        padding-left: 12px;
+    }
+
+    .viewer-no-comments {
+        text-align: center;
+        color: var(--mud-palette-text-secondary);
+        padding: 24px;
+        font-size: 15px;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 768px) {
+        .image-viewer-layout {
+            flex-direction: column;
+        }
+
+        .image-viewer-left {
+            height: 60vh;
+        }
+
+        .image-viewer-right {
+            width: 100%;
+            height: 40vh;
+            border-left: none;
+            border-top: 1px solid var(--mud-palette-divider);
+        }
+
+        .viewer-close-button {
+            top: 12px;
+            right: 12px;
+            width: 36px !important;
+            height: 36px !important;
+        }
+        
+        .viewer-close-button .mud-icon-root {
+            font-size: 20px !important;
+        }
+
+        .image-counter {
+            bottom: 16px;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .gif-badge-large {
+            top: 16px;
+            left: 16px;
+            font-size: 14px;
+            padding: 6px 12px;
+        }
+    }
+</style>

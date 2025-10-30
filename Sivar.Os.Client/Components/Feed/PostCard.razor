@@ -1,7 +1,9 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.Extensions.Logging
+@using MudBlazor
 @inject ILogger<PostCard> Logger
+@inject IDialogService DialogService
 
 @* PostCard component for displaying a complete post *@
 
@@ -24,11 +26,10 @@
         <div class="post-attachments">
             @if (Post.Attachments.Count == 1)
             {
-                <div class="single-image">
+                <div class="single-image" @onclick="@(() => OpenImageViewer(0))" style="cursor: pointer;">
                     <img src="@Post.Attachments[0].FilePath" 
                          alt="@(Post.Attachments[0].AltText ?? Post.Attachments[0].OriginalFilename)" 
-                         class="attachment-image" 
-                         @onclick="@(() => Logger.LogInformation("Image clicked: {Url}", Post.Attachments[0].FilePath))" />
+                         class="attachment-image" />
                     @if (Post.Attachments[0].MimeType == "image/gif")
                     {
                         <div class="gif-badge">GIF</div>
@@ -44,10 +45,12 @@
                              EnableSwipeGesture="true"
                              AutoCycle="false"
                              TData="object">
-                    @foreach (var attachment in Post.Attachments)
+                    @for (int i = 0; i < Post.Attachments.Count; i++)
                     {
+                        var index = i; // Capture loop variable
+                        var attachment = Post.Attachments[index];
                         <MudCarouselItem Transition="Transition.Slide">
-                            <div class="carousel-image-container">
+                            <div class="carousel-image-container" @onclick="@(() => OpenImageViewer(index))" style="cursor: pointer;">
                                 <img src="@attachment.FilePath" 
                                      alt="@(attachment.AltText ?? attachment.OriginalFilename)" 
                                      class="carousel-image" />
@@ -218,5 +221,36 @@
     {
         if (string.IsNullOrEmpty(name)) return "?";
         return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    /// <summary>
+    /// Opens the image viewer dialog with the selected image
+    /// </summary>
+    private async Task OpenImageViewer(int startIndex)
+    {
+        Logger.LogInformation("[PostCard.OpenImageViewer] Opening image viewer at index {Index}", startIndex);
+        
+        IDialogReference? dialogRef = null;
+        
+        var parameters = new DialogParameters
+        {
+            { "Post", Post },
+            { "Attachments", Post.Attachments },
+            { "StartIndex", startIndex },
+            { "OnClose", new Action(() => dialogRef?.Close()) }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            FullWidth = true,
+            CloseButton = false,
+            CloseOnEscapeKey = true,
+            BackdropClick = true,
+            NoHeader = true,
+            Position = DialogPosition.Center
+        };
+
+        dialogRef = await DialogService.ShowAsync<ImageViewerDialog>("", parameters, options);
     }
 }
