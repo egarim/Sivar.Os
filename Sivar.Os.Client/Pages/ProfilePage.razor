@@ -5,6 +5,7 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Profile
+@using Sivar.Os.Client.Components.Feed
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Web
@@ -12,6 +13,7 @@
 @inject NavigationManager Navigation
 @inject IProfilesClient ProfilesClient
 @inject IFollowersClient FollowersClient
+@inject IPostsClient PostsClient
 @inject ILogger<ProfilePage> Logger
 
 @if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
@@ -162,6 +164,32 @@
         margin-top: 4px;
     }
 
+    /* Posts Section */
+    .profile-page .profile-posts-section {
+        margin-top: 24px;
+    }
+
+    .profile-page .profile-posts-section > h6,
+    .profile-page .profile-posts-section > .mud-typography-h6 {
+        color: var(--wire-text-primary);
+        font-weight: 600;
+        margin-bottom: 16px;
+        letter-spacing: -0.2px;
+    }
+
+    .profile-page .posts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .profile-page .post-wrapper {
+        width: 100%;
+    }
+
+    /* Don't override wireframe-landing post-card styles - they're already perfect */
+    /* Just add small spacing adjustments if needed */
+
     /* Action Buttons */
     .profile-page .profile-actions {
         display: flex;
@@ -244,7 +272,7 @@
     }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="profile-page">
+<MudContainer MaxWidth="MaxWidth.False" Class="profile-page wireframe-landing">
     <ProfileHeader Title="Profile" OnBackClick="GoBack" />
 
     <div class="profile-container">
@@ -266,6 +294,66 @@
         <ComingSoonAlert 
             Title="Profile Features Coming Soon"
             Message="Full profile details, activity feed, and customization options will be available soon." />
+
+        @if (isLoadingPosts)
+        {
+            <MudCard Class="mt-4">
+                <MudCardContent>
+                    <div style="text-align: center; padding: 20px;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.body1" Class="mt-2">Loading posts...</MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
+        else if (posts.Any())
+        {
+            <div class="profile-posts-section">
+                <MudText Typo="Typo.h6" Class="mb-3" style="color: var(--wire-text-primary); font-weight: 600;">Posts</MudText>
+                <div class="posts-list">
+                    @foreach (var post in posts)
+                    {
+                        <div class="post-wrapper">
+                            <PostCard 
+                                Post="@post"
+                                CurrentUserId="@Guid.Empty"
+                                OnLike="@HandleLike"
+                                OnCommentClick="@HandleComment"
+                                OnShare="@HandleShare"
+                                OnSave="@HandleSave"
+                                OnMore="@HandleMore"
+                                OnAuthorClick="@HandleAuthorClick"
+                                OnEdit="@HandleEdit"
+                                OnDelete="@HandleDelete"
+                                OnViewAnalytics="@HandleViewAnalytics"
+                                OnReport="@HandleReport"
+                                OnCopyLink="@HandleCopyLink" />
+                        </div>
+                    }
+                </div>
+                
+                @if (totalPostCount > posts.Count)
+                {
+                    <div class="text-center mt-4">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadMorePosts">
+                            Load More Posts (@posts.Count of @totalPostCount)
+                        </MudButton>
+                    </div>
+                }
+            </div>
+        }
+        else if (!isLoadingPosts && viewedProfileId.HasValue)
+        {
+            <MudCard Class="mt-4">
+                <MudCardContent>
+                    <div style="text-align: center; padding: 20px;">
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">
+                            No posts yet from this profile.
+                        </MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
     </div>
 </MudContainer>
 
@@ -279,6 +367,13 @@
     private bool isFollowing = false;
     private bool isFollowActionInProgress = false;
     private Guid? viewedProfileId = null;
+    
+    // Posts-related state
+    private List<PostDto> posts = new();
+    private bool isLoadingPosts = false;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPostCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -334,6 +429,9 @@
                     Bio = profile.Bio ?? "No bio available",
                     Stats = stats
                 };
+                
+                // Load posts for this profile
+                await LoadPostsAsync();
             }
         }
         catch (Exception ex)
@@ -534,4 +632,156 @@
     {
         // TODO: Implement message logic
     }
+
+    #region Post Loading and Interaction Methods
+
+    private async Task LoadPostsAsync()
+    {
+        if (!viewedProfileId.HasValue)
+        {
+            Logger.LogWarning("[LoadPostsAsync] Cannot load posts - viewedProfileId is null");
+            return;
+        }
+
+        isLoadingPosts = true;
+        currentPage = 1;
+        posts.Clear();
+        
+        try
+        {
+            Logger.LogInformation("[LoadPostsAsync] Loading posts for profile: {ProfileId}", viewedProfileId.Value);
+            
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            
+            if (postFeed != null)
+            {
+                posts = postFeed.Posts ?? new List<PostDto>();
+                totalPostCount = postFeed.TotalCount;
+                
+                // Update the post count in profile stats
+                profileData.Stats.Posts = totalPostCount;
+                
+                Logger.LogInformation("[LoadPostsAsync] Loaded {PostCount} posts (Total: {TotalCount})", 
+                    posts.Count, totalPostCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadPostsAsync] Error loading posts for profile: {ProfileId}", viewedProfileId);
+            posts = new List<PostDto>();
+            totalPostCount = 0;
+        }
+        finally
+        {
+            isLoadingPosts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMorePosts()
+    {
+        if (!viewedProfileId.HasValue || isLoadingPosts)
+            return;
+
+        isLoadingPosts = true;
+        currentPage++;
+        
+        try
+        {
+            Logger.LogInformation("[LoadMorePosts] Loading page {Page} for profile: {ProfileId}", 
+                currentPage, viewedProfileId.Value);
+            
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            
+            if (postFeed?.Posts != null && postFeed.Posts.Any())
+            {
+                posts.AddRange(postFeed.Posts);
+                Logger.LogInformation("[LoadMorePosts] Added {NewPostCount} posts. Total loaded: {TotalLoaded}", 
+                    postFeed.Posts.Count, posts.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadMorePosts] Error loading more posts for profile: {ProfileId}", viewedProfileId);
+            currentPage--; // Revert page increment on error
+        }
+        finally
+        {
+            isLoadingPosts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLike(PostDto post)
+    {
+        Logger.LogInformation("[HandleLike] Post: {PostId}", post.Id);
+        // TODO: Implement like functionality
+    }
+
+    private async Task HandleComment(PostDto post)
+    {
+        Logger.LogInformation("[HandleComment] Post: {PostId}", post.Id);
+        Navigation.NavigateTo($"/posts/{post.Id}");
+    }
+
+    private async Task HandleShare(PostDto post)
+    {
+        Logger.LogInformation("[HandleShare] Post: {PostId}", post.Id);
+        // TODO: Implement share functionality
+    }
+
+    private async Task HandleSave(PostDto post)
+    {
+        Logger.LogInformation("[HandleSave] Post: {PostId}", post.Id);
+        // TODO: Implement save functionality
+    }
+
+    private async Task HandleMore(PostDto post)
+    {
+        Logger.LogInformation("[HandleMore] Post: {PostId}", post.Id);
+        // TODO: Implement more options menu
+    }
+
+    private async Task HandleAuthorClick(string handle)
+    {
+        Logger.LogInformation("[HandleAuthorClick] Handle: {Handle}", handle);
+        if (!string.IsNullOrEmpty(handle))
+        {
+            Navigation.NavigateTo($"/{handle}");
+        }
+    }
+
+    private async Task HandleEdit(PostDto post)
+    {
+        Logger.LogInformation("[HandleEdit] Post: {PostId}", post.Id);
+        // TODO: Implement edit functionality
+    }
+
+    private async Task HandleDelete(PostDto post)
+    {
+        Logger.LogInformation("[HandleDelete] Post: {PostId}", post.Id);
+        // TODO: Implement delete functionality with confirmation
+    }
+
+    private async Task HandleViewAnalytics(PostDto post)
+    {
+        Logger.LogInformation("[HandleViewAnalytics] Post: {PostId}", post.Id);
+        // TODO: Implement analytics view
+    }
+
+    private async Task HandleReport(PostDto post)
+    {
+        Logger.LogInformation("[HandleReport] Post: {PostId}", post.Id);
+        // TODO: Implement report functionality
+    }
+
+    private async Task HandleCopyLink(PostDto post)
+    {
+        Logger.LogInformation("[HandleCopyLink] Post: {PostId}", post.Id);
+        var postUrl = $"{Navigation.BaseUri}posts/{post.Id}";
+        // TODO: Implement clipboard copy functionality
+        Logger.LogInformation("[HandleCopyLink] Post URL: {PostUrl}", postUrl);
+    }
+
+    #endregion
 }

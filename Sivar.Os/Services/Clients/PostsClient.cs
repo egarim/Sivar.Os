@@ -233,7 +233,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, pageSize, pageNumber);
+            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, pageNumber, pageSize);
             var dtos = posts.Select(MapPostToDto).ToList();
 
             _logger.LogInformation("Profile posts retrieved for profile {ProfileId}: {Count} items", profileId, dtos.Count);
