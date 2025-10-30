@@ -336,14 +336,42 @@ public class AzureBlobStorageService : IFileStorageService
             var containers = _blobServiceClient.GetBlobContainersAsync();
             var containerCount = 0;
             
+            _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Starting container search - RequestId={RequestId}, FileId={FileId}",
+                requestId, fileId);
+            
             await foreach (var container in containers)
             {
                 containerCount++;
-                var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
-                var blobs = containerClient.GetBlobsAsync(prefix: fileId);
+                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Searching container - RequestId={RequestId}, FileId={FileId}, Container={Container}",
+                    requestId, fileId, container.Name);
                 
+                var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
+                
+                // ⭐ Generate the correct blob prefix based on namespace configuration
+                // This matches the logic in GenerateBlobName()
+                var searchPrefix = _config.UseHierarchicalNamespace 
+                    ? $"posts/{fileId}"  // Hierarchical: "posts/abc123"
+                    : fileId;            // Flat: "abc123"
+                
+                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Using search prefix - RequestId={RequestId}, Prefix={Prefix}, UseHierarchicalNamespace={UseHierarchical}",
+                    requestId, searchPrefix, _config.UseHierarchicalNamespace);
+                
+                // ⭐ CRITICAL: Request metadata with BlobTraits.Metadata
+                var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: searchPrefix);
+                
+                var blobCount = 0;
                 await foreach (var blob in blobs)
                 {
+                    blobCount++;
+                    _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Found blob with prefix - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, HasMetadata={HasMetadata}",
+                        requestId, fileId, blob.Name, blob.Metadata != null);
+                    
+                    if (blob.Metadata?.ContainsKey("file_id") == true)
+                    {
+                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Blob has file_id metadata - RequestId={RequestId}, FileId={FileId}, MetadataFileId={MetadataFileId}, Match={Match}",
+                            requestId, fileId, blob.Metadata["file_id"], blob.Metadata["file_id"] == fileId);
+                    }
+                    
                     if (blob.Metadata?.ContainsKey("file_id") == true && 
                         blob.Metadata["file_id"] == fileId)
                     {
@@ -361,6 +389,9 @@ public class AzureBlobStorageService : IFileStorageService
                         return url;
                     }
                 }
+                
+                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Container search complete - RequestId={RequestId}, FileId={FileId}, Container={Container}, BlobsFound={BlobsFound}",
+                    requestId, fileId, container.Name, blobCount);
             }
 
             _logger.LogWarning("[AzureBlobStorageService.GetFileUrlAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
@@ -610,12 +641,38 @@ public class AzureBlobStorageService : IFileStorageService
 
     private string GeneratePublicUrl(Uri blobUri, string container, string fileId, string fileName)
     {
+        _logger.LogDebug("[AzureBlobStorageService.GeneratePublicUrl] START - BlobUri={BlobUri}, Container={Container}, FileId={FileId}, FileName={FileName}",
+            blobUri, container, fileId, fileName);
+        
+        // In development, use the blob proxy to avoid CORS issues with Azurite
+        // In production, use the configured BaseUrl or blob URI directly
+        
         if (!string.IsNullOrEmpty(_config.BaseUrl))
         {
-            return $"{_config.BaseUrl.TrimEnd('/')}/{container}/{fileId}_{fileName}";
+            var url = $"{_config.BaseUrl.TrimEnd('/')}/{container}/{fileId}_{fileName}";
+            _logger.LogInformation("[AzureBlobStorageService.GeneratePublicUrl] Using BaseUrl - URL={URL}", url);
+            return url;
         }
 
-        return blobUri.ToString();
+        // Check if running against Azurite (development)
+        if (blobUri.Host.Contains("127.0.0.1") || blobUri.Host.Contains("localhost"))
+        {
+            // Use blob proxy endpoint to avoid CORS issues
+            // Include prefix if using hierarchical namespace
+            var blobName = _config.UseHierarchicalNamespace 
+                ? $"posts/{fileId}_{fileName}"
+                : $"{fileId}_{fileName}";
+            var proxyUrl = $"/api/blob-proxy/{container}/{blobName}";
+            _logger.LogInformation("[AzureBlobStorageService.GeneratePublicUrl] Detected Azurite, using proxy - Host={Host}, ProxyUrl={ProxyUrl}",
+                blobUri.Host, proxyUrl);
+            return proxyUrl;
+        }
+
+        // Production Azure Blob Storage URL
+        var productionUrl = blobUri.ToString();
+        _logger.LogInformation("[AzureBlobStorageService.GeneratePublicUrl] Using production blob URL - Host={Host}, URL={URL}",
+            blobUri.Host, productionUrl);
+        return productionUrl;
     }
 
     #endregion

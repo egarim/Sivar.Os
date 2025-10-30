@@ -58,6 +58,7 @@
                           @bind-PostTags="@_postTags"
                           @bind-PostLocation="@_postLocation"
                           @bind-PostBusinessMetadata="@_postBusinessMetadata"
+                          @bind-SelectedFiles="@_selectedFiles"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             @foreach (var activity in _activities)
@@ -148,6 +149,7 @@
     private DateTime? _scheduledDate;
     private TimeOnly? _scheduledTime;
     private string _scheduledLocation = string.Empty;
+    private List<IBrowserFile> _selectedFiles = new();
     
     // Post Composer Advanced Options
     private VisibilityLevel _postVisibility = VisibilityLevel.Public;
@@ -1202,6 +1204,22 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     Console.WriteLine($"    Actor: {activity.Actor?.DisplayName ?? "null"}");
                     Console.WriteLine($"    Actor Handle: '{activity.Actor?.Handle}' (IsNull: {activity.Actor?.Handle == null})");
                     Console.WriteLine($"    Post: {(activity.Post != null ? $"PostId={activity.Post.Id}" : "null")}");
+                    
+                    if (activity.Post != null)
+                    {
+                        var attachmentCount = activity.Post.Attachments?.Count ?? 0;
+                        Console.WriteLine($"    Post Attachments: {attachmentCount} items");
+                        
+                        if (attachmentCount > 0 && activity.Post.Attachments != null)
+                        {
+                            for (int j = 0; j < activity.Post.Attachments.Count; j++)
+                            {
+                                var att = activity.Post.Attachments[j];
+                                Console.WriteLine($"      Attachment {j + 1}: FileId={att.FileId}, Path={att.FilePath}");
+                            }
+                        }
+                    }
+                    
                     if (activity.Post?.Profile != null)
                     {
                         Console.WriteLine($"    Post Profile: {activity.Post.Profile.DisplayName}");
@@ -1300,6 +1318,48 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 ? pt 
                 : PostType.General;
             
+            // Upload selected images first
+            var attachments = new List<CreatePostAttachmentDto>();
+            
+            if (_selectedFiles != null && _selectedFiles.Count > 0)
+            {
+                Console.WriteLine($"[Home] Uploading {_selectedFiles.Count} images...");
+                
+                foreach (var file in _selectedFiles)
+                {
+                    try
+                    {
+                        Console.WriteLine($"[Home] Uploading file: {file.Name} ({file.Size} bytes, {file.ContentType})");
+                        
+                        // Open stream and upload
+                        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max
+                        var uploadResult = await SivarClient.Files.UploadFileAsync(stream, file.Name, file.ContentType, "posts");
+                        
+                        Console.WriteLine($"[Home] File uploaded - FileId: {uploadResult.FileId}, URL: {uploadResult.Url}");
+                        
+                        // ⭐ Add to attachments - DO NOT store URL, only FileId
+                        // URL will be generated dynamically by PostService using GetFileUrlAsync
+                        attachments.Add(new CreatePostAttachmentDto
+                        {
+                            AttachmentType = AttachmentType.Image,
+                            FileId = uploadResult.FileId,
+                            FilePath = "", // ⭐ Empty - URL generated server-side from FileId
+                            OriginalFilename = file.Name,
+                            MimeType = file.ContentType,
+                            FileSize = file.Size,
+                            DisplayOrder = attachments.Count
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Home] Error uploading file {file.Name}: {ex.Message}");
+                        // Continue with other files
+                    }
+                }
+                
+                Console.WriteLine($"[Home] Successfully uploaded {attachments.Count}/{_selectedFiles.Count} images");
+            }
+            
             // Build CreatePostDto with all fields from PostComposer - INCLUDE ProfileId from active profile
             var createPostDto = new CreatePostDto
             {
@@ -1315,7 +1375,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 BusinessMetadata = !string.IsNullOrEmpty(_postBusinessMetadata)
                     ? _postBusinessMetadata
                     : null,
-                Attachments = new()  // TODO: Handle attachments from _activeAttachment
+                Attachments = attachments
             };
 
             var newPost = await SivarClient.Posts.CreatePostAsync(createPostDto);
@@ -1335,6 +1395,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _scheduledDate = null;
                 _scheduledTime = null;
                 _scheduledLocation = string.Empty;
+                _selectedFiles = new();  // Create new empty list
                 
                 // Clear advanced options
                 _postVisibility = VisibilityLevel.Public;

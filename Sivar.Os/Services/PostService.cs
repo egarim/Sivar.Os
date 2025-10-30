@@ -970,7 +970,7 @@ public class PostService : IPostService
                         PostId = postId,
                         AttachmentType = attachmentDto.AttachmentType,
                         FileId = attachmentDto.FileId,
-                        Url = attachmentDto.FilePath,
+                        Url = $"blob://{attachmentDto.FileId}/{attachmentDto.OriginalFilename}", // ⭐ Placeholder URL - actual URL generated dynamically via GetFileUrlAsync
                         OriginalFileName = attachmentDto.OriginalFilename,
                         MimeType = attachmentDto.MimeType,
                         FileSizeBytes = attachmentDto.FileSize,
@@ -993,6 +993,9 @@ public class PostService : IPostService
                 }
             }
 
+            // Save all attachments to database
+            await _postAttachmentRepository.SaveChangesAsync();
+            
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, ProcessedCount={ProcessedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
                 requestId, postId, successCount, attachments.Count, elapsed);
@@ -1078,19 +1081,61 @@ public class PostService : IPostService
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] Retrieved {AttachmentCount} attachments - RequestId={RequestId}, PostId={PostId}",
                 attachments.Count, requestId, postId);
 
-            var attachmentDtos = attachments.Select(attachment => new PostAttachmentDto
+            var attachmentDtos = new List<PostAttachmentDto>();
+
+            foreach (var attachment in attachments)
             {
-                Id = attachment.Id,
-                AttachmentType = attachment.AttachmentType,
-                FileId = attachment.FileId,
-                FilePath = attachment.Url,
-                OriginalFilename = attachment.OriginalFileName ?? "",
-                MimeType = attachment.MimeType ?? "",
-                FileSize = attachment.FileSizeBytes ?? 0,
-                AltText = attachment.Description,
-                DisplayOrder = attachment.DisplayOrder,
-                CreatedAt = attachment.CreatedAt
-            }).ToList();
+                string publicUrl;
+                
+                if (string.IsNullOrEmpty(attachment.FileId))
+                {
+                    // No FileId - use error placeholder
+                    _logger.LogWarning("[PostService.MapAttachmentsToDtosAsync] Missing FileId - RequestId={RequestId}, AttachmentId={AttachmentId}",
+                        requestId, attachment.Id);
+                    publicUrl = $"/api/file-missing/{attachment.Id}";
+                }
+                else
+                {
+                    try
+                    {
+                        // ⭐ CRITICAL: Always generate URL dynamically from FileId - NEVER use stored URL
+                        publicUrl = await _fileStorageService.GetFileUrlAsync(attachment.FileId);
+                        
+                        _logger.LogDebug("[PostService.MapAttachmentsToDtosAsync] Generated public URL - RequestId={RequestId}, FileId={FileId}, URL={URL}",
+                            requestId, attachment.FileId, publicUrl);
+                    }
+                    catch (FileNotFoundException ex)
+                    {
+                        // File not found in blob storage - log error and use error placeholder
+                        _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] File not found in blob storage - RequestId={RequestId}, FileId={FileId}, OriginalFileName={FileName}",
+                            requestId, attachment.FileId, attachment.OriginalFileName);
+                        publicUrl = $"/api/file-not-found/{attachment.FileId}"; // Error placeholder
+                    }
+                    catch (Exception ex)
+                    {
+                        // Other error generating URL - log and use error placeholder
+                        _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] Error generating public URL - RequestId={RequestId}, FileId={FileId}, OriginalFileName={FileName}",
+                            requestId, attachment.FileId, attachment.OriginalFileName);
+                        publicUrl = $"/api/file-error/{attachment.FileId}"; // Error placeholder
+                    }
+                }
+
+                var dto = new PostAttachmentDto
+                {
+                    Id = attachment.Id,
+                    AttachmentType = attachment.AttachmentType,
+                    FileId = attachment.FileId,
+                    FilePath = publicUrl, // ⭐ Dynamically generated URL (proxy or public)
+                    OriginalFilename = attachment.OriginalFileName ?? "",
+                    MimeType = attachment.MimeType ?? "",
+                    FileSize = attachment.FileSizeBytes ?? 0,
+                    AltText = attachment.Description,
+                    DisplayOrder = attachment.DisplayOrder,
+                    CreatedAt = attachment.CreatedAt
+                };
+
+                attachmentDtos.Add(dto);
+            }
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, MappedCount={MappedCount}, Duration={Duration}ms",

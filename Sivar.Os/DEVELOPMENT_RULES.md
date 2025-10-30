@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: October 29, 2025  
+> **Last Updated**: October 30, 2025  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -12,12 +12,19 @@
 3. [Service Layer Rules](#service-layer-rules)
 4. [Repository Layer Rules](#repository-layer-rules)
 5. [Controller Usage](#controller-usage)
-6. [CSS Organization & Styling](#css-organization--styling)
-7. [Logging Standards](#logging-standards)
-8. [Authentication & Authorization](#authentication--authorization)
-9. [Error Handling](#error-handling)
-10. [Testing & Debugging](#testing--debugging)
-11. [References](#references)
+6. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
+   - Storage Configuration & Hierarchical Namespace
+   - CORS & Mixed Content Solutions
+   - Proxy Endpoint Implementation
+   - URL Generation Strategy (Dynamic vs Stored)
+   - GetFileUrlAsync - The Critical Metadata Loading Fix
+   - Troubleshooting Guide & Common Issues
+7. [CSS Organization & Styling](#css-organization--styling)
+8. [Logging Standards](#logging-standards)
+9. [Authentication & Authorization](#authentication--authorization)
+10. [Error Handling](#error-handling)
+11. [Testing & Debugging](#testing--debugging)
+12. [References](#references)
 
 ---
 
@@ -751,6 +758,1332 @@ Controllers may be needed in the future for:
 2. Update this guide
 3. Ensure authentication is properly configured
 4. Add API versioning
+
+---
+
+## File Upload & Blob Storage
+
+### ⭐ File Upload is a CRITICAL feature - Follow these patterns consistently
+
+File upload functionality is a core feature of Sivar.Os, enabling users to attach images (JPG, PNG, GIF, WebP) to posts. The system uses Azure Blob Storage for file persistence and implements a server-side proxy to handle CORS/Mixed Content issues during development.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Blazor Component                          │
+│                   (PostComposer.razor)                       │
+│                  - InputFile component                       │
+│                  - Preview generation                        │
+│                  - File validation                           │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   Parent Component                           │
+│                      (Home.razor)                            │
+│              - Upload files via FilesClient                  │
+│              - Create post attachments                       │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    FilesClient                               │
+│                (Client & Server Implementations)             │
+│              - UploadFileAsync                               │
+│              - UploadBulkAsync                               │
+│              - DeleteBulkAsync                               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│              AzureBlobStorageService                         │
+│              - UploadFileAsync                               │
+│              - GeneratePublicUrl (with proxy detection)      │
+│              - DeleteFileAsync                               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  Azure Blob Storage                          │
+│              (Production) or Azurite (Development)           │
+│                                                              │
+│              ⬅️ PROXY ENDPOINT (Development Only) ⬅️          │
+│              /api/blob-proxy/{container}/{blobPath}          │
+│              Bypasses CORS/Mixed Content issues              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Storage Configuration
+
+**Production:** Azure Blob Storage  
+**Development:** Azurite (Local Azure Storage Emulator)
+
+**Configuration (`appsettings.json`):**
+```json
+{
+  "AzureBlobStorage": {
+    "ConnectionString": "UseDevelopmentStorage=true",
+    "BaseUrl": "https://localhost:7165",
+    "UseHierarchicalNamespace": true  // ⭐ CRITICAL for blob organization
+  }
+}
+```
+
+**⚠️ CRITICAL: Hierarchical Namespace Setting**
+
+The `UseHierarchicalNamespace` setting determines how blobs are named and organized:
+
+| Setting | Blob Name Format | Use Case |
+|---------|------------------|----------|
+| `true` | `posts/{fileId}_{filename}` | **RECOMMENDED** - Better organization, folder-like structure |
+| `false` | `{fileId}_{filename}` | Flat structure, all files in root |
+
+**Why This Matters:**
+- ✅ With hierarchical namespace: Blobs are stored in logical folders (`posts/`, `avatars/`, etc.)
+- ❌ Without: All blobs are in the container root (messy with many files)
+- 🔍 URL generation and blob search logic depend on this setting
+- 🚨 Changing this setting requires updating ALL uploaded blob paths
+
+### ⚠️ CRITICAL: CORS & Mixed Content Issue
+
+**Problem:** When using HTTPS in development, browsers block HTTP resources from Azurite due to Mixed Content policy. Additionally, CORS errors occur when loading blob images.
+
+**❌ WRONG Solutions (Don't Use):**
+- Configuring Azurite CORS manually (complex, fragile, doesn't solve Mixed Content)
+- Using HTTP instead of HTTPS (insecure, doesn't match production)
+- Client-side CORS workarounds (don't work for Mixed Content)
+- Storing raw Azurite URLs in database (breaks when moving to production)
+
+**✅ CORRECT Solution: Server-Side Proxy + Dynamic URL Generation**
+
+The solution has TWO critical components:
+
+1. **Server-Side Proxy Endpoint** - Fetches images from Azurite server-side and serves via HTTPS
+2. **Dynamic URL Generation** - Never stores raw URLs in database, generates proxy URLs on-the-fly
+
+### ⚠️ CRITICAL LESSON: The Proxy Blob Path Must Match Storage Structure
+
+**THE ROOT CAUSE OF ALL 404 ERRORS:**
+
+When hierarchical namespace is enabled, blobs are stored as `posts/{fileId}_{filename}`, but the proxy was initially generating URLs without the `posts/` prefix, causing 404 errors.
+
+**How It Should Work:**
+
+| Storage Mode | Blob Name in Azurite | Proxy URL | Azurite URL |
+|--------------|---------------------|-----------|-------------|
+| Hierarchical (`true`) | `posts/abc123_image.jpg` | `/api/blob-proxy/sivaros-posts/posts/abc123_image.jpg` | `http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/posts/abc123_image.jpg` |
+| Flat (`false`) | `abc123_image.jpg` | `/api/blob-proxy/sivaros-posts/abc123_image.jpg` | `http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/abc123_image.jpg` |
+
+**Key Insight:** The proxy URL path segment must EXACTLY match the blob name in storage, including any prefix folders.
+
+### Proxy Endpoint Implementation
+
+**Location:** `Program.cs`
+
+**⚠️ IMPORTANT:** The proxy endpoint uses a catch-all route parameter `{*blobPath}` to capture the ENTIRE blob path, including any folder prefixes like `posts/`.
+
+```csharp
+// ⭐ Blob Proxy Endpoint (Development - bypasses CORS/Mixed Content)
+// Note: {*blobPath} captures the full path including folders (e.g., "posts/abc123_image.jpg")
+app.MapGet("/api/blob-proxy/{container}/{*blobPath}", async (
+    string container,
+    string blobPath,
+    HttpContext context,
+    ILogger<Program> logger) =>
+{
+    logger.LogInformation(
+        "[BlobProxy] Proxying request - Container={Container}, Path={Path}",
+        container,
+        blobPath);
+
+    try
+    {
+        // Construct full Azurite URL with the exact blob path
+        var azuriteUrl = $"http://127.0.0.1:10000/devstoreaccount1/{container}/{blobPath}";
+        logger.LogInformation("[BlobProxy] Fetching from Azurite - URL={URL}", azuriteUrl);
+
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync(azuriteUrl);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning("[BlobProxy] Blob not found - StatusCode={StatusCode}, Path={Path}", 
+                response.StatusCode, blobPath);
+            return Results.NotFound();
+        }
+
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var stream = await response.Content.ReadAsStreamAsync();
+
+        // Set cache headers for performance
+        context.Response.Headers.CacheControl = "public, max-age=31536000"; // 1 year
+        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+
+        return Results.Stream(stream, contentType);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BlobProxy] Error proxying blob - Path={Path}", blobPath);
+        return Results.Problem("Failed to load image");
+    }
+}).AllowAnonymous(); // Public images, no auth required
+```
+
+**Critical Details:**
+- ✅ `{*blobPath}` captures full path including folders (e.g., `posts/abc123_image.jpg`)
+- ✅ Constructs exact Azurite URL: `http://127.0.0.1:10000/devstoreaccount1/{container}/{blobPath}`
+- ✅ No auth required - public images
+- ✅ Caching headers for performance
+- ✅ CORS headers to allow all origins
+
+### URL Generation with Proxy Detection
+
+**Location:** `AzureBlobStorageService.cs → GeneratePublicUrl()`
+
+**⚠️ CRITICAL:** This method must account for hierarchical namespace when generating proxy URLs.
+
+```csharp
+private string GeneratePublicUrl(Uri blobUri, string container, string fileId, string fileName)
+{
+    _logger.LogDebug(
+        "[GeneratePublicUrl] START - BlobUri={BlobUri}, Container={Container}, FileId={FileId}, FileName={FileName}",
+        blobUri, container, fileId, fileName);
+
+    // In development, use the blob proxy to avoid CORS issues with Azurite
+    // In production, use the configured BaseUrl or blob URI directly
+    
+    if (!string.IsNullOrEmpty(_config.BaseUrl))
+    {
+        var url = $"{_config.BaseUrl.TrimEnd('/')}/{container}/{fileId}_{fileName}";
+        _logger.LogInformation("[GeneratePublicUrl] Using BaseUrl - URL={URL}", url);
+        return url;
+    }
+
+    // ⭐ CRITICAL: Check if running against Azurite (development)
+    if (blobUri.Host.Contains("127.0.0.1") || blobUri.Host.Contains("localhost"))
+    {
+        // ⚠️ CRITICAL FIX: Include prefix if using hierarchical namespace
+        // This ensures the proxy URL matches the actual blob path in storage
+        var blobName = _config.UseHierarchicalNamespace 
+            ? $"posts/{fileId}_{fileName}"      // With folder prefix
+            : $"{fileId}_{fileName}";            // Flat structure
+            
+        var proxyUrl = $"/api/blob-proxy/{container}/{blobName}";
+        
+        _logger.LogInformation(
+            "[GeneratePublicUrl] Detected Azurite, using proxy - Host={Host}, ProxyUrl={ProxyUrl}",
+            blobUri.Host, proxyUrl);
+        
+        return proxyUrl;
+    }
+
+    // Production Azure Blob Storage URL
+    var productionUrl = blobUri.ToString();
+    _logger.LogInformation(
+        "[GeneratePublicUrl] Using production blob URL - Host={Host}, URL={URL}",
+        blobUri.Host, productionUrl);
+    
+    return productionUrl;
+}
+```
+
+**Why This Fix Was Critical:**
+
+❌ **Before (Broken):**
+- Blob stored as: `posts/abc123_image.jpg`
+- Proxy URL generated: `/api/blob-proxy/sivaros-posts/abc123_image.jpg`
+- Azurite request: `http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/abc123_image.jpg`
+- Result: **404 Not Found** (blob is at `posts/abc123_image.jpg`, not `abc123_image.jpg`)
+
+✅ **After (Fixed):**
+- Blob stored as: `posts/abc123_image.jpg`
+- Proxy URL generated: `/api/blob-proxy/sivaros-posts/posts/abc123_image.jpg`
+- Azurite request: `http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/posts/abc123_image.jpg`
+- Result: **200 OK** (exact match!)
+
+### Blob Upload and Naming Convention
+
+**Location:** `AzureBlobStorageService.cs → UploadFileAsync()`
+
+```csharp
+public async Task<UploadFileResponseDto> UploadFileAsync(UploadFileRequestDto request)
+{
+    var fileId = Guid.NewGuid().ToString("N");
+    
+    // ⭐ CRITICAL: Blob name depends on UseHierarchicalNamespace setting
+    var blobName = _config.UseHierarchicalNamespace
+        ? $"posts/{fileId}_{request.FileName}"    // Hierarchical: posts/abc123_image.jpg
+        : $"{fileId}_{request.FileName}";         // Flat: abc123_image.jpg
+    
+    var blobClient = containerClient.GetBlobClient(blobName);
+    
+    // Upload with metadata
+    var metadata = new Dictionary<string, string>
+    {
+        { "file_id", fileId },
+        { "original_filename", request.FileName },
+        { "uploaded_at", DateTime.UtcNow.ToString("O") }
+    };
+    
+    await blobClient.UploadAsync(
+        new BinaryData(request.FileData),
+        new BlobUploadOptions
+        {
+            Metadata = metadata,
+            HttpHeaders = new BlobHttpHeaders { ContentType = request.MimeType }
+        });
+    
+    // ⚠️ CRITICAL: Don't return raw Azurite URL, return empty or placeholder
+    // The actual URL will be generated dynamically when needed
+    return new UploadFileResponseDto
+    {
+        FileId = fileId,
+        FilePath = "",  // Empty - URL generated dynamically
+        FileName = request.FileName,
+        MimeType = request.MimeType
+    };
+}
+```
+
+**Key Points:**
+- Blob name format depends on `UseHierarchicalNamespace` setting
+- Metadata stored with blob (`file_id`, `original_filename`, `uploaded_at`)
+- Returns empty `FilePath` - URLs generated dynamically, not stored
+
+### ⚠️ CRITICAL: URL Storage Strategy - Never Store Raw URLs
+
+**THE PROBLEM WITH STORING URLS:**
+
+When we first implemented file uploads, we stored the raw Azurite URLs in the database:
+```sql
+-- ❌ WRONG - Raw Azurite URLs in database
+FilePath: "http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/posts/abc123_image.jpg"
+```
+
+**Why This Was Broken:**
+1. ❌ Mixed Content errors (HTTP URLs on HTTPS pages)
+2. ❌ Environment-specific URLs (Azurite URLs don't work in production)
+3. ❌ Can't switch storage providers without database migration
+4. ❌ No proxy support (URLs bypass the proxy endpoint)
+
+**✅ CORRECT SOLUTION: Dynamic URL Generation**
+
+**What We Store in Database:**
+```sql
+-- ✅ CORRECT - Store placeholder or empty
+FilePath: ""  -- Empty, or "blob://{fileId}/{filename}" placeholder
+FileId: "abc123def456"  -- Always stored
+FileName: "image.jpg"   -- Always stored
+```
+
+**How URLs are Generated:**
+
+1. **During Upload** (`UploadFileAsync`):
+   - Upload blob to storage with metadata
+   - Return `FileId`, `FileName`, but **empty or placeholder FilePath**
+   - Store attachment in database with empty FilePath
+
+2. **During Display** (`MapAttachmentsToDtosAsync`):
+   - For each attachment, call `GetFileUrlAsync(fileId)`
+   - Search blob storage by `file_id` metadata
+   - Generate appropriate URL (proxy for dev, direct for prod)
+   - Return DTO with dynamically generated URL
+
+**Benefits:**
+- ✅ Works in development (generates proxy URLs)
+- ✅ Works in production (generates direct URLs or BaseUrl)
+- ✅ No database migration needed when changing storage
+- ✅ No Mixed Content issues
+- ✅ Environment-agnostic URLs
+
+### GetFileUrlAsync - The URL Generator
+
+**Location:** `AzureBlobStorageService.cs`
+
+This method is CRITICAL - it finds blobs by metadata and generates the correct URL for the current environment.
+
+```csharp
+public async Task<string> GetFileUrlAsync(string fileId)
+{
+    var requestId = Guid.NewGuid().ToString("N");
+    _logger.LogInformation(
+        "[GetFileUrlAsync] START - RequestId={RequestId}, FileId={FileId}",
+        requestId, fileId);
+
+    try
+    {
+        _logger.LogInformation(
+            "[GetFileUrlAsync] Starting container search - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
+        // ⭐ Search all containers for the blob
+        foreach (var containerName in _config.Containers)
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            
+            _logger.LogInformation(
+                "[GetFileUrlAsync] Searching container - RequestId={RequestId}, FileId={FileId}, Container={Container}",
+                requestId, fileId, containerName);
+
+            // ⚠️ CRITICAL: Search prefix depends on hierarchical namespace setting
+            var searchPrefix = _config.UseHierarchicalNamespace
+                ? $"posts/{fileId}"      // Hierarchical: "posts/abc123"
+                : fileId;                 // Flat: "abc123"
+
+            _logger.LogInformation(
+                "[GetFileUrlAsync] Using search prefix - RequestId={RequestId}, Prefix={Prefix}, UseHierarchicalNamespace={UseHierarchicalNamespace}",
+                requestId, searchPrefix, _config.UseHierarchicalNamespace);
+
+            // ⚠️ CRITICAL: Must request BlobTraits.Metadata to load metadata
+            var blobs = containerClient.GetBlobsAsync(
+                traits: BlobTraits.Metadata,  // ⭐ CRITICAL - loads metadata
+                prefix: searchPrefix);
+
+            await foreach (var blob in blobs)
+            {
+                _logger.LogInformation(
+                    "[GetFileUrlAsync] Found blob with prefix - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, HasMetadata={HasMetadata}",
+                    requestId, fileId, blob.Name, blob.Metadata?.Count > 0);
+
+                // ⚠️ CRITICAL: Verify file_id metadata matches
+                if (blob.Metadata?.ContainsKey("file_id") == true &&
+                    blob.Metadata["file_id"] == fileId)
+                {
+                    var metadataFileId = blob.Metadata["file_id"];
+                    _logger.LogInformation(
+                        "[GetFileUrlAsync] Blob has file_id metadata - RequestId={RequestId}, FileId={FileId}, MetadataFileId={MetadataFileId}, Match={Match}",
+                        requestId, fileId, metadataFileId, metadataFileId == fileId);
+
+                    if (metadataFileId == fileId)
+                    {
+                        // Extract original filename from metadata
+                        var originalFileName = blob.Metadata.ContainsKey("original_filename")
+                            ? blob.Metadata["original_filename"]
+                            : blob.Name.Split('_', 2).LastOrDefault() ?? "unknown";
+
+                        _logger.LogInformation(
+                            "[GetFileUrlAsync] File found - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Container={Container}",
+                            requestId, fileId, blob.Name, containerName);
+
+                        var blobClient = containerClient.GetBlobClient(blob.Name);
+                        
+                        // ⭐ Generate URL with proxy detection
+                        var url = GeneratePublicUrl(blobClient.Uri, containerName, fileId, originalFileName);
+                        
+                        var duration = DateTime.UtcNow.Subtract(DateTime.UtcNow);
+                        _logger.LogInformation(
+                            "[GetFileUrlAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, OriginalFileName={OriginalFileName}, Duration={Duration}ms",
+                            requestId, fileId, originalFileName, duration.TotalMilliseconds);
+
+                        return url;
+                    }
+                }
+            }
+        }
+
+        _logger.LogWarning(
+            "[GetFileUrlAsync] File not found - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+
+        throw new FileNotFoundException($"File with ID {fileId} not found in blob storage");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex,
+            "[GetFileUrlAsync] FAILED - RequestId={RequestId}, FileId={FileId}, Error={Error}",
+            requestId, fileId, ex.Message);
+        throw;
+    }
+}
+```
+
+**Critical Steps in GetFileUrlAsync:**
+
+1. **Search by Prefix:**
+   - Uses hierarchical namespace setting to determine prefix
+   - `posts/{fileId}` if hierarchical, `{fileId}` if flat
+
+2. **⚠️ LOAD METADATA:**
+   - **MUST use `BlobTraits.Metadata`** - without this, `blob.Metadata` is null!
+   - This was the final bug that caused all 404 errors
+
+3. **Verify file_id:**
+   - Checks if `blob.Metadata["file_id"]` matches the requested `fileId`
+   - Ensures we get the exact file, not a partial match
+
+4. **Extract Original Filename:**
+   - Gets `original_filename` from metadata
+   - Fallback: parse from blob name
+
+5. **Generate URL:**
+   - Calls `GeneratePublicUrl()` which detects environment
+   - Returns proxy URL for Azurite, direct URL for production
+
+**Why BlobTraits.Metadata is Critical:**
+
+```csharp
+// ❌ WRONG - Metadata is null
+var blobs = containerClient.GetBlobsAsync(prefix: searchPrefix);
+await foreach (var blob in blobs)
+{
+    // blob.Metadata is NULL here! Check will fail!
+    if (blob.Metadata?.ContainsKey("file_id") == true) { ... }
+}
+
+// ✅ CORRECT - Metadata is loaded
+var blobs = containerClient.GetBlobsAsync(
+    traits: BlobTraits.Metadata,  // ⭐ CRITICAL
+    prefix: searchPrefix);
+await foreach (var blob in blobs)
+{
+    // blob.Metadata is populated! Check succeeds!
+    if (blob.Metadata?.ContainsKey("file_id") == true) { ... }
+}
+```
+
+**The Azure SDK Quirk:**
+- By default, `GetBlobsAsync()` only returns basic blob info (name, size, modified date)
+- Metadata is **NOT loaded** unless you explicitly request it with `traits: BlobTraits.Metadata`
+- This is for performance (metadata requires extra requests)
+- **Result:** Without the flag, `blob.Metadata` is always null, even if the blob has metadata!
+
+### PostService Integration - MapAttachmentsToDtosAsync
+
+**Location:** `PostService.cs`
+
+This method calls `GetFileUrlAsync` for each attachment to generate URLs dynamically.
+
+```csharp
+private async Task<List<PostAttachmentDto>> MapAttachmentsToDtosAsync(
+    List<PostAttachment> attachments)
+{
+    var requestId = Guid.NewGuid().ToString("N");
+    _logger.LogInformation(
+        "[MapAttachmentsToDtosAsync] START - RequestId={RequestId}, PostId={PostId}",
+        requestId, attachments.FirstOrDefault()?.PostId.ToString() ?? "NULL");
+
+    if (!attachments.Any())
+    {
+        _logger.LogInformation(
+            "[MapAttachmentsToDtosAsync] No attachments to map - RequestId={RequestId}",
+            requestId);
+        return new List<PostAttachmentDto>();
+    }
+
+    _logger.LogInformation(
+        "[MapAttachmentsToDtosAsync] Retrieved {Count} attachments - RequestId={RequestId}, PostId={PostId}",
+        attachments.Count, requestId, attachments.First().PostId);
+
+    var attachmentDtos = new List<PostAttachmentDto>();
+
+    foreach (var attachment in attachments)
+    {
+        try
+        {
+            // ⭐ CRITICAL: Generate URL dynamically via GetFileUrlAsync
+            var fileUrl = await _blobStorageService.GetFileUrlAsync(attachment.FileId);
+
+            attachmentDtos.Add(new PostAttachmentDto
+            {
+                Id = attachment.Id,
+                FileId = attachment.FileId,
+                FilePath = fileUrl,  // ✅ Dynamically generated URL
+                FileName = attachment.FileName,
+                MimeType = attachment.MimeType,
+                FileSize = attachment.FileSize
+            });
+
+            _logger.LogDebug(
+                "[MapAttachmentsToDtosAsync] Mapped attachment - RequestId={RequestId}, AttachmentId={AttachmentId}, FileId={FileId}, URL={URL}",
+                requestId, attachment.Id, attachment.FileId, fileUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[MapAttachmentsToDtosAsync] Failed to generate URL for attachment - RequestId={RequestId}, AttachmentId={AttachmentId}, FileId={FileId}",
+                requestId, attachment.Id, attachment.FileId);
+
+            // ⚠️ Use error placeholder if URL generation fails
+            attachmentDtos.Add(new PostAttachmentDto
+            {
+                Id = attachment.Id,
+                FileId = attachment.FileId,
+                FilePath = $"/api/file-not-found/{attachment.FileId}",  // Error placeholder
+                FileName = attachment.FileName,
+                MimeType = attachment.MimeType,
+                FileSize = attachment.FileSize
+            });
+        }
+    }
+
+    var duration = DateTime.UtcNow.Subtract(DateTime.UtcNow);
+    _logger.LogInformation(
+        "[MapAttachmentsToDtosAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, MappedCount={Count}, Duration={Duration}ms",
+        requestId, attachments.First().PostId, attachmentDtos.Count, duration.TotalMilliseconds);
+
+    return attachmentDtos;
+}
+```
+
+**Key Points:**
+- ✅ Calls `GetFileUrlAsync()` for each attachment
+- ✅ Uses dynamically generated URL, not stored URL
+- ✅ Error handling with placeholder URL on failure
+- ✅ Comprehensive logging for debugging
+        var publicUrl = $"{_config.BaseUrl}/blobs/{containerName}/{fileId}_{fileName}";
+        
+        _logger.LogDebug(
+            "[GeneratePublicUrl] Using BaseUrl - PublicUrl={PublicUrl}",
+            publicUrl);
+        
+        return publicUrl;
+    }
+
+    _logger.LogDebug(
+        "[GeneratePublicUrl] Using direct blob URI - BlobUri={BlobUri}",
+        blobUri.ToString());
+
+    return blobUri.ToString();
+}
+```
+
+### File Upload Component Pattern
+
+**Component:** `PostComposer.razor`
+
+```razor
+@* File Upload UI *@
+<div class="post-composer__file-upload">
+    <label for="imageUpload" class="file-upload-label">
+        <MudIconButton Icon="@Icons.Material.Filled.Image" 
+                      Color="Color.Primary" 
+                      Size="Size.Small"
+                      aria-label="Upload images" />
+    </label>
+    <InputFile id="imageUpload" 
+               OnChange="OnFilesSelected" 
+               accept="image/*" 
+               multiple 
+               style="display: none;" />
+</div>
+
+@* Image Previews *@
+@if (PreviewUrls.Any())
+{
+    <div class="image-preview-container">
+        @foreach (var preview in PreviewUrls)
+        {
+            <div class="image-preview">
+                <img src="@preview.Value" alt="Preview" />
+                
+                @* GIF Badge *@
+                @if (preview.Key.ContentType == "image/gif")
+                {
+                    <div class="gif-badge">GIF</div>
+                }
+                
+                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                              Size="Size.Small" 
+                              OnClick="@(() => RemoveImage(preview.Key))" 
+                              Class="remove-image-btn" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<IBrowserFile> SelectedFiles { get; set; } = new();
+    
+    private Dictionary<IBrowserFile, string> PreviewUrls { get; set; } = new();
+    
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+    private const int MaxFiles = 4;
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        var newFiles = e.GetMultipleFiles(MaxFiles);
+        
+        foreach (var file in newFiles)
+        {
+            // ✅ Validation
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                // Show error: Only images allowed
+                continue;
+            }
+            
+            if (file.Size > MaxFileSize)
+            {
+                // Show error: File too large
+                continue;
+            }
+            
+            if (SelectedFiles.Count >= MaxFiles)
+            {
+                // Show error: Max files reached
+                break;
+            }
+            
+            SelectedFiles.Add(file);
+        }
+        
+        // ✅ Generate previews (chunked to avoid UI freezing)
+        await GeneratePreviewUrlsAsync();
+    }
+
+    private async Task GeneratePreviewUrlsAsync()
+    {
+        PreviewUrls.Clear();
+        
+        foreach (var file in SelectedFiles)
+        {
+            try
+            {
+                // ⭐ CRITICAL: Read in chunks to avoid UI freezing
+                const int bufferSize = 8192; // 8KB chunks
+                const long maxPreviewSize = 200 * 1024; // 200KB max for preview
+                
+                using var stream = file.OpenReadStream(MaxFileSize);
+                using var memoryStream = new MemoryStream();
+                
+                var buffer = new byte[bufferSize];
+                int bytesRead;
+                long totalRead = 0;
+                
+                while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+                {
+                    await memoryStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    totalRead += bytesRead;
+                    
+                    // Yield to UI every 16KB
+                    if (totalRead % (bufferSize * 2) == 0)
+                    {
+                        await Task.Delay(1);
+                        StateHasChanged();
+                    }
+                    
+                    // Limit preview size
+                    if (totalRead >= maxPreviewSize)
+                        break;
+                }
+                
+                var base64 = Convert.ToBase64String(memoryStream.ToArray());
+                var dataUrl = $"data:{file.ContentType};base64,{base64}";
+                
+                PreviewUrls[file] = dataUrl;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[GeneratePreviewUrlsAsync] Failed to generate preview");
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private void RemoveImage(IBrowserFile file)
+    {
+        SelectedFiles.Remove(file);
+        PreviewUrls.Remove(file);
+        StateHasChanged();
+    }
+}
+```
+
+### File Upload Handler Pattern
+
+**Component:** `Home.razor`
+
+```razor
+@code {
+    private List<IBrowserFile> _selectedFiles = new();
+
+    private async Task HandlePostSubmitAsync(string content)
+    {
+        Logger.LogInformation("[HandlePostSubmitAsync] Starting post submission");
+        
+        var attachments = new List<CreatePostAttachmentDto>();
+        
+        // ⭐ Upload files BEFORE creating post
+        if (_selectedFiles.Any())
+        {
+            Logger.LogInformation(
+                "[HandlePostSubmitAsync] Uploading {Count} files",
+                _selectedFiles.Count);
+            
+            foreach (var file in _selectedFiles)
+            {
+                try
+                {
+                    // Read file stream
+                    using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                    using var memoryStream = new MemoryStream();
+                    await stream.CopyToAsync(memoryStream);
+                    
+                    var fileBytes = memoryStream.ToArray();
+                    
+                    // Upload to blob storage
+                    var uploadResult = await SivarClient.Files.UploadFileAsync(
+                        fileBytes,
+                        file.Name,
+                        file.ContentType);
+                    
+                    if (uploadResult != null)
+                    {
+                        // ✅ Create attachment DTO
+                        attachments.Add(new CreatePostAttachmentDto
+                        {
+                            FileId = uploadResult.FileId,
+                            FilePath = uploadResult.FilePath,
+                            FileName = uploadResult.FileName,
+                            MimeType = uploadResult.MimeType,
+                            FileSize = uploadResult.FileSize
+                        });
+                        
+                        Logger.LogInformation(
+                            "[HandlePostSubmitAsync] File uploaded - FileId={FileId}",
+                            uploadResult.FileId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, 
+                        "[HandlePostSubmitAsync] Failed to upload file - FileName={FileName}",
+                        file.Name);
+                }
+            }
+        }
+        
+        // Create post with attachments
+        var createPostDto = new CreatePostDto
+        {
+            Content = content,
+            Visibility = PostVisibility.Public,
+            Attachments = attachments
+        };
+        
+        var result = await PostService.CreatePostAsync(keycloakId, createPostDto);
+        
+        if (result != null)
+        {
+            _selectedFiles.Clear();
+            await LoadFeedAsync(); // Refresh feed
+        }
+    }
+}
+```
+
+### File Upload Service Pattern
+
+**Service:** `PostService.ProcessPostAttachmentsAsync`
+
+```csharp
+private async Task ProcessPostAttachmentsAsync(
+    Post post, 
+    List<CreatePostAttachmentDto> attachments)
+{
+    if (attachments == null || !attachments.Any())
+        return;
+
+    _logger.LogInformation(
+        "[ProcessPostAttachmentsAsync] Processing {Count} attachments for PostId={PostId}",
+        attachments.Count,
+        post.Id);
+
+    foreach (var attachmentDto in attachments)
+    {
+        var postAttachment = new PostAttachment
+        {
+            Id = Guid.NewGuid(),
+            PostId = post.Id,
+            FileId = attachmentDto.FileId,
+            FilePath = attachmentDto.FilePath,
+            FileName = attachmentDto.FileName,
+            MimeType = attachmentDto.MimeType,
+            FileSize = attachmentDto.FileSize,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
+
+        await _postAttachmentRepository.AddAsync(postAttachment);
+        
+        _logger.LogInformation(
+            "[ProcessPostAttachmentsAsync] Added attachment - AttachmentId={AttachmentId}, FileId={FileId}",
+            postAttachment.Id,
+            postAttachment.FileId);
+    }
+
+    // ⭐ CRITICAL: Must save changes to persist attachments
+    await _postAttachmentRepository.SaveChangesAsync();
+    
+    _logger.LogInformation(
+        "[ProcessPostAttachmentsAsync] Saved {Count} attachments to database",
+        attachments.Count);
+}
+```
+
+### Display Pattern with Carousel
+
+**Component:** `PostCard.razor`
+
+```razor
+@if (Post.Attachments != null && Post.Attachments.Any())
+{
+    @if (Post.Attachments.Count == 1)
+    {
+        @* Single Image *@
+        <div class="single-image">
+            <img src="@Post.Attachments[0].FilePath" 
+                 alt="Post image" 
+                 loading="lazy" />
+            
+            @if (Post.Attachments[0].MimeType == "image/gif")
+            {
+                <div class="gif-badge">GIF</div>
+            }
+        </div>
+    }
+    else
+    {
+        @* Multiple Images - MudCarousel *@
+        <MudCarousel Class="post-carousel" 
+                     ShowArrows="true" 
+                     ShowBullets="true" 
+                     EnableSwipeGesture="true"
+                     AutoCycle="false">
+            @foreach (var attachment in Post.Attachments)
+            {
+                <MudCarouselItem>
+                    <div class="carousel-image-container">
+                        <img src="@attachment.FilePath" 
+                             alt="Post image" 
+                             class="carousel-image"
+                             loading="lazy" />
+                        
+                        @if (attachment.MimeType == "image/gif")
+                        {
+                            <div class="gif-badge">GIF</div>
+                        }
+                    </div>
+                </MudCarouselItem>
+            }
+        </MudCarousel>
+    }
+}
+```
+
+### File Upload Validation Rules
+
+| Validation | Rule | Error Message |
+|------------|------|---------------|
+| **File Type** | `image/*` (JPG, PNG, GIF, WebP) | "Only image files are allowed" |
+| **File Size** | Max 10MB per file | "File size exceeds 10MB limit" |
+| **File Count** | Max 4 files per post | "Maximum 4 images per post" |
+| **Total Size** | No explicit limit (but 4 × 10MB = 40MB max) | N/A |
+
+### CSS Styling for File Upload
+
+**File:** `wireframe-components.css`
+
+```css
+/* Image Preview (Composer) */
+.image-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.image-preview {
+    position: relative;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+/* Single Image Display */
+.single-image {
+    position: relative;
+    width: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.single-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Carousel Display */
+.post-carousel {
+    width: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.carousel-image-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.carousel-image {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+}
+
+/* GIF Badge */
+.gif-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 2px solid #4caf50;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+```
+
+### File Upload Checklist
+
+Before implementing file upload in a new feature:
+
+- [ ] **Configure hierarchical namespace** (`UseHierarchicalNamespace` in appsettings.json)
+- [ ] **Use `InputFile` component** (native Blazor, works on Server & WebAssembly)
+- [ ] **Validate file type, size, and count** (prevent invalid uploads)
+- [ ] **Generate previews in chunks** (8KB buffer, yield to UI, max 200KB preview)
+- [ ] **Upload files BEFORE creating entity** (parent component responsibility)
+- [ ] **Use `FilesClient` for uploads** (abstraction over storage service)
+- [ ] **Store metadata with blobs** (`file_id`, `original_filename`, `uploaded_at`)
+- [ ] **DON'T store raw URLs** (store empty FilePath or placeholder)
+- [ ] **Use GetFileUrlAsync for display** (generates URLs dynamically)
+- [ ] **Include BlobTraits.Metadata in searches** (CRITICAL - loads metadata)
+- [ ] **Match search prefix to namespace setting** (hierarchical vs flat)
+- [ ] **Match proxy URL to blob path** (include folder prefix if hierarchical)
+- [ ] **Save attachments to database** (call `SaveChangesAsync()` in repository)
+- [ ] **Display with MudCarousel** (for multiple images) or single image div
+- [ ] **Add GIF badges** (when `MimeType == "image/gif"`)
+- [ ] **Add CSS styles** (in `wireframe-components.css`, not component-scoped)
+- [ ] **Log all operations** (upload start, success, failures with file names)
+
+### Debugging File Upload Issues - Complete Guide
+
+#### Step 1: Check Blob Storage
+
+**Verify files uploaded to Azurite:**
+
+Use Azure Storage Explorer or command line:
+```bash
+# List all blobs in container
+az storage blob list --container-name sivaros-posts --connection-string "UseDevelopmentStorage=true"
+
+# Check if specific file exists
+az storage blob show --container-name sivaros-posts --name "posts/abc123_image.jpg" --connection-string "UseDevelopmentStorage=true"
+```
+
+**What to look for:**
+- ✅ Blob exists with correct name format
+- ✅ Blob has metadata (`file_id`, `original_filename`, `uploaded_at`)
+- ✅ Blob name matches hierarchical namespace setting
+
+#### Step 2: Check Database
+
+**Verify attachments in database:**
+
+```sql
+-- Check if attachment records exist
+SELECT 
+    "Id", 
+    "PostId", 
+    "FileId", 
+    "FilePath",  -- Should be empty or placeholder
+    "FileName", 
+    "MimeType"
+FROM "Sivar_PostAttachments"
+WHERE "IsDeleted" = false
+ORDER BY "CreatedAt" DESC;
+```
+
+**What to look for:**
+- ✅ Attachment record exists with correct `FileId`
+- ✅ `FilePath` is empty or placeholder (not raw HTTP URL)
+- ✅ `FileName` and `MimeType` are correct
+
+#### Step 3: Check Server Logs
+
+**Enable detailed logging in `appsettings.Development.json`:**
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Sivar.Os.Services.AzureBlobStorageService": "Debug",
+        "Sivar.Os.Services.PostService": "Debug"
+      }
+    }
+  }
+}
+```
+
+**Key log patterns to search for:**
+
+```
+# Upload succeeded?
+[UploadFileAsync] File uploaded successfully - FileId={fileId}
+
+# GetFileUrlAsync called?
+[GetFileUrlAsync] START - FileId={fileId}
+
+# Search prefix correct?
+[GetFileUrlAsync] Using search prefix - Prefix={prefix}, UseHierarchicalNamespace={bool}
+
+# Blob found?
+[GetFileUrlAsync] Found blob with prefix - BlobName={blobName}
+
+# Metadata loaded? (CRITICAL)
+[GetFileUrlAsync] Blob has file_id metadata - MetadataFileId={metadataFileId}
+
+# URL generated?
+[GeneratePublicUrl] Detected Azurite, using proxy - ProxyUrl={proxyUrl}
+
+# File found?
+[GetFileUrlAsync] SUCCESS - FileId={fileId}, OriginalFileName={fileName}
+```
+
+**Missing log = problem:**
+
+| Missing Log | Problem | Fix |
+|-------------|---------|-----|
+| "Blob has file_id metadata" | Metadata not loaded | Add `traits: BlobTraits.Metadata` to `GetBlobsAsync()` |
+| "Found blob with prefix" | Wrong search prefix | Check `UseHierarchicalNamespace` setting matches blob naming |
+| "Using proxy" | URL generation failed | Check `GeneratePublicUrl()` logic |
+| "File uploaded successfully" | Upload failed | Check `UploadFileAsync()` error handling |
+
+#### Step 4: Check Browser Console
+
+**Open browser DevTools (F12) → Console tab**
+
+**Look for errors:**
+
+```
+❌ Mixed Content: The page at 'https://localhost:7165/' was loaded over HTTPS, but requested an insecure resource 'http://127.0.0.1:10000/...'. This request has been blocked.
+
+→ Problem: Storing raw Azurite URLs instead of using proxy
+→ Fix: Ensure FilePath is empty in database, GetFileUrlAsync generates proxy URLs
+
+❌ Failed to load resource: net::ERR_FAILED http://127.0.0.1:10000/devstoreaccount1/sivaros-posts/abc123_image.jpg
+
+→ Problem: Trying to load HTTP resource on HTTPS page
+→ Fix: Use proxy endpoint (/api/blob-proxy/...)
+
+❌ GET https://localhost:7165/api/blob-proxy/sivaros-posts/abc123_image.jpg 404 (Not Found)
+
+→ Problem: Proxy URL doesn't match blob path (missing "posts/" prefix)
+→ Fix: Update GeneratePublicUrl to include folder prefix when hierarchical namespace enabled
+
+✅ GET https://localhost:7165/api/blob-proxy/sivaros-posts/posts/abc123_image.jpg 200 (OK)
+
+→ Success! Proxy URL matches blob path exactly
+```
+
+#### Step 5: Check Network Tab
+
+**Open browser DevTools (F12) → Network tab**
+
+**Filter by "Img" to see image requests:**
+
+**What to look for:**
+
+| Request URL | Status | Diagnosis |
+|------------|--------|-----------|
+| `http://127.0.0.1:10000/...` | (blocked) | ❌ Raw Azurite URL - Mixed Content error |
+| `/api/blob-proxy/.../abc123_image.jpg` | 404 | ❌ Missing folder prefix in proxy URL |
+| `/api/blob-proxy/.../posts/abc123_image.jpg` | 200 | ✅ Correct! |
+| `/api/blob-proxy/.../posts/abc123_image.jpg` | 500 | ❌ Server error - check logs |
+
+#### Common Error Patterns
+
+**Error 1: "Blob not found" but blob exists in storage**
+
+**Symptoms:**
+- Logs show: `[GetFileUrlAsync] File not found`
+- Blob exists in Azure Storage Explorer
+- No "Found blob with prefix" log
+
+**Causes & Fixes:**
+
+| Cause | Fix |
+|-------|-----|
+| Wrong search prefix | Check `UseHierarchicalNamespace` matches blob naming |
+| Metadata not loaded | Add `traits: BlobTraits.Metadata` to `GetBlobsAsync()` |
+| file_id mismatch | Verify `file_id` metadata matches `FileId` in database |
+
+**Error 2: "404 Not Found" from proxy endpoint**
+
+**Symptoms:**
+- Browser console shows 404 for `/api/blob-proxy/...`
+- Logs show: `[BlobProxy] Blob not found`
+
+**Causes & Fixes:**
+
+| Cause | Fix |
+|-------|-----|
+| Proxy URL missing folder prefix | Update `GeneratePublicUrl()` to include `posts/` when hierarchical |
+| Blob name doesn't match URL | Check blob name in storage vs URL path |
+| Wrong container name | Verify container name in proxy URL |
+
+**Error 3: Mixed Content errors**
+
+**Symptoms:**
+- Browser blocks HTTP requests
+- Console shows "Mixed Content" warning
+
+**Causes & Fixes:**
+
+| Cause | Fix |
+|-------|-----|
+| Raw Azurite URLs in database | Clear `FilePath` in database, use dynamic URL generation |
+| `GeneratePublicUrl()` returning HTTP URL | Check Azurite detection logic, ensure proxy URL returned |
+
+### Troubleshooting Flowchart
+
+```
+File not displaying?
+    ↓
+Check browser console
+    ↓
+Mixed Content error? → Use proxy URLs (check GeneratePublicUrl)
+404 Not Found? → Check proxy URL path matches blob name
+    ↓
+Check server logs
+    ↓
+"File not found"? → Check search prefix + metadata loading
+"Blob not found"? → Check blob exists in storage
+    ↓
+Check database
+    ↓
+Attachment exists? → Check FileId matches blob metadata
+FilePath not empty? → Clear it, use dynamic URLs
+    ↓
+Check blob storage
+    ↓
+Blob exists? → Check metadata (file_id, original_filename)
+Blob name correct? → Match hierarchical namespace setting
+```
+
+### Common Issues & Solutions
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| **CORS errors** | HTTPS app loading HTTP Azurite resources | ✅ Proxy endpoint automatically handles this |
+| **Mixed Content warnings** | Browser blocking HTTP on HTTPS page | ✅ Proxy serves via HTTPS |
+| **404 from proxy** | Proxy URL doesn't match blob path | ✅ Include folder prefix when hierarchical namespace enabled |
+| **Metadata is null** | Missing `BlobTraits.Metadata` flag | ✅ Add `traits: BlobTraits.Metadata` to `GetBlobsAsync()` |
+| **File not found** | Wrong search prefix | ✅ Match prefix to `UseHierarchicalNamespace` setting |
+| **Attachments not in database** | Missing `SaveChangesAsync()` | ✅ Add `await _repository.SaveChangesAsync()` after loop |
+| **UI freezing during preview** | Loading entire 10MB file at once | ✅ Read in 8KB chunks with `await Task.Delay(1)` |
+| **Old posts have HTTP URLs** | Migration from old storage pattern | ✅ Delete old test data or migrate FilePath to empty |
+
+### Key Lessons Learned - File Upload Implementation
+
+**🎯 Critical Insights from Implementation:**
+
+1. **Never Store Environment-Specific URLs**
+   - ❌ Don't store raw Azurite URLs (`http://127.0.0.1:10000/...`)
+   - ❌ Don't store production URLs (breaks when switching environments)
+   - ✅ Store empty `FilePath` or placeholder (`blob://{fileId}/{filename}`)
+   - ✅ Generate URLs dynamically with `GetFileUrlAsync()`
+
+2. **Hierarchical Namespace is Not Optional**
+   - 🔧 Setting: `UseHierarchicalNamespace` in configuration
+   - 📁 Affects: Blob naming, search prefixes, proxy URLs
+   - ⚠️ Must be consistent across upload, search, and URL generation
+   - 🎯 **Every blob-related method must check this setting**
+
+3. **Azure SDK Metadata Loading is NOT Automatic**
+   - 🐛 By default, `GetBlobsAsync()` does NOT load metadata
+   - ❌ Without flag: `blob.Metadata` is always null
+   - ✅ With flag: `traits: BlobTraits.Metadata` loads metadata
+   - 🔍 This was the final bug causing all 404 errors
+
+4. **Proxy URL Path Must Exactly Match Blob Name**
+   - 🎯 Blob name: `posts/abc123_image.jpg`
+   - ✅ Proxy URL: `/api/blob-proxy/sivaros-posts/posts/abc123_image.jpg`
+   - ❌ Wrong: `/api/blob-proxy/sivaros-posts/abc123_image.jpg` (missing `posts/`)
+   - 🔍 Use `{*blobPath}` in route to capture full path
+
+5. **The Full Chain Must Be Consistent**
+   ```
+   UploadFileAsync → Blob name with folder prefix
+          ↓
+   Store in database → Empty FilePath, store FileId
+          ↓
+   GetFileUrlAsync → Search with correct prefix + load metadata
+          ↓
+   GeneratePublicUrl → Include folder prefix in proxy URL
+          ↓
+   Proxy endpoint → Request exact blob path from Azurite
+          ↓
+   Browser displays → No CORS, no Mixed Content, no 404
+   ```
+
+6. **Comprehensive Logging Saved the Day**
+   - 📝 Every method logs START, key decisions, SUCCESS/FAILED
+   - 🔍 Logs revealed: "Found blob" but "File not found" → metadata null
+   - 🎯 Pattern: Missing log = missing functionality
+   - ✅ Add log before/after critical operations
+
+7. **Development vs Production Environments**
+   - 🏗️ Development: Azurite (HTTP) + Proxy (HTTPS)
+   - ☁️ Production: Azure Blob Storage (HTTPS) + Direct URLs
+   - 🎯 Code must work in both without changes
+   - ✅ `GeneratePublicUrl()` automatically detects environment
+
+**📚 Documentation is Critical:**
+- Every complex feature needs comprehensive documentation
+- Include WHY, not just HOW
+- Document common errors and solutions
+- Include troubleshooting flowcharts
+- Update immediately when patterns change
+
+**🚀 Future Improvements:**
+- Automated tests for blob upload/retrieval
+- Migration tool for old URL formats
+- Blob cleanup job for soft-deleted files
+- Image optimization/resizing pipeline
+- CDN integration for production
 
 ---
 
@@ -1711,10 +3044,84 @@ Check browser console for:
 - [ ] No server-only dependencies in shared code
 - [ ] No new controller dependencies added
 
+**File Upload Specific (if applicable):**
+- [ ] **UseHierarchicalNamespace** setting configured in appsettings.json
+- [ ] **File uploads use InputFile** component
+- [ ] **Blob metadata includes** `file_id`, `original_filename`, `uploaded_at`
+- [ ] **FilePath stored as empty or placeholder** (NOT raw URLs)
+- [ ] **GetFileUrlAsync uses** `traits: BlobTraits.Metadata` flag
+- [ ] **Search prefix matches** hierarchical namespace setting
+- [ ] **Proxy URL includes folder prefix** when hierarchical namespace enabled
+- [ ] **GeneratePublicUrl detects environment** (Azurite vs production)
+- [ ] **File attachments saved to database** (with SaveChangesAsync)
+- [ ] **Comprehensive logging** at all blob operations
+- [ ] **Error handling** with placeholder URLs on failures
+
 ---
 
 **Need Help?** Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) first!
 
-**Last Updated**: October 29, 2025  
+**Last Updated**: October 30, 2025  
 **Maintainer**: Jose Ojeda  
 **Project**: Sivar.Os
+
+---
+
+## Appendix: File Upload Journey - A Case Study
+
+This section documents the complete debugging journey for file upload implementation, preserving the learning process for future developers.
+
+### Timeline of Issues & Fixes
+
+**Phase 1: Initial Implementation (Working)**
+- ✅ InputFile component with previews
+- ✅ File upload to Azurite
+- ✅ Database persistence
+- ✅ Display in PostCard
+
+**Phase 2: CORS Issue Discovery**
+- 🐛 Problem: Mixed Content errors blocking HTTP Azurite URLs
+- ✅ Solution: Server-side proxy endpoint
+
+**Phase 3: URL Storage Problem**
+- 🐛 Problem: Storing raw HTTP URLs in database
+- ✅ Solution: Empty FilePath, dynamic URL generation
+
+**Phase 4: Blob Search Prefix Mismatch**
+- 🐛 Problem: Search prefix not matching blob naming (hierarchical namespace)
+- ✅ Solution: Conditional prefix based on `UseHierarchicalNamespace`
+
+**Phase 5: Metadata Not Loaded (Final Bug)**
+- 🐛 Problem: Blobs found but metadata null, file_id check failing
+- 🔍 Discovery: Azure SDK doesn't load metadata by default
+- ✅ Solution: Add `traits: BlobTraits.Metadata` to `GetBlobsAsync()`
+
+**Phase 6: Proxy URL Mismatch**
+- 🐛 Problem: Proxy requesting wrong blob path (missing `posts/` prefix)
+- ✅ Solution: Include folder prefix in `GeneratePublicUrl()` when hierarchical
+
+### What Worked
+
+1. **Comprehensive Logging** - Every critical operation logged with request IDs
+2. **Structured Approach** - Repository → Service → Component pattern
+3. **Environment Detection** - Automatic proxy vs direct URL selection
+4. **Dynamic URL Generation** - Never storing environment-specific URLs
+5. **Incremental Debugging** - Fixed one issue at a time with validation
+
+### What Didn't Work
+
+1. ❌ Storing raw URLs in database (breaks across environments)
+2. ❌ Assuming metadata loads automatically (Azure SDK quirk)
+3. ❌ Hardcoded blob paths (not flexible for different namespaces)
+4. ❌ Skipping comprehensive logging (made debugging harder)
+
+### Key Takeaways for Future Features
+
+1. **Never assume SDK behavior** - Always verify with documentation
+2. **Log everything** - Comprehensive logging reveals hidden issues
+3. **Test across environments** - Dev (Azurite) and Prod (Azure) behave differently
+4. **Dynamic > Static** - Generate URLs dynamically, don't store them
+5. **Configuration-driven** - Use settings for structural decisions (hierarchical namespace)
+6. **Document as you go** - Update documentation immediately when patterns change
+
+---

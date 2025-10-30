@@ -19,12 +19,57 @@
 
     @if (Post.Attachments?.Count > 0)
     {
-        <div class="post-image">
-            @foreach (var attachment in Post.Attachments.Take(1))
+        Logger.LogInformation("[PostCard] Rendering {Count} attachments for Post {PostId}", Post.Attachments.Count, Post.Id);
+        
+        <div class="post-attachments">
+            @if (Post.Attachments.Count == 1)
             {
-                <img src="@attachment.FilePath" alt="Post attachment" />
+                <div class="single-image">
+                    <img src="@Post.Attachments[0].FilePath" 
+                         alt="@(Post.Attachments[0].AltText ?? Post.Attachments[0].OriginalFilename)" 
+                         class="attachment-image" 
+                         @onclick="@(() => Logger.LogInformation("Image clicked: {Url}", Post.Attachments[0].FilePath))" />
+                    @if (Post.Attachments[0].MimeType == "image/gif")
+                    {
+                        <div class="gif-badge">GIF</div>
+                    }
+                </div>
+            }
+            else
+            {
+                <MudCarousel Class="mud-width-full post-carousel" 
+                             Style="height:400px;" 
+                             ShowArrows="true" 
+                             ShowBullets="true" 
+                             EnableSwipeGesture="true"
+                             AutoCycle="false"
+                             TData="object">
+                    @foreach (var attachment in Post.Attachments)
+                    {
+                        <MudCarouselItem Transition="Transition.Slide">
+                            <div class="carousel-image-container">
+                                <img src="@attachment.FilePath" 
+                                     alt="@(attachment.AltText ?? attachment.OriginalFilename)" 
+                                     class="carousel-image" />
+                                @if (attachment.MimeType == "image/gif")
+                                {
+                                    <div class="gif-badge">GIF</div>
+                                }
+                                @if (!string.IsNullOrEmpty(attachment.AltText))
+                                {
+                                    <div class="image-caption">@attachment.AltText</div>
+                                }
+                            </div>
+                        </MudCarouselItem>
+                    }
+                </MudCarousel>
             }
         </div>
+    }
+    else
+    {
+        Logger.LogWarning("[PostCard] No attachments found for Post {PostId}, Attachments is {IsNull}", 
+            Post.Id, Post.Attachments == null ? "NULL" : "EMPTY");
     }
 
     <PostReactions ReactionSummary="@Post.ReactionSummary" />

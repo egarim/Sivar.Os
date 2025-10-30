@@ -4,7 +4,9 @@
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
 @using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Forms
 @inject ILogger<PostComposer> Logger
+@inject IJSRuntime JS
 
 @* PostComposer component for creating new posts *@
 
@@ -110,7 +112,21 @@
     
     <div class="post-actions">
         <div class="post-options">
-            @foreach (var option in AttachmentOptions)
+            <InputFile id="imageUpload" 
+                       OnChange="@OnFilesSelected" 
+                       accept="image/*" 
+                       multiple 
+                       style="display: none;" />
+            
+            <MudIconButton Icon="@Icons.Material.Outlined.Image"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           HtmlTag="label"
+                           for="imageUpload"
+                           title="Add images (JPG, PNG, GIF, WebP - up to 4 files, 10MB each)">
+            </MudIconButton>
+            
+            @foreach (var option in AttachmentOptions.Where(o => o.Id != "media"))
             {
                 <button type="button" 
                         class="post-option @(option.Id == ActiveAttachment ? "active" : null)" 
@@ -134,6 +150,43 @@
             }
         </button>
     </div>
+
+    @* Image Preview Section *@
+    @if (SelectedFiles != null && SelectedFiles.Count > 0)
+    {
+        <div class="image-preview-section">
+            <div class="preview-grid">
+                @foreach (var (file, index) in SelectedFiles.Select((f, i) => (f, i)))
+                {
+                    <div class="preview-item @(file.ContentType == "image/gif" ? "gif-placeholder" : "")">
+                        @if (PreviewUrls.ContainsKey(index))
+                        {
+                            @if (file.ContentType == "image/gif")
+                            {
+                                @* Show GIF placeholder with icon *@
+                                <div class="gif-preview-placeholder">
+                                    <MudIcon Icon="@Icons.Material.Filled.Gif" Size="Size.Large" />
+                                    <div class="gif-info">
+                                        <div class="gif-badge-large">GIF</div>
+                                        <div class="file-size">@FormatFileSize(file.Size)</div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                @* Show actual image preview *@
+                                <img src="@PreviewUrls[index]" alt="Preview @file.Name" class="preview-image" />
+                            }
+                        }
+                        <button type="button" class="remove-preview-btn" @onclick="() => RemoveImage(index)" title="Remove image">
+                            <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                        </button>
+                        <div class="preview-filename">@file.Name</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     @* Validation Messages *@
     @if (!string.IsNullOrWhiteSpace(ValidationMessage))
@@ -246,6 +299,133 @@
     .me-2 {
         margin-right: 8px;
     }
+
+    /* Image Preview Styles */
+    .image-preview-section {
+        margin: 16px 0;
+        padding: 12px;
+        background: var(--wire-background);
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
+    }
+
+    .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+    }
+
+    .preview-item {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--wire-background-alt);
+        border: 1px solid var(--wire-border);
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .remove-preview-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition: background 0.2s;
+    }
+
+    .remove-preview-btn:hover {
+        background: rgba(0, 0, 0, 0.9);
+    }
+
+    .preview-filename {
+        padding: 6px 8px;
+        font-size: 11px;
+        color: var(--wire-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .gif-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff00;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        border: 1px solid #00ff00;
+        animation: pulse-gif 2s infinite;
+    }
+
+    /* GIF Preview Placeholder Styles */
+    .gif-placeholder {
+        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    }
+
+    .gif-preview-placeholder {
+        width: 100%;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: white;
+    }
+
+    .gif-preview-placeholder .mud-icon-root {
+        color: white;
+        opacity: 0.9;
+    }
+
+    .gif-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .gif-badge-large {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .file-size {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 600;
+    }
+
+    @@keyframes pulse-gif {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
 </style>
 
 @code {
@@ -372,6 +552,18 @@
     [Parameter]
     public EventCallback OnPublish { get; set; }
 
+    /// <summary>
+    /// Selected image files for upload
+    /// </summary>
+    [Parameter]
+    public List<IBrowserFile> SelectedFiles { get; set; } = new();
+
+    /// <summary>
+    /// Callback when files are selected
+    /// </summary>
+    [Parameter]
+    public EventCallback<List<IBrowserFile>> SelectedFilesChanged { get; set; }
+
     #endregion
 
     #region State Management
@@ -456,9 +648,156 @@
     /// </summary>
     private string ValidationMessage { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Dictionary to store preview URLs for selected images
+    /// </summary>
+    private Dictionary<int, string> PreviewUrls { get; set; } = new();
+
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// Handle file selection from InputFile
+    /// </summary>
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        var files = e.GetMultipleFiles(maximumFileCount: 4);
+        Logger.LogInformation("[PostComposer] Files selected - Count: {Count}", files?.Count ?? 0);
+
+        if (files == null || files.Count == 0)
+            return;
+
+        // Validate file sizes and types
+        const long maxFileSize = 10 * 1024 * 1024; // 10MB
+        var validFiles = new List<IBrowserFile>();
+
+        foreach (var file in files)
+        {
+            // Check file type
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                ValidationMessage = $"File {file.Name} is not an image";
+                Logger.LogWarning("[PostComposer] Invalid file type - FileName: {FileName}, ContentType: {ContentType}", 
+                    file.Name, file.ContentType);
+                continue;
+            }
+
+            // Check file size
+            if (file.Size > maxFileSize)
+            {
+                ValidationMessage = $"File {file.Name} exceeds 10MB limit";
+                Logger.LogWarning("[PostComposer] File too large - FileName: {FileName}, Size: {Size}", 
+                    file.Name, file.Size);
+                continue;
+            }
+
+            validFiles.Add(file);
+        }
+
+        if (validFiles.Count == 0)
+        {
+            Logger.LogWarning("[PostComposer] No valid files after validation");
+            return;
+        }
+
+        // Update selected files
+        SelectedFiles = validFiles;
+        await SelectedFilesChanged.InvokeAsync(SelectedFiles);
+
+        // Generate preview URLs
+        await GeneratePreviewUrlsAsync();
+
+        ValidationMessage = string.Empty;
+        StateHasChanged();
+
+        Logger.LogInformation("[PostComposer] Files validated and previews generated - ValidCount: {Count}", validFiles.Count);
+    }
+
+    /// <summary>
+    /// Generate preview URLs for selected images using resized thumbnails
+    /// </summary>
+    private async Task GeneratePreviewUrlsAsync()
+    {
+        PreviewUrls.Clear();
+
+        for (int i = 0; i < SelectedFiles.Count; i++)
+        {
+            var file = SelectedFiles[i];
+            try
+            {
+                // ⭐ CRITICAL: Skip preview generation for GIFs to avoid freezing/breaking upload
+                // GIFs can be very large (25MB+) and generating previews causes UI issues
+                // Just show a placeholder icon instead - actual GIF will display after upload
+                if (file.ContentType == "image/gif")
+                {
+                    Logger.LogInformation(
+                        "[PostComposer] Skipping preview for GIF (will display after upload) - Index: {Index}, FileName: {FileName}, Size: {Size}MB",
+                        i, file.Name, file.Size / 1024.0 / 1024.0);
+                    
+                    // Use a placeholder data URL for GIFs (svg icon)
+                    PreviewUrls[i] = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%234caf50'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='20' fill='white' text-anchor='middle' dominant-baseline='middle'%3EGIF%3C/text%3E%3C/svg%3E";
+                    continue;
+                }
+                
+                // Create a resized preview (max 200KB) to avoid UI freezing
+                const int maxPreviewSize = 200 * 1024; // 200KB
+                var imageStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                
+                using var memoryStream = new MemoryStream();
+                
+                // Read in chunks to avoid blocking UI
+                var buffer = new byte[8192]; // 8KB chunks
+                int bytesRead;
+                long totalRead = 0;
+                
+                while ((bytesRead = await imageStream.ReadAsync(buffer)) > 0 && totalRead < maxPreviewSize)
+                {
+                    var bytesToWrite = Math.Min(bytesRead, (int)(maxPreviewSize - totalRead));
+                    await memoryStream.WriteAsync(buffer.AsMemory(0, bytesToWrite));
+                    totalRead += bytesToWrite;
+                    
+                    // Allow UI to update every 16KB
+                    if (totalRead % (16 * 1024) == 0)
+                    {
+                        await Task.Delay(1); // Yield to UI thread
+                    }
+                }
+                
+                var imageBytes = memoryStream.ToArray();
+                var base64 = Convert.ToBase64String(imageBytes);
+                var dataUrl = $"data:{file.ContentType};base64,{base64}";
+                PreviewUrls[i] = dataUrl;
+
+                Logger.LogDebug("[PostComposer] Preview generated - Index: {Index}, FileName: {FileName}, PreviewSize: {Size}KB", 
+                    i, file.Name, totalRead / 1024);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PostComposer] Error generating preview - Index: {Index}, FileName: {FileName}", 
+                    i, file.Name);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Remove an image from the selected files
+    /// </summary>
+    private async Task RemoveImage(int index)
+    {
+        Logger.LogInformation("[PostComposer] Removing image - Index: {Index}", index);
+
+        if (index < 0 || index >= SelectedFiles.Count)
+            return;
+
+        SelectedFiles.RemoveAt(index);
+        await SelectedFilesChanged.InvokeAsync(SelectedFiles);
+
+        // Regenerate preview URLs with new indices
+        await GeneratePreviewUrlsAsync();
+
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Handle visibility level change
@@ -500,6 +839,19 @@
             VisibilityLevel.ConnectionsOnly => "Only your followers can see this post",
             _ => ""
         };
+    }
+
+    /// <summary>
+    /// Format file size for display (KB, MB)
+    /// </summary>
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        else if (bytes < 1024 * 1024)
+            return $"{bytes / 1024.0:F1} KB";
+        else
+            return $"{bytes / 1024.0 / 1024.0:F1} MB";
     }
 
     /// <summary>

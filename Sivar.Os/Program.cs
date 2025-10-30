@@ -397,6 +397,25 @@ builder.Services.Configure<CircuitOptions>(options =>
 
 var app = builder.Build();
 
+// Configure CORS for Azure Blob Storage (Azurite) in development
+if (app.Environment.IsDevelopment())
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var corsConfigurator = new BlobStorageCorsConfigurator(
+            scope.ServiceProvider.GetRequiredService<IConfiguration>(),
+            scope.ServiceProvider.GetRequiredService<ILogger<BlobStorageCorsConfigurator>>());
+        
+        await corsConfigurator.ConfigureCorsAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Failed to configure Azurite CORS - images may not load correctly");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -434,6 +453,43 @@ app.Use(async (context, next) =>
 });
 
 app.UseAntiforgery();
+
+// Add blob storage proxy to avoid CORS issues with Azurite
+app.MapGet("/api/blob-proxy/{container}/{*blobPath}", async (
+    string container,
+    string blobPath,
+    HttpContext context,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var azuriteUrl = $"http://127.0.0.1:10000/devstoreaccount1/{container}/{blobPath}";
+        logger.LogInformation("[BlobProxy] Proxying request: {BlobPath} -> {AzuriteUrl}", blobPath, azuriteUrl);
+
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync(azuriteUrl);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning("[BlobProxy] Failed to fetch blob: {StatusCode}", response.StatusCode);
+            return Results.NotFound();
+        }
+
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var stream = await response.Content.ReadAsStreamAsync();
+
+        // Set cache headers for better performance
+        context.Response.Headers.CacheControl = "public, max-age=31536000"; // 1 year
+        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+
+        return Results.Stream(stream, contentType);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BlobProxy] Error proxying blob: {BlobPath}", blobPath);
+        return Results.Problem("Failed to load image");
+    }
+}).AllowAnonymous();
 
 app.MapControllers();
 app.MapStaticAssets();
