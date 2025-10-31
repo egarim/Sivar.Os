@@ -37,6 +37,7 @@ public class PostService : IPostService
         IPostAttachmentRepository postAttachmentRepository,
         IFileStorageService fileStorageService,
         IActivityService activityService,
+        IVectorEmbeddingService vectorEmbeddingService,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -46,7 +47,7 @@ public class PostService : IPostService
         _commentRepository = commentRepository ?? throw new ArgumentNullException(nameof(commentRepository));
         _postAttachmentRepository = postAttachmentRepository ?? throw new ArgumentNullException(nameof(postAttachmentRepository));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
-        _vectorEmbeddingService = null; // Disabled until properly configured
+        _vectorEmbeddingService = vectorEmbeddingService ?? throw new ArgumentNullException(nameof(vectorEmbeddingService));
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -143,13 +144,36 @@ public class PostService : IPostService
             _logger.LogInformation("[CreatePostAsync] Saving post: PostId={postId}, ProfileId={profileId}", 
                 post.Id, post.ProfileId);
 
-            // Vector embedding generation disabled until service is properly configured
-            // TODO: Enable when vector embedding service is available
-
             await _postRepository.AddAsync(post);
             await _postRepository.SaveChangesAsync();
 
             _logger.LogInformation("[CreatePostAsync] Post saved successfully: PostId={postId}", post.Id);
+
+            // Generate and save content embedding
+            try
+            {
+                if (_vectorEmbeddingService != null)
+                {
+                    _logger.LogInformation("[CreatePostAsync] Generating embedding for post: PostId={postId}", post.Id);
+                    var embedding = await _vectorEmbeddingService.GenerateEmbeddingAsync(post.Content);
+                    var vectorString = _vectorEmbeddingService.ToPostgresVector(embedding);
+                    
+                    var embeddingUpdated = await _postRepository.UpdateContentEmbeddingAsync(post.Id, vectorString);
+                    if (embeddingUpdated)
+                    {
+                        _logger.LogInformation("[CreatePostAsync] Embedding saved successfully: PostId={postId}", post.Id);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[CreatePostAsync] Failed to save embedding for post: PostId={postId}", post.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CreatePostAsync] Failed to generate/save embedding for post: PostId={postId}", post.Id);
+                // Don't fail the post creation if embedding generation fails
+            }
 
             // Record activity for the post creation
             try

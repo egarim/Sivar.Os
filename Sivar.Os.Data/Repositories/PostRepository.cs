@@ -873,4 +873,29 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
                 .ThenInclude(r => r.Profile)
             .Include(p => p.Attachments);
     }
+
+    /// <summary>
+    /// Updates the ContentEmbedding column for a post using raw SQL with ::vector cast
+    /// Required because ContentEmbedding is ignored by EF Core (see DEVELOPMENT_RULES.md section 12)
+    /// </summary>
+    public async Task<bool> UpdateContentEmbeddingAsync(Guid postId, string embeddingVector)
+    {
+        try
+        {
+            // Use raw SQL with ::vector cast to update the embedding
+            // This is necessary because EF Core ignores the ContentEmbedding property
+            var sql = $@"
+                UPDATE ""Sivar_Posts""
+                SET ""ContentEmbedding"" = '{embeddingVector}'::vector,
+                    ""UpdatedAt"" = NOW()
+                WHERE ""Id"" = '{postId}'";
+
+            var rowsAffected = await _context.Database.ExecuteSqlRawAsync(sql);
+            return rowsAffected > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
