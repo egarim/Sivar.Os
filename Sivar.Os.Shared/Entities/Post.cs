@@ -63,7 +63,7 @@ public class Post : BaseEntity
     /// <summary>
     /// Tags for categorization and search
     /// </summary>
-    public virtual string Tags { get; set; } = "[]"; // JSON array of strings
+    public virtual string[] Tags { get; set; } = Array.Empty<string>();
 
     /// <summary>
     /// Media attachments (images, videos, links)
@@ -267,29 +267,6 @@ public class Post : BaseEntity
             IsNegotiable = isNegotiable
         };
         PricingInfo = JsonSerializer.Serialize(pricing);
-    }
-
-    /// <summary>
-    /// Gets tags as string array
-    /// </summary>
-    public string[] GetTags()
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<string[]>(Tags) ?? Array.Empty<string>();
-        }
-        catch
-        {
-            return Array.Empty<string>();
-        }
-    }
-
-    /// <summary>
-    /// Sets tags from string array
-    /// </summary>
-    public void SetTags(string[] tags)
-    {
-        Tags = JsonSerializer.Serialize(tags ?? Array.Empty<string>());
     }
 
     /// <summary>
