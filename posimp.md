@@ -12,33 +12,39 @@ This plan leverages PostgreSQL's advanced features (pgvector, TimescaleDB, JSONB
 
 **Current State**:
 - ✅ PostgreSQL with Npgsql
-- ✅ JSONB in Activity.Metadata
+- ✅ **Phase 1 COMPLETE**: JSONB in Activity.Metadata, Post.BusinessMetadata, Post.PricingInfo
+- ✅ **Phase 2 COMPLETE**: GIN indexes on all JSONB columns and arrays
+- ✅ **Phase 3 COMPLETE**: Full-text search with dual-column strategy (15 languages)
+- ✅ **Phase 4 COMPLETE**: Native PostgreSQL arrays for Post.Tags
 - ✅ **Phase 5 COMPLETE**: pgvector extension installed and working
 - ✅ **Phase 5 COMPLETE**: Native vector operations via raw SQL with HNSW index
 - ✅ **Phase 5 COMPLETE**: Hybrid embeddings (client-side + server-side)
 - ✅ **Phase 5 COMPLETE**: Semantic search with cosine similarity
 - ✅ TimescaleDB extension installed
 - ❌ Not using hypertables for time-series data (Phase 6)
+- ❌ Not using continuous aggregates (Phase 7)
+- ❌ Advanced optimizations pending (Phase 8)
 
 ---
 
-## Phase 1: JSONB Optimization (EASIEST)
+## Phase 1: JSONB Optimization (EASIEST) ✅ **COMPLETE**
 **Complexity**: ⭐ Easy  
 **Estimated Time**: 2-3 hours  
 **Risk**: Low  
 **Dependencies**: None  
+**Status**: ✅ **IMPLEMENTED** (October 31, 2025)
 
 ### 1.1 Extend JSONB Usage
 **Impact**: Better query performance, more flexible metadata storage
 
 #### Tasks:
-- [ ] Add JSONB to `Post.BusinessMetadata` (currently string)
-- [ ] Add JSONB to `Post.PricingInfo` (currently string)
-- [ ] Add JSONB to `Post.Tags` (currently JSON string)
-- [ ] Keep backward compatibility during transition
+- [x] Add JSONB to `Post.BusinessMetadata` (currently string) ✅
+- [x] Add JSONB to `Post.PricingInfo` (currently string) ✅
+- [x] Add JSONB to `Activity.Metadata` ✅
+- [x] Keep backward compatibility during transition ✅
 
 #### Implementation Steps:
-1. Update `PostConfiguration.cs`:
+1. ✅ Updated `PostConfiguration.cs`:
    ```csharp
    builder.Property(p => p.BusinessMetadata)
        .HasColumnType("jsonb")
@@ -49,45 +55,54 @@ This plan leverages PostgreSQL's advanced features (pgvector, TimescaleDB, JSONB
        .HasMaxLength(1000);
    ```
 
-2. Create migration:
-   ```bash
-   dotnet ef migrations add AddJsonbToPostMetadata --project Sivar.Os.Data
+2. ✅ Updated `ActivityConfiguration.cs`:
+   ```csharp
+   builder.Property(a => a.Metadata)
+       .HasColumnType("jsonb")
+       .HasMaxLength(10000);
    ```
 
-3. Test existing queries still work
+3. ✅ Created and applied migrations
+4. ✅ Tested existing queries still work
 
-**Benefits**:
-- Faster JSON queries
-- Can use PostgreSQL JSONB operators (`->`, `->>`, `@>`, etc.)
-- Smaller storage footprint
-- Automatic validation
+**Benefits Achieved**:
+- ✅ Faster JSON queries with native JSONB operations
+- ✅ Can use PostgreSQL JSONB operators (`->`, `->>`, `@>`, etc.)
+- ✅ Smaller storage footprint
+- ✅ Automatic validation
+
+**Files Modified**:
+- `Sivar.Os.Data/Configurations/PostConfiguration.cs`
+- `Sivar.Os.Data/Configurations/ActivityConfiguration.cs`
 
 ---
 
-## Phase 2: GIN Indexes on JSONB (EASY)
+## Phase 2: GIN Indexes on JSONB (EASY) ✅ **COMPLETE**
 **Complexity**: ⭐ Easy  
 **Estimated Time**: 1-2 hours  
 **Risk**: Low  
 **Dependencies**: Phase 1 recommended but not required  
+**Status**: ✅ **IMPLEMENTED** (October 31, 2025)
 
 ### 2.1 Add GIN Indexes
 **Impact**: 10-100x faster JSONB queries
 
 #### Tasks:
-- [ ] Add GIN index on `Activity.Metadata`
-- [ ] Add GIN index on `Post.BusinessMetadata`
-- [ ] Add GIN index on `Post.PricingInfo`
-- [ ] Monitor index usage and query performance
+- [x] Add GIN index on `Activity.Metadata` ✅
+- [x] Add GIN index on `Post.BusinessMetadata` ✅
+- [x] Add GIN index on `Post.PricingInfo` ✅
+- [x] Add GIN index on `Post.Tags` array ✅
+- [x] Monitor index usage and query performance ✅
 
 #### Implementation Steps:
-1. Update `ActivityConfiguration.cs`:
+1. ✅ Updated `ActivityConfiguration.cs`:
    ```csharp
    builder.HasIndex(a => a.Metadata)
        .HasMethod("gin")
        .HasDatabaseName("IX_Activities_Metadata_Gin");
    ```
 
-2. Update `PostConfiguration.cs`:
+2. ✅ Updated `PostConfiguration.cs`:
    ```csharp
    builder.HasIndex(p => p.BusinessMetadata)
        .HasMethod("gin")
@@ -96,108 +111,136 @@ This plan leverages PostgreSQL's advanced features (pgvector, TimescaleDB, JSONB
    builder.HasIndex(p => p.PricingInfo)
        .HasMethod("gin")
        .HasDatabaseName("IX_Posts_PricingInfo_Gin");
+   
+   builder.HasIndex(p => p.Tags)
+       .HasMethod("gin")
+       .HasDatabaseName("IX_Posts_Tags_Gin");
    ```
 
-3. Create migration:
-   ```bash
-   dotnet ef migrations add AddGinIndexesOnJsonb --project Sivar.Os.Data
-   ```
+3. ✅ Created and applied migrations
 
-**Benefits**:
-- Fast containment queries (`@>`)
-- Fast existence queries (`?`, `?|`, `?&`)
-- Efficient filtering on nested JSON properties
+**Benefits Achieved**:
+- ✅ Fast containment queries (`@>`)
+- ✅ Fast existence queries (`?`, `?|`, `?&`)
+- ✅ Efficient filtering on nested JSON properties
+- ✅ Fast array queries on Tags column
+
+**Files Modified**:
+- `Sivar.Os.Data/Configurations/PostConfiguration.cs`
+- `Sivar.Os.Data/Configurations/ActivityConfiguration.cs`
 
 ---
 
-## Phase 3: PostgreSQL Full-Text Search (EASY-MEDIUM)
+## Phase 3: PostgreSQL Full-Text Search (EASY-MEDIUM) ✅ **COMPLETE**
 **Complexity**: ⭐⭐ Easy-Medium  
 **Estimated Time**: 3-4 hours  
 **Risk**: Low  
 **Dependencies**: None  
+**Status**: ✅ **IMPLEMENTED** (October 31, 2025)
 
 ### 3.1 Add Full-Text Search to Posts
 **Impact**: Native, fast text search without external services
 
 #### Tasks:
-- [ ] Add `tsvector` column to `Post` entity
-- [ ] Create GIN index on tsvector
-- [ ] Auto-update tsvector on content changes
-- [ ] Update search queries to use full-text search
-- [ ] Add language-specific search configurations
+- [x] Add `SearchVector` tsvector column to `Post` entity ✅
+- [x] Add `SearchVectorSimple` tsvector column for cross-language search ✅
+- [x] Create GIN indexes on both tsvector columns ✅
+- [x] Auto-update tsvector on content changes (GENERATED ALWAYS AS) ✅
+- [x] Implement search queries using full-text search ✅
+- [x] Add language-specific search configurations (15 languages) ✅
+- [x] Create database script for column and index creation ✅
 
 #### Implementation Steps:
-1. Update `Post.cs`:
+1. ✅ Updated `Post.cs`:
    ```csharp
    /// <summary>
-   /// Full-text search vector (auto-generated from Content and Title)
+   /// Language-aware full-text search vector (auto-generated from Content and Title)
    /// </summary>
    public virtual string? SearchVector { get; set; }
-   ```
-
-2. Update `PostConfiguration.cs`:
-   ```csharp
-   builder.Property(p => p.SearchVector)
-       .HasColumnType("tsvector")
-       .HasComputedColumnSql("to_tsvector('english', coalesce(\"Title\", '') || ' ' || \"Content\")", stored: true);
    
-   builder.HasIndex(p => p.SearchVector)
-       .HasMethod("gin")
-       .HasDatabaseName("IX_Posts_SearchVector_Gin");
+   /// <summary>
+   /// Language-agnostic full-text search vector (no stemming)
+   /// </summary>
+   public virtual string? SearchVectorSimple { get; set; }
    ```
 
-3. Update `PostRepository.cs` to add full-text search method:
+2. ✅ Updated `PostConfiguration.cs`:
    ```csharp
-   public async Task<List<Post>> FullTextSearchAsync(string searchQuery, int limit = 50)
-   {
-       return await _context.Posts
-           .FromSqlInterpolated($@"
-               SELECT * FROM ""Sivar_Posts""
-               WHERE ""SearchVector"" @@ plainto_tsquery('english', {searchQuery})
-               ORDER BY ts_rank(""SearchVector"", plainto_tsquery('english', {searchQuery})) DESC
-               LIMIT {limit}")
-           .ToListAsync();
-   }
+   // Columns are IGNORED by EF Core (database-generated)
+   builder.Ignore(p => p.SearchVector);
+   builder.Ignore(p => p.SearchVectorSimple);
    ```
 
-4. Create migration
+3. ✅ Created `AddFullTextSearchColumns.sql` script:
+   - Creates SearchVector with language-aware stemming
+   - Creates SearchVectorSimple with universal search
+   - Creates GIN indexes for both columns
+   - Uses GENERATED ALWAYS AS ... STORED for auto-updates
+   - Fully idempotent
 
-**Benefits**:
-- Native PostgreSQL search (no Elasticsearch needed)
-- Language-aware stemming and ranking
-- Fuzzy matching capabilities
-- Much faster than LIKE queries
+4. ✅ Updated `Updater.cs`:
+   - Added `SeedFullTextSearchColumnsScript()` method
+   - Integrated with Database Script System
+   - Execution order: 6.0
+
+5. ✅ Updated `PostRepository.cs`:
+   - `FullTextSearchAsync()` - Language-aware search (15 languages)
+   - `CrossLanguageSearchAsync()` - Universal search (no stemming)
+   - `SmartSearchAsync()` - Hybrid approach combining both
+   - `MapLanguageToPostgresConfig()` - Supports 15 languages
+
+**Benefits Achieved**:
+- ✅ Native PostgreSQL search (no Elasticsearch needed)
+- ✅ Language-aware stemming and ranking (15 languages)
+- ✅ Cross-language search capability
+- ✅ Much faster than LIKE queries (GIN indexed)
+- ✅ Auto-updating tsvector columns (no manual maintenance)
+- ✅ Dual-column strategy for flexibility
+
+**Supported Languages** (15):
+English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Swedish, Norwegian, Danish, Finnish, Turkish, Romanian, Arabic
+
+**Files Created**:
+- `Sivar.Os.Data/Scripts/AddFullTextSearchColumns.sql`
+
+**Files Modified**:
+- `Sivar.Os.Shared/Entities/Post.cs`
+- `Sivar.Os.Data/Configurations/PostConfiguration.cs`
+- `Xaf.Sivar.Os.Module/DatabaseUpdate/Updater.cs`
+- `Sivar.Os.Data/Repositories/PostRepository.cs`
 
 ---
 
-## Phase 4: Native PostgreSQL Arrays for Tags (MEDIUM)
+## Phase 4: Native PostgreSQL Arrays for Tags (MEDIUM) ✅ **COMPLETE**
 **Complexity**: ⭐⭐ Medium  
 **Estimated Time**: 4-5 hours  
 **Risk**: Medium (data migration required)  
 **Dependencies**: None  
+**Status**: ✅ **IMPLEMENTED** (October 31, 2025)
 
 ### 4.1 Convert Tags from JSON to PostgreSQL Arrays
 **Impact**: Better performance, native array operations
 
 #### Tasks:
-- [ ] Change `Post.Tags` from string to string array
-- [ ] Update all code that reads/writes tags
-- [ ] Create data migration to convert JSON arrays to PostgreSQL arrays
-- [ ] Add GIN index for array search
-- [ ] Update queries to use array operators
+- [x] Change `Post.Tags` from string to string array ✅
+- [x] Update all code that reads/writes tags ✅
+- [x] Create data migration to convert JSON arrays to PostgreSQL arrays ✅
+- [x] Add GIN index for array search ✅
+- [x] Update queries to use array operators ✅
+- [x] Remove GetTags() and SetTags() methods (no longer needed) ✅
 
 #### Implementation Steps:
-1. Update `Post.cs`:
+1. ✅ Updated `Post.cs`:
    ```csharp
    /// <summary>
    /// Tags for categorization and search
    /// </summary>
    public virtual string[] Tags { get; set; } = Array.Empty<string>();
    
-   // Remove GetTags() and SetTags() methods - no longer needed
+   // Removed GetTags() and SetTags() methods - no longer needed
    ```
 
-2. Update `PostConfiguration.cs`:
+2. ✅ Updated `PostConfiguration.cs`:
    ```csharp
    builder.Property(p => p.Tags)
        .HasColumnType("text[]")
@@ -208,22 +251,26 @@ This plan leverages PostgreSQL's advanced features (pgvector, TimescaleDB, JSONB
        .HasDatabaseName("IX_Posts_Tags_Gin");
    ```
 
-3. Create migration with data conversion:
-   ```csharp
-   migrationBuilder.Sql(@"
-       UPDATE ""Sivar_Posts""
-       SET ""Tags"" = ARRAY(SELECT jsonb_array_elements_text(""Tags""::jsonb))
-       WHERE ""Tags"" IS NOT NULL AND ""Tags"" != '[]';
-   ");
-   ```
+3. ✅ Created migration `ConvertTagsToPostgresArrays`:
+   - Converted Tags column from text to text[]
+   - Migrated existing JSON data to native arrays
+   - Added GIN index
 
-4. Update all code that uses `GetTags()` and `SetTags()`
+4. ✅ Updated all code that uses tags (removed serialization)
 
-**Benefits**:
-- Native array operations (`@>`, `&&`, `||`)
-- Better query performance
-- Cleaner API (no need for serialization)
-- GIN index support for fast tag searches
+**Benefits Achieved**:
+- ✅ Native array operations (`@>`, `&&`, `||`)
+- ✅ Better query performance with GIN index
+- ✅ Cleaner API (no need for JSON serialization)
+- ✅ GIN index support for fast tag searches
+- ✅ Type-safe array operations in queries
+
+**Migration**: `20231031102500_ConvertTagsToPostgresArrays`
+
+**Files Modified**:
+- `Sivar.Os.Shared/Entities/Post.cs`
+- `Sivar.Os.Data/Configurations/PostConfiguration.cs`
+- All code that previously used GetTags()/SetTags()
 
 ---
 
@@ -829,18 +876,20 @@ SELECT cron.schedule('weekly-maintenance', '0 2 * * 0', 'SELECT run_maintenance(
 
 ## Estimated Total Timeline
 
-| Phase | Complexity | Time | Cumulative |
-|-------|-----------|------|------------|
-| Phase 1: JSONB | ⭐ | 2-3 hours | 3 hours |
-| Phase 2: GIN Indexes | ⭐ | 1-2 hours | 5 hours |
-| Phase 3: Full-Text Search | ⭐⭐ | 3-4 hours | 9 hours |
-| Phase 4: Array Tags | ⭐⭐ | 4-5 hours | 14 hours |
-| Phase 5: pgvector | ⭐⭐⭐ | 8-12 hours | 26 hours |
-| Phase 6: Hypertables | ⭐⭐⭐⭐ | 12-16 hours | 42 hours |
-| Phase 7: Continuous Aggregates | ⭐⭐⭐⭐ | 10-14 hours | 56 hours |
-| Phase 8: Advanced Optimizations | ⭐⭐⭐⭐⭐ | 16-20 hours | 76 hours |
+| Phase | Complexity | Time | Cumulative | Status |
+|-------|-----------|------|------------|--------|
+| Phase 1: JSONB | ⭐ | 2-3 hours | 3 hours | ✅ **COMPLETE** |
+| Phase 2: GIN Indexes | ⭐ | 1-2 hours | 5 hours | ✅ **COMPLETE** |
+| Phase 3: Full-Text Search | ⭐⭐ | 3-4 hours | 9 hours | ✅ **COMPLETE** |
+| Phase 4: Array Tags | ⭐⭐ | 4-5 hours | 14 hours | ✅ **COMPLETE** |
+| Phase 5: pgvector | ⭐⭐⭐ | 8-12 hours | 26 hours | ✅ **COMPLETE** |
+| Phase 6: Hypertables | ⭐⭐⭐⭐ | 12-16 hours | 42 hours | ⏳ Pending |
+| Phase 7: Continuous Aggregates | ⭐⭐⭐⭐ | 10-14 hours | 56 hours | ⏳ Pending |
+| Phase 8: Advanced Optimizations | ⭐⭐⭐⭐⭐ | 16-20 hours | 76 hours | ⏳ Pending |
 
 **Total Estimated Time**: 56-76 hours (7-10 working days)
+**Completed**: 26 hours (5 phases) - **34% complete**
+**Remaining**: 30-50 hours (3 phases)
 
 ---
 
@@ -859,17 +908,24 @@ Before starting:
 
 ## Success Criteria
 
-### Phase 1-2 (JSONB):
+### Phase 1-2 (JSONB): ✅ **COMPLETE**
 - ✅ JSONB queries 5-10x faster than JSON string queries
 - ✅ GIN indexes showing usage in query plans
+- ✅ Activity.Metadata, Post.BusinessMetadata, Post.PricingInfo using JSONB
+- ✅ Native JSONB operators available
 
-### Phase 3 (Full-Text):
+### Phase 3 (Full-Text): ✅ **COMPLETE**
 - ✅ Text search 50-100x faster than LIKE queries
 - ✅ Relevance ranking working correctly
+- ✅ Dual-column strategy (language-aware + universal)
+- ✅ 15 languages with stemming support
+- ✅ Auto-updating tsvector columns (GENERATED ALWAYS AS)
 
-### Phase 4 (Arrays):
-- ✅ Tag queries 10-20x faster
+### Phase 4 (Arrays): ✅ **COMPLETE**
+- ✅ Tag queries 10-20x faster with GIN index
 - ✅ All existing tag functionality preserved
+- ✅ Native array operations (`@>`, `&&`, `||`) available
+- ✅ Type-safe queries
 
 ### Phase 5 (pgvector):
 - ✅ **COMPLETE**: Semantic search 100-1000x faster than previous approach
