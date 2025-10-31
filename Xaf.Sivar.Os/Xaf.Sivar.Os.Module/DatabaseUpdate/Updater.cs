@@ -96,9 +96,21 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
         }
         
         /// <summary>
-        /// Seeds the ConvertContentEmbeddingToVector SQL script if it doesn't exist
+        /// Seeds all SQL scripts (called from UpdateDatabaseAfterUpdateSchema)
         /// </summary>
         private void SeedSqlScripts()
+        {
+            SeedConvertContentEmbeddingToVectorScript();
+            SeedTimescaleDBEnableScript();
+            SeedConvertToHypertablesScript();
+            SeedRetentionPoliciesScript();
+            SeedCompressionPoliciesScript();
+        }
+        
+        /// <summary>
+        /// Seeds the ConvertContentEmbeddingToVector SQL script if it doesn't exist
+        /// </summary>
+        private void SeedConvertContentEmbeddingToVectorScript()
         {
             const string scriptName = "ConvertContentEmbeddingToVector";
             
@@ -207,6 +219,171 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
 -- =====================================================";
             
             System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the EnableTimescaleDB SQL script if it doesn't exist
+        /// </summary>
+        private void SeedTimescaleDBEnableScript()
+        {
+            const string scriptName = "EnableTimescaleDB";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Enables TimescaleDB extension for time-series optimization";
+            script.ExecutionOrder = 2.0m;
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Load SQL from embedded resource or file
+            script.SqlText = LoadScriptFromFile("EnableTimescaleDB.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the ConvertToHypertables SQL script if it doesn't exist
+        /// </summary>
+        private void SeedConvertToHypertablesScript()
+        {
+            const string scriptName = "ConvertToHypertables";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Converts time-series tables to TimescaleDB hypertables";
+            script.ExecutionOrder = 3.0m;
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            script.SqlText = LoadScriptFromFile("ConvertToHypertables.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the AddRetentionPolicies SQL script if it doesn't exist
+        /// </summary>
+        private void SeedRetentionPoliciesScript()
+        {
+            const string scriptName = "AddRetentionPolicies";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Adds data retention policies to automatically drop old chunks";
+            script.ExecutionOrder = 4.0m;
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            script.SqlText = LoadScriptFromFile("AddRetentionPolicies.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the AddCompressionPolicies SQL script if it doesn't exist
+        /// </summary>
+        private void SeedCompressionPoliciesScript()
+        {
+            const string scriptName = "AddCompressionPolicies";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Adds compression policies to automatically compress old chunks";
+            script.ExecutionOrder = 5.0m;
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            script.SqlText = LoadScriptFromFile("AddCompressionPolicies.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Loads SQL script content from file in Scripts directory
+        /// </summary>
+        /// <param name="fileName">Name of SQL file (e.g., "EnableTimescaleDB.sql")</param>
+        /// <returns>SQL script content</returns>
+        private string LoadScriptFromFile(string fileName)
+        {
+            try
+            {
+                // Get the solution directory (navigate up from the executing assembly)
+                var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+                var assemblyDir = Path.GetDirectoryName(assemblyLocation);
+                
+                // Navigate to solution root: bin/Debug/net9.0 -> ../../../
+                var solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir!, "..", "..", "..", "..", ".."));
+                
+                // Path to Scripts directory
+                var scriptsDir = Path.Combine(solutionRoot, "Sivar.Os.Data", "Scripts");
+                var scriptPath = Path.Combine(scriptsDir, fileName);
+                
+                if (!File.Exists(scriptPath))
+                {
+                    throw new FileNotFoundException($"SQL script file not found: {scriptPath}");
+                }
+                
+                var content = File.ReadAllText(scriptPath);
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Loaded script from: {scriptPath} ({content.Length} chars)");
+                return content;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Error loading script {fileName}: {ex.Message}");
+                throw;
+            }
         }
         
         /// <summary>
