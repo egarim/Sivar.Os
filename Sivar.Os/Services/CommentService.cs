@@ -98,6 +98,7 @@ public class CommentService : ICommentService
         try
         {
             await _commentRepository.AddAsync(comment);
+            await _commentRepository.SaveChangesAsync();
             
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[CommentService.CreateCommentAsync] SUCCESS - CommentId={CommentId}, PostId={PostId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 
@@ -119,22 +120,44 @@ public class CommentService : ICommentService
     /// </summary>
     public async Task<CommentDto?> CreateReplyAsync(string keycloakId, Guid parentCommentId, CreateReplyDto createReplyDto)
     {
+        _logger.LogInformation("[CommentService.CreateReplyAsync] START - KeycloakId={KeycloakId}, ParentCommentId={ParentCommentId}, ContentLength={Length}", 
+            keycloakId, parentCommentId, createReplyDto?.Content?.Length ?? 0);
+
         if (string.IsNullOrWhiteSpace(keycloakId) || createReplyDto == null)
+        {
+            _logger.LogWarning("[CommentService.CreateReplyAsync] Invalid parameters - KeycloakId or createReplyDto is null");
             return null;
+        }
 
         // Get user and their active profile
         var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
         if (user?.ActiveProfile == null)
+        {
+            _logger.LogWarning("[CommentService.CreateReplyAsync] User or active profile not found - KeycloakId={KeycloakId}", keycloakId);
             return null;
+        }
+
+        _logger.LogInformation("[CommentService.CreateReplyAsync] User found - UserId={UserId}, ProfileId={ProfileId}", 
+            user.Id, user.ActiveProfile.Id);
 
         // Validate content
         if (string.IsNullOrWhiteSpace(createReplyDto.Content))
+        {
+            _logger.LogWarning("[CommentService.CreateReplyAsync] Content is empty");
             return null;
+        }
 
         // Check if parent comment exists
         var parentComment = await _commentRepository.GetByIdAsync(parentCommentId);
         if (parentComment == null)
+        {
+            _logger.LogWarning("[CommentService.CreateReplyAsync] Parent comment not found - ParentCommentId={ParentCommentId}", parentCommentId);
             return null;
+        }
+
+        _logger.LogInformation("[CommentService.CreateReplyAsync] Parent comment found - PostId={PostId}", parentComment.PostId);
+
+        _logger.LogInformation("[CommentService.CreateReplyAsync] Parent comment found - PostId={PostId}", parentComment.PostId);
 
         // TODO: Add permission check for replying based on post visibility
 
@@ -151,13 +174,23 @@ public class CommentService : ICommentService
             UpdatedAt = DateTime.UtcNow
         };
 
+        _logger.LogInformation("[CommentService.CreateReplyAsync] Reply entity created - ReplyId={ReplyId}, ProfileId={ProfileId}, PostId={PostId}", 
+            reply.Id, reply.ProfileId, reply.PostId);
+
         try
         {
+            _logger.LogInformation("[CommentService.CreateReplyAsync] Saving reply to database");
             await _commentRepository.AddAsync(reply);
-            return await MapToCommentDtoAsync(reply, keycloakId);
+            await _commentRepository.SaveChangesAsync();
+            _logger.LogInformation("[CommentService.CreateReplyAsync] Reply saved successfully");
+            
+            var result = await MapToCommentDtoAsync(reply, keycloakId);
+            _logger.LogInformation("[CommentService.CreateReplyAsync] SUCCESS - ReplyId={ReplyId}", reply.Id);
+            return result;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "[CommentService.CreateReplyAsync] FAILED - Error saving reply");
             return null;
         }
     }
@@ -251,23 +284,46 @@ public class CommentService : ICommentService
     /// </summary>
     public async Task<(IEnumerable<CommentDto> Comments, int TotalCount)> GetCommentsByPostAsync(Guid postId, string? requestingKeycloakId = null, int page = 1, int pageSize = 20, bool includeReplies = true)
     {
+        _logger.LogInformation("[CommentService.GetCommentsByPostAsync] START - PostId={PostId}, Page={Page}, PageSize={PageSize}", 
+            postId, page, pageSize);
+
         // Check if user can view the post
         var post = await _postRepository.GetByIdAsync(postId);
         if (post == null)
+        {
+            _logger.LogWarning("[CommentService.GetCommentsByPostAsync] Post not found - PostId={PostId}", postId);
             return (Enumerable.Empty<CommentDto>(), 0);
+        }
 
         // TODO: Add permission check based on post visibility
 
-        var (comments, totalCount) = await _commentRepository.GetByPostAsync(postId, page, pageSize);
+        // Convert 1-based page to 0-based for repository (UI uses 1-based, repository uses 0-based)
+        var repositoryPage = page - 1;
+        var (comments, totalCount) = await _commentRepository.GetByPostAsync(postId, repositoryPage, pageSize);
+        
+        _logger.LogInformation("[CommentService.GetCommentsByPostAsync] Retrieved {Count} total comments from DB, TotalCount={TotalCount}", 
+            comments.Count(), totalCount);
+        
+        var topLevelComments = comments.Where(c => c.ParentCommentId == null).ToList();
+        _logger.LogInformation("[CommentService.GetCommentsByPostAsync] Filtered to {Count} top-level comments (ParentCommentId == null)", 
+            topLevelComments.Count);
         
         var commentDtos = new List<CommentDto>();
-        foreach (var comment in comments.Where(c => c.ParentCommentId == null)) // Only top-level comments
+        foreach (var comment in topLevelComments)
         {
+            _logger.LogInformation("[CommentService.GetCommentsByPostAsync] Mapping comment {CommentId}, HasParent={HasParent}", 
+                comment.Id, comment.ParentCommentId.HasValue);
+                
             var dto = await MapToCommentDtoAsync(comment, requestingKeycloakId, includeReplies);
             if (dto != null)
+            {
+                _logger.LogInformation("[CommentService.GetCommentsByPostAsync] Mapped comment {CommentId}, ReplyCount={ReplyCount}", 
+                    dto.Id, dto.ReplyCount);
                 commentDtos.Add(dto);
+            }
         }
 
+        _logger.LogInformation("[CommentService.GetCommentsByPostAsync] SUCCESS - Returning {Count} comments", commentDtos.Count);
         return (commentDtos, totalCount);
     }
 
@@ -280,7 +336,9 @@ public class CommentService : ICommentService
         if (!await CanUserViewCommentAsync(parentCommentId, requestingKeycloakId))
             return (Enumerable.Empty<CommentDto>(), 0);
 
-        var (replies, totalCount) = await _commentRepository.GetRepliesAsync(parentCommentId, page, pageSize);
+        // Convert 1-based page to 0-based for repository
+        var repositoryPage = page - 1;
+        var (replies, totalCount) = await _commentRepository.GetRepliesAsync(parentCommentId, repositoryPage, pageSize);
         
         var replyDtos = new List<CommentDto>();
         foreach (var reply in replies)
@@ -298,7 +356,9 @@ public class CommentService : ICommentService
     /// </summary>
     public async Task<(IEnumerable<CommentDto> Comments, int TotalCount)> GetCommentsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 20)
     {
-        var (comments, totalCount) = await _commentRepository.GetByProfileAsync(profileId, page, pageSize);
+        // Convert 1-based page to 0-based for repository
+        var repositoryPage = page - 1;
+        var (comments, totalCount) = await _commentRepository.GetByProfileAsync(profileId, repositoryPage, pageSize);
         
         var commentDtos = new List<CommentDto>();
         foreach (var comment in comments)

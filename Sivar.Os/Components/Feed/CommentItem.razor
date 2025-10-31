@@ -1,56 +1,134 @@
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Clients
 @using MudBlazor
+@inject ICommentsClient CommentsClient
 @inject IDialogService DialogService
 @inject ILogger<CommentItem> Logger
 
-<div class="comment-item">
-    <div class="comment-header">
-        <MudAvatar Size="Size.Small">
-            @(Comment.Profile?.DisplayName?.Substring(0, 2).ToUpper() ?? "??")
-        </MudAvatar>
-        <div class="comment-meta">
-            <span class="comment-author">@Comment.Profile?.DisplayName</span>
-            <span class="comment-time">· @GetTimeAgo(Comment.CreatedAt)</span>
+<div class="comment-item @GetDepthClass()">
+    <MudAvatar Size="Size.Small">
+        @(Comment.Profile?.DisplayName?.Substring(0, 2).ToUpper() ?? "??")
+    </MudAvatar>
+    
+    <div class="comment-content-wrapper">
+        <!-- Username · Time · Actions (Single Line) -->
+        <div class="comment-header-inline">
+            <span class="comment-username">@Comment.Profile?.DisplayName</span>
+            <span class="comment-separator">·</span>
+            <span class="comment-time">@GetTimeAgo(Comment.CreatedAt)</span>
             @if (Comment.IsEdited)
             {
                 <span class="comment-edited">(edited)</span>
             }
+            
+            @if (IsCurrentUserComment())
+            {
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Class="comment-menu">
+                    <MudMenuItem OnClick="DeleteComment">Delete</MudMenuItem>
+                </MudMenu>
+            }
         </div>
         
-        @if (IsCurrentUserComment())
-        {
-            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
-                <MudMenuItem OnClick="DeleteComment">Delete</MudMenuItem>
-            </MudMenu>
-        }
-    </div>
-
-    <div class="comment-content">
-        @Comment.Content
-    </div>
-
-    <div class="comment-actions">
-        @if (Comment.ReactionSummary != null && Comment.ReactionSummary.TotalReactions > 0)
-        {
-            <span class="comment-likes">❤️ @Comment.ReactionSummary.TotalReactions</span>
-        }
+        <!-- Comment Text -->
+        <div class="comment-text">@Comment.Content</div>
         
-        @if (Comment.ReplyCount > 0)
-        {
+        <!-- Actions: Like · Reply · View Replies -->
+        <div class="comment-actions">
+            @if (Comment.ReactionSummary != null && Comment.ReactionSummary.TotalReactions > 0)
+            {
+                <span class="comment-likes">❤️ @Comment.ReactionSummary.TotalReactions</span>
+            }
+            
             <MudButton Variant="Variant.Text" 
                        Size="Size.Small" 
-                       OnClick="@(() => OnReply.InvokeAsync(Comment.Id))">
-                💬 @Comment.ReplyCount Replies
+                       OnClick="ToggleReplyInput"
+                       Class="comment-action-btn">
+                Reply
             </MudButton>
+            
+            @if (Comment.ReplyCount > 0 && !_showReplies)
+            {
+                <MudButton Variant="Variant.Text" 
+                           Size="Size.Small" 
+                           OnClick="ToggleReplies"
+                           Class="view-replies-btn">
+                    <span class="view-replies-line">—</span> View replies (@Comment.ReplyCount)
+                </MudButton>
+            }
+            
+            @if (_showReplies && Comment.ReplyCount > 0)
+            {
+                <MudButton Variant="Variant.Text" 
+                           Size="Size.Small" 
+                           OnClick="ToggleReplies"
+                           Class="view-replies-btn">
+                    <MudIcon Icon="@Icons.Material.Filled.ExpandLess" Size="Size.Small" />
+                    Hide replies
+                </MudButton>
+            }
+        </div>
+        
+        <!-- Inline Reply Input (Conditional) -->
+        @if (_showReplyInput && Depth < MaxDepth)
+        {
+            <ReplyInput ParentCommentId="@Comment.Id"
+                        MentionUsername="@Comment.Profile?.DisplayName"
+                        OnReplyCreated="HandleReplyCreated"
+                        OnCancel="@(() => _showReplyInput = false)" />
+        }
+        
+        <!-- Nested Replies (Conditional, Lazy Loaded) -->
+        @if (_showReplies)
+        {
+            <div class="replies-container">
+                @if (_loadingReplies)
+                {
+                    <div class="loading-replies">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <span>Loading replies...</span>
+                    </div>
+                }
+                else if (_replies.Any())
+                {
+                    @foreach (var reply in _replies)
+                    {
+                        <CommentItem Comment="@reply"
+                                     Depth="@(Depth + 1)"
+                                     MaxDepth="@MaxDepth"
+                                     CurrentUserProfileId="@CurrentUserProfileId"
+                                     OnReplyCreated="HandleNestedReplyCreated"
+                                     OnDelete="OnDelete" />
+                    }
+                    
+                    @if (_hasMoreReplies)
+                    {
+                        <MudButton Variant="Variant.Text" 
+                                   OnClick="LoadMoreReplies"
+                                   Class="load-more-replies-btn">
+                            Load more replies...
+                        </MudButton>
+                    }
+                }
+            </div>
         }
     </div>
 </div>
 
 @code {
     [Parameter] public CommentDto Comment { get; set; } = default!;
+    [Parameter] public int Depth { get; set; } = 0;
+    [Parameter] public int MaxDepth { get; set; } = 2;
     [Parameter] public EventCallback<Guid> OnDelete { get; set; }
-    [Parameter] public EventCallback<Guid> OnReply { get; set; }
+    [Parameter] public EventCallback<CommentDto> OnReplyCreated { get; set; }
     [Parameter] public Guid? CurrentUserProfileId { get; set; }
+
+    private bool _showReplyInput = false;
+    private bool _showReplies = false;
+    private bool _loadingReplies = false;
+    private List<CommentDto> _replies = new();
+    private bool _hasMoreReplies = false;
+    private int _repliesPage = 1;
+    private const int RepliesPageSize = 10;
 
     private bool IsCurrentUserComment()
     {
@@ -59,6 +137,132 @@
             return false;
         }
         return Comment.Profile.Id == CurrentUserProfileId.Value;
+    }
+
+    private string GetDepthClass()
+    {
+        if (Depth >= MaxDepth) return "max-depth";
+        return $"depth-{Depth}";
+    }
+
+    private async Task ToggleReplyInput()
+    {
+        _showReplyInput = !_showReplyInput;
+        
+        Logger.LogInformation("[CommentItem] Reply input toggled: {Show}, CommentId={CommentId}", 
+            _showReplyInput, Comment.Id);
+    }
+
+    private async Task ToggleReplies()
+    {
+        _showReplies = !_showReplies;
+        
+        // Load replies on first expand
+        if (_showReplies && !_replies.Any() && !_loadingReplies)
+        {
+            await LoadReplies();
+        }
+        
+        Logger.LogInformation("[CommentItem] Replies toggled: {Show}, CommentId={CommentId}", 
+            _showReplies, Comment.Id);
+    }
+
+    private async Task LoadReplies()
+    {
+        _loadingReplies = true;
+        StateHasChanged();
+        
+        try
+        {
+            Logger.LogInformation("[CommentItem] Loading replies for comment {CommentId}", Comment.Id);
+            
+            var replies = await CommentsClient.GetCommentRepliesAsync(Comment.Id);
+            
+            _replies = replies.ToList();
+            _hasMoreReplies = false; // For now, load all at once
+            
+            Logger.LogInformation("[CommentItem] Loaded {Count} replies", _replies.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentItem] Error loading replies for comment {CommentId}", Comment.Id);
+        }
+        finally
+        {
+            _loadingReplies = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMoreReplies()
+    {
+        _repliesPage++;
+        await LoadReplies();
+    }
+
+    private async Task HandleReplyCreated(CommentDto replyData)
+    {
+        try
+        {
+            Logger.LogInformation("[CommentItem] HandleReplyCreated ENTRY - ParentCommentId={ParentCommentId}, ReplyContent={Content}", 
+                Comment.Id, replyData?.Content ?? "NULL");
+
+            if (replyData == null)
+            {
+                Logger.LogWarning("[CommentItem] HandleReplyCreated - replyData is null");
+                return;
+            }
+
+            Logger.LogInformation("[CommentItem] Creating reply to comment {ParentCommentId}", Comment.Id);
+            
+            // Create the reply via API
+            var createDto = new CreateCommentDto
+            {
+                PostId = Comment.PostId,
+                Content = replyData.Content,
+                Language = "en"
+            };
+
+            Logger.LogInformation("[CommentItem] Calling CommentsClient.CreateReplyAsync - ParentId={ParentId}, PostId={PostId}, Content={Content}", 
+                Comment.Id, createDto.PostId, createDto.Content);
+            
+            var newReply = await CommentsClient.CreateReplyAsync(Comment.Id, createDto);
+
+            Logger.LogInformation("[CommentItem] CommentsClient.CreateReplyAsync returned - Reply is null: {IsNull}", 
+                newReply == null);
+            
+            if (newReply != null)
+            {
+                // Add to local list (optimistic update)
+                _replies.Insert(0, newReply);
+                
+                // Update parent comment's reply count (create new instance since it's init-only)
+                Comment = Comment with { ReplyCount = Comment.ReplyCount + 1 };
+                
+                // Close reply input
+                _showReplyInput = false;
+                
+                // Ensure replies are visible
+                _showReplies = true;
+                
+                // Notify parent
+                await OnReplyCreated.InvokeAsync(newReply);
+                
+                Logger.LogInformation("[CommentItem] Reply created successfully: {ReplyId}", newReply.Id);
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[CommentItem] Error creating reply");
+        }
+    }
+
+    private async Task HandleNestedReplyCreated(CommentDto newReply)
+    {
+        // Propagate up to parent
+        await OnReplyCreated.InvokeAsync(newReply);
     }
 
     private async Task DeleteComment()
@@ -88,10 +292,11 @@
     {
         var diff = DateTime.UtcNow - dateTime;
         
-        if (diff.TotalMinutes < 1) return "just now";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
-        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
+        if (diff.TotalSeconds < 60) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d";
+        if (diff.TotalDays < 30) return $"{(int)(diff.TotalDays / 7)}w";
         
         return dateTime.ToString("MMM d");
     }
