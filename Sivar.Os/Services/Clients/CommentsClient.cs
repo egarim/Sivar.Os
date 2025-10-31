@@ -64,23 +64,31 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
 
     public async Task<CommentDto> CreateReplyAsync(Guid parentCommentId, CreateCommentDto request, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("[CommentsClient.CreateReplyAsync] ENTRY - ParentCommentId={ParentCommentId}, Request is null: {IsNull}", 
+            parentCommentId, request == null);
+
         if (request == null)
         {
-            _logger.LogWarning("CreateReplyAsync called with null request");
+            _logger.LogWarning("[CommentsClient.CreateReplyAsync] Called with null request");
             return null!;
         }
+
+        _logger.LogInformation("[CommentsClient.CreateReplyAsync] Request validated - Content length: {Length}", 
+            request.Content?.Length ?? 0);
 
         try
         {
             var keycloakId = GetKeycloakIdFromContext();
+            _logger.LogInformation("[CommentsClient.CreateReplyAsync] KeycloakId from context: {KeycloakId}", 
+                keycloakId ?? "NULL");
+
             if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("CreateReplyAsync: No authenticated user");
+                _logger.LogWarning("[CommentsClient.CreateReplyAsync] No authenticated user");
                 return null!;
             }
 
-            _logger.LogInformation("CreateReplyAsync: {KeycloakId}, ParentCommentId={ParentCommentId}", 
-                keycloakId, parentCommentId);
+            _logger.LogInformation("[CommentsClient.CreateReplyAsync] Creating CreateReplyDto");
 
             var createReplyDto = new CreateReplyDto
             {
@@ -88,12 +96,19 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
                 Language = request.Language
             };
 
+            _logger.LogInformation("[CommentsClient.CreateReplyAsync] Calling service.CreateReplyAsync - KeycloakId={KeycloakId}, ParentCommentId={ParentCommentId}, Content={Content}", 
+                keycloakId, parentCommentId, createReplyDto.Content);
+
             var reply = await _commentService.CreateReplyAsync(keycloakId, parentCommentId, createReplyDto);
+            
+            _logger.LogInformation("[CommentsClient.CreateReplyAsync] Service returned - Reply is null: {IsNull}", 
+                reply == null);
+
             return reply ?? null!;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating reply to comment {ParentCommentId}", parentCommentId);
+            _logger.LogError(ex, "[CommentsClient.CreateReplyAsync] EXCEPTION - Error creating reply to comment {ParentCommentId}", parentCommentId);
             throw;
         }
     }
@@ -157,20 +172,27 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
     {
         if (postId == Guid.Empty)
         {
-            _logger.LogWarning("GetPostCommentsAsync called with empty post ID");
+            _logger.LogWarning("[CommentsClient.GetPostCommentsAsync] Called with empty post ID");
             return new List<CommentDto>();
         }
 
         try
         {
+            _logger.LogInformation("[CommentsClient.GetPostCommentsAsync] START - PostId={PostId}", postId);
+            
             var keycloakId = GetKeycloakIdFromContext();
+            _logger.LogInformation("[CommentsClient.GetPostCommentsAsync] KeycloakId={KeycloakId}", keycloakId ?? "NULL");
+            
             var result = await _commentService.GetCommentsByPostAsync(postId, keycloakId);
-            _logger.LogInformation("Comments retrieved for post {PostId}: {Count} comments", postId, result.TotalCount);
+            
+            _logger.LogInformation("[CommentsClient.GetPostCommentsAsync] Service returned - Comments count: {Count}, TotalCount: {TotalCount}", 
+                result.Comments?.Count() ?? 0, result.TotalCount);
+            
             return result.Comments ?? new List<CommentDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving comments for post {PostId}", postId);
+            _logger.LogError(ex, "[CommentsClient.GetPostCommentsAsync] ERROR - Error retrieving comments for post {PostId}", postId);
             throw;
         }
     }

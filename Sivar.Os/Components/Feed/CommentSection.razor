@@ -1,7 +1,9 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared
+@using Sivar.Os.Shared.Clients
 @using MudBlazor
-@inject ISivarClient SivarClient
+@inject ICommentsClient CommentsClient
+@inject IProfilesClient ProfilesClient
 @inject ILogger<CommentSection> Logger
 
 <div class="comment-section">
@@ -84,7 +86,7 @@
         try
         {
             // Get current user's active profile ID
-            var currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+            var currentProfile = await ProfilesClient.GetMyActiveProfileAsync();
             _currentUserProfileId = currentProfile?.Id;
             
             Logger.LogInformation("[CommentSection] Current user profile ID: {ProfileId}", _currentUserProfileId);
@@ -130,14 +132,26 @@
             Logger.LogInformation("[CommentSection] Loading comments for PostId={PostId}, Page={Page}", 
                 PostId, _currentPage);
 
-            var comments = await SivarClient.Comments.GetPostCommentsAsync(PostId);
+            var comments = await CommentsClient.GetPostCommentsAsync(PostId);
 
-            _comments = comments.ToList();
+            Logger.LogInformation("[CommentSection] CommentsClient returned {Count} comments", comments?.Count() ?? 0);
+
+            _comments = comments?.ToList() ?? new List<CommentDto>();
             _totalComments = _comments.Count;
             _totalPages = (int)Math.Ceiling(_totalComments / (double)PageSize);
 
-            Logger.LogInformation("[CommentSection] Loaded {Count} comments, Total={Total}", 
+            Logger.LogInformation("[CommentSection] Loaded {Count} comments to UI, Total={Total}", 
                 _comments.Count, _totalComments);
+                
+            if (_comments.Any())
+            {
+                foreach (var comment in _comments)
+                {
+                    Logger.LogInformation("[CommentSection] Comment: Id={Id}, Content={Content}, ReplyCount={ReplyCount}, ParentId={ParentId}", 
+                        comment.Id, comment.Content?.Substring(0, Math.Min(20, comment.Content?.Length ?? 0)), 
+                        comment.ReplyCount, comment.ParentCommentId);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -172,7 +186,7 @@
                 Language = "en"
             };
 
-            var newComment = await SivarClient.Comments.CreateCommentAsync(createDto);
+            var newComment = await CommentsClient.CreateCommentAsync(createDto);
 
             if (newComment != null)
             {
@@ -200,7 +214,7 @@
         {
             Logger.LogInformation("[CommentSection] Deleting comment: {CommentId}", commentId);
             
-            await SivarClient.Comments.DeleteCommentAsync(commentId);
+            await CommentsClient.DeleteCommentAsync(commentId);
             
             _comments.RemoveAll(c => c.Id == commentId);
             _totalComments--;

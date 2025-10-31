@@ -1,0 +1,107 @@
+@using Sivar.Os.Shared.DTOs
+@using MudBlazor
+@inject ILogger<ReplyInput> Logger
+
+<div class="reply-input-container">
+    <MudTextField @bind-Value="_replyText"
+                  Label=@_placeholderText
+                  Variant="Variant.Outlined"
+                  Lines="1"
+                  MaxLength="2000"
+                  Immediate="true"
+                  Class="reply-input"
+                  @ref="_textFieldRef" />
+    
+    <div class="reply-input-actions">
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Text" 
+                   OnClick="SubmitReply"
+                   Disabled="@IsEmpty"
+                   Class="reply-post-btn">
+            Post
+        </MudButton>
+        <MudButton Variant="Variant.Text" 
+                   OnClick="CancelReply"
+                   Class="reply-cancel-btn">
+            Cancel
+        </MudButton>
+    </div>
+    
+    @if (_replyText.Length > 1900)
+    {
+        <div class="character-counter">
+            @(_replyText.Length) / 2000
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid ParentCommentId { get; set; }
+    [Parameter] public string? MentionUsername { get; set; }
+    [Parameter] public EventCallback<CommentDto> OnReplyCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string _replyText = string.Empty;
+    private MudTextField<string>? _textFieldRef;
+    private string _placeholderText => string.IsNullOrEmpty(MentionUsername) 
+        ? "Add a reply..." 
+        : $"Reply to @{MentionUsername}...";
+
+    private bool IsEmpty => string.IsNullOrWhiteSpace(_replyText);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _textFieldRef != null)
+        {
+            // Auto-focus the input field
+            await Task.Delay(100); // Small delay to ensure rendering is complete
+            try
+            {
+                await _textFieldRef.FocusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[ReplyInput] Could not auto-focus input field");
+            }
+        }
+    }
+
+    private async Task SubmitReply()
+    {
+        if (IsEmpty)
+            return;
+
+        try
+        {
+            Logger.LogInformation("[ReplyInput] Submitting reply to comment {ParentCommentId}", ParentCommentId);
+
+            // The parent component will handle the actual submission through OnReplyCreated
+            // This component just provides the UI
+            
+            // For now, we'll clear the input and let parent handle creation
+            var tempText = _replyText;
+            _replyText = string.Empty;
+            
+            await OnReplyCreated.InvokeAsync(new CommentDto 
+            { 
+                Content = tempText.Trim(),
+                ParentCommentId = ParentCommentId
+            });
+            
+            Logger.LogInformation("[ReplyInput] Reply submitted successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[ReplyInput] Error submitting reply");
+            // Restore text on error
+            // _replyText remains cleared for now
+        }
+    }
+
+    private async Task CancelReply()
+    {
+        Logger.LogInformation("[ReplyInput] Reply cancelled");
+        _replyText = string.Empty;
+        await OnCancel.InvokeAsync();
+    }
+}

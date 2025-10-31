@@ -1,7 +1,7 @@
 @using Sivar.Os.Shared.DTOs
-@using Sivar.Os.Shared
+@using Sivar.Os.Shared.Clients
 @using MudBlazor
-@inject ISivarClient SivarClient
+@inject ICommentsClient CommentsClient
 @inject IDialogService DialogService
 @inject ILogger<CommentItem> Logger
 
@@ -176,7 +176,7 @@
         {
             Logger.LogInformation("[CommentItem] Loading replies for comment {CommentId}", Comment.Id);
             
-            var replies = await SivarClient.Comments.GetCommentRepliesAsync(Comment.Id);
+            var replies = await CommentsClient.GetCommentRepliesAsync(Comment.Id);
             
             _replies = replies.ToList();
             _hasMoreReplies = false; // For now, load all at once
@@ -204,6 +204,15 @@
     {
         try
         {
+            Logger.LogInformation("[CommentItem] HandleReplyCreated ENTRY - ParentCommentId={ParentCommentId}, ReplyContent={Content}", 
+                Comment.Id, replyData?.Content ?? "NULL");
+
+            if (replyData == null)
+            {
+                Logger.LogWarning("[CommentItem] HandleReplyCreated - replyData is null");
+                return;
+            }
+
             Logger.LogInformation("[CommentItem] Creating reply to comment {ParentCommentId}", Comment.Id);
             
             // Create the reply via API
@@ -213,8 +222,14 @@
                 Content = replyData.Content,
                 Language = "en"
             };
+
+            Logger.LogInformation("[CommentItem] Calling CommentsClient.CreateReplyAsync - ParentId={ParentId}, PostId={PostId}, Content={Content}", 
+                Comment.Id, createDto.PostId, createDto.Content);
             
-            var newReply = await SivarClient.Comments.CreateReplyAsync(Comment.Id, createDto);
+            var newReply = await CommentsClient.CreateReplyAsync(Comment.Id, createDto);
+
+            Logger.LogInformation("[CommentItem] CommentsClient.CreateReplyAsync returned - Reply is null: {IsNull}", 
+                newReply == null);
             
             if (newReply != null)
             {
