@@ -1,19 +1,29 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared
+@inject ISivarClient SivarClient
 
 @* UserCard component for displaying a single user suggestion *@
 
-<div class="user-card @(IsFollowing ? "following" : string.Empty)">
+<div class="user-card @(_isFollowing ? "following" : string.Empty)">
     <div class="small-avatar">@Initials</div>
     <div class="user-card-info">
         <div class="user-card-name clickable" @onclick="OnNameClick">@Name</div>
         <div class="user-card-bio">@Bio</div>
     </div>
-    <button class="follow-btn @(IsFollowing ? "following" : "follow")" @onclick="OnFollowToggle">
-        @(IsFollowing ? "Following" : "Follow")
+    <button class="follow-btn @(_isFollowing ? "following" : "follow")" 
+            @onclick="HandleFollowToggle" 
+            disabled="@_isProcessing">
+        @(_isProcessing ? "..." : _isFollowing ? "Following" : "Follow")
     </button>
 </div>
 
 @code {
+    /// <summary>
+    /// User's profile ID
+    /// </summary>
+    [Parameter]
+    public Guid ProfileId { get; set; }
+
     /// <summary>
     /// User's display name
     /// </summary>
@@ -33,12 +43,6 @@
     public string Initials { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether the user is currently being followed
-    /// </summary>
-    [Parameter]
-    public bool IsFollowing { get; set; }
-
-    /// <summary>
     /// Callback when follow button is toggled
     /// </summary>
     [Parameter]
@@ -49,4 +53,57 @@
     /// </summary>
     [Parameter]
     public EventCallback OnNameClick { get; set; }
+
+    private bool _isFollowing = false;
+    private bool _isProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckFollowStatus();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Re-check status if ProfileId changes
+        if (ProfileId != Guid.Empty)
+        {
+            await CheckFollowStatus();
+        }
+    }
+
+    private async Task CheckFollowStatus()
+    {
+        try
+        {
+            _isFollowing = await SivarClient.Followers.GetFollowingStatusAsync(ProfileId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserCard] Error checking follow status: {ex.Message}");
+        }
+    }
+
+    private async Task HandleFollowToggle()
+    {
+        _isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            // Call parent callback first
+            await OnFollowToggle.InvokeAsync();
+            
+            // Then update local state
+            _isFollowing = !_isFollowing;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserCard] Error toggling follow: {ex.Message}");
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
 }

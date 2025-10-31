@@ -829,9 +829,42 @@
     }
 
     // Who to Follow
-    private void ToggleFollow(ProfileDto user)
+    private async Task ToggleFollow(ProfileDto user)
     {
-        // This will be handled by API follow/unfollow
+        try
+        {
+            Console.WriteLine($"[Home.ToggleFollow] Toggling follow for profile: {user.DisplayName} ({user.Id})");
+            
+            // Check if already following
+            var isFollowing = await SivarClient.Followers.GetFollowingStatusAsync(user.Id);
+            
+            if (isFollowing)
+            {
+                // Unfollow
+                Console.WriteLine($"[Home.ToggleFollow] Unfollowing profile: {user.DisplayName}");
+                await SivarClient.Followers.UnfollowAsync(user.Id);
+                Console.WriteLine($"[Home.ToggleFollow] Unfollowed successfully");
+            }
+            else
+            {
+                // Follow
+                Console.WriteLine($"[Home.ToggleFollow] Following profile: {user.DisplayName}");
+                var result = await SivarClient.Followers.FollowAsync(new FollowActionDto 
+                { 
+                    ProfileToFollowId = user.Id 
+                });
+                Console.WriteLine($"[Home.ToggleFollow] Follow result - Success: {result.Success}, Message: {result.Message}");
+            }
+            
+            // Refresh follower stats
+            await LoadUserStatsAsync();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home.ToggleFollow] Error: {ex.Message}");
+        }
     }
 
     private void ViewAllSuggestions()
