@@ -207,27 +207,77 @@ public interface IPostRepository : IBaseRepository<Post>
     /// <returns>List of posts with vector embeddings</returns>
     Task<List<Post>> GetAllWithEmbeddingsAsync();
 
+    // ========== Phase 3.5: Multi-Language Full-Text Search Methods ==========
+
     /// <summary>
-    /// Full-text search using PostgreSQL's native tsvector (Phase 3: Full-Text Search)
-    /// This provides much faster and more accurate search than LIKE queries
-    /// Supports language-aware stemming, ranking, and fuzzy matching
+    /// Language-aware full-text search using PostgreSQL's native tsvector
+    /// Uses language-specific search vector for accurate stemming and stop words
     /// </summary>
     /// <param name="searchQuery">Search query text</param>
+    /// <param name="language">ISO 639-1 language code (e.g., "en", "es", "fr"). If null, defaults to "en"</param>
     /// <param name="postTypes">Optional post types to filter by</param>
     /// <param name="limit">Maximum number of results</param>
     /// <param name="includeRelated">Include related entities</param>
     /// <returns>List of posts ranked by relevance</returns>
     Task<List<Post>> FullTextSearchAsync(
         string searchQuery,
+        string? language = null,
         PostType[]? postTypes = null,
         int limit = 50,
         bool includeRelated = true);
+
+    /// <summary>
+    /// Cross-language full-text search
+    /// Searches across ALL languages using the simple/universal search vector
+    /// No stemming, but works for any language
+    /// </summary>
+    /// <param name="searchQuery">Search query text</param>
+    /// <param name="postTypes">Optional post types to filter by</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of posts ranked by relevance across all languages</returns>
+    Task<List<Post>> CrossLanguageSearchAsync(
+        string searchQuery,
+        PostType[]? postTypes = null,
+        int limit = 50,
+        bool includeRelated = true);
+
+    /// <summary>
+    /// Smart search: Tries language-specific first, falls back to cross-language
+    /// Best of both worlds - prioritizes user's language but shows other results too
+    /// </summary>
+    /// <param name="searchQuery">Search query text</param>
+    /// <param name="userLanguage">User's preferred language (ISO 639-1 code)</param>
+    /// <param name="postTypes">Optional post types to filter by</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of posts with user's language prioritized</returns>
+    Task<List<Post>> SmartSearchAsync(
+        string searchQuery,
+        string? userLanguage = null,
+        PostType[]? postTypes = null,
+        int limit = 50,
+        bool includeRelated = true);
+
+    /// <summary>
+    /// Multi-language search with language detection
+    /// Searches in multiple specific languages and combines results
+    /// </summary>
+    /// <param name="searchQuery">Search query text</param>
+    /// <param name="targetLanguages">Array of ISO 639-1 language codes to search in</param>
+    /// <param name="limitPerLanguage">Maximum results per language</param>
+    /// <returns>List of tuples containing posts, their matched language, and relevance rank</returns>
+    Task<List<(Post Post, string MatchLanguage, double Rank)>> MultiLanguageSearchAsync(
+        string searchQuery,
+        string[] targetLanguages,
+        int limitPerLanguage = 20);
 
     /// <summary>
     /// Full-text search with relevance score and minimum similarity threshold
     /// Returns posts ranked by relevance with optional filtering
     /// </summary>
     /// <param name="searchQuery">Search query text</param>
+    /// <param name="language">ISO 639-1 language code. If null, defaults to "en"</param>
     /// <param name="postTypes">Optional post types to filter by</param>
     /// <param name="minRelevance">Minimum relevance score (0.0 to 1.0)</param>
     /// <param name="limit">Maximum number of results</param>
@@ -235,6 +285,7 @@ public interface IPostRepository : IBaseRepository<Post>
     /// <returns>List of tuples containing posts and their relevance ranks</returns>
     Task<List<(Post Post, double Rank)>> FullTextSearchWithRankAsync(
         string searchQuery,
+        string? language = null,
         PostType[]? postTypes = null,
         double minRelevance = 0.1,
         int limit = 50,

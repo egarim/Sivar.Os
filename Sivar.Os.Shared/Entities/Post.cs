@@ -123,10 +123,19 @@ public class Post : BaseEntity
     public virtual string? ContentEmbedding { get; set; }
 
     /// <summary>
-    /// Full-text search vector (auto-generated from Content and Title)
-    /// PostgreSQL tsvector for fast full-text search
+    /// Language-specific full-text search vector (auto-generated from Content and Title)
+    /// Uses the Language property to apply correct stemming and stop words
+    /// PostgreSQL tsvector for fast, accurate full-text search
+    /// Best for searching within a specific language
     /// </summary>
     public virtual string? SearchVector { get; set; }
+
+    /// <summary>
+    /// Universal full-text search vector (language-agnostic)
+    /// Uses 'simple' configuration - no stemming, works for all languages
+    /// Best for cross-language searches and unsupported languages
+    /// </summary>
+    public virtual string? SearchVectorSimple { get; set; }
 
     /// <summary>
     /// Visibility level of the post
