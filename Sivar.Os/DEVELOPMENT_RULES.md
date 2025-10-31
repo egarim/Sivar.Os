@@ -24,7 +24,283 @@
 9. [Authentication & Authorization](#authentication--authorization)
 10. [Error Handling](#error-handling)
 11. [Testing & Debugging](#testing--debugging)
-12. [References](#references)
+12. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+13. [References](#references)
+
+---
+
+## ⚠️ CRITICAL: PostgreSQL pgvector & EF Core 9.0 Compatibility
+
+### 🚨 RECURRING ISSUE - READ THIS BEFORE USING PGVECTOR
+
+**Problem:** Pgvector.EntityFrameworkCore's `Vector` type is **INCOMPATIBLE** with EF Core 9.0, leading to runtime database errors.
+
+### The Issue Explained
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| **PostgreSQL pgvector extension** | ✅ WORKS | Database extension works perfectly with EF Core 9.0 |
+| **Pgvector.EntityFrameworkCore package** | ✅ INSTALLED | NuGet package version 0.2.2 installed |
+| **`Vector` C# type** | ❌ BROKEN | The `Vector?` type does NOT work with EF Core 9.0/Npgsql 9.0 |
+| **Workaround** | ✅ REQUIRED | Use `string?` type with manual conversion (Phase 3 pattern) |
+
+### Why This Happens
+
+```csharp
+// ❌ THIS LOOKS RIGHT BUT DOESN'T WORK
+using Pgvector;
+
+public class Post
+{
+    public Vector? ContentEmbedding { get; set; }  // ❌ FAILS AT RUNTIME
+}
+
+// Runtime Error:
+// "column 'ContentEmbedding' is of type vector but expression is of type character varying"
+// "You will need to rewrite or cast the expression"
+```
+
+**Root Cause:**
+- Pgvector.EntityFrameworkCore 0.2.2 was built for **EF Core 8.0**
+- EF Core 9.0 changed internal APIs and type handling
+- The `Vector` type's value converter doesn't work with EF Core 9.0's new architecture
+- EF Core sends vector data as `character varying` instead of `vector` type
+
+### ✅ CORRECT Solution: Phase 3 Pattern
+
+**Use `string?` type with `.HasColumnType("vector(384)")` configuration:**
+
+```csharp
+// ✅ CORRECT - Entity uses string?
+using Sivar.Os.Shared.Entities;
+
+public class Post : BaseEntity
+{
+    // ... other properties ...
+    
+    /// <summary>
+    /// Vector embedding for semantic search (384 dimensions)
+    /// Stored as PostgreSQL vector type, represented as string in C#
+    /// Format: "[0.1,0.2,0.3,...]"
+    /// </summary>
+    public string? ContentEmbedding { get; set; }  // ✅ Use string, not Vector
+}
+
+// ✅ CORRECT - Configuration
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+public class PostConfiguration : IEntityTypeConfiguration<Post>
+{
+    public void Configure(EntityTypeBuilder<Post> builder)
+    {
+        // ... other configurations ...
+
+        builder.Property(p => p.ContentEmbedding)
+            .HasColumnType("vector(384)")  // ✅ PostgreSQL vector type
+            .IsRequired(false);
+
+        // HNSW index for fast cosine similarity search
+        builder.HasIndex(p => p.ContentEmbedding)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops");
+    }
+}
+```
+
+### Conversion Pattern
+
+**Service Layer - Convert to PostgreSQL Vector Format:**
+
+```csharp
+// ✅ CORRECT - VectorEmbeddingService.cs
+public class VectorEmbeddingService
+{
+    public string ToPostgresVector(Embedding<float> embedding)
+    {
+        // Convert ReadOnlyMemory<float> to PostgreSQL vector format: "[val1,val2,...]"
+        var values = embedding.Vector.ToArray();
+        return $"[{string.Join(",", values)}]";
+    }
+    
+    public async Task<Embedding<float>> GenerateEmbeddingAsync(string text)
+    {
+        var embeddings = await _embeddingGenerator.GenerateAsync([text]);
+        return embeddings[0];
+    }
+}
+
+// ✅ CORRECT - PostService.cs
+public async Task<PostDto?> CreatePostAsync(string keycloakId, CreatePostDto createPostDto)
+{
+    // Generate embedding and convert to string
+    var embedding = await _vectorService.GenerateEmbeddingAsync(post.Content);
+    post.ContentEmbedding = _vectorService.ToPostgresVector(embedding);  // ✅ Store as string
+    
+    await _postRepository.CreateAsync(post);
+    await _postRepository.SaveChangesAsync();
+    
+    return postDto;
+}
+```
+
+**Repository Layer - Use Raw SQL for Vector Operations:**
+
+```csharp
+// ✅ CORRECT - PostRepository.cs
+public async Task<List<Post>> SemanticSearchAsync(string queryEmbedding, int limit = 10)
+{
+    // Use raw SQL with <=> operator for cosine similarity
+    var sql = @"
+        SELECT * FROM ""Sivar_Posts""
+        WHERE ""IsDeleted"" = false 
+          AND ""ContentEmbedding"" IS NOT NULL
+        ORDER BY ""ContentEmbedding"" <=> @queryEmbedding::vector
+        LIMIT @limit";
+
+    var posts = await _context.Posts
+        .FromSqlRaw(sql, 
+            new NpgsqlParameter("@queryEmbedding", queryEmbedding),  // ✅ Pass string
+            new NpgsqlParameter("@limit", limit))
+        .Include(p => p.Profile)
+        .ToListAsync();
+
+    return posts;
+}
+```
+
+**Display Layer - Parse String to Float Array:**
+
+```csharp
+// ✅ CORRECT - PostService.cs (DTO mapping)
+private PostDto MapToDto(Post post)
+{
+    return new PostDto
+    {
+        // ... other properties ...
+        
+        // Parse "[0.1,0.2,...]" to float[]
+        ContentEmbedding = !string.IsNullOrEmpty(post.ContentEmbedding)
+            ? post.ContentEmbedding
+                .Trim('[', ']')
+                .Split(',')
+                .Select(float.Parse)
+                .ToArray()
+            : null
+    };
+}
+```
+
+### Why We Can't Downgrade to EF Core 8.0
+
+**Constraint:** This project uses `Microsoft.Extensions.AI` preview packages that **REQUIRE .NET 9.0**.
+
+```csharp
+// DEPENDENCY CHAIN:
+Microsoft.Extensions.AI 9.0.1-preview  (Requires .NET 9.0)
+    ↓
+IChatClient, IEmbeddingGenerator  (Used throughout project)
+    ↓
+System.Numerics.Tensors 9.0.x  (May not work on .NET 8.0)
+```
+
+**Downgrade Impact:**
+- ❌ Would break AI features (chat, embeddings)
+- ❌ Requires changing ALL 10+ projects from net9.0 to net8.0
+- ❌ Authentication packages would need downgrade
+- ❌ Massive migration effort for minimal gain
+
+**Verdict:** **MUST stay on .NET 9.0 + EF Core 9.0**
+
+### Configuration Checklist
+
+Before using pgvector in any entity:
+
+- [ ] ✅ **Use `string?` type** - NOT `Vector?` in entity properties
+- [ ] ✅ **Configure column type** - `.HasColumnType("vector(384)")` in entity configuration
+- [ ] ✅ **Add HNSW index** - For fast similarity search
+- [ ] ✅ **Use raw SQL for queries** - With `<=>` operator for cosine similarity
+- [ ] ✅ **Convert on insert** - Use `ToPostgresVector()` to convert embeddings to string
+- [ ] ✅ **Parse on read** - Parse `"[val1,val2,...]"` string to `float[]` in DTOs
+- [ ] ✅ **Register .UseVector()** - In `Program.cs` for Npgsql pgvector support
+- [ ] ❌ **DON'T use Vector type** - It's incompatible with EF Core 9.0
+- [ ] ❌ **DON'T use LINQ for similarity** - Use raw SQL with `<=>` operator
+
+### Program.cs Configuration
+
+```csharp
+// ✅ REQUIRED - Register pgvector extension
+builder.Services.AddDbContext<SivarDbContext>(options =>
+{
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions => npgsqlOptions.UseVector());  // ✅ Enable pgvector
+});
+```
+
+### Common Errors & Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "column is of type vector but expression is of type character varying" | Using `Vector?` type | ✅ Change to `string?` |
+| "Cannot write Vector type" | EF Core 9.0 incompatibility | ✅ Use Phase 3 pattern (string?) |
+| "Operator <=> does not exist" | Missing pgvector extension | ✅ Add `.UseVector()` to Npgsql |
+| "Invalid vector format" | Wrong string format | ✅ Use `"[val1,val2,...]"` format |
+| "Index method hnsw does not exist" | pgvector not installed in DB | ✅ Install pgvector in PostgreSQL |
+
+### Testing Checklist
+
+When implementing semantic search:
+
+1. **Verify Database Setup:**
+   - [ ] pgvector extension installed in PostgreSQL
+   - [ ] `.UseVector()` registered in Program.cs
+   - [ ] Column type is `vector(384)` in database
+
+2. **Verify Code Pattern:**
+   - [ ] Entity uses `string?` type (not `Vector?`)
+   - [ ] Configuration uses `.HasColumnType("vector(384)")`
+   - [ ] HNSW index created with `vector_cosine_ops`
+
+3. **Verify Conversion Logic:**
+   - [ ] Embeddings converted to `"[val1,val2,...]"` format before insert
+   - [ ] Raw SQL queries use `@param::vector` casting
+   - [ ] DTOs parse string back to `float[]` for display
+
+4. **Verify Queries:**
+   - [ ] Search uses raw SQL with `<=>` operator
+   - [ ] Query parameter format matches stored format
+   - [ ] Results ordered by similarity score
+
+### Key Lessons
+
+1. **pgvector Extension vs Pgvector.EntityFrameworkCore Package:**
+   - ✅ pgvector DATABASE extension works perfectly
+   - ❌ Pgvector.EntityFrameworkCore C# types DON'T work with EF Core 9.0
+   - ✅ Use string? with manual conversion instead
+
+2. **Why Phase 3 Pattern Works:**
+   - PostgreSQL sees vector column type (configured in EF)
+   - EF Core sends string data (avoids broken Vector converter)
+   - Raw SQL with `::vector` cast converts string to vector at database level
+   - Bypasses EF Core's broken type handling entirely
+
+3. **This is NOT a Bug - It's an Architectural Incompatibility:**
+   - Pgvector.EntityFrameworkCore 0.2.2 is for EF Core 8.0
+   - No EF Core 9.0-compatible version exists yet
+   - Manual conversion is the ONLY reliable solution
+
+### Future Updates
+
+Monitor these for EF Core 9.0 support:
+- [Pgvector.EntityFrameworkCore GitHub](https://github.com/pgvector/pgvector-dotnet)
+- [EF Core 9.0 Release Notes](https://docs.microsoft.com/en-us/ef/core/what-is-new/ef-core-9.0/whatsnew)
+
+**When EF Core 9.0-compatible version is released:**
+1. Update package version
+2. Test Vector type compatibility
+3. Update this documentation
+4. Consider migrating from string? back to Vector? if stable
 
 ---
 
