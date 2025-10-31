@@ -177,8 +177,24 @@ public class CommentsClient : BaseRepositoryClient, ICommentsClient
 
     public async Task<IEnumerable<CommentDto>> GetCommentRepliesAsync(Guid commentId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("GetCommentRepliesAsync: {CommentId}", commentId);
-        return new List<CommentDto>();
+        if (commentId == Guid.Empty)
+        {
+            _logger.LogWarning("GetCommentRepliesAsync called with empty comment ID");
+            return new List<CommentDto>();
+        }
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            var (replies, totalCount) = await _commentService.GetRepliesByCommentAsync(commentId, keycloakId);
+            _logger.LogInformation("Replies retrieved for comment {CommentId}: {Count} replies", commentId, totalCount);
+            return replies ?? new List<CommentDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving replies for comment {CommentId}", commentId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<CommentDto>> GetCommentThreadAsync(Guid commentId, CancellationToken cancellationToken = default)

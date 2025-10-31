@@ -1,0 +1,228 @@
+/* =====================================================
+ * Comment Reply System - Instagram Style
+ * ===================================================== */
+
+/* Reply Input Component */
+.reply-input-container {
+    margin-left: 44px; /* Align with comment text */
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.reply-input {
+    width: 100%;
+}
+
+.reply-input-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.reply-post-btn {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.reply-cancel-btn {
+    color: var(--mud-palette-text-secondary);
+    font-size: 13px;
+}
+
+.character-counter {
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* Comment Item - Instagram Pattern */
+.comment-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    position: relative;
+}
+
+/* Depth-based indentation */
+.comment-item.depth-0 {
+    margin-left: 0;
+}
+
+.comment-item.depth-1 {
+    margin-left: 40px;
+}
+
+.comment-item.depth-2 {
+    margin-left: 80px;
+    border-left: 2px solid var(--mud-palette-divider);
+    padding-left: 12px;
+}
+
+/* Max depth treatment */
+.comment-item.max-depth {
+    border-left: 2px solid var(--mud-palette-divider);
+    padding-left: 12px;
+}
+
+.comment-content-wrapper {
+    flex: 1;
+    min-width: 0; /* Allows text to wrap */
+}
+
+/* Inline header (username · time · actions) */
+.comment-header-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.comment-username {
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.comment-username:hover {
+    text-decoration: underline;
+}
+
+.comment-separator {
+    color: var(--mud-palette-text-secondary);
+    font-size: 12px;
+}
+
+.comment-time {
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.comment-edited {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-style: italic;
+}
+
+/* Comment text */
+.comment-text {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    word-wrap: break-word;
+}
+
+/* Comment actions (like, reply, view replies) */
+.comment-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.comment-action-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary);
+    text-transform: none;
+    padding: 0;
+    min-width: auto;
+}
+
+.comment-action-btn:hover {
+    background-color: transparent;
+    color: var(--mud-palette-text-primary);
+}
+
+.comment-likes {
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* View replies button (Instagram style with line) */
+.view-replies-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary);
+    text-transform: none;
+    padding: 0;
+    min-width: auto;
+}
+
+.view-replies-btn:hover {
+    background-color: transparent;
+    color: var(--mud-palette-text-primary);
+}
+
+.view-replies-line {
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--mud-palette-text-secondary);
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* Replies container */
+.replies-container {
+    margin-top: 12px;
+}
+
+.loading-replies {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 13px;
+}
+
+.load-more-replies-btn {
+    color: var(--mud-palette-primary);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    padding: 8px 0;
+}
+
+/* Smooth expand/collapse animation */
+.replies-container {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .comment-item.depth-1 {
+        margin-left: 32px;
+    }
+
+    .comment-item.depth-2 {
+        margin-left: 64px;
+    }
+
+    .comment-username {
+        font-size: 13px;
+    }
+
+    .comment-text {
+        font-size: 13px;
+    }
+
+    .reply-input-container {
+        margin-left: 36px;
+    }
+}
