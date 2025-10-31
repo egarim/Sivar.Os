@@ -422,7 +422,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             PostType = post.PostType,
             Visibility = post.Visibility,
             Language = post.Language,
-            Tags = string.IsNullOrEmpty(post.Tags) ? new List<string>() : post.GetTags().ToList(),
+            Tags = post.Tags?.ToList() ?? new List<string>(),
             Location = post.Location != null ? new LocationDto
             {
                 City = post.Location.City,

@@ -118,7 +118,7 @@ public class PostService : IPostService
             PostType = createPostDto.PostType,
             Visibility = createPostDto.Visibility,
             Language = createPostDto.Language ?? "en",
-            Tags = JsonSerializer.Serialize(createPostDto.Tags ?? new List<string>()),
+            Tags = createPostDto.Tags?.ToArray() ?? Array.Empty<string>(),
             BusinessMetadata = createPostDto.BusinessMetadata,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -291,7 +291,7 @@ public class PostService : IPostService
             {
                 _logger.LogInformation("[PostService.UpdatePostAsync] Updating tags - RequestId={RequestId}, TagCount={TagCount}",
                     requestId, updatePostDto.Tags.Count);
-                post.Tags = JsonSerializer.Serialize(updatePostDto.Tags);
+                post.Tags = updatePostDto.Tags.ToArray();
             }
 
             if (updatePostDto.Location != null)
@@ -838,7 +838,7 @@ public class PostService : IPostService
             PostType = post.PostType,
             Visibility = post.Visibility,
             Language = post.Language,
-            Tags = string.IsNullOrEmpty(post.Tags) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(post.Tags) ?? new List<string>(),
+            Tags = post.Tags?.ToList() ?? new List<string>(),
             BusinessMetadata = post.BusinessMetadata,
             Attachments = await MapAttachmentsToDtosAsync(post.Id),
             CommentCount = includeComments ? await _commentRepository.GetCommentCountByPostAsync(post.Id) : 0,

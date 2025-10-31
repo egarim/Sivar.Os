@@ -37,9 +37,9 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasColumnType("jsonb")
             .HasMaxLength(5000);
             
+        // Tags - using PostgreSQL array for better performance (Phase 4)
         builder.Property(p => p.Tags)
-            .HasColumnType("jsonb")
-            .HasMaxLength(2000)
+            .HasColumnType("text[]")
             .IsRequired();
             
         // Availability status
