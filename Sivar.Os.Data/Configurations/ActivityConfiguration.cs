@@ -41,6 +41,11 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
 
         builder.HasIndex(a => a.EngagementScore)
             .HasDatabaseName("IX_Activities_EngagementScore");
+        
+        // GIN index for JSONB Metadata column (Phase 2: PostgreSQL optimization)
+        builder.HasIndex(a => a.Metadata)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Activities_Metadata_Gin");
 
         // Relationships
         builder.HasOne(a => a.Actor)

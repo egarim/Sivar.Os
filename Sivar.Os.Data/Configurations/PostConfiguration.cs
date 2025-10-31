@@ -28,14 +28,17 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.PostType)
             .IsRequired();
         
-        // JSON metadata fields
+        // JSON metadata fields - using PostgreSQL JSONB for better performance
         builder.Property(p => p.PricingInfo)
+            .HasColumnType("jsonb")
             .HasMaxLength(1000);
             
         builder.Property(p => p.BusinessMetadata)
+            .HasColumnType("jsonb")
             .HasMaxLength(5000);
             
         builder.Property(p => p.Tags)
+            .HasColumnType("jsonb")
             .HasMaxLength(2000)
             .IsRequired();
             
@@ -92,5 +95,18 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasIndex(p => p.PostType);
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => new { p.ProfileId, p.PostType });
+        
+        // GIN indexes for JSONB columns (Phase 2: PostgreSQL optimization)
+        builder.HasIndex(p => p.BusinessMetadata)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Posts_BusinessMetadata_Gin");
+        
+        builder.HasIndex(p => p.PricingInfo)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Posts_PricingInfo_Gin");
+        
+        builder.HasIndex(p => p.Tags)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Posts_Tags_Gin");
     }
 }
