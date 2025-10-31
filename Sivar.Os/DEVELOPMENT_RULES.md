@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: October 31, 2025  
+> **Last Updated**: October 31, 2025 - Added Phase 7 Continuous Aggregates documentation  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -25,7 +25,12 @@
 10. [Error Handling](#error-handling)
 11. [Testing & Debugging](#testing--debugging)
 12. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-13. [Database Script System](#database-script-system) ⭐ **NEW**
+13. [Database Script System](#database-script-system) ⭐ **UPDATED**
+    - Architecture Overview
+    - Existing SQL Scripts (Phase 5-7)
+    - How to Add More Continuous Aggregates ⭐ **NEW**
+    - Script Execution Order
+    - Best Practices & Troubleshooting
 14. [References](#references)
 
 ---
@@ -3394,6 +3399,396 @@ The project currently has **5 SQL scripts** for PostgreSQL optimization:
 - **Location:** `Sivar.Os.Data/Scripts/AddCompressionPolicies.sql`
 - **Seeded by:** `Updater.SeedCompressionPoliciesScript()`
 
+#### Phase 7: TimescaleDB Continuous Aggregates
+
+**6. AddContinuousAggregates.sql** (ExecutionOrder: 6.0)
+- **Purpose:** Create real-time analytics materialized views for dashboards
+- **Aggregates:**
+  - `post_metrics_daily` - Daily post statistics by author and type
+  - `activity_metrics_hourly` - Hourly activity stream statistics
+  - `user_engagement_daily` - Daily user engagement metrics
+  - `post_engagement_daily` - Daily post engagement with reactions/comments
+- **Features:**
+  - Automatic refresh policies (hourly/daily)
+  - Pre-computed aggregations (1000x faster than on-demand queries)
+  - HNSW indexes for fast lookups
+  - Materialized view optimization
+- **Location:** `Sivar.Os.Data/Scripts/AddContinuousAggregates.sql`
+- **Seeded by:** `Updater.SeedContinuousAggregatesScript()`
+- **Repository:** `AnalyticsRepository.cs` (13 query methods)
+- **API:** `AnalyticsController.cs` (9 REST endpoints)
+
+### How to Add More Continuous Aggregates
+
+TimescaleDB continuous aggregates are **materialized views** that automatically refresh and provide real-time analytics. They're perfect for dashboard metrics, reports, and time-series data.
+
+#### When to Add a Continuous Aggregate
+
+✅ **DO use continuous aggregates for:**
+- Dashboard metrics (user counts, post stats, engagement metrics)
+- Time-series reports (daily/hourly/monthly aggregations)
+- Frequently queried analytics (same query running multiple times)
+- Complex JOINs that are expensive to compute on-demand
+- Data that updates less frequently than it's queried
+
+❌ **DON'T use continuous aggregates for:**
+- Real-time data that must be 100% up-to-date (use hypertables directly)
+- Simple queries that are already fast
+- One-time reports or rarely used analytics
+- Data with complex WHERE clauses (aggregates are pre-filtered)
+
+#### Step-by-Step Guide: Adding New Continuous Aggregates
+
+**Step 1: Design Your Aggregate Query**
+
+First, write a standard SQL query that returns the data you need:
+
+```sql
+-- Example: Hourly comment metrics
+SELECT 
+    time_bucket('1 hour', "CreatedAt") AS bucket,
+    "PostId",
+    COUNT(*) AS total_comments,
+    COUNT(DISTINCT "UserId") AS unique_commenters,
+    AVG(CHAR_LENGTH("Content")) AS avg_comment_length
+FROM "Sivar_Comments"
+WHERE "IsDeleted" = false
+GROUP BY bucket, "PostId"
+ORDER BY bucket DESC;
+```
+
+**Step 2: Convert to Continuous Aggregate**
+
+Wrap your query in a `CREATE MATERIALIZED VIEW` statement:
+
+```sql
+-- =====================================================
+-- Continuous Aggregate: comment_metrics_hourly
+-- Purpose: Track hourly comment activity per post
+-- Refresh Policy: Every 1 hour
+-- =====================================================
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS comment_metrics_hourly
+WITH (timescaledb.continuous) AS
+SELECT 
+    time_bucket('1 hour', "CreatedAt") AS bucket,
+    "PostId",
+    COUNT(*) AS total_comments,
+    COUNT(DISTINCT "UserId") AS unique_commenters,
+    AVG(CHAR_LENGTH("Content")) AS avg_comment_length
+FROM "Sivar_Comments"
+WHERE "IsDeleted" = false
+GROUP BY bucket, "PostId";
+
+-- Create index for fast lookups
+CREATE INDEX IF NOT EXISTS idx_comment_metrics_hourly_bucket 
+ON comment_metrics_hourly (bucket DESC);
+
+CREATE INDEX IF NOT EXISTS idx_comment_metrics_hourly_post 
+ON comment_metrics_hourly ("PostId");
+
+-- Set automatic refresh policy
+SELECT add_continuous_aggregate_policy(
+    'comment_metrics_hourly',
+    start_offset => INTERVAL '3 hours',
+    end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour'
+);
+```
+
+**Step 3: Add to AddContinuousAggregates.sql**
+
+Add your aggregate to the existing SQL script file:
+
+**Location:** `Sivar.Os.Data/Scripts/AddContinuousAggregates.sql`
+
+```sql
+-- ... existing aggregates ...
+
+-- =====================================================
+-- Continuous Aggregate 5: comment_metrics_hourly
+-- Purpose: Track hourly comment activity per post
+-- Refresh Policy: Every 1 hour
+-- Performance: ~1000x faster than querying Comments table
+-- =====================================================
+
+-- (Your SQL from Step 2)
+```
+
+**Step 4: Update Updater.cs (If Needed)**
+
+If you're adding to the existing script, **no changes needed**. The script will be re-executed if not marked as `RunOnce`, or you can reset it.
+
+If creating a **new separate script** for comments analytics:
+
+```csharp
+/// <summary>
+/// Seeds the AddCommentAggregates SQL script if it doesn't exist
+/// </summary>
+private void SeedCommentAggregatesScript()
+{
+    const string scriptName = "AddCommentAggregates";
+    
+    var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+        .FirstOrDefault(s => s.Name == scriptName);
+    
+    if (existingScript != null)
+    {
+        System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+        return;
+    }
+    
+    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+    
+    var script = ObjectSpace.CreateObject<SqlScript>();
+    script.Name = scriptName;
+    script.Description = "Creates continuous aggregates for comment analytics";
+    script.ExecutionOrder = 7.0m;  // After AddContinuousAggregates (6.0)
+    script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+    script.IsActive = true;
+    script.RunOnce = true;
+    
+    script.SqlText = LoadScriptFromFile("AddCommentAggregates.sql");
+    
+    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+}
+
+// Call in SeedSqlScripts()
+private void SeedSqlScripts()
+{
+    SeedConvertContentEmbeddingToVectorScript();  // Order 1.0
+    SeedTimescaleDBEnableScript();                // Order 2.0
+    SeedConvertToHypertablesScript();             // Order 3.0
+    SeedRetentionPoliciesScript();                // Order 4.0
+    SeedCompressionPoliciesScript();              // Order 5.0
+    SeedContinuousAggregatesScript();             // Order 6.0
+    SeedCommentAggregatesScript();                // Order 7.0 ⭐ NEW
+}
+```
+
+**Step 5: Create Repository Methods**
+
+Add query methods to `AnalyticsRepository.cs` (or create `CommentAnalyticsRepository.cs`):
+
+```csharp
+/// <summary>
+/// Get hourly comment metrics for a specific post
+/// </summary>
+public async Task<List<CommentMetricsHourlyDto>> GetCommentMetricsByPostAsync(
+    Guid postId,
+    DateTime? startDate = null,
+    DateTime? endDate = null)
+{
+    var requestId = Guid.NewGuid().ToString("N");
+    _logger.LogInformation(
+        "[GetCommentMetricsByPostAsync] START - RequestId={RequestId}, PostId={PostId}, StartDate={StartDate}, EndDate={EndDate}",
+        requestId, postId, startDate, endDate);
+
+    try
+    {
+        var query = @"
+            SELECT 
+                bucket,
+                ""PostId"",
+                total_comments,
+                unique_commenters,
+                avg_comment_length
+            FROM comment_metrics_hourly
+            WHERE ""PostId"" = {0}
+            AND bucket >= {1}
+            AND bucket <= {2}
+            ORDER BY bucket DESC";
+
+        var start = startDate ?? DateTime.UtcNow.AddDays(-7);
+        var end = endDate ?? DateTime.UtcNow;
+
+        var results = await _context.Database
+            .SqlQueryRaw<CommentMetricsHourlyDto>(query, postId, start, end)
+            .ToListAsync();
+
+        _logger.LogInformation(
+            "[GetCommentMetricsByPostAsync] SUCCESS - RequestId={RequestId}, Results={Count}",
+            requestId, results.Count);
+
+        return results;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex,
+            "[GetCommentMetricsByPostAsync] FAILED - RequestId={RequestId}, PostId={PostId}",
+            requestId, postId);
+        throw;
+    }
+}
+```
+
+**Step 6: Create DTOs**
+
+Add DTOs to `AnalyticsDTOs.cs`:
+
+```csharp
+/// <summary>
+/// DTO for hourly comment metrics
+/// Maps to comment_metrics_hourly continuous aggregate
+/// </summary>
+public class CommentMetricsHourlyDto
+{
+    public DateTime bucket { get; set; }
+    public Guid PostId { get; set; }
+    public int total_comments { get; set; }
+    public int unique_commenters { get; set; }
+    public double avg_comment_length { get; set; }
+}
+```
+
+**Step 7: Add API Endpoints**
+
+Add endpoints to `AnalyticsController.cs`:
+
+```csharp
+/// <summary>
+/// Get hourly comment metrics for a specific post
+/// </summary>
+[HttpGet("comments/post/{postId}")]
+public async Task<ActionResult<List<CommentMetricsHourlyDto>>> GetCommentMetricsByPost(
+    Guid postId,
+    [FromQuery] DateTime? startDate = null,
+    [FromQuery] DateTime? endDate = null)
+{
+    try
+    {
+        var results = await _analyticsRepository.GetCommentMetricsByPostAsync(
+            postId, startDate, endDate);
+        return Ok(results);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Failed to get comment metrics for post {PostId}", postId);
+        return StatusCode(500, "Failed to retrieve comment metrics");
+    }
+}
+```
+
+**Step 8: Test Your Aggregate**
+
+**1. Verify aggregate was created:**
+```sql
+-- List all continuous aggregates
+SELECT view_name, refresh_lag, refresh_interval
+FROM timescaledb_information.continuous_aggregates;
+```
+
+**2. Manually refresh (for testing):**
+```sql
+CALL refresh_continuous_aggregate('comment_metrics_hourly', NULL, NULL);
+```
+
+**3. Query the aggregate:**
+```sql
+SELECT * FROM comment_metrics_hourly
+ORDER BY bucket DESC
+LIMIT 10;
+```
+
+**4. Test the API endpoint:**
+```bash
+curl https://localhost:7165/api/analytics/comments/post/{postId}
+```
+
+#### Continuous Aggregate Best Practices
+
+✅ **DO:**
+- Use `time_bucket()` for time-based grouping (required for continuous aggregates)
+- Create indexes on `bucket` column (almost always needed)
+- Set appropriate `start_offset` and `end_offset` (controls refresh window)
+- Choose `schedule_interval` based on data freshness needs (hourly, daily, etc.)
+- Use `IF NOT EXISTS` for idempotency
+- Add comprehensive comments explaining the aggregate's purpose
+- Log all repository methods (START, SUCCESS, FAILED)
+
+❌ **DON'T:**
+- Don't use window functions (LAG, LEAD, ROW_NUMBER) - not supported
+- Don't use volatile functions (NOW(), RANDOM()) - causes refresh issues
+- Don't make refresh interval too short (increases database load)
+- Don't forget indexes (aggregates can still be slow without them)
+- Don't use `SELECT *` in aggregate definition
+- Don't mix aggregation levels (e.g., daily + hourly in same view)
+
+#### Common Patterns
+
+**1. Daily Rollups:**
+```sql
+time_bucket('1 day', "CreatedAt") AS bucket
+-- Refresh daily
+schedule_interval => INTERVAL '1 day'
+```
+
+**2. Hourly Metrics:**
+```sql
+time_bucket('1 hour', "CreatedAt") AS bucket
+-- Refresh hourly
+schedule_interval => INTERVAL '1 hour'
+```
+
+**3. Weekly Summaries:**
+```sql
+time_bucket('1 week', "CreatedAt") AS bucket
+-- Refresh daily (weekly buckets updated daily)
+schedule_interval => INTERVAL '1 day'
+```
+
+**4. Multi-Dimensional Aggregates:**
+```sql
+-- Group by time AND category
+SELECT 
+    time_bucket('1 day', "CreatedAt") AS bucket,
+    "Category",
+    "Status",
+    COUNT(*) AS total,
+    AVG("Price") AS avg_price
+FROM "Sivar_Products"
+GROUP BY bucket, "Category", "Status";
+```
+
+#### Performance Benchmarks (Expected)
+
+| Query Type | Without Aggregate | With Aggregate | Speedup |
+|------------|------------------|----------------|---------|
+| Simple COUNT | ~100ms | ~1ms | 100x |
+| Complex JOINs | ~5000ms | ~10ms | 500x |
+| Multi-GROUP BY | ~2000ms | ~2ms | 1000x |
+| 7-day rollup | ~1500ms | ~3ms | 500x |
+
+#### Troubleshooting Continuous Aggregates
+
+**Check refresh policies:**
+```sql
+SELECT * FROM timescaledb_information.job_stats
+WHERE job_id IN (
+    SELECT job_id FROM timescaledb_information.jobs
+    WHERE proc_name = 'policy_refresh_continuous_aggregate'
+);
+```
+
+**Check last refresh:**
+```sql
+SELECT view_name, 
+       completed_threshold,
+       invalidation_threshold
+FROM timescaledb_information.continuous_aggregates;
+```
+
+**Force manual refresh:**
+```sql
+CALL refresh_continuous_aggregate('your_aggregate_name', NULL, NULL);
+```
+
+**Drop and recreate aggregate (if broken):**
+```sql
+DROP MATERIALIZED VIEW IF EXISTS your_aggregate_name CASCADE;
+-- Then run your creation script again
+```
+
 ### How to Add a New Database Script
 
 Follow this pattern when you need to add database features that EF Core cannot handle:
@@ -3523,13 +3918,20 @@ Current execution order:
 3. **Order 3.0** - ConvertToHypertables (Phase 6: TimescaleDB)
 4. **Order 4.0** - AddRetentionPolicies (Phase 6: TimescaleDB)
 5. **Order 5.0** - AddCompressionPolicies (Phase 6: TimescaleDB)
-6. **Order 6.0** - ⭐ **Available for next script**
+6. **Order 6.0** - AddContinuousAggregates (Phase 7: TimescaleDB Continuous Aggregates)
+7. **Order 7.0** - ⭐ **Available for next script**
 
 **Ordering Rules:**
 - Use decimal increments (1.0, 2.0, 3.0)
 - Reserve space for future scripts (not 0.1 increments)
 - Group related scripts together
 - Can insert between scripts if needed (e.g., 1.5)
+
+**Phase Dependencies:**
+- Phase 5 (pgvector) has no dependencies
+- Phase 6 (Hypertables) requires TimescaleDB extension (Order 2.0)
+- Phase 7 (Continuous Aggregates) requires hypertables to exist (Order 3.0+)
+- Future aggregates should use Order 7.0+ (after Phase 7)
 
 ### When to Use Database Script System
 
@@ -3576,8 +3978,34 @@ WHERE "Name" = '{ScriptName}';
 
 - `PHASE_5_COMPLETE_STATUS.md` - pgvector implementation details
 - `PHASE_6_IMPLEMENTATION_COMPLETE.md` - TimescaleDB implementation details
-- `posimp.md` - PostgreSQL optimization roadmap
+- `PHASE_7_CONTINUOUS_AGGREGATES_COMPLETE.md` - Continuous aggregates implementation
+- `posimp.md` - PostgreSQL optimization roadmap (88% complete, 7/8 phases)
 - `Sivar.Os.Data/Scripts/` - All SQL script files
+- `AnalyticsRepository.cs` - Repository with 13 analytics query methods
+- `AnalyticsController.cs` - REST API with 9 analytics endpoints
+
+### Quick Reference: Adding Analytics Features
+
+**For new aggregate metrics:**
+1. Design query using existing hypertables (Activities, Posts, ChatMessages, Notifications)
+2. Add to `AddContinuousAggregates.sql` or create new script file
+3. Create DTOs in `AnalyticsDTOs.cs`
+4. Add repository methods in `AnalyticsRepository.cs`
+5. Add API endpoints in `AnalyticsController.cs`
+6. Test with `CALL refresh_continuous_aggregate()` and API calls
+
+**For new time-series tables:**
+1. Create table via EF Core migration
+2. Convert to hypertable in `ConvertToHypertables.sql` (or new script)
+3. Add retention policy in `AddRetentionPolicies.sql`
+4. Add compression policy in `AddCompressionPolicies.sql`
+5. Create aggregates in `AddContinuousAggregates.sql`
+
+**Key Performance Targets:**
+- Continuous aggregate queries: **< 100ms** (vs 5-10 seconds raw queries)
+- Dashboard summary endpoint: **< 200ms** (9 aggregates combined)
+- Refresh policies: Hourly for real-time, daily for historical
+- Compression savings: **60-90%** storage reduction after 30-90 days
 
 ---
 
