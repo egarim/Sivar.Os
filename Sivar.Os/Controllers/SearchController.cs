@@ -452,8 +452,8 @@ public class SearchController : ControllerBase
     }
 
     /// <summary>
-    /// Convert PostgreSQL vector string to Embedding<float>
-    /// Format: "[0.1,0.2,0.3,...]" -> Embedding<float>
+    /// Convert Pgvector.Vector to Embedding<float>
+    /// The Vector type from the pgvector library already contains a float array
     /// </summary>
     private Embedding<float>? VectorToEmbedding(Vector vector)
     {
