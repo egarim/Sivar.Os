@@ -68,7 +68,7 @@ public class Post
 
 ### ✅ CORRECT Solution: Phase 3 Pattern
 
-**Use `string?` type with `.HasColumnType("vector(384)")` configuration:**
+**Use `string?` type with `.Ignore()` to completely bypass EF Core:**
 
 ```csharp
 // ✅ CORRECT - Entity uses string?
@@ -82,11 +82,13 @@ public class Post : BaseEntity
     /// Vector embedding for semantic search (384 dimensions)
     /// Stored as PostgreSQL vector type, represented as string in C#
     /// Format: "[0.1,0.2,0.3,...]"
+    /// ⚠️ CRITICAL: This property is IGNORED by EF Core
+    /// Updated manually via raw SQL to bypass type conversion errors
     /// </summary>
     public string? ContentEmbedding { get; set; }  // ✅ Use string, not Vector
 }
 
-// ✅ CORRECT - Configuration
+// ✅ CORRECT - Configuration (IGNORE the column!)
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -96,16 +98,35 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
     {
         // ... other configurations ...
 
-        builder.Property(p => p.ContentEmbedding)
-            .HasColumnType("vector(384)")  // ✅ PostgreSQL vector type
-            .IsRequired(false);
-
-        // HNSW index for fast cosine similarity search
-        builder.HasIndex(p => p.ContentEmbedding)
-            .HasMethod("hnsw")
-            .HasOperators("vector_cosine_ops");
+        // ⭐ CRITICAL SOLUTION: Ignore ContentEmbedding completely
+        // EF Core 9.0 cannot handle vector type conversion at all
+        // We update this column manually via raw SQL instead
+        builder.Ignore(p => p.ContentEmbedding);
+        
+        // HNSW index must be created manually in database:
+        // CREATE INDEX IX_Posts_ContentEmbedding_Hnsw 
+        //   ON "Sivar_Posts" USING hnsw ("ContentEmbedding" vector_cosine_ops);
     }
 }
+```
+
+### How to Update ContentEmbedding
+
+Since the column is ignored by EF Core, you must update it using raw SQL:
+
+```csharp
+// After creating a post, update ContentEmbedding via raw SQL
+var embedding = await _vectorService.GenerateEmbeddingAsync(post.Content);
+var vectorString = _vectorService.ToPostgresVector(embedding); // Returns "[0.1,0.2,...]"
+
+await _context.Database.ExecuteSqlRawAsync(
+    @"UPDATE ""Sivar_Posts"" 
+      SET ""ContentEmbedding"" = {0}::vector, 
+          ""UpdatedAt"" = {1}
+      WHERE ""Id"" = {2}",
+    vectorString,
+    DateTime.UtcNow,
+    post.Id);
 ```
 
 ### Conversion Pattern
@@ -217,14 +238,17 @@ System.Numerics.Tensors 9.0.x  (May not work on .NET 8.0)
 Before using pgvector in any entity:
 
 - [ ] ✅ **Use `string?` type** - NOT `Vector?` in entity properties
-- [ ] ✅ **Configure column type** - `.HasColumnType("vector(384)")` in entity configuration
-- [ ] ✅ **Add HNSW index** - For fast similarity search
+- [ ] ✅ **Use `.Ignore()`** - Add `builder.Ignore(p => p.ContentEmbedding)` in entity configuration
+- [ ] ✅ **Create HNSW index manually** - Via raw SQL in database (not EF Core)
 - [ ] ✅ **Use raw SQL for queries** - With `<=>` operator for cosine similarity
-- [ ] ✅ **Convert on insert** - Use `ToPostgresVector()` to convert embeddings to string
-- [ ] ✅ **Parse on read** - Parse `"[val1,val2,...]"` string to `float[]` in DTOs
+- [ ] ✅ **Use raw SQL for updates** - `ExecuteSqlRawAsync()` with `::vector` cast for INSERT/UPDATE
+- [ ] ✅ **Convert embeddings** - Use `ToPostgresVector()` to convert to `"[val1,val2,...]"` format
+- [ ] ✅ **Parse on read** - EF Core can read the column as string, parse to `float[]` in DTOs
 - [ ] ✅ **Register .UseVector()** - In `Program.cs` for Npgsql pgvector support
 - [ ] ❌ **DON'T use Vector type** - It's incompatible with EF Core 9.0
-- [ ] ❌ **DON'T use LINQ for similarity** - Use raw SQL with `<=>` operator
+- [ ] ❌ **DON'T use .HasColumnType()** - Column is ignored, configured in database directly
+- [ ] ❌ **DON'T use .HasIndex()** - Create HNSW index manually in PostgreSQL
+- [ ] ❌ **DON'T let EF Core touch the column** - Use `.Ignore()` to bypass completely
 
 ### Program.cs Configuration
 
@@ -277,18 +301,20 @@ When implementing semantic search:
 1. **pgvector Extension vs Pgvector.EntityFrameworkCore Package:**
    - ✅ pgvector DATABASE extension works perfectly
    - ❌ Pgvector.EntityFrameworkCore C# types DON'T work with EF Core 9.0
-   - ✅ Use string? with manual conversion instead
+   - ✅ Use `.Ignore()` to bypass EF Core completely
 
-2. **Why Phase 3 Pattern Works:**
-   - PostgreSQL sees vector column type (configured in EF)
-   - EF Core sends string data (avoids broken Vector converter)
-   - Raw SQL with `::vector` cast converts string to vector at database level
-   - Bypasses EF Core's broken type handling entirely
+2. **Why .Ignore() Pattern Works:**
+   - EF Core NEVER touches the ContentEmbedding column
+   - All updates done via raw SQL with `::vector` cast
+   - Reading works fine (EF Core can read vector as string)
+   - Semantic search uses raw SQL queries
+   - Completely bypasses EF Core's broken type handling
 
 3. **This is NOT a Bug - It's an Architectural Incompatibility:**
    - Pgvector.EntityFrameworkCore 0.2.2 is for EF Core 8.0
    - No EF Core 9.0-compatible version exists yet
-   - Manual conversion is the ONLY reliable solution
+   - **Builder.Ignore() + raw SQL is the ONLY reliable solution**
+   - Interceptors, converters, and SQL modifications CANNOT fix this
 
 ### Future Updates
 
