@@ -110,20 +110,13 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasDatabaseName("IX_Posts_Tags_Gin");
         
         // Vector embedding configuration (Phase 5: pgvector for Semantic Search)
-        builder.Property(p => p.ContentEmbedding)
-            .HasColumnType("vector(384)") // 384 dimensions for all-minilm model
-            .HasConversion(
-                // To database: string "[0.1,0.2,...]" -> needs ::vector cast (handled by interceptor)
-                v => v,
-                // From database: vector -> string
-                v => v
-            );
+        // NOTE: ContentEmbedding is IGNORED by EF Core during INSERT/UPDATE
+        // We update it manually via raw SQL to avoid type conversion issues
+        // See PostRepository.UpdateContentEmbeddingAsync() for manual updates
+        builder.Ignore(p => p.ContentEmbedding);
         
-        // HNSW index for fast similarity search
-        builder.HasIndex(p => p.ContentEmbedding)
-            .HasMethod("hnsw")
-            .HasOperators("vector_cosine_ops")
-            .HasDatabaseName("IX_Posts_ContentEmbedding_Hnsw");
+        // HNSW index for fast similarity search is created manually in database
+        // CREATE INDEX IX_Posts_ContentEmbedding_Hnsw ON "Sivar_Posts" USING hnsw ("ContentEmbedding" vector_cosine_ops);
         
         // Full-text search configuration (Phase 3: PostgreSQL Full-Text Search)
         // Dual-column approach for multi-language support
