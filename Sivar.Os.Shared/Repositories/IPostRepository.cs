@@ -320,4 +320,13 @@ public interface IPostRepository : IBaseRepository<Post>
         double minSimilarity = 0.0,
         int limit = 50,
         bool includeRelated = true);
+
+    /// <summary>
+    /// Updates the ContentEmbedding column for a post using raw SQL with ::vector cast
+    /// Required because ContentEmbedding is ignored by EF Core (see DEVELOPMENT_RULES.md section 12)
+    /// </summary>
+    /// <param name="postId">Post ID</param>
+    /// <param name="embeddingVector">Embedding vector as string (PostgreSQL vector format: "[0.1,0.2,...]")</param>
+    /// <returns>True if update succeeded, false otherwise</returns>
+    Task<bool> UpdateContentEmbeddingAsync(Guid postId, string embeddingVector);
 }

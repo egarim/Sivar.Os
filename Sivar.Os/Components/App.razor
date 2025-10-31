@@ -42,6 +42,25 @@
     </script>
     <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
+    
+    <!-- Client-side embedding generation module (Transformers.js) -->
+    <!-- Loaded as ES6 module for browser-based text embeddings -->
+    <script type="module">
+        // Pre-load the embeddings module for faster first use
+        // This is optional but improves UX by caching the model
+        import { isSupported, getModelInfo } from './js/embeddings.js';
+        
+        // Check support on page load
+        isSupported().then(supported => {
+            if (supported) {
+                console.log('[App] Client-side embeddings: SUPPORTED');
+                const info = getModelInfo();
+                console.log('[App] Model:', info.name, '- Dimensions:', info.dimensions);
+            } else {
+                console.log('[App] Client-side embeddings: NOT SUPPORTED (will use server fallback)');
+            }
+        });
+    </script>
 </body>
 
 </html>

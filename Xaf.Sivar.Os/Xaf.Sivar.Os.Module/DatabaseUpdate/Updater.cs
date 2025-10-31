@@ -10,6 +10,8 @@ using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using Microsoft.Extensions.DependencyInjection;
 using Xaf.Sivar.Os.Module.BusinessObjects;
 using Sivar.Os.Shared.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace Xaf.Sivar.Os.Module.DatabaseUpdate
 {
@@ -20,9 +22,27 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             base(objectSpace, currentDBVersion)
         {
         }
+        
+        public override void UpdateDatabaseBeforeUpdateSchema()
+        {
+            base.UpdateDatabaseBeforeUpdateSchema();
+            
+            // Execute SQL scripts before schema update (if any)
+            //ExecuteSqlScriptBatch(SqlScriptBatches.BeforeSchemaUpdate);
+        }
+        
         public override void UpdateDatabaseAfterUpdateSchema()
         {
             base.UpdateDatabaseAfterUpdateSchema();
+            
+            // Seed SQL scripts first (before executing them)
+            SeedSqlScripts();
+            ObjectSpace.CommitChanges();
+            
+            // Execute SQL scripts after schema update
+            // This runs BEFORE seeding data
+            ExecuteSqlScriptBatch(SqlScriptBatches.AfterSchemaUpdate);
+            
             //string name = "MyName";
             //EntityObject1 theObject = ObjectSpace.FirstOrDefault<EntityObject1>(u => u.Name == name);
             //if(theObject == null) {
@@ -74,10 +94,191 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
 
             ObjectSpace.CommitChanges(); //This line persists created object(s);
         }
-        public override void UpdateDatabaseBeforeUpdateSchema()
+        
+        /// <summary>
+        /// Seeds the ConvertContentEmbeddingToVector SQL script if it doesn't exist
+        /// </summary>
+        private void SeedSqlScripts()
         {
-            base.UpdateDatabaseBeforeUpdateSchema();
+            const string scriptName = "ConvertContentEmbeddingToVector";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            // Create the ConvertContentEmbeddingToVector script
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Converts ContentEmbedding column from text to vector(384) and creates HNSW index for similarity search. Required because EF Core 9.0 cannot handle pgvector types.";
+            script.ExecutionOrder = 1.0m;
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Embed the SQL script content
+            script.SqlText = @"-- =====================================================
+-- Script: Convert ContentEmbedding from TEXT to VECTOR(384)
+-- Purpose: Convert existing ContentEmbedding column to pgvector type
+--          This is REQUIRED because EF Core 9.0 cannot handle pgvector types
+-- Date: October 31, 2025
+-- =====================================================
+
+-- Step 1: Ensure pgvector extension is installed
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Step 2: Check current column type (optional - for verification)
+SELECT column_name, data_type, udt_name
+FROM information_schema.columns
+WHERE table_name = 'Sivar_Posts' 
+AND column_name = 'ContentEmbedding';
+
+-- Step 3: Check if column exists, if not create it
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'Sivar_Posts' 
+        AND column_name = 'ContentEmbedding'
+    ) THEN
+        ALTER TABLE ""Sivar_Posts"" 
+        ADD COLUMN ""ContentEmbedding"" vector(384);
+        RAISE NOTICE 'Column ContentEmbedding created as vector(384)';
+    ELSE
+        -- Column exists, check if it's already vector type
+        IF EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'Sivar_Posts' 
+            AND column_name = 'ContentEmbedding'
+            AND udt_name = 'vector'
+        ) THEN
+            RAISE NOTICE 'Column ContentEmbedding is already vector type';
+        ELSE
+            -- Convert from text/other type to vector
+            ALTER TABLE ""Sivar_Posts"" 
+            ALTER COLUMN ""ContentEmbedding"" TYPE vector(384) 
+            USING CASE 
+                WHEN ""ContentEmbedding"" IS NULL THEN NULL
+                WHEN ""ContentEmbedding"" = '' THEN NULL
+                ELSE ""ContentEmbedding""::vector
+            END;
+            RAISE NOTICE 'Column ContentEmbedding converted to vector(384)';
+        END IF;
+    END IF;
+END $$;
+
+-- Step 4: Create HNSW index for fast similarity search
+-- Drop index if it exists first
+DROP INDEX IF EXISTS ""IX_Posts_ContentEmbedding_Hnsw"";
+
+-- Create new HNSW index with cosine similarity
+CREATE INDEX ""IX_Posts_ContentEmbedding_Hnsw"" 
+ON ""Sivar_Posts"" 
+USING hnsw (""ContentEmbedding"" vector_cosine_ops);
+
+-- Step 5: Verify the change
+SELECT column_name, data_type, udt_name
+FROM information_schema.columns
+WHERE table_name = 'Sivar_Posts' 
+AND column_name = 'ContentEmbedding';
+
+-- Step 6: Verify the index
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'Sivar_Posts'
+AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
+
+-- =====================================================
+-- IMPORTANT NOTES:
+-- - This script is idempotent (safe to run multiple times)
+-- - EF Core 9.0 CANNOT handle pgvector types - column MUST be ignored in PostConfiguration.cs
+-- - Updates to ContentEmbedding MUST use raw SQL (see PostRepository.UpdateContentEmbeddingAsync)
+-- - The column is ignored by EF Core but exists in the database
+-- - HNSW index improves performance for similarity search queries using <=> operator
+-- =====================================================";
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
         }
+        
+        /// <summary>
+        /// Executes SQL scripts from database by batch name
+        /// Scripts are ordered by ExecutionOrder and filtered by IsActive
+        /// </summary>
+        /// <param name="batchName">Batch name (e.g., "AfterSchemaUpdate", "BeforeSchemaUpdate")</param>
+        private void ExecuteSqlScriptBatch(string batchName)
+        {
+            // Get the DbContext from ObjectSpace
+            var efObjectSpace = ObjectSpace as DevExpress.ExpressApp.EFCore.EFCoreObjectSpace;
+            if (efObjectSpace == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] ObjectSpace is not EFCoreObjectSpace. Cannot execute SQL scripts.");
+                return;
+            }
+
+            var dbContext = efObjectSpace.DbContext;
+
+            // Query scripts from database
+            var scripts = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .Where(s => s.BatchName == batchName && s.IsActive)
+                .OrderBy(s => s.ExecutionOrder)
+                .ToList();
+
+            if (!scripts.Any())
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] No scripts found for batch: {batchName}");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Found {scripts.Count} script(s) for batch: {batchName}");
+
+            foreach (var script in scripts)
+            {
+                try
+                {
+                    // Check if script should run only once
+                    if (script.RunOnce && script.ExecutionCount > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Skipping (already executed): {script.Name}");
+                        continue;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Executing: {script.Name} (Order: {script.ExecutionOrder})");
+
+                    // Execute the raw SQL
+                    dbContext.Database.ExecuteSqlRaw(script.SqlText);
+
+                    // Update execution tracking
+                    script.LastExecutedAt = DateTime.UtcNow;
+                    script.ExecutionCount++;
+                    script.LastExecutionError = null; // Clear previous errors
+
+                    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Successfully executed: {script.Name}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Error executing {script.Name}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Stack trace: {ex.StackTrace}");
+
+                    // Update error tracking
+                    script.LastExecutionError = $"{ex.Message}\n\nStack Trace:\n{ex.StackTrace}";
+
+                    // Don't throw - continue with other scripts and seeding
+                }
+            }
+
+            // Save execution tracking changes
+            ObjectSpace.CommitChanges();
+        }
+        
         PermissionPolicyRole CreateAdminRole()
         {
             PermissionPolicyRole adminRole = ObjectSpace.FirstOrDefault<PermissionPolicyRole>(r => r.Name == "Administrators");

@@ -34,11 +34,10 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
         public DbSet<KpiInstance> KpiInstances { get; set; }
      public DbSet<KpiHistoryItem> KpiHistoryItems { get; set; }
         public DbSet<KpiScorecard> KpiScorecards { get; set; }
-public DbSet<DashboardData> DashboardData { get; set; }
+        public DbSet<DashboardData> DashboardData { get; set; }
         public new DbSet<Event> Events { get; set; }
         public DbSet<Analysis> Analysis { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public DbSet<SqlScript> SqlScripts { get; set; }        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Call base to apply Sivar entity configurations
       base.OnModelCreating(modelBuilder);
@@ -85,6 +84,16 @@ public DbSet<DashboardData> DashboardData { get; set; }
             modelBuilder.Entity<KpiInstance>().ToTable("Xaf_KpiInstance");
             modelBuilder.Entity<KpiHistoryItem>().ToTable("Xaf_KpiHistoryItem");
    modelBuilder.Entity<KpiScorecard>().ToTable("Xaf_KpiScorecard");
+            
+            // SQL Script management
+            modelBuilder.Entity<SqlScript>(b =>
+            {
+                b.ToTable("Xaf_SqlScripts");
+                b.HasIndex(s => s.Name).IsUnique();
+                b.HasIndex(s => new { s.BatchName, s.ExecutionOrder });
+                b.Property(s => s.Description).IsRequired();
+                b.Property(s => s.SqlText).IsRequired();
+            });
  
     // XAF-specific configurations
             modelBuilder.Entity<Xaf.Sivar.Os.Module.BusinessObjects.ApplicationUserLoginInfo>(b =>
