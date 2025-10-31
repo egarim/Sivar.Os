@@ -108,5 +108,13 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasIndex(p => p.Tags)
             .HasMethod("gin")
             .HasDatabaseName("IX_Posts_Tags_Gin");
+        
+        // Full-text search configuration (Phase 3: PostgreSQL Full-Text Search)
+        // Dual-column approach for multi-language support
+        
+        // Note: These properties are ignored in EF Core model and added as database-generated columns
+        // They will be created via OnModelCreating using raw SQL or manually in the database
+        builder.Ignore(p => p.SearchVector);
+        builder.Ignore(p => p.SearchVectorSimple);
     }
 }
