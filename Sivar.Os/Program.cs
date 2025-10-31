@@ -48,9 +48,15 @@ System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Port=5432;Database=sivaros;Username=postgres;Password=postgres";
 
-builder.Services.AddDbContext<SivarDbContext>(options =>
+// Register VectorTypeInterceptor as a singleton so it can be injected into DbContext
+builder.Services.AddSingleton<Sivar.Os.Data.Interceptors.VectorTypeInterceptor>();
+
+builder.Services.AddDbContext<SivarDbContext>((serviceProvider, options) =>
+{
+    var vectorInterceptor = serviceProvider.GetRequiredService<Sivar.Os.Data.Interceptors.VectorTypeInterceptor>();
     options.UseNpgsql(connectionString, o => o.UseVector())
-        .AddInterceptors(new Sivar.Os.Data.Interceptors.VectorTypeInterceptor()));
+        .AddInterceptors(vectorInterceptor);
+});
 
 // --- Repository Registration ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();

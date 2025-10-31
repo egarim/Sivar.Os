@@ -111,7 +111,13 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         
         // Vector embedding configuration (Phase 5: pgvector for Semantic Search)
         builder.Property(p => p.ContentEmbedding)
-            .HasColumnType("vector(384)"); // 384 dimensions for all-minilm model
+            .HasColumnType("vector(384)") // 384 dimensions for all-minilm model
+            .HasConversion(
+                // To database: string "[0.1,0.2,...]" -> needs ::vector cast (handled by interceptor)
+                v => v,
+                // From database: vector -> string
+                v => v
+            );
         
         // HNSW index for fast similarity search
         builder.HasIndex(p => p.ContentEmbedding)
