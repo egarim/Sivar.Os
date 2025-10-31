@@ -1,0 +1,118 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared
+@using MudBlazor
+@inject ISivarClient SivarClient
+@inject ILogger<FollowButton> Logger
+
+@* FollowButton - Reusable follow/unfollow button with state management *@
+
+<MudButton Color="@(_isFollowing ? Color.Default : Color.Primary)"
+           Variant="@(_isFollowing ? Variant.Outlined : Variant.Filled)"
+           OnClick="HandleToggleFollow"
+           Disabled="@_isProcessing"
+           Size="@Size"
+           StartIcon="@(_isFollowing ? Icons.Material.Filled.PersonRemove : Icons.Material.Filled.PersonAdd)">
+    @(_isProcessing ? "Loading..." : _isFollowing ? "Following" : "Follow")
+</MudButton>
+
+@code {
+    /// <summary>
+    /// The profile ID to follow/unfollow
+    /// </summary>
+    [Parameter]
+    public Guid ProfileId { get; set; }
+
+    /// <summary>
+    /// Callback when follow state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback OnFollowChanged { get; set; }
+
+    /// <summary>
+    /// Button size
+    /// </summary>
+    [Parameter]
+    public MudBlazor.Size Size { get; set; } = MudBlazor.Size.Small;
+
+    private bool _isFollowing = false;
+    private bool _isProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckFollowStatus();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Re-check status if ProfileId changes
+        if (ProfileId != Guid.Empty)
+        {
+            await CheckFollowStatus();
+        }
+    }
+
+    private async Task CheckFollowStatus()
+    {
+        try
+        {
+            Logger.LogInformation("[FollowButton] Checking follow status for profile: {ProfileId}", ProfileId);
+            _isFollowing = await SivarClient.Followers.GetFollowingStatusAsync(ProfileId);
+            Logger.LogInformation("[FollowButton] Follow status for {ProfileId}: {IsFollowing}", ProfileId, _isFollowing);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FollowButton] Error checking follow status for profile: {ProfileId}", ProfileId);
+        }
+    }
+
+    private async Task HandleToggleFollow()
+    {
+        _isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("[FollowButton] Toggling follow for profile: {ProfileId}, Current state: {IsFollowing}", 
+                ProfileId, _isFollowing);
+
+            if (_isFollowing)
+            {
+                // Unfollow
+                await SivarClient.Followers.UnfollowAsync(ProfileId);
+                _isFollowing = false;
+                Logger.LogInformation("[FollowButton] Successfully unfollowed profile: {ProfileId}", ProfileId);
+            }
+            else
+            {
+                // Follow
+                var result = await SivarClient.Followers.FollowAsync(new FollowActionDto 
+                { 
+                    ProfileToFollowId = ProfileId 
+                });
+                
+                if (result.Success)
+                {
+                    _isFollowing = true;
+                    Logger.LogInformation("[FollowButton] Successfully followed profile: {ProfileId}", ProfileId);
+                }
+                else
+                {
+                    Logger.LogWarning("[FollowButton] Follow action failed for profile {ProfileId}: {Message}", 
+                        ProfileId, result.Message);
+                }
+            }
+
+            // Notify parent component
+            await OnFollowChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FollowButton] Error toggling follow for profile: {ProfileId}", ProfileId);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+}

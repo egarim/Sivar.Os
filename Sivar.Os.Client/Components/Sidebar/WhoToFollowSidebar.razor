@@ -13,10 +13,10 @@
     @foreach (var user in SuggestedUsers)
     {
         <UserCard 
+            ProfileId="@user.Id"
             Name="@user.DisplayName"
             Bio="@user.Bio"
             Initials="@GetInitials(user.DisplayName)"
-            IsFollowing="false"
             OnFollowToggle="@(() => OnFollowToggle.InvokeAsync(user))"
             OnNameClick="@(() => OnUserNameClick.InvokeAsync(user.Handle ?? string.Empty))" />
     }

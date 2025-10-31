@@ -12,7 +12,7 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
     public void Configure(EntityTypeBuilder<Activity> builder)
     {
         // Table configuration
-        builder.ToTable("Activities");
+        builder.ToTable("Sivar_Activities");
 
         // Primary key
         builder.HasKey(a => a.Id);
