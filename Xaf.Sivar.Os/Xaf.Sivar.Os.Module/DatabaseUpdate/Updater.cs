@@ -106,6 +106,7 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedRetentionPoliciesScript();
             SeedCompressionPoliciesScript();
             SeedFullTextSearchColumnsScript(); // Phase 3: Full-Text Search
+            SeedContinuousAggregatesScript(); // Phase 7: Continuous Aggregates
         }
         
         /// <summary>
@@ -487,6 +488,40 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
             
             // Load SQL script from embedded resource
             script.SqlText = LoadScriptFromFile("AddFullTextSearchColumns.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the AddContinuousAggregates SQL script if it doesn't exist
+        /// Phase 7: TimescaleDB Continuous Aggregates
+        /// </summary>
+        private void SeedContinuousAggregatesScript()
+        {
+            const string scriptName = "AddContinuousAggregates";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Creates TimescaleDB continuous aggregates (materialized views) for real-time analytics: post metrics, activity metrics, user engagement, and post engagement.";
+            script.ExecutionOrder = 7.0m; // After full-text search (6.0)
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Load SQL script from file
+            script.SqlText = LoadScriptFromFile("AddContinuousAggregates.sql");
             
             System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
         }

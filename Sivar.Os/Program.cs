@@ -72,6 +72,7 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
+builder.Services.AddScoped<AnalyticsRepository>(); // Phase 7: Continuous Aggregates
 
 // --- AI Client Registration (Ollama) ---
 // Register IChatClient for ChatService
