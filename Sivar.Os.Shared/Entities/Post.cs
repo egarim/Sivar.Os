@@ -123,6 +123,12 @@ public class Post : BaseEntity
     public virtual string? ContentEmbedding { get; set; }
 
     /// <summary>
+    /// Full-text search vector (auto-generated from Content and Title)
+    /// PostgreSQL tsvector for fast full-text search
+    /// </summary>
+    public virtual string? SearchVector { get; set; }
+
+    /// <summary>
     /// Visibility level of the post
     /// </summary>
     public virtual VisibilityLevel Visibility { get; set; } = VisibilityLevel.Public;

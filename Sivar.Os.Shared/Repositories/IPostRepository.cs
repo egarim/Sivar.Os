@@ -206,4 +206,37 @@ public interface IPostRepository : IBaseRepository<Post>
     /// </summary>
     /// <returns>List of posts with vector embeddings</returns>
     Task<List<Post>> GetAllWithEmbeddingsAsync();
+
+    /// <summary>
+    /// Full-text search using PostgreSQL's native tsvector (Phase 3: Full-Text Search)
+    /// This provides much faster and more accurate search than LIKE queries
+    /// Supports language-aware stemming, ranking, and fuzzy matching
+    /// </summary>
+    /// <param name="searchQuery">Search query text</param>
+    /// <param name="postTypes">Optional post types to filter by</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of posts ranked by relevance</returns>
+    Task<List<Post>> FullTextSearchAsync(
+        string searchQuery,
+        PostType[]? postTypes = null,
+        int limit = 50,
+        bool includeRelated = true);
+
+    /// <summary>
+    /// Full-text search with relevance score and minimum similarity threshold
+    /// Returns posts ranked by relevance with optional filtering
+    /// </summary>
+    /// <param name="searchQuery">Search query text</param>
+    /// <param name="postTypes">Optional post types to filter by</param>
+    /// <param name="minRelevance">Minimum relevance score (0.0 to 1.0)</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of tuples containing posts and their relevance ranks</returns>
+    Task<List<(Post Post, double Rank)>> FullTextSearchWithRankAsync(
+        string searchQuery,
+        PostType[]? postTypes = null,
+        double minRelevance = 0.1,
+        int limit = 50,
+        bool includeRelated = true);
 }

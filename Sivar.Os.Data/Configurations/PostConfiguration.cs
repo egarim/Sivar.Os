@@ -108,5 +108,14 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasIndex(p => p.Tags)
             .HasMethod("gin")
             .HasDatabaseName("IX_Posts_Tags_Gin");
+        
+        // Full-text search configuration (Phase 3: PostgreSQL Full-Text Search)
+        builder.Property(p => p.SearchVector)
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql("to_tsvector('english', coalesce(\"Title\", '') || ' ' || \"Content\")", stored: true);
+        
+        builder.HasIndex(p => p.SearchVector)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Posts_SearchVector_Gin");
     }
 }
