@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Pgvector;
 using Sivar.Os.Shared.DTOs.ValueObjects;
 using Sivar.Os.Shared.Enums;
 
@@ -119,9 +120,9 @@ public class Post : BaseEntity
     /// <summary>
     /// Vector embedding of the post content for semantic search
     /// Stored as PostgreSQL vector(384) type for fast similarity search with HNSW index
-    /// String representation in C# (following Phase 3 pattern with tsvector)
+    /// Uses Pgvector.Vector type for native vector operations
     /// </summary>
-    public virtual string? ContentEmbedding { get; set; }
+    public virtual Vector? ContentEmbedding { get; set; }
 
     /// <summary>
     /// Language-specific full-text search vector (auto-generated from Content and Title)

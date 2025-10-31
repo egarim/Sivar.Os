@@ -1180,17 +1180,13 @@ public class PostService : IPostService
                 var postDto = await MapToPostDtoAsync(post, null, false, false);
                 if (postDto != null)
                 {
-                    // Convert PostgreSQL vector string to float[] for the DTO
-                    // Format: "[0.1,0.2,0.3,...]" -> float[]
+                    // Convert PostgreSQL vector to float[] for the DTO
                     if (post.ContentEmbedding != null)
                     {
                         try
                         {
-                            // Remove brackets and split by comma
-                            var vectorString = post.ContentEmbedding.Trim('[', ']');
-                            var embeddingArray = vectorString.Split(',')
-                                .Select(s => float.Parse(s.Trim()))
-                                .ToArray();
+                            // Vector type already contains the float array
+                            var embeddingArray = post.ContentEmbedding.ToArray();
                             
                             postDto = postDto with { ContentEmbedding = embeddingArray };
                             successCount++;

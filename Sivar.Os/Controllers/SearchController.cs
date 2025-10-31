@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using Pgvector;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Services;
 
@@ -454,20 +455,17 @@ public class SearchController : ControllerBase
     /// Convert PostgreSQL vector string to Embedding<float>
     /// Format: "[0.1,0.2,0.3,...]" -> Embedding<float>
     /// </summary>
-    private Embedding<float>? VectorToEmbedding(string vectorString)
+    private Embedding<float>? VectorToEmbedding(Vector vector)
     {
         try
         {
-            // Remove brackets and split by comma
-            var cleaned = vectorString.Trim('[', ']');
-            var values = cleaned.Split(',')
-                .Select(s => float.Parse(s.Trim()))
-                .ToArray();
+            // Vector type already contains the float array
+            var values = vector.ToArray();
             return new Embedding<float>(values);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to convert vector string to Embedding");
+            _logger.LogWarning(ex, "Failed to convert Vector to Embedding");
             return null;
         }
     }
