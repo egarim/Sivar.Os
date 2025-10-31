@@ -105,6 +105,7 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedConvertToHypertablesScript();
             SeedRetentionPoliciesScript();
             SeedCompressionPoliciesScript();
+            SeedFullTextSearchColumnsScript(); // Phase 3: Full-Text Search
         }
         
         /// <summary>
@@ -454,6 +455,40 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
 
             // Save execution tracking changes
             ObjectSpace.CommitChanges();
+        }
+        
+        /// <summary>
+        /// Seeds the AddFullTextSearchColumns SQL script if it doesn't exist
+        /// Phase 3: PostgreSQL Full-Text Search
+        /// </summary>
+        private void SeedFullTextSearchColumnsScript()
+        {
+            const string scriptName = "AddFullTextSearchColumns";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Adds tsvector columns for language-aware and language-agnostic full-text search on Posts table. Creates GIN indexes for fast full-text search queries.";
+            script.ExecutionOrder = 6.0m; // After TimescaleDB scripts (2.0-5.0)
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Load SQL script from embedded resource
+            script.SqlText = LoadScriptFromFile("AddFullTextSearchColumns.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
         }
         
         PermissionPolicyRole CreateAdminRole()
