@@ -123,9 +123,18 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         // Full-text search configuration (Phase 3: PostgreSQL Full-Text Search)
         // Dual-column approach for multi-language support
         
-        // Note: These properties are ignored in EF Core model and added as database-generated columns
-        // They will be created via OnModelCreating using raw SQL or manually in the database
+        // SearchVector: Language-aware full-text search (with stemming)
+        // SearchVectorSimple: Language-agnostic full-text search (no stemming)
+        // Both columns are created as GENERATED ALWAYS AS ... STORED via SQL script
+        // See: Sivar.Os.Data/Scripts/AddFullTextSearchColumns.sql
+        
+        // Note: These columns are database-generated, EF Core should ignore them in inserts/updates
+        // but can read them. We ignore them to prevent EF Core from trying to manage them.
         builder.Ignore(p => p.SearchVector);
         builder.Ignore(p => p.SearchVectorSimple);
+        
+        // GIN indexes are created via SQL script for performance
+        // CREATE INDEX IX_Posts_SearchVector_Gin ON "Sivar_Posts" USING gin("SearchVector");
+        // CREATE INDEX IX_Posts_SearchVectorSimple_Gin ON "Sivar_Posts" USING gin("SearchVectorSimple");
     }
 }
