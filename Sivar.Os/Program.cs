@@ -112,6 +112,11 @@ builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>(
 // --- AI & Vector Services Registration ---
 builder.Services.AddScoped<ChatFunctionService>();
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
+builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
+
+// Configure EmbeddingOptions for hybrid client/server embedding system
+builder.Services.Configure<Sivar.Os.Configuration.EmbeddingOptions>(
+    builder.Configuration.GetSection("Embeddings"));
 
 // Configure ChatServiceOptions
 builder.Services.Configure<ChatServiceOptions>(options =>
