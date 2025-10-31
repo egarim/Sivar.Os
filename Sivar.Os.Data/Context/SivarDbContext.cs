@@ -89,6 +89,9 @@ public class SivarDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Enable PostgreSQL extensions
+        modelBuilder.HasPostgresExtension("vector");  // Phase 5: pgvector for semantic search
+
         // Apply all entity configurations
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileTypeConfiguration());

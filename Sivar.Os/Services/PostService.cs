@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
+using Pgvector;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.DTOs.ValueObjects;
 using Sivar.Os.Shared.Entities;
@@ -1179,19 +1180,25 @@ public class PostService : IPostService
                 var postDto = await MapToPostDtoAsync(post, null, false, false);
                 if (postDto != null)
                 {
-                    // Deserialize the embedding data for the DTO
-                    if (!string.IsNullOrEmpty(post.ContentEmbedding))
+                    // Convert PostgreSQL vector string to float[] for the DTO
+                    // Format: "[0.1,0.2,0.3,...]" -> float[]
+                    if (post.ContentEmbedding != null)
                     {
                         try
                         {
-                            var embeddingArray = JsonSerializer.Deserialize<float[]>(post.ContentEmbedding);
+                            // Remove brackets and split by comma
+                            var vectorString = post.ContentEmbedding.Trim('[', ']');
+                            var embeddingArray = vectorString.Split(',')
+                                .Select(s => float.Parse(s.Trim()))
+                                .ToArray();
+                            
                             postDto = postDto with { ContentEmbedding = embeddingArray };
                             successCount++;
                         }
                         catch (Exception embeddingEx)
                         {
                             embeddingFailures++;
-                            _logger.LogWarning(embeddingEx, "[PostService.GetAllPostsWithEmbeddingsAsync] Failed to deserialize embedding - RequestId={RequestId}, PostId={PostId}",
+                            _logger.LogWarning(embeddingEx, "[PostService.GetAllPostsWithEmbeddingsAsync] Failed to convert embedding - RequestId={RequestId}, PostId={PostId}",
                                 requestId, post.Id);
                         }
                     }

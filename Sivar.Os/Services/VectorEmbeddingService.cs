@@ -244,6 +244,38 @@ public class VectorEmbeddingService : IVectorEmbeddingService
     }
 
     /// <summary>
+    /// Converts an Embedding<float> to a string in PostgreSQL vector format
+    /// Returns format: "[0.1,0.2,0.3,...]" for storage in vector(384) column
+    /// </summary>
+    public string ToPostgresVector(Embedding<float> embedding)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[VectorEmbeddingService.ToPostgresVector] START - RequestId={RequestId}, EmbeddingLength={EmbeddingLength}",
+            requestId, embedding.Vector.Length);
+
+        try
+        {
+            // Convert to PostgreSQL vector format: "[val1,val2,val3,...]"
+            var vectorString = "[" + string.Join(",", embedding.Vector.ToArray()) + "]";
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[VectorEmbeddingService.ToPostgresVector] SUCCESS - RequestId={RequestId}, VectorDimensions={VectorDimensions}, Duration={Duration}ms",
+                requestId, embedding.Vector.Length, elapsed);
+
+            return vectorString;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[VectorEmbeddingService.ToPostgresVector] ERROR - RequestId={RequestId}, EmbeddingLength={EmbeddingLength}, Duration={Duration}ms",
+                requestId, embedding.Vector.Length, elapsed);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Process a batch of texts and generate embeddings
     /// </summary>
     private async Task<List<(string Text, Embedding<float> Embedding)>> ProcessBatchAsync(List<string> batch, Guid requestId)

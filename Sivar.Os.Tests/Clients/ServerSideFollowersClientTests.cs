@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Sivar.Os.Shared.DTOs;
@@ -24,6 +25,7 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
     private Mock<IProfileService> _profileServiceMock = null!;
     private Mock<IHttpContextAccessor> _httpContextAccessorMock = null!;
     private Mock<ILogger<Sivar.Os.Services.Clients.FollowersClient>> _loggerMock = null!;
+    private Mock<IServiceScopeFactory> _serviceScopeFactoryMock = null!;
 
     private const string TestKeycloakId = "test-keycloak-id";
     private readonly Guid _testProfileId = Guid.NewGuid();
@@ -36,6 +38,23 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
         _httpContextAccessorMock = AuthenticationTestFixture.CreateMockHttpContextAccessor(TestKeycloakId);
         _loggerMock = new Mock<ILogger<Sivar.Os.Services.Clients.FollowersClient>>();
 
+        // Setup IServiceScopeFactory mock
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(IProfileService)))
+            .Returns(_profileServiceMock.Object);
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(IProfileFollowerService)))
+            .Returns(_profileFollowerServiceMock.Object);
+
+        var scopeMock = new Mock<IServiceScope>();
+        scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+
+        _serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _serviceScopeFactoryMock
+            .Setup(f => f.CreateScope())
+            .Returns(scopeMock.Object);
+
         // Setup default: GetMyActiveProfileAsync returns a test profile
         _profileServiceMock
             .Setup(s => s.GetMyActiveProfileAsync(TestKeycloakId))
@@ -46,7 +65,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             _httpContextAccessorMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
     }
 
@@ -141,7 +161,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             unauthenticatedHttpContext.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
 
         var request = new FollowActionDto { ProfileToFollowId = Guid.NewGuid() };
@@ -190,7 +211,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             unauthenticatedHttpContext.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
 
         // Act
@@ -216,7 +238,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             unauthenticatedHttpContext.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
 
         // Act
@@ -240,7 +263,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             unauthenticatedHttpContext.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
 
         // Act
@@ -265,7 +289,8 @@ public class ServerSideFollowersClientTests : FollowersClientContractTests
             _profileFollowerRepositoryMock.Object,
             _profileServiceMock.Object,
             unauthenticatedHttpContext.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _serviceScopeFactoryMock.Object
         );
 
         // Act

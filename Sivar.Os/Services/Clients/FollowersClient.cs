@@ -17,19 +17,22 @@ public class FollowersClient : BaseRepositoryClient, IFollowersClient
     private readonly IProfileService _profileService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<FollowersClient> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public FollowersClient(
         IProfileFollowerService profileFollowerService,
         IProfileFollowerRepository profileFollowerRepository,
         IProfileService profileService,
         IHttpContextAccessor httpContextAccessor,
-        ILogger<FollowersClient> logger)
+        ILogger<FollowersClient> logger,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _profileFollowerService = profileFollowerService ?? throw new ArgumentNullException(nameof(profileFollowerService));
         _profileFollowerRepository = profileFollowerRepository ?? throw new ArgumentNullException(nameof(profileFollowerRepository));
         _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
     }
 
     // Follow operations
@@ -203,13 +206,18 @@ public class FollowersClient : BaseRepositoryClient, IFollowersClient
                 return false;
             }
 
-            var currentUserProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+            // Use a new scope to avoid DbContext threading issues
+            using var scope = _serviceScopeFactory.CreateScope();
+            var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+            var followerService = scope.ServiceProvider.GetRequiredService<IProfileFollowerService>();
+
+            var currentUserProfile = await profileService.GetMyActiveProfileAsync(keycloakId);
             if (currentUserProfile == null)
             {
                 return false;
             }
 
-            return await _profileFollowerService.IsFollowingAsync(currentUserProfile.Id, targetProfileId);
+            return await followerService.IsFollowingAsync(currentUserProfile.Id, targetProfileId);
         }
         catch (Exception ex)
         {

@@ -109,6 +109,16 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasMethod("gin")
             .HasDatabaseName("IX_Posts_Tags_Gin");
         
+        // Vector embedding configuration (Phase 5: pgvector for Semantic Search)
+        builder.Property(p => p.ContentEmbedding)
+            .HasColumnType("vector(384)"); // 384 dimensions for all-minilm model
+        
+        // HNSW index for fast similarity search
+        builder.HasIndex(p => p.ContentEmbedding)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops")
+            .HasDatabaseName("IX_Posts_ContentEmbedding_Hnsw");
+        
         // Full-text search configuration (Phase 3: PostgreSQL Full-Text Search)
         // Dual-column approach for multi-language support
         

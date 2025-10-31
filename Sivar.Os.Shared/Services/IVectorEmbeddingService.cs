@@ -40,6 +40,14 @@ public interface IVectorEmbeddingService
     /// <param name="embedding2">Second embedding</param>
     /// <returns>Similarity score between -1 and 1</returns>
     float CalculateCosineSimilarity(Embedding<float> embedding1, Embedding<float> embedding2);
+
+    /// <summary>
+    /// Convert Microsoft.Extensions.AI Embedding to PostgreSQL vector string format
+    /// Returns string in PostgreSQL vector format: "[0.1,0.2,0.3,...]"
+    /// </summary>
+    /// <param name="embedding">The embedding to convert</param>
+    /// <returns>String representation for PostgreSQL vector(384) column</returns>
+    string ToPostgresVector(Embedding<float> embedding);
 }
 
 /// <summary>

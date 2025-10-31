@@ -49,7 +49,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Port=5432;Database=sivaros;Username=postgres;Password=postgres";
 
 builder.Services.AddDbContext<SivarDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, o => o.UseVector())
+        .AddInterceptors(new Sivar.Os.Data.Interceptors.VectorTypeInterceptor()));
 
 // --- Repository Registration ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();

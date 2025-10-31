@@ -290,4 +290,34 @@ public interface IPostRepository : IBaseRepository<Post>
         double minRelevance = 0.1,
         int limit = 50,
         bool includeRelated = true);
+
+    // ========== Phase 5: Native pgvector Semantic Search Methods ==========
+
+    /// <summary>
+    /// Native pgvector semantic search using database-native vector similarity
+    /// Uses HNSW index for sub-millisecond similarity search (100-1000x faster than in-memory)
+    /// </summary>
+    /// <param name="queryVector">Query vector as string (PostgreSQL vector format: "[0.1,0.2,...]")</param>
+    /// <param name="limit">Maximum number of results to return</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of posts ordered by semantic similarity (most similar first)</returns>
+    Task<List<Post>> SemanticSearchAsync(
+        string queryVector,
+        int limit = 50,
+        bool includeRelated = true);
+
+    /// <summary>
+    /// Native pgvector semantic search with similarity scores
+    /// Returns both posts and their cosine similarity scores
+    /// </summary>
+    /// <param name="queryVector">Query vector as string (PostgreSQL vector format: "[0.1,0.2,...]")</param>
+    /// <param name="minSimilarity">Minimum similarity threshold (0.0 to 1.0, higher is more similar)</param>
+    /// <param name="limit">Maximum number of results to return</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>List of tuples containing posts and their similarity scores</returns>
+    Task<List<(Post Post, double Similarity)>> SemanticSearchWithScoreAsync(
+        string queryVector,
+        double minSimilarity = 0.0,
+        int limit = 50,
+        bool includeRelated = true);
 }

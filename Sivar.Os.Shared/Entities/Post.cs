@@ -118,7 +118,8 @@ public class Post : BaseEntity
 
     /// <summary>
     /// Vector embedding of the post content for semantic search
-    /// Stored as JSON array of floats
+    /// Stored as PostgreSQL vector(384) type for fast similarity search with HNSW index
+    /// String representation in C# (following Phase 3 pattern with tsvector)
     /// </summary>
     public virtual string? ContentEmbedding { get; set; }
 

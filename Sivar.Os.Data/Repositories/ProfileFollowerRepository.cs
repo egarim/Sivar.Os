@@ -41,10 +41,12 @@ public class ProfileFollowerRepository : BaseRepository<ProfileFollower>, IProfi
 
     /// <summary>
     /// Check if one profile is following another
+    /// Uses AsNoTracking for better performance and to avoid DbContext threading issues
     /// </summary>
     public async Task<bool> IsFollowingAsync(Guid followerProfileId, Guid followedProfileId)
     {
         return await _context.Set<ProfileFollower>()
+            .AsNoTracking()
             .AnyAsync(pf => pf.FollowerProfileId == followerProfileId 
                           && pf.FollowedProfileId == followedProfileId 
                           && pf.IsActive);

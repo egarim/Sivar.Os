@@ -277,10 +277,10 @@ public class SearchController : ControllerBase
             // Convert posts to embedding candidates using the entity data (string) not DTO data (float[])
             var entityPosts = await _postService.GetAllPostEntitiesWithEmbeddingsAsync();
             var candidates = entityPosts
-                .Where(p => !string.IsNullOrEmpty(p.ContentEmbedding))
+                .Where(p => p.ContentEmbedding != null)
                 .Select(p => (
                     Text: p.Content,
-                    Embedding: DeserializeEmbedding(p.ContentEmbedding!),
+                    Embedding: VectorToEmbedding(p.ContentEmbedding!),
                     Post: allPosts.First(dto => dto.Id == p.Id) // Map back to DTO
                 ))
                 .Where(x => x.Embedding != null)
@@ -446,6 +446,28 @@ public class SearchController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to deserialize embedding from JSON");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Convert PostgreSQL vector string to Embedding<float>
+    /// Format: "[0.1,0.2,0.3,...]" -> Embedding<float>
+    /// </summary>
+    private Embedding<float>? VectorToEmbedding(string vectorString)
+    {
+        try
+        {
+            // Remove brackets and split by comma
+            var cleaned = vectorString.Trim('[', ']');
+            var values = cleaned.Split(',')
+                .Select(s => float.Parse(s.Trim()))
+                .ToArray();
+            return new Embedding<float>(values);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to convert vector string to Embedding");
             return null;
         }
     }
