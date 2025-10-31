@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: October 30, 2025  
+> **Last Updated**: October 31, 2025  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -25,7 +25,8 @@
 10. [Error Handling](#error-handling)
 11. [Testing & Debugging](#testing--debugging)
 12. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-13. [References](#references)
+13. [Database Script System](#database-script-system) ⭐ **NEW**
+14. [References](#references)
 
 ---
 
@@ -3291,6 +3292,292 @@ Check browser console for:
 - SignalR connection status
 - JavaScript errors
 - Blazor circuit errors
+
+---
+
+## Database Script System
+
+### ⭐ PATTERN: SQL Script Management via Database
+
+For database features that EF Core cannot handle (pgvector types, TimescaleDB hypertables, custom extensions), we use a **Database Script System** that stores and executes SQL scripts via the application.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Application Startup                      │
+│                    (Updater.cs in XAF)                       │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                 SeedSqlScripts() Method                      │
+│          Loads SQL files from disk, creates                  │
+│          SqlScript entities in database                      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│             ExecuteSqlScriptBatch() Method                   │
+│          Queries SqlScript entities, executes                │
+│          SQL via ExecuteSqlRawAsync()                        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  PostgreSQL Database                         │
+│          Scripts execute: Extensions, pgvector,              │
+│          TimescaleDB, custom database features               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why This Pattern?
+
+**Problem:** EF Core 9.0 cannot handle certain database features:
+- ❌ pgvector `Vector` type (incompatible with EF Core 9.0)
+- ❌ TimescaleDB hypertables (database-level partitioning)
+- ❌ PostgreSQL extensions (require raw SQL `CREATE EXTENSION`)
+- ❌ Custom indexes (HNSW, GIN, etc.)
+
+**Solution:** Store SQL scripts as entities, execute via raw SQL:
+- ✅ Bypasses EF Core's type system completely
+- ✅ Version-controlled (scripts tracked in Git)
+- ✅ Idempotent (safe to run multiple times)
+- ✅ Ordered execution (ExecutionOrder property)
+- ✅ RunOnce support (prevents re-execution)
+- ✅ Error tracking (LastExecutionError)
+- ✅ Audit trail (ExecutionCount, LastExecutedAt)
+
+### Existing SQL Scripts
+
+The project currently has **5 SQL scripts** for PostgreSQL optimization:
+
+#### Phase 5: pgvector Semantic Search
+
+**1. ConvertContentEmbeddingToVector.sql** (ExecutionOrder: 1.0)
+- **Purpose:** Convert ContentEmbedding column from TEXT to vector(384)
+- **Why:** EF Core 9.0 cannot handle pgvector types
+- **Features:**
+  - Creates pgvector extension if not exists
+  - Converts existing TEXT column to vector(384)
+  - Creates HNSW index for cosine similarity search
+  - Handles NULL and empty values
+- **Location:** `Sivar.Os.Data/Scripts/ConvertContentEmbeddingToVector.sql`
+- **Seeded by:** `Updater.SeedConvertContentEmbeddingToVectorScript()`
+
+#### Phase 6: TimescaleDB Hypertables
+
+**2. EnableTimescaleDB.sql** (ExecutionOrder: 2.0)
+- **Purpose:** Enable TimescaleDB extension for time-series optimization
+- **Features:** Creates TimescaleDB extension, verifies installation
+- **Location:** `Sivar.Os.Data/Scripts/EnableTimescaleDB.sql`
+- **Seeded by:** `Updater.SeedTimescaleDBEnableScript()`
+
+**3. ConvertToHypertables.sql** (ExecutionOrder: 3.0)
+- **Purpose:** Convert time-series tables to hypertables
+- **Tables:** Activities (7d), Posts (30d), ChatMessages (7d), Notifications (7d)
+- **Features:** Automatic partitioning, chunk exclusion, preserves indexes
+- **Location:** `Sivar.Os.Data/Scripts/ConvertToHypertables.sql`
+- **Seeded by:** `Updater.SeedConvertToHypertablesScript()`
+
+**4. AddRetentionPolicies.sql** (ExecutionOrder: 4.0)
+- **Purpose:** Automatic data cleanup for old chunks
+- **Retention:** Activities (2yr), Posts (5yr), ChatMessages (1yr), Notifications (6mo)
+- **Features:** Automatic background jobs, permanent deletion when exceeded
+- **Location:** `Sivar.Os.Data/Scripts/AddRetentionPolicies.sql`
+- **Seeded by:** `Updater.SeedRetentionPoliciesScript()`
+
+**5. AddCompressionPolicies.sql** (ExecutionOrder: 5.0)
+- **Purpose:** Automatic compression for storage savings (60-90% reduction)
+- **Compression:** Activities/ChatMessages/Notifications (30d), Posts (90d)
+- **Features:** Segment by user/author/chat, order by CreatedAt DESC
+- **Location:** `Sivar.Os.Data/Scripts/AddCompressionPolicies.sql`
+- **Seeded by:** `Updater.SeedCompressionPoliciesScript()`
+
+### How to Add a New Database Script
+
+Follow this pattern when you need to add database features that EF Core cannot handle:
+
+#### Step 1: Create SQL Script File
+
+**Location:** `Sivar.Os.Data/Scripts/{ScriptName}.sql`
+
+**Template:**
+```sql
+-- =====================================================
+-- Script: {ScriptName}
+-- Purpose: {Brief description}
+-- Date: {Current date}
+-- =====================================================
+
+-- Your SQL code here
+-- Make it IDEMPOTENT (safe to run multiple times)
+
+-- Verification queries (optional)
+SELECT * FROM ...;
+
+-- =====================================================
+-- IMPORTANT NOTES:
+-- - Document any prerequisites
+-- - Document any breaking changes
+-- - Document expected results
+-- =====================================================
+```
+
+**Best Practices:**
+- ✅ Make scripts **idempotent** (use `IF NOT EXISTS`, `CREATE ... IF NOT EXISTS`)
+- ✅ Include verification queries at the end
+- ✅ Add comprehensive comments
+- ✅ Handle NULL and edge cases
+- ✅ Document expected behavior
+- ✅ Use proper error handling (PL/pgSQL `DO` blocks)
+
+#### Step 2: Add Seed Method in Updater.cs
+
+**Location:** `Xaf.Sivar.Os/Xaf.Sivar.Os.Module/DatabaseUpdate/Updater.cs`
+
+**Template:**
+```csharp
+/// <summary>
+/// Seeds the {ScriptName} SQL script if it doesn't exist
+/// </summary>
+private void Seed{ScriptName}Script()
+{
+    const string scriptName = "{ScriptName}";
+    
+    // Check if script already exists
+    var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+        .FirstOrDefault(s => s.Name == scriptName);
+    
+    if (existingScript != null)
+    {
+        System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+        return;
+    }
+    
+    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+    
+    var script = ObjectSpace.CreateObject<SqlScript>();
+    script.Name = scriptName;
+    script.Description = "{Brief description}";
+    script.ExecutionOrder = {X.0}m;  // Choose appropriate order
+    script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+    script.IsActive = true;
+    script.RunOnce = true;  // Or false if should run every time
+    
+    // Load SQL from file
+    script.SqlText = LoadScriptFromFile("{ScriptName}.sql");
+    
+    System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+}
+```
+
+#### Step 3: Call Seed Method in SeedSqlScripts()
+
+**Location:** Same file, in `SeedSqlScripts()` method
+
+```csharp
+private void SeedSqlScripts()
+{
+    SeedConvertContentEmbeddingToVectorScript();  // Order 1.0
+    SeedTimescaleDBEnableScript();                // Order 2.0
+    SeedConvertToHypertablesScript();             // Order 3.0
+    SeedRetentionPoliciesScript();                // Order 4.0
+    SeedCompressionPoliciesScript();              // Order 5.0
+    Seed{YourNewScript}Script();                  // Order 6.0 ⭐ ADD HERE
+}
+```
+
+#### Step 4: Test the Script
+
+**Manual Testing (Recommended First):**
+```bash
+psql -h localhost -U postgres -d SivarOsDb
+\i Sivar.Os.Data/Scripts/{ScriptName}.sql
+```
+
+**Automatic Testing:**
+```bash
+dotnet build
+dotnet run --project Sivar.Os.Blazor.Server
+
+# Watch Debug Output for:
+# [SQL Scripts] Creating seed script: {ScriptName}
+# [SQL Scripts] Executing: {ScriptName} (Order: X.0)
+# [SQL Scripts] Successfully executed: {ScriptName}
+```
+
+**Verify Execution:**
+```sql
+SELECT "Name", "ExecutionOrder", "ExecutionCount", "LastExecutedAt", "LastExecutionError"
+FROM "Sivar_SqlScripts"
+ORDER BY "ExecutionOrder";
+```
+
+### Script Execution Order Reference
+
+Current execution order:
+
+1. **Order 1.0** - ConvertContentEmbeddingToVector (Phase 5: pgvector)
+2. **Order 2.0** - EnableTimescaleDB (Phase 6: TimescaleDB)
+3. **Order 3.0** - ConvertToHypertables (Phase 6: TimescaleDB)
+4. **Order 4.0** - AddRetentionPolicies (Phase 6: TimescaleDB)
+5. **Order 5.0** - AddCompressionPolicies (Phase 6: TimescaleDB)
+6. **Order 6.0** - ⭐ **Available for next script**
+
+**Ordering Rules:**
+- Use decimal increments (1.0, 2.0, 3.0)
+- Reserve space for future scripts (not 0.1 increments)
+- Group related scripts together
+- Can insert between scripts if needed (e.g., 1.5)
+
+### When to Use Database Script System
+
+✅ **DO use for:**
+- PostgreSQL extensions (TimescaleDB, pgvector, PostGIS)
+- Custom indexes EF Core can't create (HNSW, GIN, GIST)
+- Database-level features (partitioning, triggers, functions)
+- Complex migrations EF Core can't handle
+- Type conversions EF Core doesn't support
+
+❌ **DON'T use for:**
+- Regular schema changes (use EF Core migrations)
+- Simple CRUD operations (use repositories)
+- Business logic (belongs in services)
+- Data seeding (use Updater seed methods directly)
+
+### Troubleshooting
+
+**Check if script was seeded:**
+```sql
+SELECT "Name", "ExecutionOrder", "IsActive", "RunOnce"
+FROM "Sivar_SqlScripts"
+ORDER BY "ExecutionOrder";
+```
+
+**Check execution history:**
+```sql
+SELECT "Name", "ExecutionCount", "LastExecutedAt", 
+       SUBSTRING("LastExecutionError", 1, 100) as "Error"
+FROM "Sivar_SqlScripts"
+WHERE "ExecutionCount" > 0
+ORDER BY "LastExecutedAt" DESC;
+```
+
+**Re-enable script execution:**
+```sql
+-- Reset execution count (for RunOnce scripts)
+UPDATE "Sivar_SqlScripts"
+SET "ExecutionCount" = 0, "LastExecutedAt" = NULL, "LastExecutionError" = NULL
+WHERE "Name" = '{ScriptName}';
+```
+
+### Related Documentation
+
+- `PHASE_5_COMPLETE_STATUS.md` - pgvector implementation details
+- `PHASE_6_IMPLEMENTATION_COMPLETE.md` - TimescaleDB implementation details
+- `posimp.md` - PostgreSQL optimization roadmap
+- `Sivar.Os.Data/Scripts/` - All SQL script files
 
 ---
 
