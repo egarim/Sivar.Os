@@ -58,9 +58,10 @@ CREATE INDEX IF NOT EXISTS idx_posts_geolocation_source
 ON "Sivar_Posts"("GeoLocationSource")
 WHERE "GeoLocationSource" IS NOT NULL;
 
--- Create composite index for common queries (location + created date)
-CREATE INDEX IF NOT EXISTS idx_posts_geolocation_created
-ON "Sivar_Posts" USING GIST("GeoLocation", "CreatedAt")
+-- Create separate index for created date (can't combine GIST geography with timestamp)
+-- Query planner will use both indexes when filtering by location AND date
+CREATE INDEX IF NOT EXISTS idx_posts_created_with_geolocation
+ON "Sivar_Posts"("CreatedAt")
 WHERE "GeoLocation" IS NOT NULL;
 
 -- ============ PART 4: Create Helper Functions ============
@@ -210,30 +211,30 @@ IS 'Extracts latitude and longitude from a PostGIS geography point';
 
 -- ============ PART 5: Migrate Existing Location Data ============
 
--- Migrate Profile locations
+-- Migrate Profile locations (EF Core uses underscored column names for complex types)
 UPDATE "Sivar_Profiles"
 SET 
     "GeoLocation" = ST_SetSRID(
-        ST_MakePoint("LocationLongitude", "LocationLatitude"), 
+        ST_MakePoint("Location_Longitude", "Location_Latitude"), 
         4326
     )::geography,
     "GeoLocationUpdatedAt" = NOW(),
     "GeoLocationSource" = 'Migrated'
-WHERE "LocationLatitude" IS NOT NULL 
-  AND "LocationLongitude" IS NOT NULL
+WHERE "Location_Latitude" IS NOT NULL 
+  AND "Location_Longitude" IS NOT NULL
   AND "GeoLocation" IS NULL;
 
--- Migrate Post locations
+-- Migrate Post locations (EF Core uses underscored column names for complex types)
 UPDATE "Sivar_Posts"
 SET 
     "GeoLocation" = ST_SetSRID(
-        ST_MakePoint("LocationLongitude", "LocationLatitude"), 
+        ST_MakePoint("Location_Longitude", "Location_Latitude"), 
         4326
     )::geography,
     "GeoLocationUpdatedAt" = NOW(),
     "GeoLocationSource" = 'Migrated'
-WHERE "LocationLatitude" IS NOT NULL 
-  AND "LocationLongitude" IS NOT NULL
+WHERE "Location_Latitude" IS NOT NULL 
+  AND "Location_Longitude" IS NOT NULL
   AND "GeoLocation" IS NULL;
 
 -- ============ PART 6: Add Column Comments ============
@@ -259,13 +260,14 @@ IS 'How location was obtained: Manual, Geocoded, GPS, IP, Migrated';
 -- ============ PART 7: Create Trigger for Auto-Update (Optional) ============
 
 -- Trigger function to auto-update GeoLocation when Latitude/Longitude changes
+-- EF Core uses underscored column names for complex types (Location_Latitude, Location_Longitude)
 CREATE OR REPLACE FUNCTION trigger_update_geolocation()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Only update if both latitude and longitude are present
-    IF NEW."LocationLatitude" IS NOT NULL AND NEW."LocationLongitude" IS NOT NULL THEN
+    IF NEW."Location_Latitude" IS NOT NULL AND NEW."Location_Longitude" IS NOT NULL THEN
         NEW."GeoLocation" := ST_SetSRID(
-            ST_MakePoint(NEW."LocationLongitude", NEW."LocationLatitude"),
+            ST_MakePoint(NEW."Location_Longitude", NEW."Location_Latitude"),
             4326
         )::geography;
         NEW."GeoLocationUpdatedAt" := NOW();
@@ -280,18 +282,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply trigger to Profiles
+-- Apply trigger to Profiles (EF Core column names)
 DROP TRIGGER IF EXISTS trg_profiles_update_geolocation ON "Sivar_Profiles";
 CREATE TRIGGER trg_profiles_update_geolocation
-    BEFORE INSERT OR UPDATE OF "LocationLatitude", "LocationLongitude"
+    BEFORE INSERT OR UPDATE OF "Location_Latitude", "Location_Longitude"
     ON "Sivar_Profiles"
     FOR EACH ROW
     EXECUTE FUNCTION trigger_update_geolocation();
 
--- Apply trigger to Posts
+-- Apply trigger to Posts (EF Core column names)
 DROP TRIGGER IF EXISTS trg_posts_update_geolocation ON "Sivar_Posts";
 CREATE TRIGGER trg_posts_update_geolocation
-    BEFORE INSERT OR UPDATE OF "LocationLatitude", "LocationLongitude"
+    BEFORE INSERT OR UPDATE OF "Location_Latitude", "Location_Longitude"
     ON "Sivar_Posts"
     FOR EACH ROW
     EXECUTE FUNCTION trigger_update_geolocation();

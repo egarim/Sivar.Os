@@ -58,9 +58,10 @@ CREATE INDEX IF NOT EXISTS idx_posts_geolocation_source
 ON "Sivar_Posts"("GeoLocationSource")
 WHERE "GeoLocationSource" IS NOT NULL;
 
--- Create composite index for common queries (location + created date)
-CREATE INDEX IF NOT EXISTS idx_posts_geolocation_created
-ON "Sivar_Posts" USING GIST("GeoLocation", "CreatedAt")
+-- Create separate index for created date (can't combine GIST geography with timestamp)
+-- Query planner will use both indexes when filtering by location AND date
+CREATE INDEX IF NOT EXISTS idx_posts_created_with_geolocation
+ON "Sivar_Posts"("CreatedAt")
 WHERE "GeoLocation" IS NOT NULL;
 
 -- ============ PART 4: Create Helper Functions ============
