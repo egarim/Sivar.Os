@@ -126,5 +126,12 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 
         // Computed properties
         builder.Ignore(p => p.LocationDisplay);
+
+        // ⚠️ CRITICAL: PostGIS columns - IGNORED by EF Core (following pgvector pattern)
+        // These columns exist in database but are managed via raw SQL only
+        // Reason: NetTopologySuite types incompatible with EF Core 9.0
+        builder.Ignore(p => p.GeoLocation);
+        builder.Ignore(p => p.GeoLocationUpdatedAt);
+        builder.Ignore(p => p.GeoLocationSource);
     }
 }

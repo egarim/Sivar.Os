@@ -42,6 +42,23 @@ public class Post : BaseEntity
     public virtual Location? Location { get; set; }
 
     /// <summary>
+    /// PostGIS geography point for spatial queries (IGNORED by EF Core)
+    /// Format: "POINT(longitude latitude)" e.g., "POINT(-74.0060 40.7128)"
+    /// Updated via raw SQL when Location.Latitude/Longitude changes
+    /// </summary>
+    public virtual string? GeoLocation { get; set; }
+
+    /// <summary>
+    /// Timestamp when GeoLocation was last updated
+    /// </summary>
+    public virtual DateTime? GeoLocationUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Source of the location data: Manual, Geocoded, GPS, IP, Migrated, Auto
+    /// </summary>
+    public virtual string? GeoLocationSource { get; set; }
+
+    /// <summary>
     /// Pricing information for products/services (JSON)
     /// Structure: { "amount": decimal, "currency": "USD", "isNegotiable": bool }
     /// </summary>

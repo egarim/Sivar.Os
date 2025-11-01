@@ -133,6 +133,14 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Ignore(p => p.SearchVector);
         builder.Ignore(p => p.SearchVectorSimple);
         
+        // ⚠️ CRITICAL: PostGIS columns - IGNORED by EF Core (following pgvector pattern)
+        // These columns exist in database but are managed via raw SQL only
+        // Reason: NetTopologySuite types incompatible with EF Core 9.0
+        // See: Database/Scripts/003_AddPostGISLocationSupport.sql
+        builder.Ignore(p => p.GeoLocation);
+        builder.Ignore(p => p.GeoLocationUpdatedAt);
+        builder.Ignore(p => p.GeoLocationSource);
+        
         // GIN indexes are created via SQL script for performance
         // CREATE INDEX IX_Posts_SearchVector_Gin ON "Sivar_Posts" USING gin("SearchVector");
         // CREATE INDEX IX_Posts_SearchVectorSimple_Gin ON "Sivar_Posts" USING gin("SearchVectorSimple");
