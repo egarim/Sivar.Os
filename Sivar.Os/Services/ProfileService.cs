@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.DTOs.ValueObjects;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
@@ -18,6 +19,7 @@ public class ProfileService : IProfileService
     private readonly IProfileTypeRepository _profileTypeRepository;
     private readonly IProfileMetadataValidator _metadataValidator;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ILocationService _locationService;
     private readonly ILogger<ProfileService> _logger;
 
     public ProfileService(
@@ -26,6 +28,7 @@ public class ProfileService : IProfileService
         IProfileTypeRepository profileTypeRepository,
         IProfileMetadataValidator metadataValidator,
         IFileStorageService fileStorageService,
+        ILocationService locationService,
         ILogger<ProfileService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
@@ -33,6 +36,7 @@ public class ProfileService : IProfileService
         _profileTypeRepository = profileTypeRepository ?? throw new ArgumentNullException(nameof(profileTypeRepository));
         _metadataValidator = metadataValidator ?? throw new ArgumentNullException(nameof(metadataValidator));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
+        _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -91,6 +95,29 @@ public class ProfileService : IProfileService
         }
         
         return handle;
+    }
+
+    /// <summary>
+    /// Checks if two Location objects are equal based on City, State, and Country
+    /// (ignores Latitude and Longitude as those are geocoded values)
+    /// </summary>
+    /// <param name="location1">First location to compare</param>
+    /// <param name="location2">Second location to compare</param>
+    /// <returns>True if locations are equal, false otherwise</returns>
+    private bool AreLocationsEqual(Location? location1, Location? location2)
+    {
+        // Both null = equal
+        if (location1 is null && location2 is null)
+            return true;
+
+        // One null = not equal
+        if (location1 is null || location2 is null)
+            return false;
+
+        // Compare City, State, Country (case-insensitive)
+        return string.Equals(location1.City, location2.City, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(location1.State, location2.State, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(location1.Country, location2.Country, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -284,7 +311,11 @@ public class ProfileService : IProfileService
         personalProfile.DisplayName = updateDto.DisplayName;
         personalProfile.Bio = updateDto.Bio;
         personalProfile.Avatar = updateDto.Avatar;
+        
+        // Check if location has changed and needs geocoding
+        var locationChanged = !AreLocationsEqual(personalProfile.Location, updateDto.Location);
         personalProfile.Location = updateDto.Location;
+        
         personalProfile.VisibilityLevel = updateDto.IsPublic ? VisibilityLevel.Public : VisibilityLevel.Private;
 
         await _profileRepository.UpdateAsync(personalProfile);
@@ -292,6 +323,46 @@ public class ProfileService : IProfileService
 
         _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] Profile updated - ProfileId={ProfileId}, RequestId={RequestId}", 
             personalProfile.Id, requestId);
+
+        // Geocode location if it changed and has valid city/country data
+        if (locationChanged && updateDto.Location != null && 
+            !string.IsNullOrWhiteSpace(updateDto.Location.City) && 
+            !string.IsNullOrWhiteSpace(updateDto.Location.Country))
+        {
+            try
+            {
+                _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] Geocoding location - ProfileId={ProfileId}, City={City}, State={State}, Country={Country}", 
+                    personalProfile.Id, updateDto.Location.City, updateDto.Location.State, updateDto.Location.Country);
+
+                var coordinates = await _locationService.GeocodeAsync(
+                    updateDto.Location.City, 
+                    updateDto.Location.State, 
+                    updateDto.Location.Country);
+
+                if (coordinates.HasValue)
+                {
+                    await _locationService.UpdateProfileGeoLocationAsync(
+                        personalProfile.Id, 
+                        coordinates.Value.Latitude, 
+                        coordinates.Value.Longitude, 
+                        source: "Geocoded");
+
+                    _logger.LogInformation("[ProfileService.UpdateMyProfileAsync] Geocoding successful - ProfileId={ProfileId}, Lat={Lat}, Lng={Lng}", 
+                        personalProfile.Id, coordinates.Value.Latitude, coordinates.Value.Longitude);
+                }
+                else
+                {
+                    _logger.LogWarning("[ProfileService.UpdateMyProfileAsync] Geocoding returned no results - ProfileId={ProfileId}, Location={Location}", 
+                        personalProfile.Id, updateDto.Location.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the profile update if geocoding fails
+                _logger.LogError(ex, "[ProfileService.UpdateMyProfileAsync] Geocoding failed - ProfileId={ProfileId}, Location={Location}", 
+                    personalProfile.Id, updateDto.Location.ToString());
+            }
+        }
 
         // Load updated profile with related data
         var updatedProfile = await _profileRepository.GetWithRelatedDataAsync(personalProfile.Id);
