@@ -64,6 +64,11 @@ public class ProfileDto
     public string LocationDisplay { get; set; } = string.Empty;
 
     /// <summary>
+    /// Distance from search location in kilometers (populated for proximity searches)
+    /// </summary>
+    public double? DistanceKm { get; set; }
+
+    /// <summary>
     /// Indicates if this is the user's active profile
     /// </summary>
     public bool IsActive { get; set; }

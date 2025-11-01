@@ -99,6 +99,27 @@ public class BaseRepository<T> : IBaseRepository<T> where T : BaseEntity
     }
 
     /// <summary>
+    /// Gets the underlying DbContext for raw SQL queries
+    /// </summary>
+    public virtual DbContext GetDbContext()
+    {
+        return _context;
+    }
+
+    /// <summary>
+    /// Gets multiple entities by their IDs
+    /// </summary>
+    public virtual async Task<List<T>> GetByIdsAsync(List<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids == null || ids.Count == 0)
+            return new List<T>();
+
+        return await _dbSet
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Gets queryable for advanced queries
     /// </summary>
     protected virtual IQueryable<T> GetQueryable()

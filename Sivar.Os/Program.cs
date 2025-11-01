@@ -129,6 +129,40 @@ builder.Services.Configure<Sivar.Os.Configuration.AIServiceOptions>(
 builder.Services.Configure<Sivar.Os.Configuration.EmbeddingOptions>(
     builder.Configuration.GetSection("Embeddings"));
 
+// --- Location Services Registration ---
+// Configure LocationServices options from appsettings.json
+builder.Services.Configure<Sivar.Os.Shared.Configuration.LocationServicesOptions>(
+    builder.Configuration.GetSection("LocationServices"));
+
+// Register the selected location service provider
+var locationProvider = builder.Configuration.GetValue<string>("LocationServices:Provider") ?? "Nominatim";
+
+switch (locationProvider.ToLowerInvariant())
+{
+    case "nominatim":
+        // Register Nominatim-specific options
+        builder.Services.Configure<Sivar.Os.Shared.Configuration.NominatimOptions>(
+            builder.Configuration.GetSection("LocationServices:Nominatim"));
+        
+        // Register HttpClient for Nominatim
+        builder.Services.AddHttpClient<ILocationService, NominatimLocationService>();
+        
+        // Register NominatimLocationService
+        builder.Services.AddScoped<ILocationService, NominatimLocationService>();
+        break;
+    
+    case "azuremaps":
+        // TODO: Implement Azure Maps provider
+        throw new NotSupportedException("Azure Maps provider not yet implemented");
+    
+    case "googlemaps":
+        // TODO: Implement Google Maps provider
+        throw new NotSupportedException("Google Maps provider not yet implemented");
+    
+    default:
+        throw new InvalidOperationException($"Unknown location provider: {locationProvider}");
+}
+
 // Configure ChatServiceOptions
 builder.Services.Configure<ChatServiceOptions>(options =>
 {

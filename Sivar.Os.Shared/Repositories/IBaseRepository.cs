@@ -1,4 +1,5 @@
 
+using Microsoft.EntityFrameworkCore;
 using Sivar.Os.Shared.Entities;
 
 namespace Sivar.Os.Shared.Repositories;
@@ -62,4 +63,18 @@ public interface IBaseRepository<T> where T : BaseEntity
     /// </summary>
     /// <returns>Number of entities affected</returns>
     Task<int> SaveChangesAsync();
+
+    /// <summary>
+    /// Gets the underlying DbContext for raw SQL queries
+    /// </summary>
+    /// <returns>DbContext instance</returns>
+    Microsoft.EntityFrameworkCore.DbContext GetDbContext();
+
+    /// <summary>
+    /// Gets multiple entities by their IDs
+    /// </summary>
+    /// <param name="ids">List of entity IDs</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of entities</returns>
+    Task<List<T>> GetByIdsAsync(List<Guid> ids, CancellationToken cancellationToken = default);
 }

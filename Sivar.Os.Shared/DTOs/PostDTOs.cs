@@ -135,6 +135,11 @@ public record PostDto
     public LocationDto? Location { get; init; }
 
     /// <summary>
+    /// Distance in kilometers from search point (for proximity search results)
+    /// </summary>
+    public double? DistanceKm { get; init; }
+
+    /// <summary>
     /// Business-specific metadata
     /// </summary>
     public string? BusinessMetadata { get; init; }
