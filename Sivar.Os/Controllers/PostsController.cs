@@ -499,6 +499,117 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
+    /// Finds posts near a geographic location using PostGIS
+    /// </summary>
+    /// <remarks>
+    /// Uses PostGIS spatial queries to find posts within the specified radius.
+    /// Returns posts sorted by distance from the search location.
+    /// 
+    /// Sample request:
+    ///
+    ///     GET /api/posts/nearby?latitude=13.68&amp;longitude=-89.29&amp;radiusKm=10&amp;pageSize=20&amp;pageNumber=1
+    ///
+    /// </remarks>
+    /// <param name="latitude">Latitude of the search center (-90 to 90)</param>
+    /// <param name="longitude">Longitude of the search center (-180 to 180)</param>
+    /// <param name="radiusKm">Search radius in kilometers (0 to 1000, default: 10)</param>
+    /// <param name="pageSize">Number of posts to return (1 to 100, default: 20)</param>
+    /// <param name="pageNumber">Page number for pagination (default: 1)</param>
+    /// <returns>PostFeedDto with nearby posts and pagination metadata</returns>
+    /// <response code="200">Posts found successfully</response>
+    /// <response code="400">Invalid parameters (latitude, longitude, radius, or page size out of range)</response>
+    [HttpGet("nearby")]
+    [SwaggerOperation(
+        Summary = "Find nearby posts",
+        Description = "Finds posts near a geographic location using PostGIS spatial queries. Posts are sorted by distance.",
+        Tags = new[] { "Posts", "Location" }
+    )]
+    [SwaggerResponse(200, "Posts found successfully", typeof(PostFeedDto))]
+    [SwaggerResponse(400, "Invalid parameters")]
+    public async Task<ActionResult<PostFeedDto>> FindNearbyPosts(
+        [FromQuery] double latitude,
+        [FromQuery] double longitude,
+        [FromQuery] double radiusKm = 10,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int pageNumber = 1)
+    {
+        var requestId = Guid.NewGuid();
+        
+        _logger.LogInformation(
+            "[PostsController.FindNearbyPosts] START - RequestId={RequestId}, Lat={Lat}, Lon={Lon}, Radius={Radius}km, PageSize={PageSize}, PageNumber={PageNumber}",
+            requestId, latitude, longitude, radiusKm, pageSize, pageNumber);
+
+        try
+        {
+            // Validate latitude (-90 to 90)
+            if (latitude < -90 || latitude > 90)
+            {
+                _logger.LogWarning(
+                    "[PostsController.FindNearbyPosts] VALIDATION FAILED - Invalid latitude: {Lat}, RequestId={RequestId}",
+                    latitude, requestId);
+                return BadRequest(new { error = "Latitude must be between -90 and 90", latitude });
+            }
+
+            // Validate longitude (-180 to 180)
+            if (longitude < -180 || longitude > 180)
+            {
+                _logger.LogWarning(
+                    "[PostsController.FindNearbyPosts] VALIDATION FAILED - Invalid longitude: {Lon}, RequestId={RequestId}",
+                    longitude, requestId);
+                return BadRequest(new { error = "Longitude must be between -180 and 180", longitude });
+            }
+
+            // Validate radiusKm (0 to 1000 km)
+            if (radiusKm <= 0 || radiusKm > 1000)
+            {
+                _logger.LogWarning(
+                    "[PostsController.FindNearbyPosts] VALIDATION FAILED - Invalid radius: {Radius}km, RequestId={RequestId}",
+                    radiusKm, requestId);
+                return BadRequest(new { error = "Radius must be between 0 and 1000 km", radiusKm });
+            }
+
+            // Validate pageSize (1 to 100)
+            if (pageSize < 1 || pageSize > 100)
+            {
+                _logger.LogWarning(
+                    "[PostsController.FindNearbyPosts] VALIDATION FAILED - Invalid pageSize: {PageSize}, RequestId={RequestId}",
+                    pageSize, requestId);
+                return BadRequest(new { error = "Page size must be between 1 and 100", pageSize });
+            }
+
+            // Validate pageNumber (must be >= 1)
+            if (pageNumber < 1)
+            {
+                _logger.LogWarning(
+                    "[PostsController.FindNearbyPosts] VALIDATION FAILED - Invalid pageNumber: {PageNumber}, RequestId={RequestId}",
+                    pageNumber, requestId);
+                return BadRequest(new { error = "Page number must be >= 1", pageNumber });
+            }
+
+            _logger.LogInformation(
+                "[PostsController.FindNearbyPosts] VALIDATION PASSED - Calling PostService, RequestId={RequestId}",
+                requestId);
+
+            // Call service
+            var postFeed = await _postService.FindNearbyPostsAsync(
+                latitude, longitude, radiusKm, pageSize, pageNumber);
+
+            _logger.LogInformation(
+                "[PostsController.FindNearbyPosts] SUCCESS - Found {Count} posts, RequestId={RequestId}",
+                postFeed.Posts.Count, requestId);
+
+            return Ok(postFeed);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[PostsController.FindNearbyPosts] ERROR - RequestId={RequestId}, Lat={Lat}, Lon={Lon}",
+                requestId, latitude, longitude);
+            return StatusCode(500, new { error = "Internal server error", requestId });
+        }
+    }
+
+    /// <summary>
     /// Helper method to extract Keycloak ID from request
     /// </summary>
     private string GetKeycloakIdFromRequest()

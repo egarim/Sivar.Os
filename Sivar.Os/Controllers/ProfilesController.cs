@@ -1026,6 +1026,75 @@ public class ProfilesController : ControllerBase
     }
 
     /// <summary>
+    /// Finds profiles near a geographic location using PostGIS
+    /// </summary>
+    /// <param name="latitude">Center point latitude</param>
+    /// <param name="longitude">Center point longitude</param>
+    /// <param name="radiusKm">Search radius in kilometers (default: 10km, max: 1000km)</param>
+    /// <param name="limit">Maximum number of results (default: 50, max: 500)</param>
+    /// <returns>List of nearby profiles with distance information</returns>
+    [HttpGet("nearby")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<ProfileDto>>> FindNearbyProfiles(
+        [FromQuery] double latitude,
+        [FromQuery] double longitude,
+        [FromQuery] double radiusKm = 10,
+        [FromQuery] int limit = 50)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation(
+            "[ProfilesController.FindNearbyProfiles] START - Lat={Lat}, Lon={Lon}, Radius={Radius}km, Limit={Limit}, RequestId={RequestId}",
+            latitude, longitude, radiusKm, limit, requestId);
+
+        try
+        {
+            // Validate parameters
+            if (latitude < -90 || latitude > 90)
+            {
+                _logger.LogWarning("[ProfilesController.FindNearbyProfiles] Invalid latitude: {Lat}", latitude);
+                return BadRequest("Latitude must be between -90 and 90");
+            }
+
+            if (longitude < -180 || longitude > 180)
+            {
+                _logger.LogWarning("[ProfilesController.FindNearbyProfiles] Invalid longitude: {Lon}", longitude);
+                return BadRequest("Longitude must be between -180 and 180");
+            }
+
+            if (radiusKm <= 0 || radiusKm > 1000)
+            {
+                _logger.LogWarning("[ProfilesController.FindNearbyProfiles] Invalid radius: {Radius}km", radiusKm);
+                return BadRequest("Radius must be between 0 and 1000 km");
+            }
+
+            if (limit <= 0 || limit > 500)
+            {
+                _logger.LogWarning("[ProfilesController.FindNearbyProfiles] Invalid limit: {Limit}", limit);
+                return BadRequest("Limit must be between 1 and 500");
+            }
+
+            var profiles = await _profileService.FindNearbyProfilesAsync(latitude, longitude, radiusKm, limit);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation(
+                "[ProfilesController.FindNearbyProfiles] SUCCESS - Found {Count} profiles, RequestId={RequestId}, Duration={Duration}ms",
+                profiles.Count(), requestId, elapsed);
+
+            return Ok(profiles);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex,
+                "[ProfilesController.FindNearbyProfiles] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
     /// Placeholder method to check if current user is administrator
     /// TODO: Implement actual role checking when Keycloak is integrated
     /// </summary>

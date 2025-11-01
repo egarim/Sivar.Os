@@ -36,4 +36,7 @@ public interface IProfilesClient
 
     // Statistics
     Task<ProfileStatisticsDto> GetProfileStatisticsAsync(CancellationToken cancellationToken = default);
+
+    // Location-based search
+    Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50, CancellationToken cancellationToken = default);
 }

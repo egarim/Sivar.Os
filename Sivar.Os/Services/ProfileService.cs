@@ -1465,4 +1465,42 @@ public class ProfileService : IProfileService
             return false;
         }
     }
+
+    /// <summary>
+    /// Finds profiles near a geographic location using PostGIS
+    /// </summary>
+    public async Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(
+        double latitude, 
+        double longitude, 
+        double radiusKm = 10, 
+        int limit = 50)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation(
+            "[ProfileService.FindNearbyProfilesAsync] START - Lat={Lat}, Lon={Lon}, Radius={Radius}km, Limit={Limit}, RequestId={RequestId}",
+            latitude, longitude, radiusKm, limit, requestId);
+
+        try
+        {
+            // Delegate to LocationService which uses PostGIS
+            var profiles = await _locationService.FindNearbyProfilesAsync(
+                latitude, 
+                longitude, 
+                radiusKm, 
+                limit);
+
+            _logger.LogInformation(
+                "[ProfileService.FindNearbyProfilesAsync] SUCCESS - Found {Count} profiles, RequestId={RequestId}",
+                profiles.Count, requestId);
+
+            return profiles;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[ProfileService.FindNearbyProfilesAsync] ERROR - RequestId={RequestId}",
+                requestId);
+            throw;
+        }
+    }
 }

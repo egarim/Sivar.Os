@@ -148,11 +148,7 @@ public class NominatimLocationService : LocationServiceBase
             var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            // Log raw JSON for debugging
             var jsonContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            Console.WriteLine($"[NOMINATIM DEBUG] Raw JSON Response:");
-            Console.WriteLine(jsonContent);
-            _logger.LogInformation("Nominatim raw response: {Json}", jsonContent);
 
             var result = System.Text.Json.JsonSerializer.Deserialize<NominatimReverseResult>(
                 jsonContent, 
@@ -160,27 +156,9 @@ public class NominatimLocationService : LocationServiceBase
 
             if (result?.Address == null)
             {
-                Console.WriteLine($"[NOMINATIM DEBUG] No address in result!");
                 _logger.LogWarning("No reverse geocoding results for ({Lat}, {Lon})", latitude, longitude);
                 return null;
             }
-
-            // Log the parsed properties
-            Console.WriteLine($"[NOMINATIM DEBUG] Parsed Properties:");
-            Console.WriteLine($"  City: {result.Address.City}");
-            Console.WriteLine($"  Town: {result.Address.Town}");
-            Console.WriteLine($"  Village: {result.Address.Village}");
-            Console.WriteLine($"  State: {result.Address.State}");
-            Console.WriteLine($"  Region: {result.Address.Region}");
-            Console.WriteLine($"  StateDistrict: {result.Address.StateDistrict}");
-            Console.WriteLine($"  County: {result.Address.County}");
-            Console.WriteLine($"  Country: {result.Address.Country}");
-            Console.WriteLine($"  CountryCode: {result.Address.CountryCode}");
-            
-            _logger.LogInformation("Nominatim reverse geocoding response - City: {City}, Town: {Town}, Village: {Village}, State: {State}, Region: {Region}, StateDistrict: {StateDistrict}, County: {County}, Country: {Country}, CountryCode: {Code}",
-                result.Address.City, result.Address.Town, result.Address.Village, 
-                result.Address.State, result.Address.Region, result.Address.StateDistrict, result.Address.County,
-                result.Address.Country, result.Address.CountryCode);
 
             var location = new Location
             {
@@ -190,13 +168,6 @@ public class NominatimLocationService : LocationServiceBase
                 Latitude = latitude,
                 Longitude = longitude
             };
-
-            Console.WriteLine($"[NOMINATIM DEBUG] Final Location Object:");
-            Console.WriteLine($"  City: '{location.City}'");
-            Console.WriteLine($"  State: '{location.State}'");
-            Console.WriteLine($"  Country: '{location.Country}'");
-            Console.WriteLine($"  Lat: {location.Latitude}");
-            Console.WriteLine($"  Lon: {location.Longitude}");
 
 
             // Cache for 30 days

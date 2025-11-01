@@ -28,6 +28,7 @@ public class PostService : IPostService
     private readonly IVectorEmbeddingService _vectorEmbeddingService;
     private readonly IActivityService _activityService;
     private readonly ISentimentAnalysisService _sentimentService;
+    private readonly ILocationService _locationService;
     private readonly ILogger<PostService> _logger;
 
     public PostService(
@@ -42,6 +43,7 @@ public class PostService : IPostService
         IClientEmbeddingService clientEmbeddingService,
         IVectorEmbeddingService vectorEmbeddingService,
         ISentimentAnalysisService sentimentService,
+        ILocationService locationService,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -55,6 +57,7 @@ public class PostService : IPostService
         _vectorEmbeddingService = vectorEmbeddingService ?? throw new ArgumentNullException(nameof(vectorEmbeddingService));
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _sentimentService = sentimentService ?? throw new ArgumentNullException(nameof(sentimentService));
+        _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -1348,6 +1351,50 @@ public class PostService : IPostService
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogError(ex, "[PostService.GetAllPostEntitiesWithEmbeddingsAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
                 requestId, elapsed);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Finds posts near a geographic location using PostGIS
+    /// </summary>
+    public async Task<PostFeedDto> FindNearbyPostsAsync(
+        double latitude, 
+        double longitude, 
+        double radiusKm = 10, 
+        int pageSize = 20, 
+        int pageNumber = 1)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation(
+            "[PostService.FindNearbyPostsAsync] START - Lat={Lat}, Lon={Lon}, Radius={Radius}km, PageSize={PageSize}, PageNumber={PageNumber}, RequestId={RequestId}",
+            latitude, longitude, radiusKm, pageSize, pageNumber, requestId);
+
+        try
+        {
+            // Delegate to LocationService which uses PostGIS
+            var postDtos = await _locationService.FindNearbyPostsAsync(
+                latitude, longitude, radiusKm, pageSize, pageNumber);
+
+            var totalCount = postDtos.Count;
+
+            _logger.LogInformation(
+                "[PostService.FindNearbyPostsAsync] SUCCESS - Found {Count} posts, RequestId={RequestId}",
+                totalCount, requestId);
+
+            return new PostFeedDto
+            {
+                Posts = postDtos,
+                Page = pageNumber - 1, // Convert to 0-based
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "[PostService.FindNearbyPostsAsync] ERROR - Lat={Lat}, Lon={Lon}, RequestId={RequestId}",
+                latitude, longitude, requestId);
             throw;
         }
     }

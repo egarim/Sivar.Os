@@ -22,4 +22,7 @@ public interface IPostsClient
     // Analytics
     Task<PostAnalyticsDto> GetPostAnalyticsAsync(Guid postId, CancellationToken cancellationToken = default);
     Task<IEnumerable<PostActivityDto>> GetProfileActivityAsync(Guid profileId, int days = 30, CancellationToken cancellationToken = default);
+
+    // Location-based search
+    Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default);
 }

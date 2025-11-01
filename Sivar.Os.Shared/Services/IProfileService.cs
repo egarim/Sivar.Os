@@ -233,6 +233,16 @@ public interface IProfileService
     /// <param name="keycloakId">Keycloak user identifier</param>
     /// <returns>True if delete successful, false otherwise</returns>
     Task<bool> DeleteAvatarAsync(Guid profileId, string keycloakId);
+
+    /// <summary>
+    /// Finds profiles near a geographic location using PostGIS
+    /// </summary>
+    /// <param name="latitude">Center point latitude</param>
+    /// <param name="longitude">Center point longitude</param>
+    /// <param name="radiusKm">Search radius in kilometers</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <returns>List of nearby profiles with distance information</returns>
+    Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50);
 }
 
 /// <summary>

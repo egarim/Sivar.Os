@@ -47,7 +47,7 @@
         <MudStack Spacing="3">
             <!-- Manual Entry Section -->
             <MudTextField Value="@_city"
-                          ValueChanged="@(async (string value) => { _city = value; await CityChanged.InvokeAsync(value); })"
+                          ValueChanged="@(async (string value) => { _city = value; if (OnCityChanged.HasDelegate) await OnCityChanged.InvokeAsync(value); })"
                           Label="City"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
@@ -55,7 +55,7 @@
                           Disabled="@isLoading" />
 
             <MudTextField Value="@_state"
-                          ValueChanged="@(async (string value) => { _state = value; await StateChanged.InvokeAsync(value); })"
+                          ValueChanged="@(async (string value) => { _state = value; if (OnStateChanged.HasDelegate) await OnStateChanged.InvokeAsync(value); })"
                           Label="State/Province"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
@@ -63,7 +63,7 @@
                           Disabled="@isLoading" />
 
             <MudTextField Value="@_country"
-                          ValueChanged="@(async (string value) => { _country = value; await CountryChanged.InvokeAsync(value); })"
+                          ValueChanged="@(async (string value) => { _country = value; if (OnCountryChanged.HasDelegate) await OnCountryChanged.InvokeAsync(value); })"
                           Label="Country"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
@@ -117,61 +117,54 @@
 </style>
 
 @code {
-    // Private backing fields to prevent parameter overwriting
+    // Private fields for internal state
     private string _city = string.Empty;
     private string _state = string.Empty;
     private string _country = string.Empty;
     
-    // Two-way binding for location fields
+    // One-way input parameters (from parent)
     [Parameter]
     public string City 
     { 
         get => _city;
         set => _city = value;
     }
-    
-    [Parameter]
-    public EventCallback<string> CityChanged { get; set; }
 
     [Parameter]
     public string State 
     { 
         get => _state;
-        set 
-        { 
-            Console.WriteLine($"[ProfileLocationEditor] State setter called with value: '{value}'");
-            _state = value;
-        }
+        set => _state = value;
     }
-    
-    [Parameter]
-    public EventCallback<string> StateChanged { get; set; }
 
     [Parameter]
     public string Country 
     { 
         get => _country;
-        set 
-        { 
-            Console.WriteLine($"[ProfileLocationEditor] Country setter called with value: '{value}'");
-            _country = value;
-        }
+        set => _country = value;
     }
     
+    // Output event callbacks (to parent)
     [Parameter]
-    public EventCallback<string> CountryChanged { get; set; }
+    public EventCallback<string> OnCityChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnStateChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnCountryChanged { get; set; }
 
     [Parameter]
     public double? Latitude { get; set; }
     
     [Parameter]
-    public EventCallback<double?> LatitudeChanged { get; set; }
+    public EventCallback<double?> OnLatitudeChanged { get; set; }
 
     [Parameter]
     public double? Longitude { get; set; }
     
     [Parameter]
-    public EventCallback<double?> LongitudeChanged { get; set; }
+    public EventCallback<double?> OnLongitudeChanged { get; set; }
 
     // Configuration parameters
     [Parameter]
@@ -248,55 +241,39 @@
             Logger.LogInformation("[ProfileLocationEditor] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
                 position.Latitude, position.Longitude, position.Accuracy);
 
-            // Update coordinates
-            Latitude = position.Latitude;
-            Longitude = position.Longitude;
+            // Store coordinates in local variables
+            var newLatitude = position.Latitude;
+            var newLongitude = position.Longitude;
             permissionStatus = PermissionStatus.Granted;
 
-            await LatitudeChanged.InvokeAsync(Latitude);
-            await LongitudeChanged.InvokeAsync(Longitude);
+            // Notify parent with local variables (don't assign to properties yet)
+            if (OnLatitudeChanged.HasDelegate) await OnLatitudeChanged.InvokeAsync(newLatitude);
+            if (OnLongitudeChanged.HasDelegate) await OnLongitudeChanged.InvokeAsync(newLongitude);
 
             // Attempt reverse geocoding to populate city/state/country
             try
             {
                 Logger.LogInformation("[ProfileLocationEditor] Starting reverse geocoding for coordinates");
-                Console.WriteLine($"[CLIENT DEBUG] Calling ReverseGeocodeAsync with Lat: {position.Latitude}, Lon: {position.Longitude}");
                 
                 var location = await LocationService.ReverseGeocodeAsync(position.Latitude, position.Longitude);
                 
-                Console.WriteLine($"[CLIENT DEBUG] ReverseGeocodeAsync returned: {(location == null ? "NULL" : "Location object")}");
-                
                 if (location != null)
                 {
-                    Console.WriteLine($"[CLIENT DEBUG] Location details - City: '{location.City}', State: '{location.State}', Country: '{location.Country}'");
-                    
-                    // Update local properties
+                    // Use local variables - do NOT assign to properties to avoid triggering parent updates
                     var newCity = location.City ?? string.Empty;
                     var newState = location.State ?? string.Empty;
                     var newCountry = location.Country ?? string.Empty;
 
-                    Console.WriteLine($"[CLIENT DEBUG] Temp vars - City: '{newCity}', State: '{newState}', Country: '{newCountry}'");
-
-                    // Assign to component properties
-                    City = newCity;
-                    State = newState;
-                    Country = newCountry;
-
-                    Console.WriteLine($"[CLIENT DEBUG] After assignment - City: '{City}', State: '{State}', Country: '{Country}'");
-
-                    // Update success message BEFORE calling EventCallbacks
-                    successMessage = $"GPS location acquired! {City}, {State}, {Country} (±{position.Accuracy:F0}m accuracy)";
-                    Console.WriteLine($"[CLIENT DEBUG] Success message created: {successMessage}");
+                    // Update success message using local variables
+                    successMessage = $"GPS location acquired! {newCity}, {newState}, {newCountry} (±{position.Accuracy:F0}m accuracy)";
 
                     Logger.LogInformation("[ProfileLocationEditor] Reverse geocoding successful - City='{City}', State='{State}', Country='{Country}'",
-                        City, State, Country);
+                        newCity, newState, newCountry);
 
-                    // Now notify parent component
-                    if (CityChanged.HasDelegate) await CityChanged.InvokeAsync(City);
-                    if (StateChanged.HasDelegate) await StateChanged.InvokeAsync(State);
-                    if (CountryChanged.HasDelegate) await CountryChanged.InvokeAsync(Country);
-
-                    Console.WriteLine($"[CLIENT DEBUG] After EventCallbacks - City: '{City}', State: '{State}', Country: '{Country}'");
+                    // Notify parent component using local variables (unidirectional data flow)
+                    if (OnCityChanged.HasDelegate) await OnCityChanged.InvokeAsync(newCity);
+                    if (OnStateChanged.HasDelegate) await OnStateChanged.InvokeAsync(newState);
+                    if (OnCountryChanged.HasDelegate) await OnCountryChanged.InvokeAsync(newCountry);
                 }
                 else
                 {

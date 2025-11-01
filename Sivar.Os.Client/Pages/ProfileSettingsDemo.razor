@@ -53,11 +53,16 @@
                     </MudCard>
 
                     <!-- Location Editor Component -->
-                    <ProfileLocationEditor @bind-City="locationCity"
-                                           @bind-State="locationState"
-                                           @bind-Country="locationCountry"
-                                           @bind-Latitude="locationLatitude"
-                                           @bind-Longitude="locationLongitude"
+                    <ProfileLocationEditor City="@locationCity"
+                                           State="@locationState"
+                                           Country="@locationCountry"
+                                           Latitude="@locationLatitude"
+                                           Longitude="@locationLongitude"
+                                           OnCityChanged="@HandleCityChanged"
+                                           OnStateChanged="@HandleStateChanged"
+                                           OnCountryChanged="@HandleCountryChanged"
+                                           OnLatitudeChanged="@HandleLatitudeChanged"
+                                           OnLongitudeChanged="@HandleLongitudeChanged"
                                            ShowGpsButton="true"
                                            ShowPermissionStatus="true"
                                            ShowActions="false"
@@ -217,10 +222,36 @@
         Logger.LogInformation("[ProfileSettingsDemo] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
             position.Latitude, position.Longitude, position.Accuracy);
 
-        statusMessage = $"GPS location acquired with {position.Accuracy:F0}m accuracy. You can optionally enter city/state/country manually.";
+        statusMessage = $"GPS location acquired with {position.Accuracy:F0}m accuracy.";
         statusSeverity = Severity.Info;
-        
-        // Note: Coordinates are already bound via @bind-Latitude and @bind-Longitude
-        // You could implement reverse geocoding here to auto-fill city/state/country
+    }
+
+    // Location field change handlers
+    private void HandleCityChanged(string value)
+    {
+        locationCity = value;
+        StateHasChanged();
+    }
+
+    private void HandleStateChanged(string value)
+    {
+        locationState = value;
+        StateHasChanged();
+    }
+
+    private void HandleCountryChanged(string value)
+    {
+        locationCountry = value;
+        StateHasChanged();
+    }
+
+    private void HandleLatitudeChanged(double? value)
+    {
+        locationLatitude = value;
+    }
+
+    private void HandleLongitudeChanged(double? value)
+    {
+        locationLongitude = value;
     }
 }

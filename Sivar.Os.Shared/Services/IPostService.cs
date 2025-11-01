@@ -113,4 +113,15 @@ public interface IPostService
     /// </summary>
     /// <returns>List of post entities with their vector embeddings</returns>
     Task<List<Post>> GetAllPostEntitiesWithEmbeddingsAsync();
+
+    /// <summary>
+    /// Finds posts near a geographic location using PostGIS
+    /// </summary>
+    /// <param name="latitude">Latitude of the search center (-90 to 90)</param>
+    /// <param name="longitude">Longitude of the search center (-180 to 180)</param>
+    /// <param name="radiusKm">Search radius in kilometers (default: 10km)</param>
+    /// <param name="pageSize">Number of posts to return (default: 20)</param>
+    /// <param name="pageNumber">Page number for pagination (default: 1)</param>
+    /// <returns>PostFeedDto with nearby posts and metadata</returns>
+    Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1);
 }
