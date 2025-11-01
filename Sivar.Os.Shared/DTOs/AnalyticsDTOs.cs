@@ -97,4 +97,54 @@ namespace Sivar.Os.Shared.DTOs
         public long MostActiveHour { get; set; }
         public string MostPopularPostType { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// City-level sentiment metrics from continuous aggregate
+    /// Maps to: sentiment_metrics_city_daily materialized view
+    /// </summary>
+    public class SentimentMetricsCityDto
+    {
+        public DateTime Day { get; set; }
+        public string City { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string Emotion { get; set; } = string.Empty;
+        public long PostCount { get; set; }
+        public double AvgEmotionScore { get; set; }
+        public double AvgPolarity { get; set; }
+        public double AvgJoy { get; set; }
+        public double AvgSadness { get; set; }
+        public double AvgAnger { get; set; }
+        public double AvgFear { get; set; }
+        public long AngerFlaggedCount { get; set; }
+        public long NeedsReviewCount { get; set; }
+        public DateTime? FirstAnalyzed { get; set; }
+        public DateTime? LastAnalyzed { get; set; }
+    }
+
+    /// <summary>
+    /// Country-level sentiment metrics from continuous aggregate
+    /// Maps to: sentiment_metrics_country_daily materialized view
+    /// </summary>
+    public class SentimentMetricsCountryDto
+    {
+        public DateTime Day { get; set; }
+        public string Country { get; set; } = string.Empty;
+        public string Emotion { get; set; } = string.Empty;
+        public long PostCount { get; set; }
+        public long UniqueCities { get; set; }
+        public double AvgEmotionScore { get; set; }
+        public double AvgPolarity { get; set; }
+        public double AvgJoy { get; set; }
+        public double AvgSadness { get; set; }
+        public double AvgAnger { get; set; }
+        public double AvgFear { get; set; }
+        public long AngerFlaggedCount { get; set; }
+        public long NeedsReviewCount { get; set; }
+        public long TotalViews { get; set; }
+        public long TotalShares { get; set; }
+        public double AvgViews { get; set; }
+        public double AvgShares { get; set; }
+        public DateTime? FirstAnalyzed { get; set; }
+        public DateTime? LastAnalyzed { get; set; }
+    }
 }

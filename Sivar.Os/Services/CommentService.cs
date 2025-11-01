@@ -18,6 +18,7 @@ public class CommentService : ICommentService
     private readonly IUserRepository _userRepository;
     private readonly IProfileRepository _profileRepository;
     private readonly IReactionRepository _reactionRepository;
+    private readonly ISentimentAnalysisService _sentimentService;
     private readonly ILogger<CommentService> _logger;
 
     public CommentService(
@@ -26,6 +27,7 @@ public class CommentService : ICommentService
         IUserRepository userRepository,
         IProfileRepository profileRepository,
         IReactionRepository reactionRepository,
+        ISentimentAnalysisService sentimentService,
         ILogger<CommentService> logger)
     {
         _commentRepository = commentRepository ?? throw new ArgumentNullException(nameof(commentRepository));
@@ -33,6 +35,7 @@ public class CommentService : ICommentService
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _reactionRepository = reactionRepository ?? throw new ArgumentNullException(nameof(reactionRepository));
+        _sentimentService = sentimentService ?? throw new ArgumentNullException(nameof(sentimentService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -99,6 +102,49 @@ public class CommentService : ICommentService
         {
             await _commentRepository.AddAsync(comment);
             await _commentRepository.SaveChangesAsync();
+            
+            // ==================== SENTIMENT ANALYSIS ====================
+            // Hybrid approach: Try client-side first (privacy-first), fall back to server
+            try
+            {
+                _logger.LogInformation("[CommentService.CreateCommentAsync] Performing sentiment analysis for CommentId={CommentId}", comment.Id);
+                
+                var sentimentResult = await _sentimentService.AnalyzeAsync(
+                    comment.Content, 
+                    comment.Language ?? "en");
+
+                if (sentimentResult != null)
+                {
+                    comment.PrimaryEmotion = sentimentResult.PrimaryEmotion;
+                    comment.EmotionScore = sentimentResult.EmotionScore;
+                    comment.SentimentPolarity = sentimentResult.SentimentPolarity;
+                    comment.JoyScore = sentimentResult.EmotionScores.Joy;
+                    comment.SadnessScore = sentimentResult.EmotionScores.Sadness;
+                    comment.AngerScore = sentimentResult.EmotionScores.Anger;
+                    comment.FearScore = sentimentResult.EmotionScores.Fear;
+                    comment.HasAnger = sentimentResult.HasAnger;
+                    comment.NeedsReview = sentimentResult.NeedsReview;
+                    comment.AnalyzedAt = DateTime.UtcNow;
+
+                    await _commentRepository.UpdateAsync(comment);
+                    await _commentRepository.SaveChangesAsync();
+
+                    _logger.LogInformation("[CommentService.CreateCommentAsync] ✓ Sentiment analysis complete: Emotion={Emotion}, Score={Score:F2}, Source={Source}",
+                        comment.PrimaryEmotion, comment.EmotionScore, sentimentResult.AnalysisSource);
+                    
+                    if (comment.NeedsReview)
+                    {
+                        _logger.LogWarning("[CommentService.CreateCommentAsync] ⚠️ Comment flagged for review: CommentId={CommentId}, AngerScore={AngerScore:F2}",
+                            comment.Id, comment.AngerScore);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[CommentService.CreateCommentAsync] Sentiment analysis failed for CommentId={CommentId}, continuing without it", comment.Id);
+                // Don't fail comment creation if sentiment analysis fails
+            }
+            // ============================================================
             
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[CommentService.CreateCommentAsync] SUCCESS - CommentId={CommentId}, PostId={PostId}, ProfileId={ProfileId}, RequestId={RequestId}, Duration={Duration}ms", 

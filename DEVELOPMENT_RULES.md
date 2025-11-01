@@ -19,19 +19,25 @@
    - URL Generation Strategy (Dynamic vs Stored)
    - GetFileUrlAsync - The Critical Metadata Loading Fix
    - Troubleshooting Guide & Common Issues
-7. [CSS Organization & Styling](#css-organization--styling)
-8. [Logging Standards](#logging-standards)
-9. [Authentication & Authorization](#authentication--authorization)
-10. [Error Handling](#error-handling)
-11. [Testing & Debugging](#testing--debugging)
-12. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-13. [Database Script System](#database-script-system) ⭐ **UPDATED**
+7. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
+   - Progressive Enhancement for AI Features
+   - Background Model Preloading
+   - Server-First with Client Switch Strategy
+   - Transformers.js Integration Examples
+   - Sentiment Analysis & Embeddings Implementation
+8. [CSS Organization & Styling](#css-organization--styling)
+9. [Logging Standards](#logging-standards)
+10. [Authentication & Authorization](#authentication--authorization)
+11. [Error Handling](#error-handling)
+12. [Testing & Debugging](#testing--debugging)
+13. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+14. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-14. [References](#references)
+15. [References](#references)
 
 ---
 
@@ -2392,6 +2398,1018 @@ Blob name correct? → Match hierarchical namespace setting
 - Blob cleanup job for soft-deleted files
 - Image optimization/resizing pipeline
 - CDN integration for production
+
+---
+
+## Adaptive Loading Pattern - Client/Server ML Hybrid
+
+### ⭐ Industry-Standard Pattern for Progressive AI Enhancement
+
+**Pattern Name**: Adaptive Loading / Progressive Enhancement / Hybrid Rendering  
+**Purpose**: Start with fast server-side processing, seamlessly upgrade to high-quality client-side ML when models are ready  
+**Status**: ✅ PROVEN - Used by Google Translate, Grammarly, Photoshop Web, GitHub Copilot
+
+### The Problem
+
+**Challenge**: Client-side ML models (Transformers.js) can be 100-300MB and take 10-60 seconds to download on first visit.
+
+**User Impact:**
+- ❌ Users must wait before using features (bad UX)
+- ❌ Blank screens or loading spinners
+- ❌ High bounce rates on slow connections
+
+### The Solution: Adaptive Loading
+
+**Strategy**: Use fast server-side processing immediately, then switch to better client-side ML when ready.
+
+```
+User arrives → Server-side (instant) → Models download (background) → Client-side (better quality)
+```
+
+### How It Works
+
+#### Phase 1: First Visit (Cold Start)
+
+```
+Timeline:
+0:00 ─ Page loads
+0:00 ─ Models start downloading (background, non-blocking)
+0:05 ─ User creates post #1 → ✅ Server-side analysis (instant)
+0:30 ─ Models finish loading → ✅ Client ready!
+0:45 ─ User creates post #2 → ✅ Client-side analysis (better quality)
+```
+
+#### Phase 2: Return Visit (Cached Models)
+
+```
+Timeline:
+0:00 ─ Page loads
+0:01 ─ Models load from IndexedDB cache → ✅ Client ready!
+0:05 ─ User creates post → ✅ Client-side analysis (immediately)
+```
+
+### Architecture Components
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Blazor Component (UI Layer)                    │
+│                  (CreatePost.razor)                          │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│            Hybrid Service (Orchestrator)                     │
+│         SentimentAnalysisService / EmbeddingService          │
+│                                                              │
+│   1. Check: Are client models ready?                         │
+│   2. IF ready → Use ClientService (high quality)             │
+│   3. IF not ready → Use ServerService (fast fallback)        │
+└─────────┬────────────────────────────────────┬──────────────┘
+          │                                    │
+          ↓                                    ↓
+┌──────────────────────────┐    ┌──────────────────────────┐
+│   ClientService          │    │   ServerService          │
+│   (Transformers.js)      │    │   (Keyword/ML.NET)       │
+│                          │    │                          │
+│   - IJSRuntime           │    │   - Fast algorithms      │
+│   - Browser ML models    │    │   - Always available     │
+│   - Best quality         │    │   - Good-enough quality  │
+│   - Requires models      │    │   - No dependencies      │
+└──────────────────────────┘    └──────────────────────────┘
+```
+
+### Implementation Pattern
+
+#### Step 1: JavaScript Module with Background Loading
+
+**File**: `sentiment-analyzer.js` (or `embeddings.js`)
+
+```javascript
+// ✅ CORRECT - Auto-initialize on load, non-blocking
+class SentimentAnalyzer {
+    constructor() {
+        this.modelsReady = false;
+        this.modelsLoading = false;
+        this.initPromise = null;
+        
+        // 🎯 KEY: Start loading immediately in background
+        this.initializeInBackground();
+    }
+    
+    /**
+     * Background initialization - doesn't block page load
+     * Models download while user interacts with page
+     */
+    async initializeInBackground() {
+        if (this.modelsLoading || this.modelsReady) return;
+        
+        this.modelsLoading = true;
+        console.log('[SentimentAnalyzer] 🔄 Starting background model loading...');
+        
+        try {
+            this.initPromise = this.loadModels();
+            await this.initPromise;
+            
+            this.modelsReady = true;
+            console.log('[SentimentAnalyzer] ✅ Models ready - switching to client-side!');
+            
+            // Optional: Notify .NET that models are ready
+            if (window.DotNet) {
+                window.DotNet.invokeMethodAsync('Sivar.Os', 'OnModelsReady');
+            }
+        } catch (error) {
+            console.warn('[SentimentAnalyzer] ⚠️ Models failed - staying on server-side', error);
+            this.modelsReady = false;
+        } finally {
+            this.modelsLoading = false;
+        }
+    }
+    
+    /**
+     * Check if models are ready (called from .NET)
+     * @returns {boolean} True if client-side analysis available
+     */
+    isReady() {
+        return this.modelsReady;
+    }
+    
+    /**
+     * Actual model loading logic
+     */
+    async loadModels() {
+        const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
+        
+        // Load sentiment model
+        this.sentimentClassifier = await pipeline(
+            'text-classification',
+            '/models/sentiment/', // Local quantized models
+            { quantized: true }
+        );
+        
+        // Load emotion model
+        this.emotionClassifier = await pipeline(
+            'text-classification',
+            '/models/emotion/',
+            { topk: 5, quantized: true }
+        );
+    }
+    
+    /**
+     * Analyze text (only works if models ready)
+     */
+    async analyze(text, language) {
+        if (!this.modelsReady) {
+            throw new Error('Models not ready - use server-side analysis');
+        }
+        
+        const sentimentResult = await this.sentimentClassifier(text);
+        const emotionResult = await this.emotionClassifier(text);
+        
+        return {
+            primaryEmotion: emotionResult[0].label,
+            emotionScore: emotionResult[0].score,
+            sentimentPolarity: sentimentResult[0].score,
+            // ... map results
+        };
+    }
+}
+
+// Global instance - starts loading immediately
+window.SentimentAnalyzer = new SentimentAnalyzer();
+console.log('[SentimentAnalyzer] Module loaded - background initialization started');
+```
+
+#### Step 2: Client Service (JavaScript Interop)
+
+**File**: `ClientSentimentAnalysisService.cs`
+
+```csharp
+using Microsoft.JSInterop;
+using Sivar.Os.Shared.DTOs;
+
+namespace Sivar.Os.Services;
+
+/// <summary>
+/// Client-side sentiment analysis using Transformers.js
+/// Only works when browser models are loaded
+/// </summary>
+public class ClientSentimentAnalysisService : IClientSentimentAnalysisService
+{
+    private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<ClientSentimentAnalysisService> _logger;
+
+    public ClientSentimentAnalysisService(
+        IJSRuntime jsRuntime,
+        ILogger<ClientSentimentAnalysisService> logger)
+    {
+        _jsRuntime = jsRuntime;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Check if client-side models are ready
+    /// 🎯 KEY METHOD - Called before every analysis
+    /// </summary>
+    public async Task<bool> AreModelsReadyAsync()
+    {
+        try
+        {
+            var isReady = await _jsRuntime.InvokeAsync<bool>(
+                "SentimentAnalyzer.isReady");
+            
+            _logger.LogDebug("[ClientSentiment] Models ready check: {IsReady}", isReady);
+            return isReady;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[ClientSentiment] Failed to check model readiness");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Analyze text using client-side ML
+    /// Only call if AreModelsReadyAsync() returns true
+    /// </summary>
+    public async Task<SentimentAnalysisResultDto?> TryAnalyzeAsync(
+        string text, 
+        string language)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            _logger.LogWarning("[ClientSentiment] Empty text provided");
+            return null;
+        }
+
+        try
+        {
+            _logger.LogInformation(
+                "[ClientSentiment] Analyzing via Transformers.js - Length={Length}", 
+                text.Length);
+
+            var result = await _jsRuntime.InvokeAsync<SentimentAnalysisResult>(
+                "SentimentAnalyzer.analyze", 
+                text, 
+                language);
+
+            if (result == null)
+            {
+                _logger.LogWarning("[ClientSentiment] JS returned null result");
+                return null;
+            }
+
+            // Convert JS result to DTO
+            var dto = new SentimentAnalysisResultDto
+            {
+                PrimaryEmotion = result.PrimaryEmotion,
+                EmotionScore = (decimal)result.EmotionScore,
+                SentimentPolarity = (decimal)result.SentimentPolarity,
+                EmotionScores = new EmotionScoresDto
+                {
+                    Joy = (decimal)result.EmotionScores.Joy,
+                    Sadness = (decimal)result.EmotionScores.Sadness,
+                    Anger = (decimal)result.EmotionScores.Anger,
+                    Fear = (decimal)result.EmotionScores.Fear,
+                    Neutral = (decimal)result.EmotionScores.Neutral
+                },
+                HasAnger = result.HasAnger,
+                NeedsReview = result.NeedsReview,
+                Language = result.Language,
+                AnalysisSource = "client", // 🎯 Track source
+                AnalyzedAt = DateTime.UtcNow
+            };
+
+            _logger.LogInformation(
+                "[ClientSentiment] ✅ Analysis complete: {Emotion} (score: {Score:F2})", 
+                dto.PrimaryEmotion, dto.EmotionScore);
+
+            return dto;
+        }
+        catch (JSException jsEx)
+        {
+            _logger.LogError(jsEx, "[ClientSentiment] ❌ JavaScript error during analysis");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ClientSentiment] ❌ Error during sentiment analysis");
+            return null;
+        }
+    }
+
+    // JS interop data structures
+    private class SentimentAnalysisResult
+    {
+        public string PrimaryEmotion { get; set; } = "Neutral";
+        public double EmotionScore { get; set; }
+        public double SentimentPolarity { get; set; }
+        public EmotionScoresJs EmotionScores { get; set; } = new();
+        public bool HasAnger { get; set; }
+        public bool NeedsReview { get; set; }
+        public string Language { get; set; } = "en";
+    }
+
+    private class EmotionScoresJs
+    {
+        public double Joy { get; set; }
+        public double Sadness { get; set; }
+        public double Anger { get; set; }
+        public double Fear { get; set; }
+        public double Neutral { get; set; }
+    }
+}
+```
+
+#### Step 3: Server Service (Fast Fallback)
+
+**File**: `ServerSentimentAnalysisService.cs`
+
+```csharp
+using Sivar.Os.Shared.DTOs;
+
+namespace Sivar.Os.Services;
+
+/// <summary>
+/// Server-side sentiment analysis fallback
+/// Fast, always-available, keyword-based (or ML.NET in future)
+/// </summary>
+public class ServerSentimentAnalysisService : IServerSentimentAnalysisService
+{
+    private readonly ILogger<ServerSentimentAnalysisService> _logger;
+
+    public ServerSentimentAnalysisService(ILogger<ServerSentimentAnalysisService> logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Server-side analysis using keyword detection
+    /// 🎯 Always available, no dependencies
+    /// 🎯 Good-enough quality for immediate processing
+    /// </summary>
+    public Task<SentimentAnalysisResultDto> AnalyzeAsync(string text, string language)
+    {
+        _logger.LogInformation(
+            "[ServerSentiment] Analyzing via keyword detection - Length={Length}", 
+            text.Length);
+
+        // Simple keyword-based detection (replace with ML.NET for better quality)
+        var emotionScores = DetectEmotionsViaKeywords(text, language);
+        
+        var primaryEmotion = emotionScores.OrderByDescending(e => e.Value).First().Key;
+        var emotionScore = emotionScores[primaryEmotion];
+
+        var result = new SentimentAnalysisResultDto
+        {
+            PrimaryEmotion = primaryEmotion,
+            EmotionScore = (decimal)emotionScore,
+            SentimentPolarity = (decimal)CalculatePolarity(emotionScores),
+            EmotionScores = new EmotionScoresDto
+            {
+                Joy = (decimal)emotionScores["Joy"],
+                Sadness = (decimal)emotionScores["Sadness"],
+                Anger = (decimal)emotionScores["Anger"],
+                Fear = (decimal)emotionScores["Fear"],
+                Neutral = (decimal)emotionScores["Neutral"]
+            },
+            HasAnger = emotionScores["Anger"] >= 0.6m,
+            NeedsReview = emotionScores["Anger"] >= 0.75m,
+            Language = language,
+            AnalysisSource = "server", // 🎯 Track source
+            AnalyzedAt = DateTime.UtcNow
+        };
+
+        _logger.LogInformation(
+            "[ServerSentiment] ✅ Analysis complete: {Emotion} (score: {Score:F2})", 
+            result.PrimaryEmotion, result.EmotionScore);
+
+        return Task.FromResult(result);
+    }
+
+    private Dictionary<string, decimal> DetectEmotionsViaKeywords(string text, string language)
+    {
+        // Simple keyword detection - replace with ML.NET for production
+        var textLower = text.ToLowerInvariant();
+        
+        var joyKeywords = language == "es" 
+            ? new[] { "feliz", "alegre", "genial", "excelente", "amor" }
+            : new[] { "happy", "joy", "love", "great", "excellent" };
+        
+        var sadnessKeywords = language == "es"
+            ? new[] { "triste", "solo", "deprimido", "llorar" }
+            : new[] { "sad", "lonely", "depressed", "cry" };
+        
+        var angerKeywords = language == "es"
+            ? new[] { "odio", "enojado", "furioso", "molesto" }
+            : new[] { "hate", "angry", "furious", "annoyed" };
+
+        var joyScore = joyKeywords.Count(k => textLower.Contains(k)) * 0.25m;
+        var sadnessScore = sadnessKeywords.Count(k => textLower.Contains(k)) * 0.25m;
+        var angerScore = angerKeywords.Count(k => textLower.Contains(k)) * 0.25m;
+
+        return new Dictionary<string, decimal>
+        {
+            ["Joy"] = Math.Min(joyScore, 1.0m),
+            ["Sadness"] = Math.Min(sadnessScore, 1.0m),
+            ["Anger"] = Math.Min(angerScore, 1.0m),
+            ["Fear"] = 0.0m,
+            ["Neutral"] = joyScore == 0 && sadnessScore == 0 && angerScore == 0 ? 1.0m : 0.2m
+        };
+    }
+
+    private decimal CalculatePolarity(Dictionary<string, decimal> emotions)
+    {
+        return emotions["Joy"] - emotions["Sadness"] - emotions["Anger"];
+    }
+}
+```
+
+#### Step 4: Hybrid Orchestrator (The Smart Router)
+
+**File**: `SentimentAnalysisService.cs`
+
+```csharp
+using Sivar.Os.Shared.DTOs;
+
+namespace Sivar.Os.Services;
+
+/// <summary>
+/// 🎯 ADAPTIVE LOADING - Smart router between client and server
+/// 
+/// Strategy:
+/// 1. Check if client models are ready
+/// 2. IF ready → Use client (better quality, privacy-first)
+/// 3. IF not ready → Use server (fast, always available)
+/// 
+/// User Experience:
+/// - First visit: Server-side (instant) while models download
+/// - After models load: Client-side (better quality)
+/// - Return visits: Client-side immediately (cached models)
+/// </summary>
+public class SentimentAnalysisService : ISentimentAnalysisService
+{
+    private readonly IClientSentimentAnalysisService _clientService;
+    private readonly IServerSentimentAnalysisService _serverService;
+    private readonly ILogger<SentimentAnalysisService> _logger;
+
+    public SentimentAnalysisService(
+        IClientSentimentAnalysisService clientService,
+        IServerSentimentAnalysisService serverService,
+        ILogger<SentimentAnalysisService> logger)
+    {
+        _clientService = clientService;
+        _serverService = serverService;
+        _logger = logger;
+    }
+
+    /// <inheritdoc/>
+    public async Task<SentimentAnalysisResultDto> AnalyzeAsync(string text, string language)
+    {
+        _logger.LogInformation(
+            "[HybridSentiment] 🎯 Starting adaptive analysis - Length={Length}", 
+            text.Length);
+
+        // 🎯 STEP 1: Check if client models are ready (non-blocking check)
+        var clientReady = await _clientService.AreModelsReadyAsync();
+        
+        if (clientReady)
+        {
+            // ✅ STEP 2a: Models ready → Use high-quality client-side ML
+            _logger.LogInformation(
+                "[HybridSentiment] ✅ Client models ready - using Transformers.js");
+            
+            try
+            {
+                var clientResult = await _clientService.TryAnalyzeAsync(text, language);
+                if (clientResult != null)
+                {
+                    _logger.LogInformation(
+                        "[HybridSentiment] ✅ Client-side analysis successful: {Emotion}", 
+                        clientResult.PrimaryEmotion);
+                    return clientResult;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, 
+                    "[HybridSentiment] ⚠️ Client-side failed, falling back to server");
+            }
+        }
+        else
+        {
+            // 🔄 STEP 2b: Models not ready → Use fast server-side
+            _logger.LogInformation(
+                "[HybridSentiment] 🔄 Client models not ready - using server-side fallback");
+        }
+
+        // 🎯 STEP 3: Server-side fallback (always works)
+        var serverResult = await _serverService.AnalyzeAsync(text, language);
+        
+        _logger.LogInformation(
+            "[HybridSentiment] ✅ Analysis complete via {Source}: {Emotion}", 
+            serverResult.AnalysisSource, 
+            serverResult.PrimaryEmotion);
+        
+        return serverResult;
+    }
+}
+```
+
+### Configuration Modes
+
+The AI services (Sentiment Analysis, Embeddings) support three execution modes configured in `appsettings.json`:
+
+#### Mode 1: Adaptive (Default - Recommended)
+
+**Configuration:**
+```json
+{
+  "AIServices": {
+    "SentimentAnalysis": {
+      "Mode": "Adaptive"
+    },
+    "Embeddings": {
+      "Mode": "Adaptive"
+    }
+  }
+}
+```
+
+**Behavior:**
+- ✅ **Smart routing**: Check if client models are ready
+- ✅ **If ready**: Use client-side ML (high quality, privacy-first, free)
+- ✅ **If not ready**: Use server-side (instant processing, keyword-based)
+- ✅ **Best UX**: Users never wait, quality improves automatically when models load
+- ✅ **Works for all users**: First-time visitors (server) and returning visitors (client)
+
+**Use this when:**
+- You want the best user experience
+- You want progressive enhancement
+- You don't want users to wait for model downloads
+- You want automatic quality improvement
+
+**Example Flow:**
+```
+First Visit:
+  0:00 - Page loads, models start downloading (background)
+  0:05 - User creates post → Server-side (instant)
+  0:30 - Models finish loading
+  0:45 - User creates 2nd post → Client-side (better quality)
+
+Return Visit:
+  0:00 - Page loads
+  0:01 - Models load from cache
+  0:05 - User creates post → Client-side (immediately)
+```
+
+#### Mode 2: ClientOnly (Privacy-First)
+
+**Configuration:**
+```json
+{
+  "AIServices": {
+    "SentimentAnalysis": {
+      "Mode": "ClientOnly"
+    },
+    "Embeddings": {
+      "Mode": "ClientOnly"
+    }
+  }
+}
+```
+
+**Behavior:**
+- ✅ **Always client-side**: Forces browser-based ML exclusively
+- ✅ **Maximum privacy**: No data sent to server
+- ✅ **Free**: No API costs
+- ⚠️ **Users must wait**: First-time visitors wait for model downloads (10-60 seconds)
+- ⚠️ **May fail**: Throws exception if models fail to load
+- ✅ **Cached**: Subsequent visits are instant (models cached in IndexedDB)
+
+**Use this when:**
+- Privacy is paramount (healthcare, sensitive data)
+- You want zero server-side processing
+- You're okay with first-visit delays
+- You have quantized models bundled with app (faster download)
+
+**Error Handling:**
+```csharp
+try
+{
+    var result = await _sentimentService.AnalyzeAsync(text, language);
+}
+catch (InvalidOperationException ex)
+{
+    // Models not loaded yet - show user-friendly message
+    ShowNotification("AI models are loading. Please try again in a moment.");
+}
+```
+
+#### Mode 3: ServerOnly (Instant Processing)
+
+**Configuration:**
+```json
+{
+  "AIServices": {
+    "SentimentAnalysis": {
+      "Mode": "ServerOnly"
+    },
+    "Embeddings": {
+      "Mode": "ServerOnly"
+    }
+  }
+}
+```
+
+**Behavior:**
+- ✅ **Always server-side**: Forces server-based processing
+- ✅ **Instant**: No model downloads, no waiting
+- ✅ **Consistent**: Same quality for all users
+- ⚠️ **Lower quality**: Keyword-based for sentiment (unless you add ML.NET)
+- ⚠️ **Potential costs**: If using cloud AI APIs (Azure OpenAI, etc.)
+- ⚠️ **No privacy**: Data processed on server
+
+**Use this when:**
+- You want consistent, instant processing
+- You have ML.NET or cloud AI configured server-side
+- You don't want to ship browser models
+- Testing/debugging server-side logic
+
+**Upgrade Path:**
+```csharp
+// Replace keyword detection with ML.NET
+public class ServerSentimentAnalysisService : IServerSentimentAnalysisService
+{
+    private readonly MLContext _mlContext;
+    private readonly ITransformer _model;
+
+    public async Task<SentimentAnalysisResultDto> AnalyzeAsync(string text, string language)
+    {
+        // Use ML.NET for better server-side quality
+        var prediction = _mlContext.Model.Predict<SentimentPrediction>(text);
+        // ... map to DTO
+    }
+}
+```
+
+### Mode Comparison Table
+
+| Feature | Adaptive | ClientOnly | ServerOnly |
+|---------|----------|------------|------------|
+| **First-visit UX** | ✅ Instant (server) | ⚠️ Wait for models (10-60s) | ✅ Instant |
+| **Return-visit UX** | ✅ Instant (client, cached) | ✅ Instant (client, cached) | ✅ Instant |
+| **Quality (first visit)** | ⭐⭐⭐ Good (keyword) | ⭐⭐⭐⭐⭐ Excellent (ML) | ⭐⭐⭐ Good (keyword) |
+| **Quality (cached)** | ⭐⭐⭐⭐⭐ Excellent (ML) | ⭐⭐⭐⭐⭐ Excellent (ML) | ⭐⭐⭐ Good (keyword) |
+| **Privacy** | ⚠️ Server first-visit | ✅ Always client | ❌ Always server |
+| **Cost** | Free | Free | Free (unless cloud AI) |
+| **Offline** | ⚠️ After cache | ✅ After cache | ❌ Requires server |
+| **Reliability** | ✅✅ Best (fallback) | ⚠️ May fail | ✅ Always works |
+| **Best for** | Production | Privacy-critical | Testing/debugging |
+
+### Changing Modes at Runtime
+
+You can change modes without recompiling by editing `appsettings.json`:
+
+```json
+{
+  "AIServices": {
+    "SentimentAnalysis": {
+      "Mode": "Adaptive"  // Change to "ClientOnly" or "ServerOnly"
+    },
+    "Embeddings": {
+      "Mode": "ClientOnly"  // Can mix modes (sentiment=Adaptive, embeddings=ClientOnly)
+    }
+  }
+}
+```
+
+**After changing:**
+1. Restart the application
+2. Check logs for: `[SentimentAnalysis] Service initialized with mode: {Mode}`
+3. Test with a post creation to verify routing
+
+### Per-Feature Mode Configuration
+
+You can configure different modes for different AI features:
+
+```json
+{
+  "AIServices": {
+    "SentimentAnalysis": {
+      "Mode": "Adaptive",
+      "Description": "Use adaptive for sentiment (keyword fallback is acceptable)"
+    },
+    "Embeddings": {
+      "Mode": "ClientOnly",
+      "Description": "Use client-only for embeddings (privacy-critical for semantic search)"
+    }
+  }
+}
+```
+
+**Reasoning:**
+- **Sentiment**: Adaptive works well (keyword fallback is "good enough" while models load)
+- **Embeddings**: ClientOnly ensures vectors are never generated on server (privacy)
+
+### Monitoring Mode Usage
+
+Check logs to see which mode is being used:
+
+```
+# Adaptive mode logs
+[SentimentAnalysis.Adaptive] 🎯 Smart routing enabled
+[SentimentAnalysis.Adaptive] ✅ Client models ready - using Transformers.js
+[SentimentAnalysis.Adaptive] ✅ Client-side success: Joy
+
+# Or if models not ready:
+[SentimentAnalysis.Adaptive] 🔄 Client models not ready - using server-side (models loading in background)
+[SentimentAnalysis.Adaptive] ✅ Analysis complete via server: Neutral
+
+# ClientOnly mode logs
+[SentimentAnalysis.ClientOnly] Using client-side ML exclusively
+[SentimentAnalysis.ClientOnly] ✅ Analysis successful: Joy
+
+# Or if models failed:
+[SentimentAnalysis.ClientOnly] ❌ Client-side analysis failed and no fallback allowed
+
+# ServerOnly mode logs
+[SentimentAnalysis.ServerOnly] Using server-side processing exclusively
+[SentimentAnalysis.ServerOnly] ✅ Analysis complete: Neutral (source: server)
+```
+
+### Registration in Program.cs
+
+```csharp
+// 🎯 AI Services Registration
+builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();
+builder.Services.AddScoped<IServerSentimentAnalysisService, ServerSentimentAnalysisService>();
+builder.Services.AddScoped<ISentimentAnalysisService, SentimentAnalysisService>();
+
+// Same pattern for embeddings
+builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
+builder.Services.AddScoped<IServerEmbeddingService, ServerEmbeddingService>();
+builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
+
+// 🎯 Configure AI Service Modes (Adaptive, ClientOnly, ServerOnly)
+builder.Services.Configure<AIServiceOptions>(
+    builder.Configuration.GetSection("AIServices"));
+```
+
+### Loading Models in App.razor (Optional Preload Trigger)
+
+**File**: `App.razor`
+
+```razor
+@* Add script for sentiment analyzer *@
+<script type="module" src="js/sentiment-analyzer.js"></script>
+<script type="module" src="js/embeddings.js"></script>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Optional: Trigger model preload explicitly
+            // (Models auto-load on script init, but you can force it here)
+            try
+            {
+                await JS.InvokeVoidAsync("SentimentAnalyzer.initializeInBackground");
+                await JS.InvokeVoidAsync("ClientEmbeddings.initializeInBackground");
+                
+                Logger.LogInformation("[App] Model preloading triggered");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[App] Model preload trigger failed (models will still load in background)");
+            }
+        }
+    }
+}
+```
+
+### User Experience Flow
+
+#### Scenario 1: First-Time User (No Cache)
+
+```
+User Action                  Backend Processing               Models Status
+───────────────────────────────────────────────────────────────────────────
+Page loads                   -                                🔄 Downloading (0%)
+User scrolls, reads          -                                🔄 Downloading (25%)
+User clicks "Create Post"    Server-side analysis (instant)   🔄 Downloading (50%)
+Post created ✅              Keyword-based sentiment          🔄 Downloading (75%)
+User edits profile           -                                ✅ Ready! (100%)
+User creates 2nd post        Client-side analysis (ML)        ✅ Cached
+Post created ✅              Transformers.js high-quality     ✅ Cached
+```
+
+**User sees:**
+- ✅ Instant post creation (no waiting!)
+- ✅ Seamless experience (no difference in UI)
+- ✅ Better quality on 2nd+ posts (but user doesn't know/care)
+
+#### Scenario 2: Returning User (Cached Models)
+
+```
+User Action                  Backend Processing               Models Status
+───────────────────────────────────────────────────────────────────────────
+Page loads                   -                                🔄 Loading from cache
+User scrolls, reads          -                                ✅ Ready! (< 1 second)
+User clicks "Create Post"    Client-side analysis (ML)        ✅ Cached
+Post created ✅              Transformers.js high-quality     ✅ Cached
+```
+
+**User sees:**
+- ✅ Instant high-quality ML from first post
+- ✅ Offline-capable (models in browser)
+
+### Real-World Examples in Sivar.Os
+
+#### Example 1: Sentiment Analysis (Current Implementation)
+
+**Files:**
+- `ClientSentimentAnalysisService.cs` - Transformers.js wrapper
+- `ServerSentimentAnalysisService.cs` - Keyword fallback
+- `SentimentAnalysisService.cs` - Adaptive orchestrator
+- `sentiment-analyzer.js` - Background model loader
+
+**Flow:**
+1. User creates post with text "I love this community!"
+2. `PostService.CreatePostAsync()` calls `_sentimentService.AnalyzeAsync()`
+3. Hybrid service checks `_clientService.AreModelsReadyAsync()`
+4. **If ready**: Transformers.js analyzes → "Joy" (0.95 score)
+5. **If not ready**: Keyword detection → "Joy" (0.75 score)
+6. Post saved with sentiment data
+
+**Code (PostService.cs):**
+```csharp
+// Adaptive sentiment analysis - uses best available method
+var sentimentResult = await _sentimentService.AnalyzeAsync(
+    post.Content, 
+    post.Language ?? "en");
+
+if (sentimentResult != null)
+{
+    post.PrimaryEmotion = sentimentResult.PrimaryEmotion;
+    post.EmotionScore = sentimentResult.EmotionScore;
+    // Source is logged: "client" or "server"
+}
+```
+
+#### Example 2: Content Embeddings (Same Pattern)
+
+**Files:**
+- `ClientEmbeddingService.cs` - Transformers.js embeddings
+- `ServerEmbeddingService.cs` - Azure OpenAI fallback
+- `EmbeddingService.cs` - Adaptive orchestrator
+- `embeddings.js` - Background model loader
+
+**Flow:**
+1. User creates post
+2. `PostService` calls `_embeddingService.GenerateEmbeddingAsync()`
+3. **If client ready**: Browser generates 384-dim vector locally (free, private)
+4. **If not ready**: Azure OpenAI generates vector (costs money, server-side)
+5. Vector stored in database for semantic search
+
+**Benefits:**
+- ✅ Privacy: Embeddings generated in browser when possible
+- ✅ Cost: Free client-side vs paid server-side
+- ✅ Speed: No API latency when using client
+- ✅ Reliability: Server fallback always available
+
+### Monitoring & Analytics
+
+#### Track Analysis Source
+
+Add telemetry to understand client vs server usage:
+
+```csharp
+// In SentimentAnalysisService
+_logger.LogInformation(
+    "[Telemetry] Sentiment analysis - Source={Source}, Emotion={Emotion}, Duration={Duration}ms",
+    result.AnalysisSource, // "client" or "server"
+    result.PrimaryEmotion,
+    stopwatch.ElapsedMilliseconds);
+```
+
+**Metrics to track:**
+- % of analyses using client vs server
+- Average time to models becoming ready
+- Model cache hit rate (return visitors)
+- Fallback usage rate
+
+### Troubleshooting
+
+#### Issue: Always Using Server-Side
+
+**Symptoms:**
+- Logs show "Client models not ready"
+- All analyses show `AnalysisSource = "server"`
+
+**Diagnosis:**
+1. Check browser console for JavaScript errors
+2. Verify `sentiment-analyzer.js` loaded (Network tab)
+3. Check for "Models ready" log in console
+4. Verify IndexedDB has cached models (Application tab)
+
+**Solutions:**
+- Clear browser cache and reload
+- Check models are in `wwwroot/models/` directory
+- Verify `<script type="module">` in App.razor
+- Check CORS if loading from CDN
+
+#### Issue: JavaScript Exceptions
+
+**Symptoms:**
+- Browser console shows errors
+- `AreModelsReadyAsync()` throws exception
+
+**Solutions:**
+- Wrap JS interop in try-catch
+- Check `window.SentimentAnalyzer` exists
+- Verify `isReady()` method exists in JS
+- Use `IJSInProcessRuntime` for synchronous calls (Server-only)
+
+### Best Practices
+
+✅ **DO:**
+- Always check `AreModelsReadyAsync()` before using client service
+- Log analysis source ("client" or "server") for monitoring
+- Implement comprehensive fallback logic
+- Use background initialization (non-blocking)
+- Cache models in IndexedDB automatically
+- Provide identical API for both client and server services
+- Use try-catch around JS interop calls
+
+❌ **DON'T:**
+- Block page load waiting for models
+- Throw exceptions when models not ready
+- Skip server fallback
+- Force users to wait for downloads
+- Clear IndexedDB cache unnecessarily
+- Assume client will always work
+
+### Performance Characteristics
+
+| Metric | Client-Side (Transformers.js) | Server-Side (Keyword) | Server-Side (ML.NET) |
+|--------|-------------------------------|----------------------|---------------------|
+| **First load** | 10-60 seconds download | < 10ms | 100-500ms |
+| **Cached load** | < 1 second | < 10ms | 100-500ms |
+| **Inference time** | 50-200ms | < 10ms | 50-150ms |
+| **Quality** | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐ Basic | ⭐⭐⭐⭐ Very Good |
+| **Privacy** | ✅ Private (browser) | ✅ Private | ⚠️ Server logs |
+| **Cost** | Free | Free | Free (if self-hosted) |
+| **Offline** | ✅ Works offline | ✅ Works offline | ❌ Requires server |
+
+### Future Enhancements
+
+**1. Service Worker for Offline Support**
+```javascript
+// Register service worker to cache models for offline use
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+}
+```
+
+**2. ML.NET Server-Side**
+Replace keyword detection with ML.NET for better server-side quality:
+```csharp
+// Use Microsoft.ML for sentiment analysis
+var prediction = _mlContext.Model.Predict<SentimentPrediction>(text);
+```
+
+**3. Adaptive Model Selection**
+Choose model size based on device capability:
+```javascript
+// Load smaller model on mobile, full model on desktop
+const modelSize = isMobile ? 'small' : 'large';
+const model = await pipeline('sentiment-analysis', `model-${modelSize}`);
+```
+
+**4. Progressive Model Updates**
+Update models in background without affecting users:
+```javascript
+// Check for model updates weekly
+if (lastUpdate > 7 * 24 * 60 * 60 * 1000) {
+    updateModelsInBackground();
+}
+```
+
+### Key Takeaways
+
+🎯 **For Developers:**
+- Adaptive loading is industry-standard, not experimental
+- Always provide server fallback for reliability
+- Track client vs server usage for optimization
+- Models cached in browser persist across sessions
+- User experience is seamless (no visible difference)
+
+🎯 **For Product:**
+- Users never wait for ML features
+- Quality improves automatically when ready
+- Privacy-first approach (browser ML when possible)
+- Works offline after first model download
+- Scales without infrastructure costs (client-side)
 
 ---
 

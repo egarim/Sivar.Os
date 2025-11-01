@@ -107,6 +107,7 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedCompressionPoliciesScript();
             SeedFullTextSearchColumnsScript(); // Phase 3: Full-Text Search
             SeedContinuousAggregatesScript(); // Phase 7: Continuous Aggregates
+            SeedSentimentAggregatesScript(); // Phase 8: Sentiment Aggregates
         }
         
         /// <summary>
@@ -522,6 +523,40 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
             
             // Load SQL script from file
             script.SqlText = LoadScriptFromFile("AddContinuousAggregates.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the AddSentimentAggregates SQL script if it doesn't exist
+        /// Phase 8: Sentiment Analysis Continuous Aggregates (City & Country)
+        /// </summary>
+        private void SeedSentimentAggregatesScript()
+        {
+            const string scriptName = "AddSentimentAggregates";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Creates sentiment analysis continuous aggregates for city-level and country-level sentiment metrics. Enables location-based sentiment tracking and moderation.";
+            script.ExecutionOrder = 8.0m; // After continuous aggregates (7.0)
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Load SQL script from file
+            script.SqlText = LoadScriptFromFile("AddSentimentAggregates.sql");
             
             System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
         }

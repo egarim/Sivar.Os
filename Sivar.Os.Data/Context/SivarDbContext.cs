@@ -85,6 +85,11 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<Activity> Activities { get; set; } = null!;
 
+    /// <summary>
+    /// Profile emotion summaries for sentiment analytics
+    /// </summary>
+    public DbSet<ProfileEmotionSummary> ProfileEmotionSummaries { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -106,6 +111,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ChatMessageConfiguration());
         modelBuilder.ApplyConfiguration(new SavedResultConfiguration());
         modelBuilder.ApplyConfiguration(new ActivityConfiguration());
+        modelBuilder.ApplyConfiguration(new ProfileEmotionSummaryConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

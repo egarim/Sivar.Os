@@ -115,6 +115,16 @@ builder.Services.AddScoped<ChatFunctionService>();
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
 builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
 
+// --- Sentiment Analysis Services Registration ---
+builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();
+builder.Services.AddScoped<IServerSentimentAnalysisService, ServerSentimentAnalysisService>();
+builder.Services.AddScoped<ISentimentAnalysisService, SentimentAnalysisService>();
+
+// Configure AI Services (Sentiment Analysis, Embeddings)
+// Supports three modes: Adaptive (default), ClientOnly, ServerOnly
+builder.Services.Configure<Sivar.Os.Configuration.AIServiceOptions>(
+    builder.Configuration.GetSection("AIServices"));
+
 // Configure EmbeddingOptions for hybrid client/server embedding system
 builder.Services.Configure<Sivar.Os.Configuration.EmbeddingOptions>(
     builder.Configuration.GetSection("Embeddings"));

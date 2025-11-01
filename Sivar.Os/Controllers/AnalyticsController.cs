@@ -203,6 +203,115 @@ namespace Sivar.Os.Controllers
 
         #endregion
 
+        #region Sentiment Analytics
+
+        /// <summary>
+        /// Get sentiment metrics for a specific city
+        /// </summary>
+        /// <param name="city">City name</param>
+        /// <param name="country">Country name</param>
+        /// <param name="startDate">Start date (default: 30 days ago)</param>
+        /// <param name="endDate">End date (default: today)</param>
+        /// <param name="emotion">Optional: Filter by specific emotion (Joy, Sadness, Anger, Fear, Neutral)</param>
+        [HttpGet("sentiment/city/{city}")]
+        public async Task<ActionResult<List<SentimentMetricsCityDto>>> GetCitySentiment(
+            string city,
+            [FromQuery] string country,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? emotion = null)
+        {
+            var start = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var metrics = await _analyticsRepository.GetCitySentimentAsync(city, country, start, end, emotion);
+            return Ok(metrics);
+        }
+
+        /// <summary>
+        /// Get sentiment metrics for a specific country
+        /// </summary>
+        /// <param name="country">Country name</param>
+        /// <param name="startDate">Start date (default: 30 days ago)</param>
+        /// <param name="endDate">End date (default: today)</param>
+        /// <param name="emotion">Optional: Filter by specific emotion (Joy, Sadness, Anger, Fear, Neutral)</param>
+        [HttpGet("sentiment/country/{country}")]
+        public async Task<ActionResult<List<SentimentMetricsCountryDto>>> GetCountrySentiment(
+            string country,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? emotion = null)
+        {
+            var start = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var metrics = await _analyticsRepository.GetCountrySentimentAsync(country, start, end, emotion);
+            return Ok(metrics);
+        }
+
+        /// <summary>
+        /// Get top cities by specific emotion (e.g., happiest cities)
+        /// </summary>
+        /// <param name="emotion">Emotion to rank by (Joy, Sadness, Anger, Fear, Neutral)</param>
+        /// <param name="startDate">Start date (default: 30 days ago)</param>
+        /// <param name="endDate">End date (default: today)</param>
+        /// <param name="topN">Number of top cities to return (default: 10)</param>
+        [HttpGet("sentiment/top-cities/{emotion}")]
+        public async Task<ActionResult<List<SentimentMetricsCityDto>>> GetTopCitiesByEmotion(
+            string emotion,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int topN = 10)
+        {
+            var start = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var metrics = await _analyticsRepository.GetTopCitiesByEmotionAsync(emotion, start, end, topN);
+            return Ok(metrics);
+        }
+
+        /// <summary>
+        /// Get emotion distribution for a specific city (percentage breakdown)
+        /// </summary>
+        /// <param name="city">City name</param>
+        /// <param name="country">Country name</param>
+        /// <param name="startDate">Start date (default: 30 days ago)</param>
+        /// <param name="endDate">End date (default: today)</param>
+        [HttpGet("sentiment/city/{city}/distribution")]
+        public async Task<ActionResult<Dictionary<string, double>>> GetCityEmotionDistribution(
+            string city,
+            [FromQuery] string country,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            var start = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var distribution = await _analyticsRepository.GetCityEmotionDistributionAsync(city, country, start, end);
+            return Ok(distribution);
+        }
+
+        /// <summary>
+        /// Get cities that need content moderation (high anger/toxic content)
+        /// </summary>
+        /// <param name="startDate">Start date (default: 7 days ago)</param>
+        /// <param name="endDate">End date (default: today)</param>
+        /// <param name="topN">Number of cities to return (default: 10)</param>
+        [HttpGet("sentiment/moderation/cities")]
+        public async Task<ActionResult<List<SentimentMetricsCityDto>>> GetCitiesNeedingModeration(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int topN = 10)
+        {
+            var start = startDate ?? DateTime.UtcNow.AddDays(-7);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var cities = await _analyticsRepository.GetCitiesNeedingModerationAsync(start, end, topN);
+            return Ok(cities);
+        }
+
+        #endregion
+
         #region Dashboard Summary
 
         /// <summary>

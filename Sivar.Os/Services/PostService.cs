@@ -27,6 +27,7 @@ public class PostService : IPostService
     private readonly IClientEmbeddingService _clientEmbeddingService;
     private readonly IVectorEmbeddingService _vectorEmbeddingService;
     private readonly IActivityService _activityService;
+    private readonly ISentimentAnalysisService _sentimentService;
     private readonly ILogger<PostService> _logger;
 
     public PostService(
@@ -40,6 +41,7 @@ public class PostService : IPostService
         IActivityService activityService,
         IClientEmbeddingService clientEmbeddingService,
         IVectorEmbeddingService vectorEmbeddingService,
+        ISentimentAnalysisService sentimentService,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -52,6 +54,7 @@ public class PostService : IPostService
         _clientEmbeddingService = clientEmbeddingService ?? throw new ArgumentNullException(nameof(clientEmbeddingService));
         _vectorEmbeddingService = vectorEmbeddingService ?? throw new ArgumentNullException(nameof(vectorEmbeddingService));
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
+        _sentimentService = sentimentService ?? throw new ArgumentNullException(nameof(sentimentService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -151,6 +154,49 @@ public class PostService : IPostService
             await _postRepository.SaveChangesAsync();
 
             _logger.LogInformation("[CreatePostAsync] Post saved successfully: PostId={postId}", post.Id);
+
+            // ==================== SENTIMENT ANALYSIS ====================
+            // Hybrid approach: Try client-side first (privacy-first), fall back to server
+            try
+            {
+                _logger.LogInformation("[CreatePostAsync] Performing sentiment analysis for PostId={postId}", post.Id);
+                
+                var sentimentResult = await _sentimentService.AnalyzeAsync(
+                    post.Content, 
+                    post.Language ?? "en");
+
+                if (sentimentResult != null)
+                {
+                    post.PrimaryEmotion = sentimentResult.PrimaryEmotion;
+                    post.EmotionScore = sentimentResult.EmotionScore;
+                    post.SentimentPolarity = sentimentResult.SentimentPolarity;
+                    post.JoyScore = sentimentResult.EmotionScores.Joy;
+                    post.SadnessScore = sentimentResult.EmotionScores.Sadness;
+                    post.AngerScore = sentimentResult.EmotionScores.Anger;
+                    post.FearScore = sentimentResult.EmotionScores.Fear;
+                    post.HasAnger = sentimentResult.HasAnger;
+                    post.NeedsReview = sentimentResult.NeedsReview;
+                    post.AnalyzedAt = DateTime.UtcNow;
+
+                    await _postRepository.UpdateAsync(post);
+                    await _postRepository.SaveChangesAsync();
+
+                    _logger.LogInformation("[CreatePostAsync] ✓ Sentiment analysis complete: Emotion={Emotion}, Score={Score:F2}, Source={Source}",
+                        post.PrimaryEmotion, post.EmotionScore, sentimentResult.AnalysisSource);
+                    
+                    if (post.NeedsReview)
+                    {
+                        _logger.LogWarning("[CreatePostAsync] ⚠️ Post flagged for review: PostId={postId}, AngerScore={AngerScore:F2}",
+                            post.Id, post.AngerScore);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[CreatePostAsync] Sentiment analysis failed for PostId={postId}, continuing without it", post.Id);
+                // Don't fail post creation if sentiment analysis fails
+            }
+            // ============================================================
 
             // Generate and save content embedding (HYBRID APPROACH: Client-first → Server fallback)
             try

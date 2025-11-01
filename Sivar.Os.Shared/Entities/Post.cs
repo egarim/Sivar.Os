@@ -153,6 +153,59 @@ public class Post : BaseEntity
     /// </summary>
     public virtual DateTime? EditedAt { get; set; }
 
+    // ==================== SENTIMENT ANALYSIS FIELDS ====================
+
+    /// <summary>
+    /// Primary emotion detected in the post (Joy, Sadness, Anger, Fear, Neutral)
+    /// </summary>
+    [StringLength(20)]
+    public virtual string? PrimaryEmotion { get; set; }
+
+    /// <summary>
+    /// Confidence score for the primary emotion (0.0 to 1.0)
+    /// </summary>
+    public virtual decimal? EmotionScore { get; set; }
+
+    /// <summary>
+    /// Sentiment polarity score (-1.0 = negative, 0 = neutral, +1.0 = positive)
+    /// </summary>
+    public virtual decimal? SentimentPolarity { get; set; }
+
+    /// <summary>
+    /// Joy emotion score (0.0 to 1.0)
+    /// </summary>
+    public virtual decimal? JoyScore { get; set; }
+
+    /// <summary>
+    /// Sadness emotion score (0.0 to 1.0)
+    /// </summary>
+    public virtual decimal? SadnessScore { get; set; }
+
+    /// <summary>
+    /// Anger emotion score (0.0 to 1.0)
+    /// </summary>
+    public virtual decimal? AngerScore { get; set; }
+
+    /// <summary>
+    /// Fear emotion score (0.0 to 1.0)
+    /// </summary>
+    public virtual decimal? FearScore { get; set; }
+
+    /// <summary>
+    /// Indicates if anger was detected above threshold (for moderation)
+    /// </summary>
+    public virtual bool HasAnger { get; set; } = false;
+
+    /// <summary>
+    /// Indicates if this post needs manual review (high anger or toxic content)
+    /// </summary>
+    public virtual bool NeedsReview { get; set; } = false;
+
+    /// <summary>
+    /// Timestamp when sentiment analysis was performed
+    /// </summary>
+    public virtual DateTime? AnalyzedAt { get; set; }
+
     // Helper methods for business metadata
 
     /// <summary>

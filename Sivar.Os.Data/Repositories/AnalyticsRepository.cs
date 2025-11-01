@@ -368,5 +368,222 @@ namespace Sivar.Os.Data.Repositories
         }
 
         #endregion
+
+        #region Sentiment Metrics
+
+        /// <summary>
+        /// Get sentiment metrics for a specific city
+        /// </summary>
+        public async Task<List<SentimentMetricsCityDto>> GetCitySentimentAsync(
+            string city,
+            string country,
+            DateTime startDate,
+            DateTime endDate,
+            string? emotion = null)
+        {
+            var emotionFilter = string.IsNullOrEmpty(emotion) 
+                ? "" 
+                : $"AND emotion = '{emotion}'";
+
+            var sql = $@"
+                SELECT 
+                    day as ""Day"",
+                    city as ""City"",
+                    country as ""Country"",
+                    emotion as ""Emotion"",
+                    post_count as ""PostCount"",
+                    COALESCE(avg_emotion_score, 0) as ""AvgEmotionScore"",
+                    COALESCE(avg_polarity, 0) as ""AvgPolarity"",
+                    COALESCE(avg_joy, 0) as ""AvgJoy"",
+                    COALESCE(avg_sadness, 0) as ""AvgSadness"",
+                    COALESCE(avg_anger, 0) as ""AvgAnger"",
+                    COALESCE(avg_fear, 0) as ""AvgFear"",
+                    COALESCE(anger_flagged_count, 0) as ""AngerFlaggedCount"",
+                    COALESCE(needs_review_count, 0) as ""NeedsReviewCount"",
+                    first_analyzed as ""FirstAnalyzed"",
+                    last_analyzed as ""LastAnalyzed""
+                FROM sentiment_metrics_city_daily
+                WHERE city = '{city}'
+                  AND country = '{country}'
+                  AND day >= '{startDate:yyyy-MM-dd}'
+                  AND day <= '{endDate:yyyy-MM-dd}'
+                  {emotionFilter}
+                ORDER BY day DESC, emotion";
+
+            return await _context.Database
+                .SqlQueryRaw<SentimentMetricsCityDto>(sql)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Get sentiment metrics for a specific country
+        /// </summary>
+        public async Task<List<SentimentMetricsCountryDto>> GetCountrySentimentAsync(
+            string country,
+            DateTime startDate,
+            DateTime endDate,
+            string? emotion = null)
+        {
+            var emotionFilter = string.IsNullOrEmpty(emotion) 
+                ? "" 
+                : $"AND emotion = '{emotion}'";
+
+            var sql = $@"
+                SELECT 
+                    day as ""Day"",
+                    country as ""Country"",
+                    emotion as ""Emotion"",
+                    post_count as ""PostCount"",
+                    COALESCE(unique_cities, 0) as ""UniqueCities"",
+                    COALESCE(avg_emotion_score, 0) as ""AvgEmotionScore"",
+                    COALESCE(avg_polarity, 0) as ""AvgPolarity"",
+                    COALESCE(avg_joy, 0) as ""AvgJoy"",
+                    COALESCE(avg_sadness, 0) as ""AvgSadness"",
+                    COALESCE(avg_anger, 0) as ""AvgAnger"",
+                    COALESCE(avg_fear, 0) as ""AvgFear"",
+                    COALESCE(anger_flagged_count, 0) as ""AngerFlaggedCount"",
+                    COALESCE(needs_review_count, 0) as ""NeedsReviewCount"",
+                    COALESCE(total_views, 0) as ""TotalViews"",
+                    COALESCE(total_shares, 0) as ""TotalShares"",
+                    COALESCE(avg_views, 0) as ""AvgViews"",
+                    COALESCE(avg_shares, 0) as ""AvgShares"",
+                    first_analyzed as ""FirstAnalyzed"",
+                    last_analyzed as ""LastAnalyzed""
+                FROM sentiment_metrics_country_daily
+                WHERE country = '{country}'
+                  AND day >= '{startDate:yyyy-MM-dd}'
+                  AND day <= '{endDate:yyyy-MM-dd}'
+                  {emotionFilter}
+                ORDER BY day DESC, emotion";
+
+            return await _context.Database
+                .SqlQueryRaw<SentimentMetricsCountryDto>(sql)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Get top cities by emotion (e.g., which cities are happiest)
+        /// </summary>
+        public async Task<List<SentimentMetricsCityDto>> GetTopCitiesByEmotionAsync(
+            string emotion,
+            DateTime startDate,
+            DateTime endDate,
+            int limit = 10)
+        {
+            var sql = $@"
+                SELECT 
+                    city as ""City"",
+                    country as ""Country"",
+                    '{emotion}' as ""Emotion"",
+                    SUM(post_count) as ""PostCount"",
+                    AVG(avg_emotion_score) as ""AvgEmotionScore"",
+                    AVG(avg_polarity) as ""AvgPolarity"",
+                    AVG(avg_joy) as ""AvgJoy"",
+                    AVG(avg_sadness) as ""AvgSadness"",
+                    AVG(avg_anger) as ""AvgAnger"",
+                    AVG(avg_fear) as ""AvgFear"",
+                    SUM(anger_flagged_count) as ""AngerFlaggedCount"",
+                    SUM(needs_review_count) as ""NeedsReviewCount"",
+                    MIN(first_analyzed) as ""FirstAnalyzed"",
+                    MAX(last_analyzed) as ""LastAnalyzed"",
+                    MAX(day) as ""Day""
+                FROM sentiment_metrics_city_daily
+                WHERE emotion = '{emotion}'
+                  AND day >= '{startDate:yyyy-MM-dd}'
+                  AND day <= '{endDate:yyyy-MM-dd}'
+                GROUP BY city, country
+                ORDER BY AVG(avg_emotion_score) DESC
+                LIMIT {limit}";
+
+            return await _context.Database
+                .SqlQueryRaw<SentimentMetricsCityDto>(sql)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Get emotion distribution for a city (percentage breakdown)
+        /// </summary>
+        public async Task<Dictionary<string, double>> GetCityEmotionDistributionAsync(
+            string city,
+            string country,
+            DateTime startDate,
+            DateTime endDate)
+        {
+            var sql = $@"
+                SELECT 
+                    emotion,
+                    SUM(post_count) as count
+                FROM sentiment_metrics_city_daily
+                WHERE city = '{city}'
+                  AND country = '{country}'
+                  AND day >= '{startDate:yyyy-MM-dd}'
+                  AND day <= '{endDate:yyyy-MM-dd}'
+                GROUP BY emotion";
+
+            var results = await _context.Database
+                .SqlQueryRaw<EmotionCountResult>(sql)
+                .ToListAsync();
+
+            var total = results.Sum(r => r.count);
+            if (total == 0) return new Dictionary<string, double>();
+
+            return results.ToDictionary(
+                r => r.emotion,
+                r => (double)r.count / total * 100
+            );
+        }
+
+        /// <summary>
+        /// Get cities that need moderation (high anger/needs_review)
+        /// </summary>
+        public async Task<List<SentimentMetricsCityDto>> GetCitiesNeedingModerationAsync(
+            DateTime startDate,
+            DateTime endDate,
+            int limit = 10)
+        {
+            var sql = $@"
+                SELECT 
+                    city as ""City"",
+                    country as ""Country"",
+                    'Mixed' as ""Emotion"",
+                    SUM(post_count) as ""PostCount"",
+                    AVG(avg_emotion_score) as ""AvgEmotionScore"",
+                    AVG(avg_polarity) as ""AvgPolarity"",
+                    AVG(avg_joy) as ""AvgJoy"",
+                    AVG(avg_sadness) as ""AvgSadness"",
+                    AVG(avg_anger) as ""AvgAnger"",
+                    AVG(avg_fear) as ""AvgFear"",
+                    SUM(anger_flagged_count) as ""AngerFlaggedCount"",
+                    SUM(needs_review_count) as ""NeedsReviewCount"",
+                    MIN(first_analyzed) as ""FirstAnalyzed"",
+                    MAX(last_analyzed) as ""LastAnalyzed"",
+                    MAX(day) as ""Day""
+                FROM sentiment_metrics_city_daily
+                WHERE day >= '{startDate:yyyy-MM-dd}'
+                  AND day <= '{endDate:yyyy-MM-dd}'
+                GROUP BY city, country
+                HAVING SUM(needs_review_count) > 0
+                ORDER BY SUM(needs_review_count) DESC
+                LIMIT {limit}";
+
+            return await _context.Database
+                .SqlQueryRaw<SentimentMetricsCityDto>(sql)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Helper Classes
+
+        /// <summary>
+        /// Helper class for emotion distribution queries
+        /// </summary>
+        private class EmotionCountResult
+        {
+            public string emotion { get; set; } = string.Empty;
+            public long count { get; set; }
+        }
+
+        #endregion
     }
 }
