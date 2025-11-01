@@ -1,0 +1,214 @@
+@using Sivar.Os.Client.Services
+@using MudBlazor
+@inject BrowserPermissionsService PermissionsService
+
+<MudDialog>
+    <DialogContent>
+        <div class="permissions-dialog">
+            <div class="permissions-header">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h5" Class="mt-2">Permissions</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Manage app permissions to control what Sivar.Os can access
+                </MudText>
+            </div>
+
+            <MudDivider Class="my-4" />
+
+            <!-- Location Permission -->
+            <div class="permission-item">
+                <div class="permission-info">
+                    <div class="permission-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="@GetPermissionColor(locationStatus)" />
+                    </div>
+                    <div class="permission-details">
+                        <MudText Typo="Typo.subtitle1"><strong>Location</strong></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Find nearby users and posts in your area
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="@GetPermissionColor(locationStatus)">
+                            Status: @GetStatusText(locationStatus)
+                        </MudText>
+                    </div>
+                </div>
+                <div class="permission-action">
+                    @if (locationStatus == PermissionStatus.Prompt || locationStatus == PermissionStatus.Denied)
+                    {
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Primary" 
+                                   Size="Size.Small"
+                                   OnClick="RequestLocationPermissionAsync">
+                            Enable
+                        </MudButton>
+                    }
+                    else if (locationStatus == PermissionStatus.Granted)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Enabled</MudChip>
+                    }
+                </div>
+            </div>
+
+            <MudDivider Class="my-3" />
+
+            <!-- Camera Permission (Future) -->
+            <div class="permission-item disabled">
+                <div class="permission-info">
+                    <div class="permission-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Camera" Color="Color.Default" />
+                    </div>
+                    <div class="permission-details">
+                        <MudText Typo="Typo.subtitle1"><strong>Camera</strong></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Take photos for posts and profile pictures
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Default">
+                            Coming soon
+                        </MudText>
+                    </div>
+                </div>
+            </div>
+
+            <MudDivider Class="my-3" />
+
+            <!-- Notifications Permission (Future) -->
+            <div class="permission-item disabled">
+                <div class="permission-info">
+                    <div class="permission-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Notifications" Color="Color.Default" />
+                    </div>
+                    <div class="permission-details">
+                        <MudText Typo="Typo.subtitle1"><strong>Notifications</strong></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Stay updated with likes, comments, and mentions
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Default">
+                            Coming soon
+                        </MudText>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .permissions-dialog {
+        min-width: 400px;
+    }
+
+    .permissions-header {
+        text-align: center;
+        padding: 16px 0;
+    }
+
+    .permission-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+    }
+
+    .permission-item.disabled {
+        opacity: 0.5;
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        flex: 1;
+    }
+
+    .permission-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: var(--mud-palette-background-grey);
+    }
+
+    .permission-details {
+        flex: 1;
+    }
+
+    .permission-action {
+        margin-left: 16px;
+    }
+</style>
+
+@code {
+    [CascadingParameter] 
+    private dynamic MudDialog { get; set; } = null!;
+
+    private PermissionStatus locationStatus = PermissionStatus.Prompt;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPermissionStatusesAsync();
+    }
+
+    private async Task LoadPermissionStatusesAsync()
+    {
+        isLoading = true;
+        try
+        {
+            locationStatus = await PermissionsService.GetLocationPermissionStatusAsync();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RequestLocationPermissionAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var position = await PermissionsService.RequestLocationAsync();
+            if (position != null)
+            {
+                locationStatus = PermissionStatus.Granted;
+                StateHasChanged();
+            }
+            else
+            {
+                locationStatus = PermissionStatus.Denied;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Color GetPermissionColor(PermissionStatus status)
+    {
+        return status switch
+        {
+            PermissionStatus.Granted => Color.Success,
+            PermissionStatus.Denied => Color.Error,
+            PermissionStatus.Prompt => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(PermissionStatus status)
+    {
+        return status switch
+        {
+            PermissionStatus.Granted => "Enabled",
+            PermissionStatus.Denied => "Disabled",
+            PermissionStatus.Prompt => "Not requested",
+            _ => "Unknown"
+        };
+    }
+
+    private void Close() => MudDialog?.Close(DialogResult.Ok(true));
+}

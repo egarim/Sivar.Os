@@ -50,6 +50,9 @@ builder.Services.AddScoped<IWeatherService, ClientWeatherService>();
 // Register profile switcher service
 builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherService>();
 
+// Register browser permissions service for GPS and other browser APIs
+builder.Services.AddScoped<BrowserPermissionsService>();
+
 // Configure SivarClient options
 builder.Services.Configure<SivarClientOptions>(options =>
 {

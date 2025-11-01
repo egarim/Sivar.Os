@@ -1,0 +1,226 @@
+@page "/profile/settings"
+@layout LandingLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Sivar.Os.Client.Components.Profile
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Client.Layout
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.DTOs.ValueObjects
+@using Sivar.Os.Shared.Clients
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@inject IProfilesClient ProfilesClient
+@inject ILogger<ProfileSettingsDemo> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>Profile Settings - Sivar.Os</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="wire-container wireframe-landing">
+    <div class="main-layout">
+        <!-- Left spacer (empty on mobile) -->
+        <div></div>
+
+        <!-- Center: Profile Settings Content -->
+        <div class="feed">
+            <MudText Typo="Typo.h4" Class="mb-4">Profile Settings</MudText>
+
+            @if (isLoading && currentProfile == null)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else if (currentProfile != null)
+            {
+                <MudStack Spacing="3">
+                    <!-- Basic Info -->
+                    <MudCard>
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Basic Information</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudTextField @bind-Value="displayName"
+                                          Label="Display Name"
+                                          Variant="Variant.Outlined"
+                                          Class="mb-3" />
+
+                            <MudTextField @bind-Value="bio"
+                                          Label="Bio"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          Class="mb-3" />
+                        </MudCardContent>
+                    </MudCard>
+
+                    <!-- Location Editor Component -->
+                    <ProfileLocationEditor @bind-City="locationCity"
+                                           @bind-State="locationState"
+                                           @bind-Country="locationCountry"
+                                           @bind-Latitude="locationLatitude"
+                                           @bind-Longitude="locationLongitude"
+                                           ShowGpsButton="true"
+                                           ShowPermissionStatus="true"
+                                           ShowActions="false"
+                                           OnGpsLocationReceived="HandleGpsLocationReceived" />
+
+                    <!-- Save/Cancel Actions -->
+                    <MudCard>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Secondary" 
+                                       OnClick="Cancel">
+                                Cancel
+                            </MudButton>
+                            <MudSpacer />
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       OnClick="SaveProfileAsync"
+                                       Disabled="@isSaving">
+                                @(isSaving ? "Saving..." : "Save Changes")
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+
+                    <!-- Status Messages -->
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <MudAlert Severity="@statusSeverity" Dense="true">
+                            @statusMessage
+                        </MudAlert>
+                    }
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning">
+                    Unable to load profile. Please try again later.
+                </MudAlert>
+            }
+        </div>
+
+        <!-- Right: Empty or could add sidebar widgets -->
+        <div></div>
+    </div>
+</MudContainer>
+
+@code {
+    private ProfileDto? currentProfile;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private string? statusMessage;
+    private Severity statusSeverity = Severity.Info;
+
+    // Form fields
+    private string displayName = string.Empty;
+    private string bio = string.Empty;
+    private string locationCity = string.Empty;
+    private string locationState = string.Empty;
+    private string locationCountry = string.Empty;
+    private double? locationLatitude = null;
+    private double? locationLongitude = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfileAsync();
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        isLoading = true;
+        try
+        {
+            Logger.LogInformation("[ProfileSettingsDemo] Loading current profile");
+            
+            // Get the current user's active profile
+            currentProfile = await ProfilesClient.GetMyProfileAsync();
+
+            // Populate form fields
+            displayName = currentProfile.DisplayName ?? string.Empty;
+            bio = currentProfile.Bio ?? string.Empty;
+            locationCity = currentProfile.Location?.City ?? string.Empty;
+            locationState = currentProfile.Location?.State ?? string.Empty;
+            locationCountry = currentProfile.Location?.Country ?? string.Empty;
+            locationLatitude = currentProfile.Location?.Latitude;
+            locationLongitude = currentProfile.Location?.Longitude;
+
+            Logger.LogInformation("[ProfileSettingsDemo] Profile loaded successfully - {DisplayName}", currentProfile.DisplayName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[ProfileSettingsDemo] Failed to load profile");
+            statusMessage = "Failed to load profile: " + ex.Message;
+            statusSeverity = Severity.Error;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        isSaving = true;
+        statusMessage = null;
+
+        try
+        {
+            Logger.LogInformation("[ProfileSettingsDemo] Saving profile changes");
+
+            var updateDto = new UpdateProfileDto
+            {
+                DisplayName = displayName,
+                Bio = bio,
+                Location = new Location
+                {
+                    City = locationCity,
+                    State = locationState,
+                    Country = locationCountry,
+                    Latitude = locationLatitude,
+                    Longitude = locationLongitude
+                }
+            };
+
+            // Save profile via API - this will trigger geocoding on the backend
+            var updatedProfile = await ProfilesClient.UpdateMyProfileAsync(updateDto);
+
+            Logger.LogInformation("[ProfileSettingsDemo] Profile saved successfully - Location: {City}, {State}, {Country}, Coords: ({Lat}, {Lng})",
+                locationCity, locationState, locationCountry, locationLatitude, locationLongitude);
+
+            statusMessage = "Profile saved successfully! Location has been updated.";
+            statusSeverity = Severity.Success;
+
+            // Update current profile with the response
+            currentProfile = updatedProfile;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[ProfileSettingsDemo] Failed to save profile");
+            statusMessage = "Failed to save profile: " + ex.Message;
+            statusSeverity = Severity.Error;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Logger.LogInformation("[ProfileSettingsDemo] Profile edit cancelled");
+        // Navigation.NavigateTo("/profile");
+        statusMessage = "Changes cancelled";
+        statusSeverity = Severity.Info;
+    }
+
+    private void HandleGpsLocationReceived(GeolocationPosition position)
+    {
+        Logger.LogInformation("[ProfileSettingsDemo] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
+            position.Latitude, position.Longitude, position.Accuracy);
+
+        statusMessage = $"GPS location acquired with {position.Accuracy:F0}m accuracy. You can optionally enter city/state/country manually.";
+        statusSeverity = Severity.Info;
+        
+        // Note: Coordinates are already bound via @bind-Latitude and @bind-Longitude
+        // You could implement reverse geocoding here to auto-fill city/state/country
+    }
+}

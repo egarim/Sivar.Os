@@ -1,0 +1,384 @@
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Shared.DTOs.ValueObjects
+@using Sivar.Os.Shared.Services
+@using MudBlazor
+@inject BrowserPermissionsService PermissionsService
+@inject ILocationService LocationService
+@inject ILogger<ProfileLocationEditor> Logger
+
+<MudCard Class="profile-location-editor">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Class="mr-2" />
+                Location
+            </MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (ShowGpsButton)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.MyLocation"
+                           OnClick="UseGpsLocationAsync"
+                           Disabled="@isLoading"
+                           Size="Size.Small">
+                    @(isLoading ? "Getting location..." : "Use GPS")
+                </MudButton>
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+    
+    <MudCardContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3" Dense="true" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => errorMessage = null)">
+                @errorMessage
+            </MudAlert>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-3" Dense="true" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => successMessage = null)">
+                @successMessage
+            </MudAlert>
+        }
+
+        <MudStack Spacing="3">
+            <!-- Manual Entry Section -->
+            <MudTextField Value="@_city"
+                          ValueChanged="@(async (string value) => { _city = value; await CityChanged.InvokeAsync(value); })"
+                          Label="City"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.LocationCity"
+                          Disabled="@isLoading" />
+
+            <MudTextField Value="@_state"
+                          ValueChanged="@(async (string value) => { _state = value; await StateChanged.InvokeAsync(value); })"
+                          Label="State/Province"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Map"
+                          Disabled="@isLoading" />
+
+            <MudTextField Value="@_country"
+                          ValueChanged="@(async (string value) => { _country = value; await CountryChanged.InvokeAsync(value); })"
+                          Label="Country"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Public"
+                          Disabled="@isLoading" />
+
+            <!-- GPS Coordinates Display (Optional) -->
+            @if (Latitude.HasValue && Longitude.HasValue)
+            {
+                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.GpsFixed" Size="Size.Small" Class="mr-1" />
+                            GPS Coordinates
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            📍 @Latitude.Value.ToString("F6"), @Longitude.Value.ToString("F6")
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <!-- Permission Status Info -->
+            @if (ShowPermissionStatus && permissionStatus != PermissionStatus.Unknown)
+            {
+                <MudChip T="string" 
+                         Size="Size.Small" 
+                         Color="@GetPermissionColor(permissionStatus)"
+                         Icon="@GetPermissionIcon(permissionStatus)">
+                    GPS: @GetPermissionText(permissionStatus)
+                </MudChip>
+            }
+        </MudStack>
+    </MudCardContent>
+
+    @if (ShowActions)
+    {
+        <MudCardActions>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSave" Disabled="@isLoading">
+                @(isLoading ? "Saving..." : "Save Location")
+            </MudButton>
+        </MudCardActions>
+    }
+</MudCard>
+
+<style>
+    .profile-location-editor {
+        margin-bottom: 16px;
+    }
+</style>
+
+@code {
+    // Private backing fields to prevent parameter overwriting
+    private string _city = string.Empty;
+    private string _state = string.Empty;
+    private string _country = string.Empty;
+    
+    // Two-way binding for location fields
+    [Parameter]
+    public string City 
+    { 
+        get => _city;
+        set => _city = value;
+    }
+    
+    [Parameter]
+    public EventCallback<string> CityChanged { get; set; }
+
+    [Parameter]
+    public string State 
+    { 
+        get => _state;
+        set 
+        { 
+            Console.WriteLine($"[ProfileLocationEditor] State setter called with value: '{value}'");
+            _state = value;
+        }
+    }
+    
+    [Parameter]
+    public EventCallback<string> StateChanged { get; set; }
+
+    [Parameter]
+    public string Country 
+    { 
+        get => _country;
+        set 
+        { 
+            Console.WriteLine($"[ProfileLocationEditor] Country setter called with value: '{value}'");
+            _country = value;
+        }
+    }
+    
+    [Parameter]
+    public EventCallback<string> CountryChanged { get; set; }
+
+    [Parameter]
+    public double? Latitude { get; set; }
+    
+    [Parameter]
+    public EventCallback<double?> LatitudeChanged { get; set; }
+
+    [Parameter]
+    public double? Longitude { get; set; }
+    
+    [Parameter]
+    public EventCallback<double?> LongitudeChanged { get; set; }
+
+    // Configuration parameters
+    [Parameter]
+    public bool ShowGpsButton { get; set; } = true;
+
+    [Parameter]
+    public bool ShowPermissionStatus { get; set; } = false;
+
+    [Parameter]
+    public bool ShowActions { get; set; } = false;
+
+    // Callbacks
+    [Parameter]
+    public EventCallback OnSaveClicked { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<GeolocationPosition> OnGpsLocationReceived { get; set; }
+
+    // State
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private string? successMessage = null;
+    private PermissionStatus permissionStatus = PermissionStatus.Unknown;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check GPS permission status on load
+        if (ShowPermissionStatus)
+        {
+            try
+            {
+                permissionStatus = await PermissionsService.GetLocationPermissionStatusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to check GPS permission status");
+            }
+        }
+    }
+
+    private async Task UseGpsLocationAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            Logger.LogInformation("[ProfileLocationEditor] Requesting GPS location");
+
+            // Check if geolocation is supported
+            var isSupported = await PermissionsService.IsGeolocationSupportedAsync();
+            if (!isSupported)
+            {
+                errorMessage = "GPS location is not supported in your browser.";
+                Logger.LogWarning("[ProfileLocationEditor] Geolocation not supported");
+                return;
+            }
+
+            // Request location from browser
+            var position = await PermissionsService.RequestLocationAsync();
+
+            if (position == null)
+            {
+                errorMessage = "Unable to get your location. Please check your browser permissions.";
+                Logger.LogWarning("[ProfileLocationEditor] GPS permission denied or error occurred");
+                permissionStatus = PermissionStatus.Denied;
+                return;
+            }
+
+            Logger.LogInformation("[ProfileLocationEditor] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
+                position.Latitude, position.Longitude, position.Accuracy);
+
+            // Update coordinates
+            Latitude = position.Latitude;
+            Longitude = position.Longitude;
+            permissionStatus = PermissionStatus.Granted;
+
+            await LatitudeChanged.InvokeAsync(Latitude);
+            await LongitudeChanged.InvokeAsync(Longitude);
+
+            // Attempt reverse geocoding to populate city/state/country
+            try
+            {
+                Logger.LogInformation("[ProfileLocationEditor] Starting reverse geocoding for coordinates");
+                Console.WriteLine($"[CLIENT DEBUG] Calling ReverseGeocodeAsync with Lat: {position.Latitude}, Lon: {position.Longitude}");
+                
+                var location = await LocationService.ReverseGeocodeAsync(position.Latitude, position.Longitude);
+                
+                Console.WriteLine($"[CLIENT DEBUG] ReverseGeocodeAsync returned: {(location == null ? "NULL" : "Location object")}");
+                
+                if (location != null)
+                {
+                    Console.WriteLine($"[CLIENT DEBUG] Location details - City: '{location.City}', State: '{location.State}', Country: '{location.Country}'");
+                    
+                    // Update local properties
+                    var newCity = location.City ?? string.Empty;
+                    var newState = location.State ?? string.Empty;
+                    var newCountry = location.Country ?? string.Empty;
+
+                    Console.WriteLine($"[CLIENT DEBUG] Temp vars - City: '{newCity}', State: '{newState}', Country: '{newCountry}'");
+
+                    // Assign to component properties
+                    City = newCity;
+                    State = newState;
+                    Country = newCountry;
+
+                    Console.WriteLine($"[CLIENT DEBUG] After assignment - City: '{City}', State: '{State}', Country: '{Country}'");
+
+                    // Update success message BEFORE calling EventCallbacks
+                    successMessage = $"GPS location acquired! {City}, {State}, {Country} (±{position.Accuracy:F0}m accuracy)";
+                    Console.WriteLine($"[CLIENT DEBUG] Success message created: {successMessage}");
+
+                    Logger.LogInformation("[ProfileLocationEditor] Reverse geocoding successful - City='{City}', State='{State}', Country='{Country}'",
+                        City, State, Country);
+
+                    // Now notify parent component
+                    if (CityChanged.HasDelegate) await CityChanged.InvokeAsync(City);
+                    if (StateChanged.HasDelegate) await StateChanged.InvokeAsync(State);
+                    if (CountryChanged.HasDelegate) await CountryChanged.InvokeAsync(Country);
+
+                    Console.WriteLine($"[CLIENT DEBUG] After EventCallbacks - City: '{City}', State: '{State}', Country: '{Country}'");
+                }
+                else
+                {
+                    Logger.LogWarning("[ProfileLocationEditor] Reverse geocoding returned no results");
+                    successMessage = $"GPS location acquired! (Accuracy: ±{position.Accuracy:F0}m). You can manually enter city/state/country.";
+                }
+            }
+            catch (Exception reverseEx)
+            {
+                Logger.LogError(reverseEx, "[ProfileLocationEditor] Reverse geocoding failed");
+                successMessage = $"GPS location acquired! (Accuracy: ±{position.Accuracy:F0}m). Could not automatically detect city - you can enter it manually.";
+            }
+
+            // Force another UI update after all changes
+            StateHasChanged();
+
+            // Invoke callback if provided
+            if (OnGpsLocationReceived.HasDelegate)
+            {
+                await OnGpsLocationReceived.InvokeAsync(position);
+            }
+
+            Logger.LogInformation("[ProfileLocationEditor] GPS location successfully acquired");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error getting GPS location: {ex.Message}";
+            Logger.LogError(ex, "[ProfileLocationEditor] Error getting GPS location");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSave()
+    {
+        if (OnSaveClicked.HasDelegate)
+        {
+            await OnSaveClicked.InvokeAsync();
+        }
+    }
+
+    private async Task OnCancel()
+    {
+        if (OnCancelClicked.HasDelegate)
+        {
+            await OnCancelClicked.InvokeAsync();
+        }
+    }
+
+    private Color GetPermissionColor(PermissionStatus status)
+    {
+        return status switch
+        {
+            PermissionStatus.Granted => Color.Success,
+            PermissionStatus.Denied => Color.Error,
+            PermissionStatus.Prompt => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPermissionIcon(PermissionStatus status)
+    {
+        return status switch
+        {
+            PermissionStatus.Granted => Icons.Material.Filled.CheckCircle,
+            PermissionStatus.Denied => Icons.Material.Filled.Block,
+            PermissionStatus.Prompt => Icons.Material.Filled.Help,
+            _ => Icons.Material.Filled.QuestionMark
+        };
+    }
+
+    private string GetPermissionText(PermissionStatus status)
+    {
+        return status switch
+        {
+            PermissionStatus.Granted => "Enabled",
+            PermissionStatus.Denied => "Blocked",
+            PermissionStatus.Prompt => "Not requested",
+            _ => "Unknown"
+        };
+    }
+}
