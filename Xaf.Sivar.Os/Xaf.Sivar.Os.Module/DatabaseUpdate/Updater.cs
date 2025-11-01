@@ -108,6 +108,7 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedFullTextSearchColumnsScript(); // Phase 3: Full-Text Search
             SeedContinuousAggregatesScript(); // Phase 7: Continuous Aggregates
             SeedSentimentAggregatesScript(); // Phase 8: Sentiment Aggregates
+            SeedPostGISLocationSupportScript(); // Phase 9: PostGIS Location Services
         }
         
         /// <summary>
@@ -557,6 +558,40 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
             
             // Load SQL script from file
             script.SqlText = LoadScriptFromFile("AddSentimentAggregates.sql");
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
+        }
+        
+        /// <summary>
+        /// Seeds the AddPostGISLocationSupport SQL script if it doesn't exist
+        /// Phase 9: PostGIS Location Services (Geocoding, Proximity Search)
+        /// </summary>
+        private void SeedPostGISLocationSupportScript()
+        {
+            const string scriptName = "AddPostGISLocationSupport";
+            
+            // Check if script already exists
+            var existingScript = ObjectSpace.GetObjectsQuery<SqlScript>()
+                .FirstOrDefault(s => s.Name == scriptName);
+            
+            if (existingScript != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' already exists. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Creating seed script: {scriptName}");
+            
+            var script = ObjectSpace.CreateObject<SqlScript>();
+            script.Name = scriptName;
+            script.Description = "Adds PostGIS extension and GeoLocation columns to Profiles and Posts for location-based features. Creates spatial indexes, distance calculation functions, and proximity search functions.";
+            script.ExecutionOrder = 9.0m; // After sentiment aggregates (8.0)
+            script.BatchName = SqlScriptBatches.AfterSchemaUpdate;
+            script.IsActive = true;
+            script.RunOnce = true;
+            
+            // Load SQL script from file
+            script.SqlText = LoadScriptFromFile("003_AddPostGISLocationSupport.sql");
             
             System.Diagnostics.Debug.WriteLine($"[SQL Scripts] Seed script '{scriptName}' created successfully.");
         }
