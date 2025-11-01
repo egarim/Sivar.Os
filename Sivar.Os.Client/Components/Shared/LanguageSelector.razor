@@ -1,0 +1,129 @@
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Services
+@using System.Globalization
+@using MudBlazor
+@inject ICultureService CultureService
+@inject IStringLocalizer<LanguageSelector> Localizer
+@inject ISnackbar Snackbar
+@inject ILogger<LanguageSelector> Logger
+
+<MudMenu Icon="@Icons.Material.Filled.Language" 
+         Color="Color.Inherit" 
+         AnchorOrigin="Origin.BottomLeft"
+         TransformOrigin="Origin.TopLeft"
+         Dense="true">
+    <ActivatorContent>
+        <MudTooltip Text="@Localizer["SelectLanguage"]">
+            <MudIconButton Icon="@Icons.Material.Filled.Language" 
+                          Color="Color.Inherit" 
+                          Size="Size.Medium" />
+        </MudTooltip>
+    </ActivatorContent>
+    <ChildContent>
+        <MudMenuItem OnClick="@(() => ChangeLanguage("en-US"))" 
+                     Disabled="@_isChanging">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Check" 
+                         Style="@(GetCheckVisibility("en-US"))" />
+                <MudText>🇺🇸 @Localizer["English"]</MudText>
+            </div>
+        </MudMenuItem>
+        
+        <MudMenuItem OnClick="@(() => ChangeLanguage("es-ES"))" 
+                     Disabled="@_isChanging">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Check" 
+                         Style="@(GetCheckVisibility("es-ES"))" />
+                <MudText>🇪🇸 @Localizer["Spanish"]</MudText>
+            </div>
+        </MudMenuItem>
+        
+        <MudDivider />
+        
+        <MudMenuItem OnClick="@(() => ChangeLanguage(null))" 
+                     Disabled="@_isChanging">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Check" 
+                         Style="@(GetCheckVisibility(null))" />
+                <MudText>@Localizer["BrowserDefault"]</MudText>
+            </div>
+        </MudMenuItem>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private bool _isChanging = false;
+    private string? _currentLanguage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get current culture
+            var culture = await CultureService.GetEffectiveCultureAsync();
+            _currentLanguage = culture.Name;
+            
+            // Subscribe to culture changes
+            CultureService.CultureChanged += OnCultureChanged;
+            
+            Logger.LogInformation("LanguageSelector initialized with culture: {Culture}", _currentLanguage);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing LanguageSelector");
+        }
+    }
+
+    private void OnCultureChanged(object? sender, CultureInfo culture)
+    {
+        _currentLanguage = culture.Name;
+        StateHasChanged();
+    }
+
+    private async Task ChangeLanguage(string? languageCode)
+    {
+        if (_isChanging) return;
+
+        try
+        {
+            _isChanging = true;
+            StateHasChanged();
+
+            Logger.LogInformation("Changing language to: {LanguageCode}", languageCode ?? "Browser Default");
+
+            // Update the profile language preference
+            var success = await CultureService.SetProfileCultureAsync(languageCode);
+
+            if (success)
+            {
+                Snackbar.Add(Localizer["LanguageChanged"], Severity.Success);
+                // Page will reload automatically via CultureService
+            }
+            else
+            {
+                Snackbar.Add(Localizer["ErrorChanging"], Severity.Error);
+                _isChanging = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error changing language to {LanguageCode}", languageCode);
+            Snackbar.Add(Localizer["ErrorChanging"], Severity.Error);
+            _isChanging = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetCheckVisibility(string? languageCode)
+    {
+        // Show check mark for current language
+        var isCurrentLanguage = string.Equals(_currentLanguage, languageCode, StringComparison.OrdinalIgnoreCase);
+        return isCurrentLanguage ? "visibility: visible;" : "visibility: hidden;";
+    }
+
+    public void Dispose()
+    {
+        CultureService.CultureChanged -= OnCultureChanged;
+    }
+}

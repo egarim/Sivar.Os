@@ -1,7 +1,12 @@
+@page "/"
 @page "/welcome"
 @layout LandingLayout
 @using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <style>
     .landing-container {
@@ -441,22 +446,32 @@
     private string _fullName = string.Empty;
     private bool _agreeToTerms = false;
 
+    protected override async Task OnInitializedAsync()
+    {
+        // If user is already authenticated, redirect to home
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/home", forceLoad: true);
+        }
+    }
+
     private void HandleSignIn()
     {
-        // Redirect to Keycloak login via the authentication controller
-        Navigation.NavigateTo("/authentication/login?returnUrl=/", forceLoad: true);
+        // Redirect to Keycloak login and return to /home after authentication
+        Navigation.NavigateTo("/authentication/login?returnUrl=/home", forceLoad: true);
     }
 
     private void HandleSignUp()
     {
-        // Redirect to Keycloak registration via the authentication controller
-        Navigation.NavigateTo("/authentication/register?returnUrl=/", forceLoad: true);
+        // Redirect to Keycloak registration and return to /home after authentication
+        Navigation.NavigateTo("/authentication/register?returnUrl=/home", forceLoad: true);
     }
 
     private void HandleSocialAuth(string provider)
     {
         // Keycloak handles social auth providers, so redirect to login
         // Configure social providers in Keycloak admin console
-        Navigation.NavigateTo("/authentication/login?returnUrl=/", forceLoad: true);
+        Navigation.NavigateTo("/authentication/login?returnUrl=/home", forceLoad: true);
     }
 }

@@ -265,7 +265,14 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
 
             return new ActiveProfileDto 
             { 
-                Id = profile.Id, 
+                Id = profile.Id,
+                DisplayName = profile.DisplayName,
+                ProfileType = profile.ProfileType,
+                Avatar = profile.Avatar,
+                AvatarFileId = profile.AvatarFileId,
+                PreferredLanguage = profile.PreferredLanguage,
+                LocationDisplay = profile.LocationDisplay,
+                ActivatedAt = DateTime.UtcNow,
                 IsActive = true 
             };
         }
@@ -413,6 +420,42 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
     {
         _logger.LogInformation("GetProfileStatisticsAsync");
         return new ProfileStatisticsDto();
+    }
+
+    public async Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("FindNearbyProfilesAsync: lat={Lat}, lon={Lon}, radius={Radius}km", latitude, longitude, radiusKm);
+        try
+        {
+            var profiles = await _profileService.FindNearbyProfilesAsync(latitude, longitude, radiusKm, limit);
+            return profiles ?? new List<ProfileDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in FindNearbyProfilesAsync");
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string? languageCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("UpdatePreferredLanguageAsync: No authenticated user");
+                return false;
+            }
+
+            _logger.LogInformation("UpdatePreferredLanguageAsync: ProfileId={ProfileId}, LanguageCode={LanguageCode}", profileId, languageCode);
+            return await _profileService.UpdatePreferredLanguageAsync(profileId, keycloakId, languageCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in UpdatePreferredLanguageAsync");
+            throw;
+        }
     }
 
     /// <summary>

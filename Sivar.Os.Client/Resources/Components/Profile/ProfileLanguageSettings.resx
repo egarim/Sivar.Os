@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <data name="LanguagePreferences" xml:space="preserve">
+    <value>Language Preferences</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Select your preferred language for the interface. Your choice will be saved to your profile and synced across all your devices.</value>
+  </data>
+  <data name="CurrentLanguage" xml:space="preserve">
+    <value>Current Language</value>
+  </data>
+  <data name="SavedPreference" xml:space="preserve">
+    <value>Saved Preference</value>
+  </data>
+  <data name="BrowserLanguage" xml:space="preserve">
+    <value>Browser Language</value>
+  </data>
+  <data name="PreferredLanguage" xml:space="preserve">
+    <value>Preferred Language</value>
+  </data>
+  <data name="SelectLanguage" xml:space="preserve">
+    <value>Select a language</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Spanish" xml:space="preserve">
+    <value>Spanish</value>
+  </data>
+  <data name="UseBrowserLanguage" xml:space="preserve">
+    <value>Use Browser Language</value>
+  </data>
+  <data name="SaveAndApply" xml:space="preserve">
+    <value>Save &amp; Apply</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Saving...</value>
+  </data>
+  <data name="LanguageSaved" xml:space="preserve">
+    <value>Language preference saved successfully! The page will reload.</value>
+  </data>
+  <data name="ErrorSaving" xml:space="preserve">
+    <value>Error saving language preference. Please try again.</value>
+  </data>
+  <data name="ErrorLoading" xml:space="preserve">
+    <value>Error loading language settings.</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>None (Browser Default)</value>
+  </data>
+  <data name="HowItWorks" xml:space="preserve">
+    <value>How it works</value>
+  </data>
+  <data name="HowItWorksText" xml:space="preserve">
+    <value>The system determines your language in this order: 1) Your saved preference, 2) Your browser's language, 3) English (default).</value>
+  </data>
+</root>

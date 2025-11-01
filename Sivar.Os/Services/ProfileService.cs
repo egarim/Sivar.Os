@@ -1503,4 +1503,62 @@ public class ProfileService : IProfileService
             throw;
         }
     }
+    /// <summary>
+    /// Updates the preferred language for a user's profile
+    /// </summary>
+    public async Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string keycloakId, string? languageCode)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(keycloakId))
+            {
+                _logger.LogWarning("[UpdatePreferredLanguageAsync] KeycloakId is required");
+                return false;
+            }
+
+            // Validate language code format if provided
+            if (!string.IsNullOrEmpty(languageCode))
+            {
+                var validLanguages = new[] { "en-US", "es-ES" }; // Supported languages
+                if (!validLanguages.Contains(languageCode))
+                {
+                    _logger.LogWarning("[UpdatePreferredLanguageAsync] Invalid language code: {LanguageCode}", languageCode);
+                    return false;
+                }
+            }
+
+            // Get user and verify profile ownership
+            var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+            if (user == null)
+            {
+                _logger.LogWarning("[UpdatePreferredLanguageAsync] User not found for KeycloakId: {KeycloakId}", keycloakId);
+                return false;
+            }
+
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null || profile.UserId != user.Id)
+            {
+                _logger.LogWarning("[UpdatePreferredLanguageAsync] Profile not found or not owned by user. ProfileId: {ProfileId}, UserId: {UserId}", 
+                    profileId, user.Id);
+                return false;
+            }
+
+            // Update preferred language
+            profile.PreferredLanguage = languageCode;
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            await _profileRepository.UpdateAsync(profile);
+            await _profileRepository.SaveChangesAsync();
+
+            _logger.LogInformation("[UpdatePreferredLanguageAsync] Successfully updated language for ProfileId: {ProfileId} to {LanguageCode}", 
+                profileId, languageCode ?? "null (browser default)");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UpdatePreferredLanguageAsync] Error updating preferred language for ProfileId: {ProfileId}", profileId);
+            return false;
+        }
+    }
 }

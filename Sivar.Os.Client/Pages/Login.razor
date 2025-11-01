@@ -1,6 +1,8 @@
 @page "/login"
 @layout LandingLayout
 @using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
 @inject NavigationManager Navigation
 
 <style>

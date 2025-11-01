@@ -26,6 +26,7 @@ public class ProfileRoutingTests
     private readonly Mock<IProfileTypeRepository> _profileTypeRepositoryMock;
     private readonly Mock<IProfileMetadataValidator> _metadataValidatorMock;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
+    private readonly Mock<ILocationService> _locationServiceMock;
     private readonly Mock<ILogger<ProfileService>> _loggerMock;
     private readonly ProfileService _profileService;
 
@@ -36,6 +37,7 @@ public class ProfileRoutingTests
         _profileTypeRepositoryMock = new Mock<IProfileTypeRepository>();
         _metadataValidatorMock = new Mock<IProfileMetadataValidator>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
+        _locationServiceMock = new Mock<ILocationService>();
         _loggerMock = new Mock<ILogger<ProfileService>>();
         
         _profileService = new ProfileService(
@@ -44,6 +46,7 @@ public class ProfileRoutingTests
             _profileTypeRepositoryMock.Object,
             _metadataValidatorMock.Object,
             _fileStorageServiceMock.Object,
+            _locationServiceMock.Object,
             _loggerMock.Object
         );
     }

@@ -64,6 +64,11 @@ public class ProfileDto
     public string LocationDisplay { get; set; } = string.Empty;
 
     /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
+
+    /// <summary>
     /// Distance from search location in kilometers (populated for proximity searches)
     /// </summary>
     public double? DistanceKm { get; set; }
@@ -145,6 +150,11 @@ public class CreateProfileDto
     public Location? Location { get; set; }
 
     /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
+
+    /// <summary>
     /// Indicates if the profile should be publicly visible (for backward compatibility)
     /// </summary>
     public bool IsPublic { get; set; } = true;
@@ -199,6 +209,11 @@ public class UpdateProfileDto
     /// Geographic location
     /// </summary>
     public Location? Location { get; set; }
+
+    /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
 
     /// <summary>
     /// Indicates if the profile should be publicly visible (for backward compatibility)
@@ -369,6 +384,11 @@ public class ActiveProfileDto
     public string LocationDisplay { get; set; } = string.Empty;
 
     /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
+
+    /// <summary>
     /// Date and time when set as active
     /// </summary>
     public DateTime ActivatedAt { get; set; }
@@ -413,6 +433,11 @@ public class CreateAnyProfileDto
     /// Geographic location (optional)
     /// </summary>
     public Location? Location { get; set; }
+
+    /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
 
     /// <summary>
     /// Profile visibility level

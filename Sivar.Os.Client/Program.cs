@@ -12,6 +12,7 @@ using Sivar.Os.Shared.Clients;
 using Sivar.Os.Client.Clients;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
+using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -52,6 +53,12 @@ builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherService>();
 
 // Register browser permissions service for GPS and other browser APIs
 builder.Services.AddScoped<BrowserPermissionsService>();
+
+// Register localization services
+builder.Services.AddLocalization();
+
+// Register culture service for multi-language support
+builder.Services.AddScoped<ICultureService, CultureService>();
 
 // Configure SivarClient options
 builder.Services.Configure<SivarClientOptions>(options =>
@@ -153,4 +160,27 @@ builder.Services.AddScoped<AuthenticationStateProvider, WasmAuthenticationStateP
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<IAuthorizationPolicyProvider, DefaultAuthorizationPolicyProvider>();
 
-await builder.Build().RunAsync();
+// Build the host
+var host = builder.Build();
+
+// Initialize culture from user preferences/browser before running the app
+try
+{
+    var cultureService = host.Services.GetRequiredService<ICultureService>();
+    var culture = await cultureService.GetEffectiveCultureAsync();
+    
+    // Set the culture for the current thread
+    CultureInfo.DefaultThreadCurrentCulture = culture;
+    CultureInfo.DefaultThreadCurrentUICulture = culture;
+}
+catch (Exception ex)
+{
+    // Log error but don't prevent app from starting
+    Console.WriteLine($"Error initializing culture: {ex.Message}");
+    // Fallback to default culture
+    var defaultCulture = new CultureInfo("en-US");
+    CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+    CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
+}
+
+await host.RunAsync();

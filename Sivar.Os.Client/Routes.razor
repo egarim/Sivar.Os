@@ -4,10 +4,21 @@
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
                     @{
-                        var returnUrl = System.Net.WebUtility.UrlEncode(routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
-                            .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
-                            .FirstOrDefault()?.Template ?? "/");
-                        Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+                        var allowAnonymous = routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), true).Any();
+                        if (allowAnonymous)
+                        {
+                            // Page allows anonymous access, render it using DynamicComponent
+                            var parameters = routeData.RouteValues?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object?>();
+                            <DynamicComponent Type="routeData.PageType" Parameters="parameters" />
+                        }
+                        else
+                        {
+                            // Page requires authentication, redirect to login
+                            var returnUrl = System.Net.WebUtility.UrlEncode(routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
+                                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                                .FirstOrDefault()?.Template ?? "/");
+                            Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+                        }
                     }
                 </NotAuthorized>
                 <Authorizing>

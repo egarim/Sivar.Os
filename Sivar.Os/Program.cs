@@ -241,6 +241,10 @@ builder.Services.AddAuthentication(options =>
     {
         OnRedirectToLogin = context =>
         {
+            // Log for debugging
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("[Auth] OnRedirectToLogin triggered for path: {Path}", context.Request.Path);
+
             // For API/XHR requests, return 401 instead of redirecting to the identity provider.
             var req = context.Request;
             var isApiRequest = req.Path.StartsWithSegments("/api")
@@ -249,20 +253,25 @@ builder.Services.AddAuthentication(options =>
 
             if (isApiRequest)
             {
+                logger.LogWarning("[Auth] API request - returning 401");
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return Task.CompletedTask;
             }
 
-            // For regular requests, redirect to welcome page if trying to access root
-            // or redirect to authentication/login with returnUrl
-            if (context.Request.Path == "/" || context.Request.Path == "")
+            // Allow access to welcome page and authentication pages without redirect
+            if (context.Request.Path.StartsWithSegments("/welcome") || 
+                context.Request.Path.StartsWithSegments("/authentication") ||
+                context.Request.Path == "/" || 
+                context.Request.Path == "")
             {
-                context.Response.Redirect("/welcome");
+                logger.LogWarning("[Auth] Public page (/, /welcome, /auth) - allowing through without redirect");
+                // Don't redirect, let the request through to Blazor
+                return Task.CompletedTask;
             }
-            else
-            {
-                context.Response.Redirect(context.RedirectUri);
-            }
+
+            // For other protected requests, redirect to authentication/login with returnUrl
+            logger.LogWarning("[Auth] Protected path - redirecting to Keycloak: {RedirectUri}", context.RedirectUri);
+            context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
         },
         OnRedirectToAccessDenied = context =>
@@ -397,15 +406,33 @@ builder.Services.AddAuthentication(options =>
         },
         OnSignedOutCallbackRedirect = context =>
         {
-            // Redirect to welcome page after successful logout
-            context.Response.Redirect("/welcome");
+            // Redirect to root (landing page) after successful logout
+            context.Response.Redirect("/");
             context.HandleResponse();
             return Task.CompletedTask;
         }
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Allow anonymous access to specific paths
+    options.AddPolicy("AnonymousPolicy", policy =>
+        policy.RequireAssertion(context =>
+        {
+            var httpContext = context.Resource as HttpContext;
+            if (httpContext != null)
+            {
+                // Allow welcome and authentication pages without authentication
+                if (httpContext.Request.Path.StartsWithSegments("/welcome") ||
+                    httpContext.Request.Path.StartsWithSegments("/authentication"))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }));
+});
 
 // --- HTTP Context Accessor for Adaptive Services ---
 builder.Services.AddHttpContextAccessor();
@@ -492,25 +519,6 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Handle post-logout redirect from root to welcome
-app.Use(async (context, next) =>
-{
-    // If user is not authenticated and trying to access root, redirect to welcome
-    if (context.Request.Path == "/" && 
-        context.Request.Query.ContainsKey("logout") == false &&
-        !context.User.Identity?.IsAuthenticated == true)
-    {
-        // Check if this looks like a post-logout scenario (no referer or coming from Keycloak)
-        var referer = context.Request.Headers.Referer.ToString();
-        if (string.IsNullOrEmpty(referer) || referer.Contains("keycloak") || referer.Contains("localhost:8080"))
-        {
-            context.Response.Redirect("/welcome");
-            return;
-        }
-    }
-    await next();
-});
 
 app.UseAntiforgery();
 

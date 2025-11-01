@@ -147,4 +147,16 @@ public class ProfilesClient : BaseClient, IProfilesClient
     {
         return await GetAsync<ProfileStatisticsDto>("api/profiles/statistics", cancellationToken);
     }
+
+    public async Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<IEnumerable<ProfileDto>>($"api/profiles/nearby?latitude={latitude}&longitude={longitude}&radiusKm={radiusKm}&limit={limit}", cancellationToken);
+    }
+
+    public async Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string? languageCode, CancellationToken cancellationToken = default)
+    {
+        var request = new { LanguageCode = languageCode };
+        var response = await PutAsync<object>($"api/profiles/my/{profileId}/language", request, cancellationToken);
+        return response != null;
+    }
 }

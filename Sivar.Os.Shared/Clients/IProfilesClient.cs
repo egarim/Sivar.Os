@@ -39,4 +39,7 @@ public interface IProfilesClient
 
     // Location-based search
     Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50, CancellationToken cancellationToken = default);
+
+    // Language preference
+    Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string? languageCode, CancellationToken cancellationToken = default);
 }

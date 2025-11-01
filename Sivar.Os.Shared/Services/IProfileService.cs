@@ -243,6 +243,15 @@ public interface IProfileService
     /// <param name="limit">Maximum number of results</param>
     /// <returns>List of nearby profiles with distance information</returns>
     Task<IEnumerable<ProfileDto>> FindNearbyProfilesAsync(double latitude, double longitude, double radiusKm = 10, int limit = 50);
+
+    /// <summary>
+    /// Updates the preferred language for a user's profile
+    /// </summary>
+    /// <param name="profileId">Profile identifier</param>
+    /// <param name="keycloakId">Keycloak user identifier</param>
+    /// <param name="languageCode">Language code in BCP 47 format (e.g., en-US, es-ES), or null for browser default</param>
+    /// <returns>True if update successful, false otherwise</returns>
+    Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string keycloakId, string? languageCode);
 }
 
 /// <summary>

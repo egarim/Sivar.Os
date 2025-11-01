@@ -1,0 +1,232 @@
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Services
+@using System.Globalization
+@using MudBlazor
+@inject ICultureService CultureService
+@inject IStringLocalizer<ProfileLanguageSettings> Localizer
+@inject ISnackbar Snackbar
+@inject ILogger<ProfileLanguageSettings> Logger
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Language" Class="mr-2" />
+        @Localizer["LanguagePreferences"]
+    </MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_hasError)
+    {
+        <MudAlert Severity="Severity.Error">
+            @Localizer["ErrorLoading"]
+        </MudAlert>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mb-4">
+            @Localizer["Description"]
+        </MudText>
+
+        <MudGrid>
+            <!-- Current Language Display -->
+            <MudItem xs="12" md="6">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            @Localizer["CurrentLanguage"]
+                        </MudText>
+                        <MudText Typo="Typo.h6">
+                            @GetLanguageDisplay(_currentLanguage)
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Saved Preference Display -->
+            <MudItem xs="12" md="6">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            @Localizer["SavedPreference"]
+                        </MudText>
+                        <MudText Typo="Typo.h6">
+                            @(_savedPreference != null ? GetLanguageDisplay(_savedPreference) : Localizer["None"])
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Browser Language Display -->
+            <MudItem xs="12" md="6">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            @Localizer["BrowserLanguage"]
+                        </MudText>
+                        <MudText Typo="Typo.h6">
+                            @(_browserLanguage != null ? GetLanguageDisplay(_browserLanguage) : Localizer["None"])
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- How It Works -->
+            <MudItem xs="12" md="6">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            @Localizer["HowItWorks"]
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @Localizer["HowItWorksText"]
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Language Selection -->
+        <MudDivider Class="my-6" />
+
+        <MudSelect T="string" 
+                   Label="@Localizer["PreferredLanguage"]" 
+                   @bind-Value="_selectedLanguage"
+                   Variant="Variant.Outlined"
+                   AnchorOrigin="Origin.BottomCenter"
+                   Disabled="@_isSaving">
+            <MudSelectItem Value="@((string?)null)">
+                @Localizer["UseBrowserLanguage"]
+            </MudSelectItem>
+            <MudSelectItem Value="@("en-US")">
+                🇺🇸 @Localizer["English"]
+            </MudSelectItem>
+            <MudSelectItem Value="@("es-ES")">
+                🇪🇸 @Localizer["Spanish"]
+            </MudSelectItem>
+        </MudSelect>
+
+        <!-- Action Buttons -->
+        <MudStack Row="true" Class="mt-4" Justify="Justify.FlexEnd">
+            <MudButton Variant="Variant.Outlined" 
+                      OnClick="Cancel"
+                      Disabled="@_isSaving">
+                @Localizer["Cancel"]
+            </MudButton>
+            <MudButton Variant="Variant.Filled" 
+                      Color="Color.Primary"
+                      OnClick="SaveLanguagePreference"
+                      Disabled="@GetDisabledState()"
+                      StartIcon="@Icons.Material.Filled.Save">
+                @(_isSaving ? Localizer["Saving"] : Localizer["SaveAndApply"])
+            </MudButton>
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool _hasError = false;
+    private string? _currentLanguage;
+    private string? _savedPreference;
+    private string? _selectedLanguage;
+    private string? _browserLanguage;
+
+    private bool _hasChanges => _selectedLanguage != _savedPreference;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadLanguageSettings();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ProfileLanguageSettings");
+            _hasError = true;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadLanguageSettings()
+    {
+        Logger.LogInformation("Loading language settings");
+
+        // Get current effective culture
+        var currentCulture = await CultureService.GetEffectiveCultureAsync();
+        _currentLanguage = currentCulture.Name;
+
+        // Get saved profile preference
+        _savedPreference = await CultureService.GetProfileCultureAsync();
+
+        // Get browser language
+        _browserLanguage = await CultureService.GetBrowserCultureAsync();
+
+        // Set selected language to current saved preference
+        _selectedLanguage = _savedPreference;
+
+        Logger.LogInformation("Language settings loaded: Current={Current}, Saved={Saved}, Browser={Browser}",
+            _currentLanguage, _savedPreference, _browserLanguage);
+    }
+
+    private async Task SaveLanguagePreference()
+    {
+        if (_isSaving || !_hasChanges) return;
+
+        try
+        {
+            _isSaving = true;
+            StateHasChanged();
+
+            Logger.LogInformation("Saving language preference: {LanguageCode}", _selectedLanguage ?? "null (Browser Default)");
+
+            var success = await CultureService.SetProfileCultureAsync(_selectedLanguage);
+
+            if (success)
+            {
+                Snackbar.Add(Localizer["LanguageSaved"], Severity.Success);
+                // Page will reload automatically via CultureService
+            }
+            else
+            {
+                Snackbar.Add(Localizer["ErrorSaving"], Severity.Error);
+                _isSaving = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving language preference");
+            Snackbar.Add(Localizer["ErrorSaving"], Severity.Error);
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        // Reset to saved preference
+        _selectedLanguage = _savedPreference;
+        StateHasChanged();
+    }
+
+    private string GetLanguageDisplay(string? languageCode)
+    {
+        return languageCode switch
+        {
+            "en-US" => $"🇺🇸 {Localizer["English"]}",
+            "es-ES" => $"🇪🇸 {Localizer["Spanish"]}",
+            _ => languageCode ?? Localizer["None"]
+        };
+    }
+
+    private bool GetDisabledState()
+    {
+        return _isSaving || !_hasChanges;
+    }
+}

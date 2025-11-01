@@ -342,6 +342,51 @@ public class ProfilesController : ControllerBase
     }
 
     /// <summary>
+    /// Updates the preferred language for the current user's profile
+    /// </summary>
+    /// <param name="profileId">Profile ID to update</param>
+    /// <param name="request">Language update request</param>
+    /// <returns>Success status</returns>
+    [HttpPut("my/{profileId}/language")]
+    [Authorize]
+    public async Task<ActionResult> UpdatePreferredLanguage(Guid profileId, [FromBody] UpdateLanguageRequest request)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ProfilesController.UpdatePreferredLanguage] START - ProfileId={ProfileId}, LanguageCode={LanguageCode}, RequestId={RequestId}",
+            profileId, request?.LanguageCode ?? "null", requestId);
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromRequest();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfilesController.UpdatePreferredLanguage] UNAUTHORIZED - No KeycloakId found, RequestId={RequestId}", requestId);
+                return Unauthorized("User not authenticated");
+            }
+
+            var result = await _profileService.UpdatePreferredLanguageAsync(profileId, keycloakId, request?.LanguageCode);
+            
+            if (!result)
+            {
+                _logger.LogWarning("[ProfilesController.UpdatePreferredLanguage] FAILED - ProfileId={ProfileId}, RequestId={RequestId}", 
+                    profileId, requestId);
+                return NotFound("Profile not found or does not belong to user");
+            }
+
+            _logger.LogInformation("[ProfilesController.UpdatePreferredLanguage] SUCCESS - ProfileId={ProfileId}, LanguageCode={LanguageCode}, RequestId={RequestId}",
+                profileId, request?.LanguageCode ?? "null (browser default)", requestId);
+
+            return Ok(new { message = "Language preference updated successfully", languageCode = request?.LanguageCode });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesController.UpdatePreferredLanguage] ERROR - ProfileId={ProfileId}, RequestId={RequestId}", 
+                profileId, requestId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
     /// Activates a profile for the current user (ACTION_PLAN.md required endpoint)
     /// </summary>
     /// <param name="id">Profile ID to activate</param>
@@ -1104,4 +1149,15 @@ public class ProfilesController : ControllerBase
         // In production, this would check the role claim from JWT token
         return true;
     }
+}
+/// <summary>
+/// Request model for updating preferred language
+/// </summary>
+public class UpdateLanguageRequest
+{
+    /// <summary>
+    /// Language code in BCP 47 format (e.g., en-US, es-ES)
+    /// Null value means use browser default
+    /// </summary>
+    public string? LanguageCode { get; set; }
 }

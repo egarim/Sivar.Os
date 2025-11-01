@@ -62,4 +62,9 @@ public class PostsClient : BaseClient, IPostsClient
     {
         return await GetAsync<IEnumerable<PostActivityDto>>($"api/posts/activity/{profileId}?days={days}", cancellationToken);
     }
+
+    public async Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<PostFeedDto>($"api/posts/nearby?latitude={latitude}&longitude={longitude}&radiusKm={radiusKm}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+    }
 }

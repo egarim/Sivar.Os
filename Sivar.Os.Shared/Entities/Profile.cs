@@ -82,6 +82,15 @@ public class Profile : BaseEntity
     public virtual string? GeoLocationSource { get; set; }
 
     /// <summary>
+    /// User's preferred language in BCP 47 format (e.g., en-US, es-ES)
+    /// Null value means use browser default
+    /// </summary>
+    [StringLength(10, ErrorMessage = "Preferred language code cannot exceed 10 characters")]
+    [RegularExpression(@"^[a-z]{2}(-[A-Z]{2})?$", 
+        ErrorMessage = "Preferred language must be in BCP 47 format (e.g., en-US, es-ES)")]
+    public virtual string? PreferredLanguage { get; set; }
+
+    /// <summary>
     /// Indicates if this is the user's currently active profile
     /// </summary>
     public virtual bool IsActive { get; set; } = false;

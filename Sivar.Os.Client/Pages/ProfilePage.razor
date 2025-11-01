@@ -292,6 +292,13 @@
             <ProfileAbout Bio="@profileData.Bio" />
         </ProfileCard>
 
+        @if (IsOwnProfile)
+        {
+            <div class="mt-4">
+                <ProfileLanguageSettings />
+            </div>
+        }
+
         <ComingSoonAlert 
             Title="Profile Features Coming Soon"
             Message="Full profile details, activity feed, and customization options will be available soon." />

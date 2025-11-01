@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: October 31, 2025 - Added Phase 7 Continuous Aggregates documentation  
+> **Last Updated**: November 1, 2025 - Added Authentication & Authorization Routing Patterns  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -27,7 +27,12 @@
    - Sentiment Analysis & Embeddings Implementation
 8. [CSS Organization & Styling](#css-organization--styling)
 9. [Logging Standards](#logging-standards)
-10. [Authentication & Authorization](#authentication--authorization)
+10. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
+    - Route Configuration Pattern
+    - AllowAnonymous Implementation
+    - Cookie Authentication Middleware
+    - Redirect Loop Prevention
+    - Common Issues & Solutions
 11. [Error Handling](#error-handling)
 12. [Testing & Debugging](#testing--debugging)
 13. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
@@ -4099,7 +4104,338 @@ public async Task<PostDto?> GetPostByIdAsync(string keycloakId, Guid postId)
 
 ---
 
-## Authentication & Authorization
+## Authentication & Authorization Routing
+
+### ⚠️ CRITICAL: Multi-Layer Authorization System
+
+Blazor Server has **THREE layers** of authorization that must work together:
+
+1. **HTTP Middleware Layer** - Cookie authentication in `Program.cs`
+2. **Component Layer** - `AuthorizeRouteView` in `Routes.razor`
+3. **Page Level** - `[Authorize]` or `[AllowAnonymous]` attributes
+
+**If ANY layer blocks access, users get redirected to authentication.**
+
+---
+
+### The Problem: Welcome Page Redirect Loop
+
+**Symptom**: Accessing `https://localhost:5001/` immediately redirects to Keycloak, or creates infinite redirect loop after login.
+
+**Root Cause**: Landing page is protected by `[Authorize]` or missing `[AllowAnonymous]` attribute, causing redirect chain.
+
+---
+
+### ✅ CORRECT Route Configuration
+
+**Landing Page (Public) - Must be at root:**
+
+```razor
+@* Landing.razor - Public landing page *@
+@page "/"
+@page "/welcome"
+@layout LandingLayout
+@attribute [AllowAnonymous]  ⭐ CRITICAL
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<h1>Welcome to Sivar.Os</h1>
+<!-- Landing page content -->
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // ⭐ CRITICAL: Redirect authenticated users away from landing page
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/home", forceLoad: true);
+        }
+    }
+
+    private void HandleSignIn()
+    {
+        // ⭐ CRITICAL: returnUrl must be /home, NOT /
+        Navigation.NavigateTo("/authentication/login?returnUrl=/home", forceLoad: true);
+    }
+
+    private void HandleSignUp()
+    {
+        Navigation.NavigateTo("/authentication/register?returnUrl=/home", forceLoad: true);
+    }
+}
+```
+
+**Home Page (Authenticated) - Must NOT be at root:**
+
+```razor
+@* Home.razor - Authenticated home page *@
+@page "/home"  ⭐ NOT "/" - root is for landing page
+@layout MainLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<h1>Feed</h1>
+<!-- Authenticated content -->
+```
+
+**Other Public Pages:**
+
+```razor
+@* Login.razor *@
+@page "/login"
+@layout LandingLayout
+@attribute [AllowAnonymous]
+
+@* SignUp.razor *@
+@page "/signup"
+@layout LandingLayout
+@attribute [AllowAnonymous]
+
+@* Authentication.razor - Handles OIDC callbacks *@
+@page "/authentication/{action}"
+@attribute [AllowAnonymous]
+```
+
+---
+
+### ✅ CORRECT Routes.razor Configuration
+
+**Location:** `Sivar.Os.Client/Routes.razor`
+
+```razor
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @{
+                    // ⭐ CRITICAL: Check if page allows anonymous access
+                    var pageType = routeData.PageType;
+                    var allowAnonymous = pageType
+                        .GetCustomAttributes(typeof(AllowAnonymousAttribute), inherit: true)
+                        .Any();
+
+                    if (allowAnonymous)
+                    {
+                        // Page allows anonymous, render it
+                        var routeValues = routeData.RouteValues.ToDictionary(
+                            kv => kv.Key,
+                            kv => (object?)kv.Value
+                        );
+                        
+                        <DynamicComponent Type="@pageType" Parameters="@routeValues" />
+                    }
+                    else
+                    {
+                        // Redirect to login with return URL
+                        var returnUrl = WebUtility.UrlEncode($"/{routeData.RouteValues["page"] ?? "home"}");
+                        <RedirectToLogin ReturnUrl="@returnUrl" />
+                    }
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
+    </Found>
+</Router>
+```
+
+**Why This Is Critical:**
+- Without the `allowAnonymous` check, `AuthorizeRouteView` redirects ALL unauthenticated users
+- Even if page has `[AllowAnonymous]`, it gets blocked
+- Must use `DynamicComponent` to render allowed pages
+
+---
+
+### ✅ CORRECT Program.cs Cookie Configuration
+
+**Location:** `Sivar.Os/Program.cs`
+
+```csharp
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "Sivar.Auth";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+
+        // ⭐ CRITICAL: Allow public paths without redirect
+        options.Events.OnRedirectToLogin = context =>
+        {
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILogger<Program>>();
+            
+            var requestPath = context.Request.Path.Value ?? "";
+            
+            logger.LogInformation(
+                "[OnRedirectToLogin] Path={Path}, IsAuthenticated={IsAuth}",
+                requestPath,
+                context.HttpContext.User.Identity?.IsAuthenticated ?? false
+            );
+
+            // ⭐ CRITICAL: Don't redirect these public paths
+            if (requestPath == "/" || 
+                requestPath == "/welcome" || 
+                requestPath.StartsWith("/authentication"))
+            {
+                logger.LogInformation(
+                    "[OnRedirectToLogin] Allowing public path without redirect - Path={Path}",
+                    requestPath
+                );
+                return Task.CompletedTask;
+            }
+
+            // All other paths redirect to Keycloak
+            var returnUrl = WebUtility.UrlEncode(requestPath);
+            context.Response.Redirect($"/authentication/login?returnUrl={returnUrl}");
+            return Task.CompletedTask;
+        };
+    })
+    .AddOpenIdConnect("oidc", options =>
+    {
+        // ... Keycloak configuration
+    });
+```
+
+**OpenID Connect Logout Configuration:**
+
+```csharp
+.AddOpenIdConnect("oidc", options =>
+{
+    // ... other config
+
+    options.Events.OnSignedOutCallbackRedirect = context =>
+    {
+        // ⭐ CRITICAL: Redirect to root after logout
+        context.Response.Redirect("/");
+        context.HandleResponse();
+        return Task.CompletedTask;
+    };
+});
+```
+
+---
+
+### Redirect Loop Prevention Checklist
+
+**Problem**: After Keycloak login, endless redirects between `/` and authentication.
+
+**Solution Checklist:**
+
+- [ ] **Landing page at `/`** - Root route is public landing page
+- [ ] **Home page at `/home`** - Authenticated home is NOT at root
+- [ ] **Landing has `[AllowAnonymous]`** - Explicitly allows public access
+- [ ] **Landing checks authentication state** - `OnInitializedAsync` redirects authenticated users to `/home`
+- [ ] **Login returnUrl is `/home`** - Never return to `/` after login
+- [ ] **Cookie middleware allows `/`** - `OnRedirectToLogin` doesn't redirect public paths
+- [ ] **Routes.razor checks `AllowAnonymous`** - Renders pages with attribute instead of redirecting
+- [ ] **Logout redirects to `/`** - `OnSignedOutCallbackRedirect` goes to landing page
+
+---
+
+### Common Issues & Solutions
+
+#### Issue 1: "Can't access welcome page, redirected to Keycloak"
+
+**Symptoms:**
+- Accessing `https://localhost:5001/` immediately redirects
+- Never see landing page
+
+**Causes & Fixes:**
+
+| Cause | Fix |
+|-------|-----|
+| Home.razor at `/` with `[Authorize]` | ✅ Move Home to `/home`, Landing to `/` |
+| Landing missing `[AllowAnonymous]` | ✅ Add `@attribute [AllowAnonymous]` |
+| Cookie middleware redirects `/` | ✅ Add path check in `OnRedirectToLogin` |
+| Routes.razor always redirects | ✅ Check for `AllowAnonymous` attribute |
+
+#### Issue 2: "Redirect loop after login"
+
+**Symptoms:**
+- Successfully log in to Keycloak
+- Browser shows endless redirects
+- Network tab shows repeated requests to `/` and `/authentication/login`
+
+**Causes & Fixes:**
+
+| Cause | Fix |
+|-------|-----|
+| returnUrl points to `/` | ✅ Change all login returnUrl to `/home` |
+| Landing doesn't redirect authenticated users | ✅ Add `OnInitializedAsync` authentication check |
+| Logout redirects to authenticated page | ✅ Set `OnSignedOutCallbackRedirect` to `/` |
+
+#### Issue 3: "Login works but returns to landing page"
+
+**Symptoms:**
+- Login succeeds
+- User sent back to landing page instead of home
+
+**Cause & Fix:**
+
+| Cause | Fix |
+|-------|-----|
+| returnUrl missing or wrong | ✅ Ensure `returnUrl=/home` in all login links |
+
+---
+
+### Authentication Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  User accesses https://localhost:5001/                      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  HTTP Middleware - Cookie Authentication                    │
+│  OnRedirectToLogin checks if path is "/", "/welcome", etc.  │
+│  ✅ Allows public paths without redirect                    │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Routes.razor - AuthorizeRouteView                          │
+│  Checks for [AllowAnonymous] attribute                      │
+│  ✅ Renders page with DynamicComponent if allowed           │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Landing.razor - OnInitializedAsync                         │
+│  Checks if user is authenticated                            │
+│  ✅ If authenticated → Navigate to /home                    │
+│  ❌ If not → Show landing page with Sign In button          │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓ (User clicks Sign In)
+┌─────────────────────────────────────────────────────────────┐
+│  Navigate to /authentication/login?returnUrl=/home          │
+│  ⭐ returnUrl is /home, NOT /                               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Keycloak Login                                             │
+│  User authenticates                                         │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  OnTokenValidated - Program.cs                              │
+│  Create/retrieve user in database                           │
+│  Set ActiveProfileId                                        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Redirect to /home (from returnUrl)                         │
+│  ✅ User sees authenticated home page                       │
+│  ✅ NO redirect loop (not sent to /)                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Keycloak Authentication Setup
 
 ### Authentication Provider: Keycloak (OpenID Connect)
 
@@ -4178,6 +4514,72 @@ public async Task<PostDto?> CreatePostAsync(string keycloakId, CreatePostDto dto
     </NotAuthorized>
 </AuthorizeView>
 ```
+
+---
+
+### Debugging Authentication Issues
+
+**Enable detailed logging:**
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft.AspNetCore.Authentication": "Debug",
+        "Microsoft.AspNetCore.Authorization": "Debug"
+      }
+    }
+  }
+}
+```
+
+**Key log patterns:**
+
+```
+[OnRedirectToLogin] Path=/, IsAuthenticated=False
+[OnRedirectToLogin] Allowing public path without redirect - Path=/
+
+[Landing.OnInitializedAsync] User is authenticated, redirecting to /home
+[Home.OnInitializedAsync] Loading feed for authenticated user
+```
+
+**Clear browser cookies:**
+
+When testing authentication changes, ALWAYS clear cookies:
+- Chrome: DevTools → Application → Cookies → Delete all
+- Edge: DevTools → Application → Cookies → Delete all
+- Or use Incognito/Private mode
+
+---
+
+### Key Lessons
+
+1. **Three-Layer Authorization**
+   - HTTP middleware (cookie authentication)
+   - Component layer (AuthorizeRouteView)
+   - Page level ([Authorize] / [AllowAnonymous])
+
+2. **Root Route Must Be Public**
+   - `/` should be landing page with `[AllowAnonymous]`
+   - Authenticated home at `/home` or similar
+   - Never put `[Authorize]` page at root
+
+3. **Prevent Redirect Loops**
+   - Landing page detects authenticated users
+   - Redirects them immediately to `/home`
+   - returnUrl never points to `/`
+
+4. **Cookie Middleware Path Exclusions**
+   - Public paths must be excluded from redirect
+   - Check path in `OnRedirectToLogin` event
+   - Return `Task.CompletedTask` for public paths
+
+5. **Routes.razor Must Check Attributes**
+   - `AuthorizeRouteView` doesn't automatically respect `[AllowAnonymous]`
+   - Must use reflection to check attribute
+   - Render with `DynamicComponent` if allowed
 
 ---
 

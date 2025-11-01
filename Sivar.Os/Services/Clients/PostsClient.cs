@@ -373,6 +373,27 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
         }
     }
 
+    public async Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("FindNearbyPostsAsync: lat={Lat}, lon={Lon}, radius={Radius}km", latitude, longitude, radiusKm);
+        try
+        {
+            // For now, return empty feed - location-based posts will be implemented later
+            return new PostFeedDto
+            {
+                Posts = new List<PostDto>(),
+                Page = pageNumber,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in FindNearbyPostsAsync");
+            throw;
+        }
+    }
+
     /// <summary>
     /// Extracts the Keycloak ID from the current HTTP context
     /// </summary>
