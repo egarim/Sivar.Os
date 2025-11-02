@@ -1,5 +1,7 @@
 @using MudBlazor
 @using Sivar.Os.Shared.DTOs
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<PostFooter> Localizer
 
 @* PostFooter component *@
 
@@ -21,7 +23,7 @@
     <div class="post-actions-buttons">
         <button class="action-btn" @onclick="OnSave">
             <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
-            Save
+            @Localizer["SaveButton"]
         </button>
         
         @* More Options Menu *@

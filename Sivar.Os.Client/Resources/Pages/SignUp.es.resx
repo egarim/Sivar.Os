@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" use="preserve" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Navigation -->
+  <data name="BackToHome" xml:space="preserve">
+    <value>Volver al Inicio</value>
+  </data>
+  
+  <!-- Header -->
+  <data name="Logo" xml:space="preserve">
+    <value>SivarOS</value>
+    <comment>Application logo name - mantener sin cambios</comment>
+  </data>
+  <data name="CreateAccount" xml:space="preserve">
+    <value>Crear Cuenta</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Únete al futuro de la gobernanza digital</value>
+  </data>
+  
+  <!-- Form Labels -->
+  <data name="FullNameLabel" xml:space="preserve">
+    <value>Nombre Completo</value>
+  </data>
+  <data name="FullNamePlaceholder" xml:space="preserve">
+    <value>Ingresa tu nombre completo</value>
+  </data>
+  <data name="EmailLabel" xml:space="preserve">
+    <value>Correo Electrónico</value>
+  </data>
+  <data name="EmailPlaceholder" xml:space="preserve">
+    <value>Ingresa tu correo electrónico</value>
+  </data>
+  <data name="PasswordLabel" xml:space="preserve">
+    <value>Contraseña</value>
+  </data>
+  <data name="PasswordPlaceholder" xml:space="preserve">
+    <value>Crea una contraseña (mín. 8 caracteres)</value>
+  </data>
+  <data name="ConfirmPasswordLabel" xml:space="preserve">
+    <value>Confirmar Contraseña</value>
+  </data>
+  <data name="ConfirmPasswordPlaceholder" xml:space="preserve">
+    <value>Confirma tu contraseña</value>
+  </data>
+  
+  <!-- Terms Agreement -->
+  <data name="AgreeToTermsPart1" xml:space="preserve">
+    <value>Acepto los</value>
+  </data>
+  <data name="TermsOfService" xml:space="preserve">
+    <value>Términos de Servicio</value>
+  </data>
+  <data name="And" xml:space="preserve">
+    <value>y la</value>
+  </data>
+  <data name="PrivacyPolicy" xml:space="preserve">
+    <value>Política de Privacidad</value>
+  </data>
+  
+  <!-- Buttons -->
+  <data name="CreatingAccount" xml:space="preserve">
+    <value>Creando Cuenta...</value>
+  </data>
+  <data name="CreateAccountButton" xml:space="preserve">
+    <value>Crear Cuenta</value>
+  </data>
+  
+  <!-- Footer -->
+  <data name="AlreadyHaveAccount" xml:space="preserve">
+    <value>¿Ya tienes una cuenta?</value>
+  </data>
+  <data name="SignInLink" xml:space="preserve">
+    <value>Iniciar sesión</value>
+  </data>
+  
+  <!-- Validation Messages -->
+  <data name="ErrorPasswordLength" xml:space="preserve">
+    <value>La contraseña debe tener al menos 8 caracteres</value>
+  </data>
+  <data name="ErrorPasswordsDoNotMatch" xml:space="preserve">
+    <value>Las contraseñas no coinciden</value>
+  </data>
+  <data name="ErrorMustAgreeToTerms" xml:space="preserve">
+    <value>Debes aceptar los términos</value>
+  </data>
+  <data name="ErrorInvalidEmail" xml:space="preserve">
+    <value>Por favor ingresa un correo electrónico válido</value>
+  </data>
+  <data name="ErrorRequired" xml:space="preserve">
+    <value>Este campo es obligatorio</value>
+  </data>
+  <data name="ErrorGeneric" xml:space="preserve">
+    <value>Ocurrió un error. Por favor, intenta de nuevo.</value>
+  </data>
+</root>

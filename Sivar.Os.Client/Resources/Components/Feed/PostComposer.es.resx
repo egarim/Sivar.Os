@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" use="preserve" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Composer Header -->
+  <data name="CreatePostTitle" xml:space="preserve">
+    <value>Crear publicación</value>
+    <comment>Main title of the post composer</comment>
+  </data>
+  <data name="PostingAs" xml:space="preserve">
+    <value>Publicando como {0}</value>
+    <comment>Indicator showing which profile is posting. {0} = profile type title</comment>
+  </data>
+  
+  <!-- Input Placeholder -->
+  <data name="PostPlaceholder" xml:space="preserve">
+    <value>¿Qué está pasando?</value>
+    <comment>Placeholder text for post input</comment>
+  </data>
+  
+  <!-- Advanced Options -->
+  <data name="AdvancedOptionsTitle" xml:space="preserve">
+    <value>Opciones avanzadas</value>
+    <comment>Title for advanced options section</comment>
+  </data>
+  <data name="VisibilityLabel" xml:space="preserve">
+    <value>Visibilidad</value>
+    <comment>Label for visibility dropdown</comment>
+  </data>
+  <data name="SelectVisibility" xml:space="preserve">
+    <value>Seleccionar visibilidad...</value>
+    <comment>Placeholder for visibility dropdown</comment>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Idioma</value>
+    <comment>Label for language selection</comment>
+  </data>
+  <data name="TagsLabel" xml:space="preserve">
+    <value>Etiquetas (separadas por comas)</value>
+    <comment>Label for tags input</comment>
+  </data>
+  <data name="TagsPlaceholder" xml:space="preserve">
+    <value>ej., tecnología, startup, evento</value>
+    <comment>Placeholder for tags input</comment>
+  </data>
+  <data name="TagsHint" xml:space="preserve">
+    <value>Agregar hasta 10 etiquetas</value>
+    <comment>Helper text for tags limit</comment>
+  </data>
+  <data name="LocationLabel" xml:space="preserve">
+    <value>Ubicación</value>
+    <comment>Label for location input</comment>
+  </data>
+  <data name="LocationPlaceholder" xml:space="preserve">
+    <value>Ciudad, País o Virtual</value>
+    <comment>Placeholder for location input</comment>
+  </data>
+  <data name="LocationHint" xml:space="preserve">
+    <value>¿De dónde trata esta publicación?</value>
+    <comment>Helper text for location</comment>
+  </data>
+  <data name="BusinessMetadataLabel" xml:space="preserve">
+    <value>Metadatos de negocio (Opcional)</value>
+    <comment>Label for business metadata textarea</comment>
+  </data>
+  <data name="BusinessMetadataPlaceholder" xml:space="preserve">
+    <value>Información adicional de negocio (formato JSON)</value>
+    <comment>Placeholder for business metadata</comment>
+  </data>
+  <data name="BusinessMetadataHint" xml:space="preserve">
+    <value>Para datos estructurados de negocio</value>
+    <comment>Helper text for business metadata</comment>
+  </data>
+  
+  <!-- Visibility Levels -->
+  <data name="VisibilityPublic" xml:space="preserve">
+    <value>Público</value>
+    <comment>Public visibility option</comment>
+  </data>
+  <data name="VisibilityPrivate" xml:space="preserve">
+    <value>Privado (Solo yo)</value>
+    <comment>Private visibility option</comment>
+  </data>
+  <data name="VisibilityRestricted" xml:space="preserve">
+    <value>Restringido</value>
+    <comment>Restricted visibility option</comment>
+  </data>
+  <data name="VisibilityConnectionsOnly" xml:space="preserve">
+    <value>Solo conexiones</value>
+    <comment>Connections only visibility option</comment>
+  </data>
+  <data name="VisibilityUnknown" xml:space="preserve">
+    <value>Desconocido</value>
+    <comment>Unknown visibility option</comment>
+  </data>
+  
+  <!-- Visibility Descriptions -->
+  <data name="VisibilityPublicDesc" xml:space="preserve">
+    <value>Todos pueden ver esta publicación</value>
+    <comment>Description for public visibility</comment>
+  </data>
+  <data name="VisibilityPrivateDesc" xml:space="preserve">
+    <value>Solo tú puedes ver esta publicación</value>
+    <comment>Description for private visibility</comment>
+  </data>
+  <data name="VisibilityRestrictedDesc" xml:space="preserve">
+    <value>Solo personas específicas pueden ver esta publicación</value>
+    <comment>Description for restricted visibility</comment>
+  </data>
+  <data name="VisibilityConnectionsOnlyDesc" xml:space="preserve">
+    <value>Solo tus seguidores pueden ver esta publicación</value>
+    <comment>Description for connections only visibility</comment>
+  </data>
+  
+  <!-- Publish Button States -->
+  <data name="PublishButton" xml:space="preserve">
+    <value>Publicar</value>
+    <comment>Publish button text</comment>
+  </data>
+  <data name="PublishingButton" xml:space="preserve">
+    <value>Publicando...</value>
+    <comment>Publish button text during submission</comment>
+  </data>
+  
+  <!-- Image Upload -->
+  <data name="AddImagesTitle" xml:space="preserve">
+    <value>Agregar imágenes (JPG, PNG, GIF, WebP - hasta 4 archivos, 10MB cada uno)</value>
+    <comment>Tooltip for image upload button</comment>
+  </data>
+  <data name="RemoveImageTitle" xml:space="preserve">
+    <value>Eliminar imagen</value>
+    <comment>Tooltip for remove image button</comment>
+  </data>
+  
+  <!-- Event Scheduling -->
+  <data name="EventDateLabel" xml:space="preserve">
+    <value>Fecha del evento</value>
+    <comment>Label for event date input</comment>
+  </data>
+  <data name="EventTimeLabel" xml:space="preserve">
+    <value>Hora del evento</value>
+    <comment>Label for event time input</comment>
+  </data>
+  <data name="EventLocationPlaceholder" xml:space="preserve">
+    <value>Virtual, Oficina central, etc.</value>
+    <comment>Placeholder for event location</comment>
+  </data>
+</root>

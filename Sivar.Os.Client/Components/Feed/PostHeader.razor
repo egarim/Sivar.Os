@@ -1,6 +1,8 @@
 @using Sivar.Os.Client.Components.Shared
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @inject ILogger<PostHeader> Logger
+@inject IStringLocalizer<PostHeader> Localizer
 
 @* PostHeader component *@
 
@@ -8,7 +10,7 @@
     <Avatar Initials="@AuthorInitials" Size="large" IsClickable="true" OnClick="@HandleAuthorClick" CssClass="post-avatar" />
     <div class="post-author-info">
         <div class="post-author-name clickable" @onclick="HandleAuthorClick">@Author</div>
-        <div class="post-time">@Time.ToString("MMM dd, yyyy h:mm tt")</div>
+        <div class="post-time">@Time.ToString(Localizer["DateTimeFormat"])</div>
     </div>
     <div class="post-header-tags">
         <span class="post-visibility">@Visibility</span>

@@ -1,5 +1,8 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProfileAbout> Localizer
+
 <div class="profile-section">
-    <MudText Typo="Typo.h6" Class="profile-section-title">About</MudText>
+    <MudText Typo="Typo.h6" Class="profile-section-title">@Localizer["SectionTitle"]</MudText>
     <MudText Typo="Typo.body1" Class="profile-bio">
         @Bio
     </MudText>

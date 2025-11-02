@@ -1,11 +1,13 @@
 @using MudBlazor
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @inject ILogger<Header> Logger
+@inject IStringLocalizer<Header> Localizer
 
 @* Header component for the wireframe landing page *@
 
 <div class="header">
-    <div class="logo">Sivar Social</div>
+    <div class="logo">@Localizer["AppName"]</div>
     <div class="user-info">
         <div class="user-details">
             @if (IsLoading)
@@ -35,7 +37,7 @@
             <MudIconButton Icon="@ThemeIcon" 
                            Color="Color.Inherit" 
                            OnClick="@OnThemeToggle"
-                           Title="Toggle theme" />
+                           Title="@Localizer["ToggleThemeTooltip"]" />
         }
         
         @if (ShowLogout)
@@ -43,7 +45,7 @@
             <MudIconButton Icon="@Icons.Material.Filled.Logout" 
                            Color="Color.Inherit" 
                            OnClick="@OnLogout"
-                           Title="Logout" />
+                           Title="@Localizer["LogoutTooltip"]" />
         }
     </div>
 </div>

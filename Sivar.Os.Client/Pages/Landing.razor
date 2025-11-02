@@ -4,9 +4,11 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IStringLocalizer<Landing> Localizer
 
 <style>
     .landing-container {
@@ -350,11 +352,10 @@
     <!-- Left Section - Branding -->
     <div class="landing-left">
         <div class="branding-content">
-            <div class="brand-logo">SivarOS</div>
-            <div class="brand-tagline">An operating system for countries</div>
+            <div class="brand-logo">@Localizer["BrandLogo"]</div>
+            <div class="brand-tagline">@Localizer["BrandTagline"]</div>
             <div class="brand-description">
-                Empowering nations with modern infrastructure, digital governance, 
-                and citizen-centric services. Building the future of connected communities.
+                @Localizer["BrandDescription"]
             </div>
         </div>
     </div>
@@ -363,18 +364,18 @@
     <div class="landing-right">
         <div class="auth-container">
             <div class="auth-header">
-                <div class="auth-title">Welcome</div>
-                <div class="auth-subtitle">Join the future of digital governance</div>
+                <div class="auth-title">@Localizer["WelcomeTitle"]</div>
+                <div class="auth-subtitle">@Localizer["WelcomeSubtitle"]</div>
             </div>
 
             <div class="auth-tabs">
                 <button class="auth-tab @(_activeTab == "signin" ? "active" : "")" 
                         @onclick="@(() => _activeTab = "signin")">
-                    Sign In
+                    @Localizer["SignInTab"]
                 </button>
                 <button class="auth-tab @(_activeTab == "signup" ? "active" : "")" 
                         @onclick="@(() => _activeTab = "signup")">
-                    Sign Up
+                    @Localizer["SignUpTab"]
                 </button>
             </div>
 
@@ -382,56 +383,56 @@
             {
                 <div class="auth-form">
                     <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-input" placeholder="Enter your email" @bind="_email" />
+                        <label class="form-label">@Localizer["EmailLabel"]</label>
+                        <input type="email" class="form-input" placeholder="@Localizer["EmailPlaceholder"]" @bind="_email" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-input" placeholder="Enter your password" @bind="_password" />
+                        <label class="form-label">@Localizer["PasswordLabel"]</label>
+                        <input type="password" class="form-input" placeholder="@Localizer["PasswordPlaceholder"]" @bind="_password" />
                     </div>
                     <div class="forgot-password">
-                        <a href="#">Forgot password?</a>
+                        <a href="#">@Localizer["ForgotPassword"]</a>
                     </div>
-                    <button class="submit-btn" @onclick="HandleSignIn">Sign In</button>
+                    <button class="submit-btn" @onclick="HandleSignIn">@Localizer["SignInButton"]</button>
                 </div>
             }
             else
             {
                 <div class="auth-form">
                     <div class="form-group">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" class="form-input" placeholder="Enter your full name" @bind="_fullName" />
+                        <label class="form-label">@Localizer["FullNameLabel"]</label>
+                        <input type="text" class="form-input" placeholder="@Localizer["FullNamePlaceholder"]" @bind="_fullName" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-input" placeholder="Enter your email" @bind="_email" />
+                        <label class="form-label">@Localizer["EmailLabel"]</label>
+                        <input type="email" class="form-input" placeholder="@Localizer["EmailPlaceholder"]" @bind="_email" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-input" placeholder="Create a password" @bind="_password" />
+                        <label class="form-label">@Localizer["PasswordLabel"]</label>
+                        <input type="password" class="form-input" placeholder="@Localizer["CreatePasswordPlaceholder"]" @bind="_password" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Confirm Password</label>
-                        <input type="password" class="form-input" placeholder="Confirm your password" @bind="_confirmPassword" />
+                        <label class="form-label">@Localizer["ConfirmPasswordLabel"]</label>
+                        <input type="password" class="form-input" placeholder="@Localizer["ConfirmPasswordPlaceholder"]" @bind="_confirmPassword" />
                     </div>
                     <label class="form-checkbox">
                         <input type="checkbox" @bind="_agreeToTerms" />
-                        <span>I agree to the Terms of Service and Privacy Policy</span>
+                        <span>@Localizer["AgreeToTerms"]</span>
                     </label>
-                    <button class="submit-btn" @onclick="HandleSignUp">Create Account</button>
+                    <button class="submit-btn" @onclick="HandleSignUp">@Localizer["CreateAccountButton"]</button>
                 </div>
             }
 
-            <div class="divider">or continue with</div>
+            <div class="divider">@Localizer["OrContinueWith"]</div>
 
             <div class="social-auth">
                 <button class="social-btn" @onclick="@(() => HandleSocialAuth("google"))">
                     <span>🔍</span>
-                    <span>Continue with Google</span>
+                    <span>@Localizer["ContinueWithGoogle"]</span>
                 </button>
                 <button class="social-btn" @onclick="@(() => HandleSocialAuth("microsoft"))">
                     <span>🪟</span>
-                    <span>Continue with Microsoft</span>
+                    <span>@Localizer["ContinueWithMicrosoft"]</span>
                 </button>
             </div>
         </div>

@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: November 1, 2025 - Added Authentication & Authorization Routing Patterns  
+> **Last Updated**: November 2, 2025 - Added Multi-Language Localization Standards  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -9,40 +9,48 @@
 ## Table of Contents
 1. [Project Architecture Overview](#project-architecture-overview)
 2. [Blazor Configuration](#blazor-configuration)
-3. [Service Layer Rules](#service-layer-rules)
-4. [Repository Layer Rules](#repository-layer-rules)
-5. [Controller Usage](#controller-usage)
-6. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
+3. [UI Component Standards](#ui-component-standards) ⭐ **MANDATORY MudBlazor Usage**
+4. [Cross-Platform Compatibility](#cross-platform-compatibility-server--webassembly)
+5. [Multi-Language Localization](#multi-language-localization) ⭐ **NEW** - Required for All Components
+   - Localization Architecture
+   - How to Add Localization to a New Component
+   - Special Patterns (HTML Content, MudBlazor, String Interpolation)
+   - Language Selector Implementation
+   - Localization Checklist & Common Errors
+6. [Service Layer Rules](#service-layer-rules)
+7. [Repository Layer Rules](#repository-layer-rules)
+8. [Controller Usage](#controller-usage)
+9. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
    - Storage Configuration & Hierarchical Namespace
    - CORS & Mixed Content Solutions
    - Proxy Endpoint Implementation
    - URL Generation Strategy (Dynamic vs Stored)
    - GetFileUrlAsync - The Critical Metadata Loading Fix
    - Troubleshooting Guide & Common Issues
-7. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
-   - Progressive Enhancement for AI Features
-   - Background Model Preloading
-   - Server-First with Client Switch Strategy
-   - Transformers.js Integration Examples
-   - Sentiment Analysis & Embeddings Implementation
-8. [CSS Organization & Styling](#css-organization--styling)
-9. [Logging Standards](#logging-standards)
-10. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
+10. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
+    - Progressive Enhancement for AI Features
+    - Background Model Preloading
+    - Server-First with Client Switch Strategy
+    - Transformers.js Integration Examples
+    - Sentiment Analysis & Embeddings Implementation
+11. [CSS Organization & Styling](#css-organization--styling)
+12. [Logging Standards](#logging-standards)
+13. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
     - Route Configuration Pattern
     - AllowAnonymous Implementation
     - Cookie Authentication Middleware
     - Redirect Loop Prevention
     - Common Issues & Solutions
-11. [Error Handling](#error-handling)
-12. [Testing & Debugging](#testing--debugging)
-13. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-14. [Database Script System](#database-script-system) ⭐ **UPDATED**
+14. [Error Handling](#error-handling)
+15. [Testing & Debugging](#testing--debugging)
+16. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+17. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-15. [References](#references)
+18. [References](#references)
 
 ---
 
@@ -767,6 +775,411 @@ When testing components:
 2. Mentally verify: "Would this work in WebAssembly?"
 3. Check for server-only dependencies (HttpContext, etc.)
 4. Ensure all services are injected, not hardcoded
+
+---
+
+## Multi-Language Localization
+
+### ⭐ ALL components MUST support localization
+
+**Status**: ✅ **ACTIVE** - Localization infrastructure is fully implemented and required for all new components.
+
+**Supported Languages:**
+- 🇺🇸 English (en-US) - Default
+- 🇪🇸 Spanish (es-ES)
+
+### Localization Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Blazor Component                          │
+│                   (MyComponent.razor)                        │
+│              @inject IStringLocalizer<T>                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   Resource Files                             │
+│        Resources/Pages/MyComponent.resx (English)            │
+│        Resources/Pages/MyComponent.es.resx (Spanish)         │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│              Request Localization Middleware                 │
+│              (Detects culture from cookie/browser)           │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  Culture Controller                          │
+│              /Culture/SetCulture endpoint                    │
+│              (Sets culture cookie, redirects back)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### How to Add Localization to a New Component
+
+Follow these steps **EVERY TIME** you create a new component with user-facing text:
+
+#### Step 1: Create Resource Files
+
+**Location depends on project:**
+
+| Component Location | Resource File Location |
+|-------------------|------------------------|
+| `Sivar.Os.Client/Pages/MyPage.razor` | `Sivar.Os.Client/Resources/Pages/MyPage.resx` |
+| `Sivar.Os.Client/Components/MyComponent.razor` | `Sivar.Os.Client/Resources/Components/MyComponent.resx` |
+| `Sivar.Os/Components/Pages/Error.razor` | `Sivar.Os/Resources/Components/Pages/Error.resx` |
+
+**Create TWO files:**
+1. **Base file (English)**: `MyComponent.resx`
+2. **Spanish file**: `MyComponent.es.resx`
+
+**Example: Counter.resx (English)**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <!-- Schema omitted for brevity -->
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  
+  <!-- Your strings here -->
+  <data name="PageTitle" xml:space="preserve">
+    <value>Counter</value>
+  </data>
+  <data name="Heading" xml:space="preserve">
+    <value>Counter</value>
+  </data>
+  <data name="CurrentCountLabel" xml:space="preserve">
+    <value>Current count:</value>
+  </data>
+  <data name="ButtonText" xml:space="preserve">
+    <value>Click me</value>
+  </data>
+</root>
+```
+
+**Example: Counter.es.resx (Spanish)**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Same schema as English file -->
+  
+  <data name="PageTitle" xml:space="preserve">
+    <value>Contador</value>
+  </data>
+  <data name="Heading" xml:space="preserve">
+    <value>Contador</value>
+  </data>
+  <data name="CurrentCountLabel" xml:space="preserve">
+    <value>Conteo actual:</value>
+  </data>
+  <data name="ButtonText" xml:space="preserve">
+    <value>Haz clic aquí</value>
+  </data>
+</root>
+```
+
+**✅ Best Practices for Resource Keys:**
+
+| Key Naming | Example | Use Case |
+|------------|---------|----------|
+| `PageTitle` | "Counter" | Browser tab title, `<PageTitle>` |
+| `Heading` | "Welcome" | Main page heading |
+| `{Element}Label` | "EmailLabel", "PasswordLabel" | Form field labels |
+| `{Element}Placeholder` | "EmailPlaceholder" | Input placeholders |
+| `{Action}Button` | "SubmitButton", "CancelButton" | Button text |
+| `{Section}Title` | "ProfileSectionTitle" | Section headings |
+| `{Element}Description` | "FeatureDescription" | Help text, descriptions |
+| `{State}Message` | "LoadingMessage", "ErrorMessage" | Status messages |
+
+#### Step 2: Update the Component
+
+**Add the necessary imports and injection:**
+
+```razor
+@page "/counter"
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Counter> Localizer
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+
+<h1>@Localizer["Heading"]</h1>
+
+<p>@Localizer["CurrentCountLabel"] @currentCount</p>
+
+<MudButton Color="Color.Primary" 
+           Variant="Variant.Filled" 
+           @onclick="IncrementCount">
+    @Localizer["ButtonText"]
+</MudButton>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}
+```
+
+**Key Points:**
+- ✅ Import `Microsoft.Extensions.Localization`
+- ✅ Inject `IStringLocalizer<YourComponentName>` (generic type MUST match component class name)
+- ✅ Use `@Localizer["KeyName"]` to access strings
+- ✅ Replace ALL hardcoded strings with localized versions
+
+#### Step 3: Special Patterns for Complex Scenarios
+
+**Pattern 1: HTML Content in Resource Strings**
+
+When resource strings contain HTML tags (like `<strong>`, `<a>`, etc.), use `MarkupString`:
+
+```razor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Error> Localizer
+
+<p>@((MarkupString)Localizer["DevelopmentModeInfo"].Value)</p>
+```
+
+**Resource file (Error.resx):**
+```xml
+<data name="DevelopmentModeInfo" xml:space="preserve">
+  <value>Swapping to &lt;strong&gt;Development&lt;/strong&gt; environment will display more detailed information.</value>
+</data>
+```
+
+**Resource file (Error.es.resx):**
+```xml
+<data name="DevelopmentModeInfo" xml:space="preserve">
+  <value>Cambiar al entorno de &lt;strong&gt;Desarrollo&lt;/strong&gt; mostrará información más detallada.</value>
+</data>
+```
+
+**Pattern 2: MudBlazor Component Attributes**
+
+For MudBlazor components, localize ALL text attributes:
+
+```razor
+<MudTable Items="items" 
+          SortLabel="@Localizer["SortBy"]">
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel SortBy="...">
+                @Localizer["DateColumn"]
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="...">
+                @Localizer["NameColumn"]
+            </MudTableSortLabel>
+        </MudTh>
+    </HeaderContent>
+    <RowTemplate Context="item">
+        <MudTd DataLabel="@Localizer["DateColumn"]">
+            @item.Date
+        </MudTd>
+        <MudTd DataLabel="@Localizer["NameColumn"]">
+            @item.Name
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+```
+
+**⚠️ Important:** Remember to localize BOTH the column header AND the `DataLabel` attribute (for mobile responsive views).
+
+**Pattern 3: String Interpolation with Localizable Parts**
+
+When combining localized strings with variables:
+
+```razor
+@code {
+    private string userName = "John";
+}
+
+<!-- ✅ CORRECT -->
+<p>@Localizer["WelcomeMessage"]: @userName</p>
+
+<!-- Resource: "WelcomeMessage" = "Welcome" -->
+<!-- Result: "Welcome: John" -->
+
+<!-- ❌ WRONG - Don't include variables in resource strings -->
+<!-- Resource: "WelcomeMessage" = "Welcome {0}" -->
+```
+
+**Pattern 4: Conditional Text**
+
+```razor
+@if (isLoading)
+{
+    <p>@Localizer["LoadingMessage"]</p>
+}
+else if (hasError)
+{
+    <p>@Localizer["ErrorMessage"]</p>
+}
+else
+{
+    <p>@Localizer["SuccessMessage"]</p>
+}
+```
+
+#### Step 4: Verify and Test
+
+1. **Build the project:**
+   ```powershell
+   dotnet build
+   ```
+
+2. **Run the application:**
+   ```powershell
+   dotnet run --project Sivar.Os\Sivar.Os.csproj
+   ```
+
+3. **Test language switching:**
+   - Navigate to the landing page (`/` or `/welcome`)
+   - Click the language selector (globe icon 🌐) in the top-right
+   - Select "Español"
+   - Verify all text changes to Spanish
+   - Select "English" to switch back
+
+4. **Check for missing translations:**
+   - If you see a resource key instead of text (e.g., "ButtonText"), the resource file is missing or has wrong key name
+   - Check browser console for errors
+   - Verify resource files are named correctly
+
+### MudBlazor Localization
+
+MudBlazor UI components (tables, dialogs, pagination) have their own localization handled by a custom `MudLocalizerService`.
+
+**Location:** `Sivar.Os.Client/Services/MudLocalizerService.cs`
+
+**Already localized (41 strings):**
+- MudDataGrid: Filters, sorting, grouping, columns
+- MudTable: Equals, not equals operators
+- MudPagination: First, previous, next, last buttons
+
+**✅ No action needed** - MudBlazor components automatically use the current culture.
+
+### Language Selector Implementation
+
+The language selector is available on:
+- ✅ Landing/Welcome page (`LandingLayout.razor`)
+- ✅ Authenticated pages (`MainLayout.razor`) - via profile settings
+
+**How it works:**
+1. User clicks language menu (globe icon)
+2. Selects language (English/Español)
+3. Request sent to `/Culture/SetCulture?culture=es-ES&redirectUri=/current-page`
+4. Controller sets culture cookie (persists for 1 year)
+5. Page reloads with new culture
+6. All `@Localizer` calls use new language
+
+**Culture precedence:**
+1. **Cookie** (set by language selector) - Highest priority
+2. **Browser language** (from `Accept-Language` header)
+3. **Default** (en-US)
+
+### Localization Checklist
+
+Before marking a component as "complete", verify:
+
+- [ ] **Resource files created** - Both `.resx` (English) and `.es.resx` (Spanish)
+- [ ] **Correct location** - Resources folder mirrors component folder structure
+- [ ] **Import added** - `@using Microsoft.Extensions.Localization`
+- [ ] **Injection added** - `@inject IStringLocalizer<ComponentName> Localizer`
+- [ ] **All strings localized** - NO hardcoded user-facing text
+- [ ] **PageTitle localized** - Browser tab shows translated title
+- [ ] **Buttons localized** - All button text uses `@Localizer`
+- [ ] **Labels localized** - Form labels, table headers, etc.
+- [ ] **Messages localized** - Error messages, success messages, loading text
+- [ ] **Placeholders localized** - Input placeholders
+- [ ] **MudBlazor attributes localized** - `DataLabel`, `SortLabel`, etc.
+- [ ] **HTML content handled** - Use `MarkupString` for HTML in resources
+- [ ] **Build succeeds** - No compilation errors
+- [ ] **Tested in Spanish** - All text appears in Spanish when language switched
+- [ ] **Tested in English** - All text appears in English when language switched
+- [ ] **No missing keys** - No resource key names appearing as text
+
+### Common Localization Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Cannot provide a value for property 'Localizer'" | Localization services not registered in server `Program.cs` | Add `builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");` |
+| Resource key appears as text | Resource file missing or wrong key name | Check resource file exists and key matches exactly |
+| English shows instead of Spanish | Spanish resource file missing | Create `Component.es.resx` file |
+| HTML tags visible as text | Not using `MarkupString` | Wrap in `@((MarkupString)Localizer["Key"].Value)` |
+| Build error "IStringLocalizer not found" | Missing using directive | Add `@using Microsoft.Extensions.Localization` |
+| Wrong culture always loads | Culture cookie not set | Verify `CultureController` exists and `UseRequestLocalization()` middleware is registered |
+
+### Adding a New Language
+
+To add a third language (e.g., French):
+
+1. **Add culture to supported list** (`Program.cs`):
+   ```csharp
+   var supportedCultures = new[] { "en-US", "es-ES", "fr-FR" };
+   ```
+
+2. **Create resource files** for ALL components:
+   ```
+   Counter.fr.resx
+   Landing.fr.resx
+   Login.fr.resx
+   ... (28 components total)
+   ```
+
+3. **Add to MudLocalizerService** (`MudLocalizerService.cs`):
+   ```csharp
+   {
+       "fr", new Dictionary<string, string>()
+       {
+           { "MudDataGrid.AddFilter", "Ajouter un filtre" },
+           // ... 40 more strings
+       }
+   }
+   ```
+
+4. **Add to language selector** (`LandingLayout.razor`, `MainLayout.razor`):
+   ```razor
+   <MudMenuItem OnClick="@(() => ChangeLanguage("fr-FR"))">
+       <div style="display: flex; align-items: center; gap: 8px;">
+           <span>🇫🇷</span>
+           <span>Français</span>
+       </div>
+   </MudMenuItem>
+   ```
+
+5. **Test thoroughly** - All 28 components in new language
+
+### Localization Resources
+
+**Project Status:**
+- **Components localized**: 28/28 (100%)
+- **Application strings**: 242
+- **MudBlazor strings**: 41
+- **Total strings**: 283
+- **Languages**: 2 (English, Spanish)
+
+**Documentation:**
+- Implementation summary: `LOCALIZATION_IMPLEMENTATION_SUMMARY.md`
+- Detailed plan: `MULTI_LANGUAGE_LOCALIZATION_PLAN.md`
 
 ---
 

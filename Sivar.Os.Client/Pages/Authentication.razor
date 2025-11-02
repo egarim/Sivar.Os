@@ -1,14 +1,16 @@
 @page "/authentication/{action}"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject IStringLocalizer<Authentication> Localizer
 
 <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
     <div style="text-align: center; color: white;">
         <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
         <div style="font-size: 24px; font-weight: 600; margin-bottom: 8px;">@GetMessage()</div>
-        <div style="font-size: 16px; opacity: 0.9;">Please wait...</div>
+        <div style="font-size: 16px; opacity: 0.9;">@Localizer["PleaseWait"]</div>
     </div>
 </div>
 
@@ -20,13 +22,13 @@
     {
         return Action?.ToLower() switch
         {
-            "login" => "Redirecting to login...",
-            "register" => "Redirecting to registration...",
-            "logout" => "Logging out...",
-            "logged-out" => "You have been logged out",
-            "login-callback" => "Completing login...",
-            "login-failed" => "Login failed",
-            _ => "Authenticating..."
+            "login" => Localizer["RedirectingToLogin"],
+            "register" => Localizer["RedirectingToRegistration"],
+            "logout" => Localizer["LoggingOut"],
+            "logged-out" => Localizer["LoggedOut"],
+            "login-callback" => Localizer["CompletingLogin"],
+            "login-failed" => Localizer["LoginFailed"],
+            _ => Localizer["Authenticating"]
         };
     }
 }

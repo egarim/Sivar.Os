@@ -10,11 +10,13 @@
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @inject NavigationManager Navigation
 @inject IProfilesClient ProfilesClient
 @inject IFollowersClient FollowersClient
 @inject IPostsClient PostsClient
 @inject ILogger<ProfilePage> Logger
+@inject IStringLocalizer<ProfilePage> Localizer
 
 @if (!string.IsNullOrEmpty(profileData.Username) && profileData.Username != Identifier)
 {
@@ -273,7 +275,7 @@
 </style>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="profile-page wireframe-landing">
-    <ProfileHeader Title="Profile" OnBackClick="GoBack" />
+    <ProfileHeader Title="@Localizer["ProfileTitle"]" OnBackClick="GoBack" />
 
     <div class="profile-container">
         <ProfileCard>
@@ -300,8 +302,8 @@
         }
 
         <ComingSoonAlert 
-            Title="Profile Features Coming Soon"
-            Message="Full profile details, activity feed, and customization options will be available soon." />
+            Title="@Localizer["ComingSoonTitle"]"
+            Message="@Localizer["ComingSoonMessage"]" />
 
         @if (isLoadingPosts)
         {
@@ -309,7 +311,7 @@
                 <MudCardContent>
                     <div style="text-align: center; padding: 20px;">
                         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-                        <MudText Typo="Typo.body1" Class="mt-2">Loading posts...</MudText>
+                        <MudText Typo="Typo.body1" Class="mt-2">@Localizer["LoadingPosts"]</MudText>
                     </div>
                 </MudCardContent>
             </MudCard>
@@ -317,7 +319,7 @@
         else if (posts.Any())
         {
             <div class="profile-posts-section">
-                <MudText Typo="Typo.h6" Class="mb-3" style="color: var(--wire-text-primary); font-weight: 600;">Posts</MudText>
+                <MudText Typo="Typo.h6" Class="mb-3" style="color: var(--wire-text-primary); font-weight: 600;">@Localizer["PostsSectionTitle"]</MudText>
                 <div class="posts-list">
                     @foreach (var post in posts)
                     {
@@ -344,7 +346,7 @@
                 {
                     <div class="text-center mt-4">
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadMorePosts">
-                            Load More Posts (@posts.Count of @totalPostCount)
+                            @Localizer["LoadMoreButton", posts.Count, totalPostCount]
                         </MudButton>
                     </div>
                 }
@@ -356,7 +358,7 @@
                 <MudCardContent>
                     <div style="text-align: center; padding: 20px;">
                         <MudText Typo="Typo.body1" Color="Color.Secondary">
-                            No posts yet from this profile.
+                            @Localizer["NoPostsYet"]
                         </MudText>
                     </div>
                 </MudCardContent>
@@ -443,7 +445,7 @@
             if (profile == null || profile.Id == Guid.Empty)
             {
                 Logger.LogWarning("[LoadProfileAsync] Profile not found for identifier: {Identifier}", Identifier);
-                errorMessage = $"Profile not found for '{Identifier}'";
+                errorMessage = Localizer["ProfileNotFound", Identifier];
                 profileData = GetFallbackProfileData();
             }
             else
@@ -466,10 +468,10 @@
                 profileData = new ProfileData
                 {
                     ProfileSlug = profile.Handle ?? Identifier,
-                    DisplayName = profile.DisplayName ?? "Unknown",
-                    Username = profile.Handle ?? GenerateUsernameFromDisplayName(profile.DisplayName ?? "Unknown"),
-                    Initials = GetInitialsFromDisplayName(profile.DisplayName ?? "Unknown"),
-                    Bio = profile.Bio ?? "No bio available",
+                    DisplayName = profile.DisplayName ?? Localizer["UnknownUser"],
+                    Username = profile.Handle ?? GenerateUsernameFromDisplayName(profile.DisplayName ?? Localizer["UnknownUser"]),
+                    Initials = GetInitialsFromDisplayName(profile.DisplayName ?? Localizer["UnknownUser"]),
+                    Bio = profile.Bio ?? Localizer["DefaultBio"],
                     Stats = stats
                 };
                 
@@ -480,7 +482,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "[LoadProfileAsync] Error loading profile for identifier: {Identifier}", Identifier);
-            errorMessage = "An error occurred while loading the profile";
+            errorMessage = Localizer["ErrorLoadingProfile"];
             profileData = GetFallbackProfileData();
         }
         finally
@@ -529,7 +531,7 @@
             DisplayName = GetDisplayNameFromSlug(Identifier),
             Username = Identifier,
             Initials = GetInitialsFromSlug(Identifier),
-            Bio = "Profile information is currently unavailable.",
+            Bio = Localizer["FallbackBio"],
             Stats = new ProfileStats
             {
                 Posts = 0,
@@ -542,7 +544,7 @@
     private string GetDisplayNameFromSlug(string slug)
     {
         if (Guid.TryParse(slug, out _))
-            return "User Profile";
+            return Localizer["DefaultProfileName"];
         
         return string.Join(" ", slug.Split('-')
             .Select(word => char.ToUpper(word[0]) + word.Substring(1)));
@@ -584,9 +586,9 @@
     private string GetFollowButtonText()
     {
         if (isFollowActionInProgress)
-            return isFollowing ? "Unfollowing..." : "Following...";
+            return isFollowing ? Localizer["UnfollowingInProgress"] : Localizer["FollowingInProgress"];
         
-        return isFollowing ? "Following" : "Follow";
+        return isFollowing ? Localizer["FollowingButton"] : Localizer["FollowButton"];
     }
 
     private async Task HandleFollow()

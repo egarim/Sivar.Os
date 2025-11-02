@@ -1,17 +1,19 @@
 ﻿@* SIMPLIFIED NAVMENU - AUTHENTICATION CODE COMMENTED OUT FOR TESTING *@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<NavMenu> Localizer
 @* 
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Nav
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthStateProvider AuthStateProvider
 @implements IAsyncDisposable
 *@
 
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
+    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">@Localizer["Counter"]</MudNavLink>
+    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">@Localizer["Weather"]</MudNavLink>
 </MudNavMenu>
 
 @* 
@@ -23,18 +25,18 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     {
         <div style="padding: 16px; display: flex; align-items: center; gap: 12px;">
             <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-            <MudText Typo="Typo.body2">Authenticating...</MudText>
+            <MudText Typo="Typo.body2">@Localizer["Authenticating"]</MudText>
         </div>
     }
     else if (_isAuthenticated)
     {
         <MudText Typo="Typo.caption" Class="pa-3" Style="color: var(--mud-palette-text-secondary);">
-            Logged in as:
+            @Localizer["LoggedInAs"]
         </MudText>
         <MudText Typo="Typo.body2" Class="pa-3 font-weight-bold">
             @if (string.IsNullOrEmpty(_userName))
             {
-                <text>User</text>
+                <text>@Localizer["DefaultUser"]</text>
             }
             else
             {
@@ -42,13 +44,13 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
             }
         </MudText>
         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Logout" FullWidth="true" OnClick="Logout" Class="justify-start">
-            Logout
+            @Localizer["Logout"]
         </MudButton>
     }
     else
     {
         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Login" FullWidth="true" OnClick="Login" Class="justify-start">
-            Login
+            @Localizer["Login"]
         </MudButton>
     }
 

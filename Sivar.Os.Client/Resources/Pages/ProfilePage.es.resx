@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" use="preserve" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Page Header -->
+  <data name="ProfileTitle" xml:space="preserve">
+    <value>Perfil</value>
+    <comment>Profile page header title</comment>
+  </data>
+  
+  <!-- Coming Soon Section -->
+  <data name="ComingSoonTitle" xml:space="preserve">
+    <value>Funciones de perfil próximamente</value>
+    <comment>Coming soon alert title</comment>
+  </data>
+  <data name="ComingSoonMessage" xml:space="preserve">
+    <value>Los detalles completos del perfil, el feed de actividad y las opciones de personalización estarán disponibles pronto.</value>
+    <comment>Coming soon alert message</comment>
+  </data>
+  
+  <!-- Posts Section -->
+  <data name="PostsSectionTitle" xml:space="preserve">
+    <value>Publicaciones</value>
+    <comment>Posts section header</comment>
+  </data>
+  <data name="LoadingPosts" xml:space="preserve">
+    <value>Cargando publicaciones...</value>
+    <comment>Loading indicator for posts</comment>
+  </data>
+  <data name="LoadMoreButton" xml:space="preserve">
+    <value>Cargar más publicaciones ({0} de {1})</value>
+    <comment>Load more button with post count. {0} = current count, {1} = total count</comment>
+  </data>
+  <data name="NoPostsYet" xml:space="preserve">
+    <value>Aún no hay publicaciones de este perfil.</value>
+    <comment>Empty state message when profile has no posts</comment>
+  </data>
+  
+  <!-- Follow Button States -->
+  <data name="FollowButton" xml:space="preserve">
+    <value>Seguir</value>
+    <comment>Follow button text when not following</comment>
+  </data>
+  <data name="FollowingButton" xml:space="preserve">
+    <value>Siguiendo</value>
+    <comment>Follow button text when already following</comment>
+  </data>
+  <data name="FollowingInProgress" xml:space="preserve">
+    <value>Siguiendo...</value>
+    <comment>Follow button text during follow action</comment>
+  </data>
+  <data name="UnfollowingInProgress" xml:space="preserve">
+    <value>Dejando de seguir...</value>
+    <comment>Follow button text during unfollow action</comment>
+  </data>
+  
+  <!-- Error Messages -->
+  <data name="ProfileNotFound" xml:space="preserve">
+    <value>Perfil no encontrado para '{0}'</value>
+    <comment>Error message when profile doesn't exist. {0} = identifier</comment>
+  </data>
+  <data name="ErrorLoadingProfile" xml:space="preserve">
+    <value>Ocurrió un error al cargar el perfil</value>
+    <comment>Generic error message for profile loading</comment>
+  </data>
+  
+  <!-- Fallback/Default Values -->
+  <data name="FallbackBio" xml:space="preserve">
+    <value>La información del perfil no está disponible actualmente.</value>
+    <comment>Fallback bio text when profile data can't be loaded</comment>
+  </data>
+  <data name="DefaultProfileName" xml:space="preserve">
+    <value>Perfil de Usuario</value>
+    <comment>Default display name for GUID-based profiles</comment>
+  </data>
+  <data name="DefaultBio" xml:space="preserve">
+    <value>No hay biografía disponible</value>
+    <comment>Default bio text when user hasn't set one</comment>
+  </data>
+  <data name="UnknownUser" xml:space="preserve">
+    <value>Desconocido</value>
+    <comment>Fallback text for unknown user name</comment>
+  </data>
+</root>

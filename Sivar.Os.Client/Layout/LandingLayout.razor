@@ -1,5 +1,9 @@
 @inherits LayoutComponentBase
 @using MudBlazor
+@using Microsoft.Extensions.Localization
+@using System.Globalization
+@inject IStringLocalizer<LandingLayout> Localizer
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -8,6 +12,35 @@
 
 <CascadingValue Value="this">
     <MudLayout>
+        <MudAppBar Elevation="0" Color="Color.Transparent" Style="position: absolute; top: 0; left: 0; right: 0; background: transparent;">
+            <MudSpacer />
+            <MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Default" 
+                     Style="color: white;" 
+                     AnchorOrigin="Origin.BottomRight" 
+                     TransformOrigin="Origin.TopRight">
+                <MudMenuItem OnClick="@(() => ChangeLanguage("en-US"))">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>🇺🇸</span>
+                        <span>English</span>
+                        @if (CultureInfo.CurrentCulture.Name == "en-US")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+                        }
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem OnClick="@(() => ChangeLanguage("es-ES"))">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>🇪🇸</span>
+                        <span>Español</span>
+                        @if (CultureInfo.CurrentCulture.Name == "es-ES")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+                        }
+                    </div>
+                </MudMenuItem>
+            </MudMenu>
+        </MudAppBar>
+        
         <MudMainContent Style="padding: 0;">
             @Body
         </MudMainContent>
@@ -15,8 +48,8 @@
 </CascadingValue>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    @Localizer["ErrorMessage"]
+    <a href="." class="reload">@Localizer["ReloadButton"]</a>
     <span class="dismiss">🗙</span>
 </div>
 
@@ -37,6 +70,16 @@
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,
     };
+
+    private void ChangeLanguage(string culture)
+    {
+        // Store the culture in session/local storage and reload
+        var uri = new Uri(Navigation.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var query = $"?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(uri)}";
+        
+        Navigation.NavigateTo($"/Culture/SetCulture{query}", forceLoad: true);
+    }
 
     protected override void OnInitialized()
     {

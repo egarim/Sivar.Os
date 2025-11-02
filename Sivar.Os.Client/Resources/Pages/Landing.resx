@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Branding Section -->
+  <data name="BrandLogo" xml:space="preserve">
+    <value>SivarOS</value>
+    <comment>Main brand logo/name</comment>
+  </data>
+  
+  <data name="BrandTagline" xml:space="preserve">
+    <value>An operating system for countries</value>
+    <comment>Brand tagline/slogan</comment>
+  </data>
+  
+  <data name="BrandDescription" xml:space="preserve">
+    <value>Empowering nations with modern infrastructure, digital governance, and citizen-centric services. Building the future of connected communities.</value>
+    <comment>Brand description paragraph</comment>
+  </data>
+  
+  <!-- Auth Header -->
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>Welcome</value>
+    <comment>Welcome header in auth section</comment>
+  </data>
+  
+  <data name="WelcomeSubtitle" xml:space="preserve">
+    <value>Join the future of digital governance</value>
+    <comment>Welcome subtitle in auth section</comment>
+  </data>
+  
+  <!-- Auth Tabs -->
+  <data name="SignInTab" xml:space="preserve">
+    <value>Sign In</value>
+    <comment>Sign In tab button text</comment>
+  </data>
+  
+  <data name="SignUpTab" xml:space="preserve">
+    <value>Sign Up</value>
+    <comment>Sign Up tab button text</comment>
+  </data>
+  
+  <!-- Sign In Form -->
+  <data name="EmailLabel" xml:space="preserve">
+    <value>Email</value>
+    <comment>Email field label</comment>
+  </data>
+  
+  <data name="EmailPlaceholder" xml:space="preserve">
+    <value>Enter your email</value>
+    <comment>Email field placeholder</comment>
+  </data>
+  
+  <data name="PasswordLabel" xml:space="preserve">
+    <value>Password</value>
+    <comment>Password field label</comment>
+  </data>
+  
+  <data name="PasswordPlaceholder" xml:space="preserve">
+    <value>Enter your password</value>
+    <comment>Password field placeholder for sign in</comment>
+  </data>
+  
+  <data name="ForgotPassword" xml:space="preserve">
+    <value>Forgot password?</value>
+    <comment>Forgot password link text</comment>
+  </data>
+  
+  <data name="SignInButton" xml:space="preserve">
+    <value>Sign In</value>
+    <comment>Sign In button text</comment>
+  </data>
+  
+  <!-- Sign Up Form -->
+  <data name="FullNameLabel" xml:space="preserve">
+    <value>Full Name</value>
+    <comment>Full name field label</comment>
+  </data>
+  
+  <data name="FullNamePlaceholder" xml:space="preserve">
+    <value>Enter your full name</value>
+    <comment>Full name field placeholder</comment>
+  </data>
+  
+  <data name="CreatePasswordPlaceholder" xml:space="preserve">
+    <value>Create a password</value>
+    <comment>Password field placeholder for sign up</comment>
+  </data>
+  
+  <data name="ConfirmPasswordLabel" xml:space="preserve">
+    <value>Confirm Password</value>
+    <comment>Confirm password field label</comment>
+  </data>
+  
+  <data name="ConfirmPasswordPlaceholder" xml:space="preserve">
+    <value>Confirm your password</value>
+    <comment>Confirm password field placeholder</comment>
+  </data>
+  
+  <data name="AgreeToTerms" xml:space="preserve">
+    <value>I agree to the Terms of Service and Privacy Policy</value>
+    <comment>Terms agreement checkbox text</comment>
+  </data>
+  
+  <data name="CreateAccountButton" xml:space="preserve">
+    <value>Create Account</value>
+    <comment>Create account button text</comment>
+  </data>
+  
+  <!-- Social Auth -->
+  <data name="OrContinueWith" xml:space="preserve">
+    <value>or continue with</value>
+    <comment>Divider text before social auth buttons</comment>
+  </data>
+  
+  <data name="ContinueWithGoogle" xml:space="preserve">
+    <value>Continue with Google</value>
+    <comment>Google social auth button text</comment>
+  </data>
+  
+  <data name="ContinueWithMicrosoft" xml:space="preserve">
+    <value>Continue with Microsoft</value>
+    <comment>Microsoft social auth button text</comment>
+  </data>
+</root>

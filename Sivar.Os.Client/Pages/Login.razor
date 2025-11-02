@@ -2,8 +2,10 @@
 @layout LandingLayout
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject IStringLocalizer<Login> Localizer
 
 <style>
     .login-container {
@@ -305,14 +307,14 @@
 
     <a href="/" class="back-link">
         <span>←</span>
-        <span>Back to Home</span>
+        <span>@Localizer["BackToHome"]</span>
     </a>
 
     <div class="login-card">
         <div class="login-header">
-            <div class="login-logo">SivarOS</div>
-            <div class="login-title">Welcome Back</div>
-            <div class="login-subtitle">Sign in to continue to your account</div>
+            <div class="login-logo">@Localizer["Logo"]</div>
+            <div class="login-title">@Localizer["WelcomeBack"]</div>
+            <div class="login-subtitle">@Localizer["Subtitle"]</div>
         </div>
 
         @if (!string.IsNullOrEmpty(_errorMessage))
@@ -322,19 +324,19 @@
 
         <div class="login-form">
             <div class="form-group">
-                <label class="form-label">Email</label>
+                <label class="form-label">@Localizer["EmailLabel"]</label>
                 <input type="email" 
                        class="form-input @(_showErrors && string.IsNullOrEmpty(_email) ? "error" : "")" 
-                       placeholder="Enter your email" 
+                       placeholder="@Localizer["EmailPlaceholder"]" 
                        @bind="_email" 
                        @bind:event="oninput" />
             </div>
             
             <div class="form-group">
-                <label class="form-label">Password</label>
+                <label class="form-label">@Localizer["PasswordLabel"]</label>
                 <input type="password" 
                        class="form-input @(_showErrors && string.IsNullOrEmpty(_password) ? "error" : "")" 
-                       placeholder="Enter your password" 
+                       placeholder="@Localizer["PasswordPlaceholder"]" 
                        @bind="_password"
                        @bind:event="oninput"
                        @onkeypress="HandleKeyPress" />
@@ -343,38 +345,38 @@
             <div class="form-options">
                 <label class="form-checkbox">
                     <input type="checkbox" @bind="_rememberMe" />
-                    <span>Remember me</span>
+                    <span>@Localizer["RememberMe"]</span>
                 </label>
-                <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+                <a href="/forgot-password" class="forgot-link">@Localizer["ForgotPassword"]</a>
             </div>
 
             <button class="submit-btn" @onclick="HandleLogin" disabled="@_isLoading">
                 @if (_isLoading)
                 {
-                    <span>Signing in...</span>
+                    <span>@Localizer["SigningIn"]</span>
                 }
                 else
                 {
-                    <span>Sign In</span>
+                    <span>@Localizer["SignInButton"]</span>
                 }
             </button>
         </div>
 
-        <div class="divider">or continue with</div>
+        <div class="divider">@Localizer["OrContinueWith"]</div>
 
         <div class="social-auth">
             <button class="social-btn" @onclick="@(() => HandleSocialAuth("google"))">
                 <span>🔍</span>
-                <span>Continue with Google</span>
+                <span>@Localizer["ContinueWithGoogle"]</span>
             </button>
             <button class="social-btn" @onclick="@(() => HandleSocialAuth("microsoft"))">
                 <span>🪟</span>
-                <span>Continue with Microsoft</span>
+                <span>@Localizer["ContinueWithMicrosoft"]</span>
             </button>
         </div>
 
         <div class="login-footer">
-            Don't have an account? <a href="/signup">Sign up</a>
+            @Localizer["NoAccount"] <a href="/signup">@Localizer["SignUpLink"]</a>
         </div>
     </div>
 </div>

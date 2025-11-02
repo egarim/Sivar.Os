@@ -1,6 +1,8 @@
 @using Sivar.Os.Shared.DTOs
 @using MudBlazor
+@using Microsoft.Extensions.Localization
 @inject ILogger<ReplyInput> Logger
+@inject IStringLocalizer<ReplyInput> Localizer
 
 <div class="reply-input-container">
     <MudTextField @bind-Value="_replyText"
@@ -18,19 +20,19 @@
                    OnClick="SubmitReply"
                    Disabled="@IsEmpty"
                    Class="reply-post-btn">
-            Post
+            @Localizer["PostButton"]
         </MudButton>
         <MudButton Variant="Variant.Text" 
                    OnClick="CancelReply"
                    Class="reply-cancel-btn">
-            Cancel
+            @Localizer["CancelButton"]
         </MudButton>
     </div>
     
     @if (_replyText.Length > 1900)
     {
         <div class="character-counter">
-            @(_replyText.Length) / 2000
+            @string.Format(Localizer["CharacterCounter"], _replyText.Length, 2000)
         </div>
     }
 </div>
@@ -44,8 +46,8 @@
     private string _replyText = string.Empty;
     private MudTextField<string>? _textFieldRef;
     private string _placeholderText => string.IsNullOrEmpty(MentionUsername) 
-        ? "Add a reply..." 
-        : $"Reply to @{MentionUsername}...";
+        ? Localizer["AddReplyPlaceholder"]
+        : string.Format(Localizer["ReplyToUserPlaceholder"], MentionUsername);
 
     private bool IsEmpty => string.IsNullOrWhiteSpace(_replyText);
 

@@ -6,6 +6,7 @@
 @using System.Threading.Tasks
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Localization
 @using Sivar.Os.Client.Components.Shared
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Sidebar
@@ -32,6 +33,7 @@
 @inject ISivarClient SivarClient
 @inject IDialogService _dialogService
 @inject IProfileSwitcherService ProfileSwitcherService
+@inject IStringLocalizer<Home> Localizer
 @implements IAsyncDisposable
 
 @* All CSS has been moved to external files in wwwroot/css/ for better organization and maintainability *@
@@ -44,10 +46,10 @@
 
         <!-- Center: Main Feed -->
         <div class="feed">
-            <FeedHeader Title="FEED"
-                        Subtitle="See what's happening in your network" />
+            <FeedHeader Title="@Localizer["FeedTitle"]"
+                        Subtitle="@Localizer["FeedSubtitle"]" />
 
-            <PostComposer ProfileTypeTitle="Create post"
+            <PostComposer ProfileTypeTitle="@Localizer["CreatePostTitle"]"
                           @bind-SelectedType="@_selectedPostType"
                           @bind-PostText="@_postText"
                           @bind-ActiveAttachment="@_activeAttachment"
@@ -91,7 +93,7 @@
             <Pagination CurrentPage="@_currentPage"
                         PageCount="@_totalPages"
                         TotalItems="@(_activities.Count)"
-                        ItemName="activities"
+                        ItemName="@Localizer["ActivitiesItemName"]"
                         OnPrevious="@(() => PreviousPage())"
                         OnNext="@(() => NextPage())" />
         </div>

@@ -1,13 +1,15 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Clients
 @using MudBlazor
+@using Microsoft.Extensions.Localization
 @inject ICommentsClient CommentsClient
 @inject IDialogService DialogService
 @inject ILogger<CommentItem> Logger
+@inject IStringLocalizer<CommentItem> Localizer
 
 <div class="comment-item @GetDepthClass()">
     <MudAvatar Size="Size.Small">
-        @(Comment.Profile?.DisplayName?.Substring(0, 2).ToUpper() ?? "??")
+        @(Comment.Profile?.DisplayName?.Substring(0, 2).ToUpper() ?? Localizer["UnknownUserInitials"])
     </MudAvatar>
     
     <div class="comment-content-wrapper">
@@ -18,13 +20,13 @@
             <span class="comment-time">@GetTimeAgo(Comment.CreatedAt)</span>
             @if (Comment.IsEdited)
             {
-                <span class="comment-edited">(edited)</span>
+                <span class="comment-edited">@Localizer["EditedBadge"]</span>
             }
             
             @if (IsCurrentUserComment())
             {
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Class="comment-menu">
-                    <MudMenuItem OnClick="DeleteComment">Delete</MudMenuItem>
+                    <MudMenuItem OnClick="DeleteComment">@Localizer["DeleteMenuItem"]</MudMenuItem>
                 </MudMenu>
             }
         </div>
@@ -43,7 +45,7 @@
                        Size="Size.Small" 
                        OnClick="ToggleReplyInput"
                        Class="comment-action-btn">
-                Reply
+                @Localizer["ReplyButton"]
             </MudButton>
             
             @if (Comment.ReplyCount > 0 && !_showReplies)
@@ -52,7 +54,7 @@
                            Size="Size.Small" 
                            OnClick="ToggleReplies"
                            Class="view-replies-btn">
-                    <span class="view-replies-line">—</span> View replies (@Comment.ReplyCount)
+                    <span class="view-replies-line">—</span> @string.Format(Localizer["ViewRepliesButton"], Comment.ReplyCount)
                 </MudButton>
             }
             
@@ -63,7 +65,7 @@
                            OnClick="ToggleReplies"
                            Class="view-replies-btn">
                     <MudIcon Icon="@Icons.Material.Filled.ExpandLess" Size="Size.Small" />
-                    Hide replies
+                    @Localizer["HideRepliesButton"]
                 </MudButton>
             }
         </div>
@@ -85,7 +87,7 @@
                 {
                     <div class="loading-replies">
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                        <span>Loading replies...</span>
+                        <span>@Localizer["LoadingReplies"]</span>
                     </div>
                 }
                 else if (_replies.Any())
@@ -105,7 +107,7 @@
                         <MudButton Variant="Variant.Text" 
                                    OnClick="LoadMoreReplies"
                                    Class="load-more-replies-btn">
-                            Load more replies...
+                            @Localizer["LoadMoreRepliesButton"]
                         </MudButton>
                     }
                 }
@@ -272,9 +274,10 @@
             Logger.LogInformation("[CommentItem] Requesting delete for comment: {CommentId}", Comment.Id);
             
             var confirmed = await DialogService.ShowMessageBox(
-                "Delete Comment",
-                "Are you sure you want to delete this comment?",
-                yesText: "Delete", cancelText: "Cancel");
+                Localizer["DeleteDialogTitle"],
+                Localizer["DeleteDialogMessage"],
+                yesText: Localizer["DeleteDialogConfirm"], 
+                cancelText: Localizer["DeleteDialogCancel"]);
 
             if (confirmed == true)
             {
@@ -292,11 +295,11 @@
     {
         var diff = DateTime.UtcNow - dateTime;
         
-        if (diff.TotalSeconds < 60) return "just now";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m";
-        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d";
-        if (diff.TotalDays < 30) return $"{(int)(diff.TotalDays / 7)}w";
+        if (diff.TotalSeconds < 60) return Localizer["JustNow"];
+        if (diff.TotalMinutes < 60) return string.Format(Localizer["MinutesAgo"], (int)diff.TotalMinutes);
+        if (diff.TotalHours < 24) return string.Format(Localizer["HoursAgo"], (int)diff.TotalHours);
+        if (diff.TotalDays < 7) return string.Format(Localizer["DaysAgo"], (int)diff.TotalDays);
+        if (diff.TotalDays < 30) return string.Format(Localizer["WeeksAgo"], (int)(diff.TotalDays / 7));
         
         return dateTime.ToString("MMM d");
     }

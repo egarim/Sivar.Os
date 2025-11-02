@@ -1,13 +1,15 @@
 ﻿@page "/counter"
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Counter> Localizer
 
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
+<MudText Typo="Typo.h3" GutterBottom="true">@Localizer["Heading"]</MudText>
 
-<MudText Class="mb-4">Current count: @currentCount</MudText>
+<MudText Class="mb-4">@Localizer["CurrentCountLabel"] @currentCount</MudText>
 
-<MudButton Color="Color.Primary" Variant="Variant.Filled" @onclick="IncrementCount">Click me</MudButton>
+<MudButton Color="Color.Primary" Variant="Variant.Filled" @onclick="IncrementCount">@Localizer["ButtonText"]</MudButton>
 
 @code {
     private int currentCount = 0;

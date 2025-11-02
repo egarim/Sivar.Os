@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" use="preserve" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Comment Header -->
+  <data name="EditedBadge" xml:space="preserve">
+    <value>(edited)</value>
+    <comment>Badge shown when comment was edited</comment>
+  </data>
+  <data name="UnknownUserInitials" xml:space="preserve">
+    <value>??</value>
+    <comment>Fallback initials for unknown user</comment>
+  </data>
+  
+  <!-- Comment Actions -->
+  <data name="DeleteMenuItem" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Delete menu item text</comment>
+  </data>
+  <data name="ReplyButton" xml:space="preserve">
+    <value>Reply</value>
+    <comment>Reply button text</comment>
+  </data>
+  <data name="ViewRepliesButton" xml:space="preserve">
+    <value>View replies ({0})</value>
+    <comment>View replies button. {0} = reply count</comment>
+  </data>
+  <data name="HideRepliesButton" xml:space="preserve">
+    <value>Hide replies</value>
+    <comment>Hide replies button text</comment>
+  </data>
+  <data name="LoadMoreRepliesButton" xml:space="preserve">
+    <value>Load more replies...</value>
+    <comment>Load more replies button</comment>
+  </data>
+  <data name="LoadingReplies" xml:space="preserve">
+    <value>Loading replies...</value>
+    <comment>Loading indicator for replies</comment>
+  </data>
+  
+  <!-- Delete Dialog -->
+  <data name="DeleteDialogTitle" xml:space="preserve">
+    <value>Delete Comment</value>
+    <comment>Delete confirmation dialog title</comment>
+  </data>
+  <data name="DeleteDialogMessage" xml:space="preserve">
+    <value>Are you sure you want to delete this comment?</value>
+    <comment>Delete confirmation dialog message</comment>
+  </data>
+  <data name="DeleteDialogConfirm" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Delete confirmation button</comment>
+  </data>
+  <data name="DeleteDialogCancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Delete cancel button</comment>
+  </data>
+  
+  <!-- Time Ago -->
+  <data name="JustNow" xml:space="preserve">
+    <value>just now</value>
+    <comment>Time ago: less than 1 minute</comment>
+  </data>
+  <data name="MinutesAgo" xml:space="preserve">
+    <value>{0}m</value>
+    <comment>Time ago: minutes. {0} = minute count</comment>
+  </data>
+  <data name="HoursAgo" xml:space="preserve">
+    <value>{0}h</value>
+    <comment>Time ago: hours. {0} = hour count</comment>
+  </data>
+  <data name="DaysAgo" xml:space="preserve">
+    <value>{0}d</value>
+    <comment>Time ago: days. {0} = day count</comment>
+  </data>
+  <data name="WeeksAgo" xml:space="preserve">
+    <value>{0}w</value>
+    <comment>Time ago: weeks. {0} = week count</comment>
+  </data>
+</root>

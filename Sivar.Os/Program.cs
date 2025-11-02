@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Primitives;
@@ -39,6 +40,21 @@ builder.Services.AddMudServices();
 
 // Add memory cache for rate limiting
 builder.Services.AddMemoryCache();
+
+// Add localization services for server-side components
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// Configure request localization
+var supportedCultures = new[] { "en-US", "es-ES" };
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.SetDefaultCulture("en-US")
+        .AddSupportedCultures(supportedCultures)
+        .AddSupportedUICultures(supportedCultures);
+    
+    // Use cookie-based culture provider for persistence
+    options.RequestCultureProviders.Insert(0, new CookieRequestCultureProvider());
+});
 
 // --- JWT Claim Mapping Configuration ---
 // MUST be set BEFORE AddAuthentication to prevent WS-Fed claim URI wrapping
@@ -516,6 +532,9 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// Use request localization
+app.UseRequestLocalization();
 
 app.UseAuthentication();
 app.UseAuthorization();

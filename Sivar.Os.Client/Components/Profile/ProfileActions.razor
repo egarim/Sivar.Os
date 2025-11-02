@@ -1,3 +1,6 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProfileActions> Localizer
+
 <div class="profile-actions">
     <MudButton Variant="Variant.Filled" 
                Color="Color.Primary" 
@@ -11,7 +14,7 @@
                StartIcon="@Icons.Material.Filled.Message"
                Class="action-button secondary"
                OnClick="HandleMessageClick">
-        Message
+        @Localizer["MessageButton"]
     </MudButton>
 </div>
 

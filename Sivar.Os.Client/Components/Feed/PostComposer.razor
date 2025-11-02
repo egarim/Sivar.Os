@@ -4,18 +4,20 @@
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Forms
 @inject ILogger<PostComposer> Logger
+@inject IStringLocalizer<PostComposer> Localizer
 @inject IJSRuntime JS
 
 @* PostComposer component for creating new posts *@
 
 <div class="post-composer">
     <div class="composer-title">
-        <h3>Create post</h3>
+        <h3>@Localizer["CreatePostTitle"]</h3>
         <span class="composer-profile-indicator">
             <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
-            Posting as @ProfileTypeTitle
+            @Localizer["PostingAs", ProfileTypeTitle]
         </span>
     </div>
     
@@ -33,7 +35,7 @@
     </div>
     
     <textarea class="post-input" 
-              placeholder="What's happening?" 
+              placeholder="@Localizer["PostPlaceholder"]" 
               value="@PostText"
               @oninput="@((ChangeEventArgs e) => HandlePostTextInputAsync(e))"></textarea>
 
@@ -42,14 +44,14 @@
         <details>
             <summary class="advanced-toggle">
                 <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" />
-                Advanced Options
+                @Localizer["AdvancedOptionsTitle"]
             </summary>
             
             @* Visibility Level *@
             <div class="form-group">
-                <label>Visibility</label>
+                <label>@Localizer["VisibilityLabel"]</label>
                 <select class="form-control" @onchange="HandleVisibilityChange">
-                    <option value="">Select visibility...</option>
+                    <option value="">@Localizer["SelectVisibility"]</option>
                     @foreach (VisibilityLevel visibility in Enum.GetValues(typeof(VisibilityLevel)))
                     {
                         <option value="@visibility" selected="@(SelectedVisibility == visibility)">
@@ -62,7 +64,7 @@
 
             @* Language Selection *@
             <div class="form-group">
-                <label>Language</label>
+                <label>@Localizer["LanguageLabel"]</label>
                 <select class="form-control" @bind="SelectedLanguage">
                     <option value="en">English</option>
                     <option value="es">Español (Spanish)</option>
@@ -74,37 +76,37 @@
 
             @* Tags *@
             <div class="form-group">
-                <label>Tags (comma-separated)</label>
+                <label>@Localizer["TagsLabel"]</label>
                 <input type="text" 
                        class="form-control" 
-                       placeholder="e.g., technology, startup, event"
+                       placeholder="@Localizer["TagsPlaceholder"]"
                        @bind="TagsInput"
                        @bind:event="oninput" />
-                <small class="form-text">Add up to 10 tags</small>
+                <small class="form-text">@Localizer["TagsHint"]</small>
             </div>
 
             @* Location *@
             <div class="form-group">
-                <label>Location</label>
+                <label>@Localizer["LocationLabel"]</label>
                 <input type="text" 
                        class="form-control" 
-                       placeholder="City, Country or Virtual"
+                       placeholder="@Localizer["LocationPlaceholder"]"
                        @bind="LocationCity"
                        @bind:event="oninput" />
-                <small class="form-text">Where is this post about?</small>
+                <small class="form-text">@Localizer["LocationHint"]</small>
             </div>
 
             @* Business Metadata (for business profiles) *@
             @if (IsBusinessProfile)
             {
                 <div class="form-group">
-                    <label>Business Metadata (Optional)</label>
+                    <label>@Localizer["BusinessMetadataLabel"]</label>
                     <textarea class="form-control" 
-                              placeholder="Additional business information (JSON format)"
+                              placeholder="@Localizer["BusinessMetadataPlaceholder"]"
                               @bind="BusinessMetadata"
                               @bind:event="oninput"
                               rows="3"></textarea>
-                    <small class="form-text">For structured business data</small>
+                    <small class="form-text">@Localizer["BusinessMetadataHint"]</small>
                 </div>
             }
         </details>
@@ -123,7 +125,7 @@
                            Size="Size.Small"
                            HtmlTag="label"
                            for="imageUpload"
-                           title="Add images (JPG, PNG, GIF, WebP - up to 4 files, 10MB each)">
+                           title="@Localizer["AddImagesTitle"]">
             </MudIconButton>
             
             @foreach (var option in AttachmentOptions.Where(o => o.Id != "media"))
@@ -142,11 +144,11 @@
             @if (IsSubmitting)
             {
                 <MudProgressCircular Size="Size.Small" Class="me-2" Indeterminate="true" />
-                <span>Publishing...</span>
+                <span>@Localizer["PublishingButton"]</span>
             }
             else
             {
-                <span>Publish</span>
+                <span>@Localizer["PublishButton"]</span>
             }
         </button>
     </div>
@@ -178,7 +180,7 @@
                                 <img src="@PreviewUrls[index]" alt="Preview @file.Name" class="preview-image" />
                             }
                         }
-                        <button type="button" class="remove-preview-btn" @onclick="() => RemoveImage(index)" title="Remove image">
+                        <button type="button" class="remove-preview-btn" @onclick="() => RemoveImage(index)" title="@Localizer["RemoveImageTitle"]">
                             <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
                         </button>
                         <div class="preview-filename">@file.Name</div>
@@ -202,17 +204,17 @@
         <div class="post-form-fields active">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Event date</label>
+                    <label>@Localizer["EventDateLabel"]</label>
                     <input type="date" @bind="ScheduledDate" />
                 </div>
                 <div class="form-group">
-                    <label>Event time</label>
+                    <label>@Localizer["EventTimeLabel"]</label>
                     <input type="time" @bind="ScheduledTime" />
                 </div>
             </div>
             <div class="form-group">
-                <label>Location</label>
-                <input type="text" placeholder="Virtual, HQ, etc." @bind="ScheduledLocation" />
+                <label>@Localizer["LocationLabel"]</label>
+                <input type="text" placeholder="@Localizer["EventLocationPlaceholder"]" @bind="ScheduledLocation" />
             </div>
         </div>
     }
@@ -818,11 +820,11 @@
     {
         return visibility switch
         {
-            VisibilityLevel.Public => "Public",
-            VisibilityLevel.Private => "Private (Only me)",
-            VisibilityLevel.Restricted => "Restricted",
-            VisibilityLevel.ConnectionsOnly => "Connections Only",
-            _ => "Unknown"
+            VisibilityLevel.Public => Localizer["VisibilityPublic"],
+            VisibilityLevel.Private => Localizer["VisibilityPrivate"],
+            VisibilityLevel.Restricted => Localizer["VisibilityRestricted"],
+            VisibilityLevel.ConnectionsOnly => Localizer["VisibilityConnectionsOnly"],
+            _ => Localizer["VisibilityUnknown"]
         };
     }
 
@@ -833,11 +835,11 @@
     {
         return visibility switch
         {
-            VisibilityLevel.Public => "Everyone can see this post",
-            VisibilityLevel.Private => "Only you can see this post",
-            VisibilityLevel.Restricted => "Only specific people can see this post",
-            VisibilityLevel.ConnectionsOnly => "Only your followers can see this post",
-            _ => ""
+            VisibilityLevel.Public => Localizer["VisibilityPublicDesc"],
+            VisibilityLevel.Private => Localizer["VisibilityPrivateDesc"],
+            VisibilityLevel.Restricted => Localizer["VisibilityRestrictedDesc"],
+            VisibilityLevel.ConnectionsOnly => Localizer["VisibilityConnectionsOnlyDesc"],
+            _ => string.Empty
         };
     }
 

@@ -1,4 +1,6 @@
 @using Sivar.Os.Client.Pages
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProfileMain> Localizer
 
 <div class="profile-main">
     <MudAvatar Size="Size.Large" Class="profile-avatar" Style="width: 120px; height: 120px; font-size: 48px;">
@@ -32,7 +34,7 @@
     public Sivar.Os.Client.Pages.ProfileStats Stats { get; set; } = new();
 
     [Parameter]
-    public string FollowButtonText { get; set; } = "Follow";
+    public string FollowButtonText { get; set; } = string.Empty;
 
     [Parameter]
     public bool ShowActions { get; set; } = true;
@@ -42,4 +44,12 @@
 
     [Parameter]
     public EventCallback OnMessageClick { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(FollowButtonText))
+        {
+            FollowButtonText = Localizer["DefaultFollowText"];
+        }
+    }
 }

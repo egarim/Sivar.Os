@@ -1,15 +1,17 @@
 ﻿@page "/weather"
+@using Microsoft.Extensions.Localization
 @using Sivar.Os.Shared.Services
 @using System.Security.Claims
 @rendermode InteractiveAuto
 @inject IWeatherService WeatherService
+@inject IStringLocalizer<Weather> Localizer
 
-<PageTitle>Weather</PageTitle>
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <MudText Typo="Typo.h3" GutterBottom="true">Weather forecast</MudText>
-        <MudText Typo="Typo.body1" Class="mb-8">This component demonstrates fetching data from the server.</MudText>
+        <MudText Typo="Typo.h3" GutterBottom="true">@Localizer["Heading"]</MudText>
+        <MudText Typo="Typo.body1" Class="mb-8">@Localizer["Description"]</MudText>
 
         @if (forecasts == null)
         {
@@ -17,18 +19,18 @@
         }
         else
         {
-          <MudTable Items="forecasts" Hover="true" SortLabel="Sort By" Elevation="0" AllowUnsorted="false">
+          <MudTable Items="forecasts" Hover="true" SortLabel="@Localizer["SortBy"]" Elevation="0" AllowUnsorted="false">
                 <HeaderContent>
-                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<WeatherForecast, object>(x=>x.Date)">Date</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureC)">Temp. (C)</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureF)">Temp. (F)</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.Summary!)">Summary</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<WeatherForecast, object>(x=>x.Date)">@Localizer["DateColumn"]</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureC)">@Localizer["TempCColumn"]</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.TemperatureF)">@Localizer["TempFColumn"]</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<WeatherForecast, object>(x=>x.Summary!)">@Localizer["SummaryColumn"]</MudTableSortLabel></MudTh>
                 </HeaderContent>
                 <RowTemplate Context="forecast">
-                    <MudTd DataLabel="Date">@forecast.Date</MudTd>
-                    <MudTd DataLabel="Temp. (C)">@forecast.TemperatureC</MudTd>
-                    <MudTd DataLabel="Temp. (F)">@forecast.TemperatureF</MudTd>
-                    <MudTd DataLabel="Summary">@forecast.Summary</MudTd>
+                    <MudTd DataLabel="@Localizer["DateColumn"]">@forecast.Date</MudTd>
+                    <MudTd DataLabel="@Localizer["TempCColumn"]">@forecast.TemperatureC</MudTd>
+                    <MudTd DataLabel="@Localizer["TempFColumn"]">@forecast.TemperatureF</MudTd>
+                    <MudTd DataLabel="@Localizer["SummaryColumn"]">@forecast.Summary</MudTd>
                 </RowTemplate>
                 <PagerContent>
                     <MudTablePager PageSizeOptions="new int[]{50, 100}" />
@@ -37,8 +39,8 @@
         }
     </Authorized>
     <NotAuthorized>
-        <MudAlert Severity="Severity.Warning" Class="mb-4">You need to be signed in to view the weather forecast.</MudAlert>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/authentication/login">Sign In</MudButton>
+        <MudAlert Severity="Severity.Warning" Class="mb-4">@Localizer["NotAuthorizedMessage"]</MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/authentication/login">@Localizer["SignInButton"]</MudButton>
     </NotAuthorized>
 </AuthorizeView>
 

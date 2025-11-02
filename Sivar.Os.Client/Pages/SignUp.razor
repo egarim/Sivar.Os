@@ -2,8 +2,10 @@
 @layout LandingLayout
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SignUp> Localizer
 
 <style>
     .signup-container {
@@ -255,14 +257,14 @@
 
     <a href="/" class="back-link">
         <span>←</span>
-        <span>Back to Home</span>
+        <span>@Localizer["BackToHome"]</span>
     </a>
 
     <div class="signup-card">
         <div class="signup-header">
-            <div class="signup-logo">SivarOS</div>
-            <div class="signup-title">Create Account</div>
-            <div class="signup-subtitle">Join the future of digital governance</div>
+            <div class="signup-logo">@Localizer["Logo"]</div>
+            <div class="signup-title">@Localizer["CreateAccount"]</div>
+            <div class="signup-subtitle">@Localizer["Subtitle"]</div>
         </div>
 
         @if (!string.IsNullOrEmpty(_errorMessage))
@@ -272,72 +274,72 @@
 
         <div class="signup-form">
             <div class="form-group">
-                <label class="form-label">Full Name</label>
+                <label class="form-label">@Localizer["FullNameLabel"]</label>
                 <input type="text" 
                        class="form-input @(_showErrors && string.IsNullOrEmpty(_fullName) ? "error" : "")" 
-                       placeholder="Enter your full name" 
+                       placeholder="@Localizer["FullNamePlaceholder"]" 
                        @bind="_fullName"
                        @bind:event="oninput" />
             </div>
 
             <div class="form-group">
-                <label class="form-label">Email</label>
+                <label class="form-label">@Localizer["EmailLabel"]</label>
                 <input type="email" 
                        class="form-input @(_showErrors && !IsValidEmail(_email) ? "error" : "")" 
-                       placeholder="Enter your email" 
+                       placeholder="@Localizer["EmailPlaceholder"]" 
                        @bind="_email"
                        @bind:event="oninput" />
             </div>
 
             <div class="form-group">
-                <label class="form-label">Password</label>
+                <label class="form-label">@Localizer["PasswordLabel"]</label>
                 <input type="password" 
                        class="form-input @(_showErrors && string.IsNullOrEmpty(_password) ? "error" : "")" 
-                       placeholder="Create a password (min. 8 characters)" 
+                       placeholder="@Localizer["PasswordPlaceholder"]" 
                        @bind="_password"
                        @bind:event="oninput" />
                 @if (_showErrors && !string.IsNullOrEmpty(_password) && _password.Length < 8)
                 {
-                    <span class="error-message">Password must be at least 8 characters</span>
+                    <span class="error-message">@Localizer["ErrorPasswordLength"]</span>
                 }
             </div>
 
             <div class="form-group">
-                <label class="form-label">Confirm Password</label>
+                <label class="form-label">@Localizer["ConfirmPasswordLabel"]</label>
                 <input type="password" 
                        class="form-input @(_showErrors && _password != _confirmPassword ? "error" : "")" 
-                       placeholder="Confirm your password" 
+                       placeholder="@Localizer["ConfirmPasswordPlaceholder"]" 
                        @bind="_confirmPassword"
                        @bind:event="oninput" />
                 @if (_showErrors && !string.IsNullOrEmpty(_confirmPassword) && _password != _confirmPassword)
                 {
-                    <span class="error-message">Passwords do not match</span>
+                    <span class="error-message">@Localizer["ErrorPasswordsDoNotMatch"]</span>
                 }
             </div>
 
             <label class="form-checkbox">
                 <input type="checkbox" @bind="_agreeToTerms" />
-                <span>I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a></span>
+                <span>@Localizer["AgreeToTermsPart1"] <a href="/terms">@Localizer["TermsOfService"]</a> @Localizer["And"] <a href="/privacy">@Localizer["PrivacyPolicy"]</a></span>
             </label>
             @if (_showErrors && !_agreeToTerms)
             {
-                <span class="error-message" style="margin-top: -12px;">You must agree to the terms</span>
+                <span class="error-message" style="margin-top: -12px;">@Localizer["ErrorMustAgreeToTerms"]</span>
             }
 
             <button class="submit-btn" @onclick="HandleSignUp" disabled="@_isLoading">
                 @if (_isLoading)
                 {
-                    <span>Creating Account...</span>
+                    <span>@Localizer["CreatingAccount"]</span>
                 }
                 else
                 {
-                    <span>Create Account</span>
+                    <span>@Localizer["CreateAccountButton"]</span>
                 }
             </button>
         </div>
 
         <div class="signup-footer">
-            Already have an account? <a href="/login">Sign in</a>
+            @Localizer["AlreadyHaveAccount"] <a href="/login">@Localizer["SignInLink"]</a>
         </div>
     </div>
 </div>

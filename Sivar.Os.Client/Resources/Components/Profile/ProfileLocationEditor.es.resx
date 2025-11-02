@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="LocationTitle" xml:space="preserve">
+    <value>Ubicación</value>
+    <comment>Header title for location editor</comment>
+  </data>
+  <data name="GettingLocation" xml:space="preserve">
+    <value>Obteniendo ubicación...</value>
+    <comment>GPS button loading state</comment>
+  </data>
+  <data name="UseGPS" xml:space="preserve">
+    <value>Usar GPS</value>
+    <comment>GPS button text</comment>
+  </data>
+  <data name="CityLabel" xml:space="preserve">
+    <value>Ciudad</value>
+    <comment>City text field label</comment>
+  </data>
+  <data name="StateLabel" xml:space="preserve">
+    <value>Estado/Provincia</value>
+    <comment>State/Province text field label</comment>
+  </data>
+  <data name="CountryLabel" xml:space="preserve">
+    <value>País</value>
+    <comment>Country text field label</comment>
+  </data>
+  <data name="GPSCoordinates" xml:space="preserve">
+    <value>Coordenadas GPS</value>
+    <comment>GPS coordinates section label</comment>
+  </data>
+  <data name="GPSPrefix" xml:space="preserve">
+    <value>GPS:</value>
+    <comment>Permission status prefix</comment>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Cancel button text</comment>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Guardando...</value>
+    <comment>Save button loading state</comment>
+  </data>
+  <data name="SaveLocation" xml:space="preserve">
+    <value>Guardar Ubicación</value>
+    <comment>Save button text</comment>
+  </data>
+  <data name="ErrorNotSupported" xml:space="preserve">
+    <value>La ubicación GPS no es compatible con su navegador.</value>
+    <comment>Error when geolocation is not supported</comment>
+  </data>
+  <data name="ErrorPermissionDenied" xml:space="preserve">
+    <value>No se puede obtener su ubicación. Por favor, verifique los permisos de su navegador.</value>
+    <comment>Error when GPS permission is denied</comment>
+  </data>
+  <data name="SuccessWithAddress" xml:space="preserve">
+    <value>¡Ubicación GPS adquirida! {0}, {1}, {2} (±{3:F0}m de precisión)</value>
+    <comment>Success message with city, state, country, and accuracy. Parameters: {0}=City, {1}=State, {2}=Country, {3}=Accuracy</comment>
+  </data>
+  <data name="SuccessManualEntry" xml:space="preserve">
+    <value>¡Ubicación GPS adquirida! (Precisión: ±{0:F0}m). Puede ingresar manualmente ciudad/estado/país.</value>
+    <comment>Success message when reverse geocoding returns no results. Parameter: {0}=Accuracy</comment>
+  </data>
+  <data name="SuccessGeocodeError" xml:space="preserve">
+    <value>¡Ubicación GPS adquirida! (Precisión: ±{0:F0}m). No se pudo detectar automáticamente la ciudad - puede ingresarla manualmente.</value>
+    <comment>Success message when reverse geocoding fails. Parameter: {0}=Accuracy</comment>
+  </data>
+  <data name="ErrorGettingLocation" xml:space="preserve">
+    <value>Error al obtener ubicación GPS: {0}</value>
+    <comment>Error message format. Parameter: {0}=Error message</comment>
+  </data>
+  <data name="StatusEnabled" xml:space="preserve">
+    <value>Habilitado</value>
+    <comment>GPS permission status - granted</comment>
+  </data>
+  <data name="StatusBlocked" xml:space="preserve">
+    <value>Bloqueado</value>
+    <comment>GPS permission status - denied</comment>
+  </data>
+  <data name="StatusNotRequested" xml:space="preserve">
+    <value>No solicitado</value>
+    <comment>GPS permission status - prompt</comment>
+  </data>
+  <data name="StatusUnknown" xml:space="preserve">
+    <value>Desconocido</value>
+    <comment>GPS permission status - unknown</comment>
+  </data>
+</root>

@@ -1,12 +1,14 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared
 @using MudBlazor
+@using Microsoft.Extensions.Localization
 @inject ISivarClient SivarClient
 @inject ILogger<CommentSection> Logger
+@inject IStringLocalizer<CommentSection> Localizer
 
 <div class="comment-section">
     <div class="comment-header" @onclick="ToggleExpanded">
-        <span class="comment-count">💬 @_totalComments Comments</span>
+        <span class="comment-count">@string.Format(Localizer["CommentsLabel"], _totalComments)</span>
         <MudIconButton Icon="@(IsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" 
                        Size="Size.Small" />
     </div>
@@ -15,7 +17,7 @@
     {
         <div class="comment-input-area">
             <MudTextField @bind-Value="_newCommentText"
-                          Label="Add a comment..."
+                          Label="@Localizer["AddCommentPlaceholder"]"
                           Variant="Variant.Outlined"
                           Lines="2"
                           MaxLength="500"
@@ -24,7 +26,7 @@
                        Variant="Variant.Filled" 
                        OnClick="SubmitComment"
                        Disabled="@_isButtonDisabled">
-                Send
+                @Localizer["SendButton"]
             </MudButton>
         </div>
 
@@ -35,7 +37,7 @@
         else if (_comments.Count == 0)
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4 text-center">
-                No comments yet. Be the first to comment!
+                @Localizer["NoCommentsMessage"]
             </MudText>
         }
         else
@@ -58,7 +60,7 @@
                            OnClick="LoadMoreComments"
                            FullWidth="true"
                            Class="mt-2">
-                    Load More Comments
+                    @Localizer["LoadMoreButton"]
                 </MudButton>
             }
         }

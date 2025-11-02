@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using MudBlazor.Services;
+using MudBlazor;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Sivar.Os.Shared.Services;
 using Sivar.Os.Client.Services;
@@ -16,7 +17,22 @@ using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-builder.Services.AddMudServices();
+// Configure MudBlazor services with Snackbar settings
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
+    config.SnackbarConfiguration.PreventDuplicates = false;
+    config.SnackbarConfiguration.NewestOnTop = false;
+    config.SnackbarConfiguration.ShowCloseIcon = true;
+    config.SnackbarConfiguration.VisibleStateDuration = 5000;
+    config.SnackbarConfiguration.HideTransitionDuration = 500;
+    config.SnackbarConfiguration.ShowTransitionDuration = 500;
+    config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
+});
+
+// Add MudBlazor localization support with custom localizer
+builder.Services.AddMudLocalization();
+builder.Services.AddScoped<MudLocalizer, MudLocalizerService>();
 
 // Register UnauthorizedRedirectHandler so we can centrally handle 401 responses
 builder.Services.AddTransient<UnauthorizedRedirectHandler>();

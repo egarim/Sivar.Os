@@ -2,8 +2,10 @@
 @using Sivar.Os.Shared.DTOs.ValueObjects
 @using Sivar.Os.Shared.Services
 @using MudBlazor
+@using Microsoft.Extensions.Localization
 @inject BrowserPermissionsService PermissionsService
 @inject ILocationService LocationService
+@inject IStringLocalizer<ProfileLocationEditor> Localizer
 @inject ILogger<ProfileLocationEditor> Logger
 
 <MudCard Class="profile-location-editor">
@@ -11,7 +13,7 @@
         <CardHeaderContent>
             <MudText Typo="Typo.h6">
                 <MudIcon Icon="@Icons.Material.Filled.LocationOn" Class="mr-2" />
-                Location
+                @Localizer["LocationTitle"]
             </MudText>
         </CardHeaderContent>
         <CardHeaderActions>
@@ -23,7 +25,7 @@
                            OnClick="UseGpsLocationAsync"
                            Disabled="@isLoading"
                            Size="Size.Small">
-                    @(isLoading ? "Getting location..." : "Use GPS")
+                    @(isLoading ? Localizer["GettingLocation"] : Localizer["UseGPS"])
                 </MudButton>
             }
         </CardHeaderActions>
@@ -48,7 +50,7 @@
             <!-- Manual Entry Section -->
             <MudTextField Value="@_city"
                           ValueChanged="@(async (string value) => { _city = value; if (OnCityChanged.HasDelegate) await OnCityChanged.InvokeAsync(value); })"
-                          Label="City"
+                          Label="@Localizer["CityLabel"]"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.LocationCity"
@@ -56,7 +58,7 @@
 
             <MudTextField Value="@_state"
                           ValueChanged="@(async (string value) => { _state = value; if (OnStateChanged.HasDelegate) await OnStateChanged.InvokeAsync(value); })"
-                          Label="State/Province"
+                          Label="@Localizer["StateLabel"]"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Map"
@@ -64,7 +66,7 @@
 
             <MudTextField Value="@_country"
                           ValueChanged="@(async (string value) => { _country = value; if (OnCountryChanged.HasDelegate) await OnCountryChanged.InvokeAsync(value); })"
-                          Label="Country"
+                          Label="@Localizer["CountryLabel"]"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Public"
@@ -77,7 +79,7 @@
                     <MudStack Spacing="1">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             <MudIcon Icon="@Icons.Material.Filled.GpsFixed" Size="Size.Small" Class="mr-1" />
-                            GPS Coordinates
+                            @Localizer["GPSCoordinates"]
                         </MudText>
                         <MudText Typo="Typo.body2">
                             📍 @Latitude.Value.ToString("F6"), @Longitude.Value.ToString("F6")
@@ -93,7 +95,7 @@
                          Size="Size.Small" 
                          Color="@GetPermissionColor(permissionStatus)"
                          Icon="@GetPermissionIcon(permissionStatus)">
-                    GPS: @GetPermissionText(permissionStatus)
+                    @Localizer["GPSPrefix"] @GetPermissionText(permissionStatus)
                 </MudChip>
             }
         </MudStack>
@@ -102,9 +104,9 @@
     @if (ShowActions)
     {
         <MudCardActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="OnCancel">@Localizer["Cancel"]</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSave" Disabled="@isLoading">
-                @(isLoading ? "Saving..." : "Save Location")
+                @(isLoading ? Localizer["Saving"] : Localizer["SaveLocation"])
             </MudButton>
         </MudCardActions>
     }
@@ -222,7 +224,7 @@
             var isSupported = await PermissionsService.IsGeolocationSupportedAsync();
             if (!isSupported)
             {
-                errorMessage = "GPS location is not supported in your browser.";
+                errorMessage = Localizer["ErrorNotSupported"];
                 Logger.LogWarning("[ProfileLocationEditor] Geolocation not supported");
                 return;
             }
@@ -232,7 +234,7 @@
 
             if (position == null)
             {
-                errorMessage = "Unable to get your location. Please check your browser permissions.";
+                errorMessage = Localizer["ErrorPermissionDenied"];
                 Logger.LogWarning("[ProfileLocationEditor] GPS permission denied or error occurred");
                 permissionStatus = PermissionStatus.Denied;
                 return;
@@ -265,7 +267,7 @@
                     var newCountry = location.Country ?? string.Empty;
 
                     // Update success message using local variables
-                    successMessage = $"GPS location acquired! {newCity}, {newState}, {newCountry} (±{position.Accuracy:F0}m accuracy)";
+                    successMessage = string.Format(Localizer["SuccessWithAddress"], newCity, newState, newCountry, position.Accuracy);
 
                     Logger.LogInformation("[ProfileLocationEditor] Reverse geocoding successful - City='{City}', State='{State}', Country='{Country}'",
                         newCity, newState, newCountry);
@@ -278,13 +280,13 @@
                 else
                 {
                     Logger.LogWarning("[ProfileLocationEditor] Reverse geocoding returned no results");
-                    successMessage = $"GPS location acquired! (Accuracy: ±{position.Accuracy:F0}m). You can manually enter city/state/country.";
+                    successMessage = string.Format(Localizer["SuccessManualEntry"], position.Accuracy);
                 }
             }
             catch (Exception reverseEx)
             {
                 Logger.LogError(reverseEx, "[ProfileLocationEditor] Reverse geocoding failed");
-                successMessage = $"GPS location acquired! (Accuracy: ±{position.Accuracy:F0}m). Could not automatically detect city - you can enter it manually.";
+                successMessage = string.Format(Localizer["SuccessGeocodeError"], position.Accuracy);
             }
 
             // Force another UI update after all changes
@@ -300,7 +302,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error getting GPS location: {ex.Message}";
+            errorMessage = string.Format(Localizer["ErrorGettingLocation"], ex.Message);
             Logger.LogError(ex, "[ProfileLocationEditor] Error getting GPS location");
         }
         finally
@@ -352,10 +354,10 @@
     {
         return status switch
         {
-            PermissionStatus.Granted => "Enabled",
-            PermissionStatus.Denied => "Blocked",
-            PermissionStatus.Prompt => "Not requested",
-            _ => "Unknown"
+            PermissionStatus.Granted => Localizer["StatusEnabled"],
+            PermissionStatus.Denied => Localizer["StatusBlocked"],
+            PermissionStatus.Prompt => Localizer["StatusNotRequested"],
+            _ => Localizer["StatusUnknown"]
         };
     }
 }

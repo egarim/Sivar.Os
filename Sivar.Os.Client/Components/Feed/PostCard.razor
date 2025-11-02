@@ -1,8 +1,10 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @using MudBlazor
 @inject ILogger<PostCard> Logger
+@inject IStringLocalizer<PostCard> Localizer
 @inject IDialogService DialogService
 
 @* PostCard component for displaying a complete post *@
@@ -32,7 +34,7 @@
                          class="attachment-image" />
                     @if (Post.Attachments[0].MimeType == "image/gif")
                     {
-                        <div class="gif-badge">GIF</div>
+                        <div class="gif-badge">@Localizer["GifBadge"]</div>
                     }
                 </div>
             }
@@ -56,7 +58,7 @@
                                      class="carousel-image" />
                                 @if (attachment.MimeType == "image/gif")
                                 {
-                                    <div class="gif-badge">GIF</div>
+                                    <div class="gif-badge">@Localizer["GifBadge"]</div>
                                 }
                                 @if (!string.IsNullOrEmpty(attachment.AltText))
                                 {
@@ -113,6 +115,8 @@
     /// </summary>
     [Parameter]
     public string TypeLabel { get; set; } = "General";
+
+    private string GetLocalizedTypeLabel() => TypeLabel == "General" ? Localizer["DefaultTypeLabel"] : TypeLabel;
 
     /// <summary>
     /// Current user ID for ownership check
@@ -218,7 +222,7 @@
 
     private string GetInitials(string? name)
     {
-        if (string.IsNullOrEmpty(name)) return "?";
+        if (string.IsNullOrEmpty(name)) return Localizer["UnknownUserInitials"];
         return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
     }
 

@@ -1,8 +1,10 @@
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared
 @using MudBlazor
+@using Microsoft.Extensions.Localization
 @inject ISivarClient SivarClient
 @inject ILogger<FollowButton> Logger
+@inject IStringLocalizer<FollowButton> Localizer
 
 @* FollowButton - Reusable follow/unfollow button with state management *@
 
@@ -12,7 +14,7 @@
            Disabled="@_isProcessing"
            Size="@Size"
            StartIcon="@(_isFollowing ? Icons.Material.Filled.PersonRemove : Icons.Material.Filled.PersonAdd)">
-    @(_isProcessing ? "Loading..." : _isFollowing ? "Following" : "Follow")
+    @(_isProcessing ? Localizer["LoadingText"] : _isFollowing ? Localizer["FollowingText"] : Localizer["FollowText"])
 </MudButton>
 
 @code {
