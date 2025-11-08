@@ -30,6 +30,18 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Server-side implementation doesn't cache state - always fetches fresh from DB per request
+    /// </remarks>
+    public ProfileDto? CurrentActiveProfile => null;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Server-side implementation doesn't fire events - state is per-request, not persistent
+    /// </remarks>
+    public event Action? OnActiveProfileChanged;
+
     /// <summary>
     /// Get the Keycloak ID from the current user's claims
     /// </summary>

@@ -17,7 +17,17 @@ public interface IProfileSwitcherService
     Task<List<ProfileDto>> GetUserProfilesAsync();
 
     /// <summary>
-    /// Get the currently active profile
+    /// Get the currently active profile (cached)
+    /// </summary>
+    ProfileDto? CurrentActiveProfile { get; }
+
+    /// <summary>
+    /// Event that fires when the active profile changes
+    /// </summary>
+    event Action? OnActiveProfileChanged;
+
+    /// <summary>
+    /// Get the currently active profile from the API and update cache
     /// </summary>
     Task<ProfileDto?> GetActiveProfileAsync();
 
@@ -45,6 +55,8 @@ public class ProfileSwitcherService : IProfileSwitcherService
     private readonly HttpClient _httpClient;
     private readonly ILogger<ProfileSwitcherService> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    
+    private ProfileDto? _currentActiveProfile;
 
     public ProfileSwitcherService(HttpClient httpClient, ILogger<ProfileSwitcherService> logger)
     {
@@ -59,6 +71,12 @@ public class ProfileSwitcherService : IProfileSwitcherService
             Converters = { new JsonStringEnumConverter() }
         };
     }
+
+    /// <inheritdoc/>
+    public ProfileDto? CurrentActiveProfile => _currentActiveProfile;
+
+    /// <inheritdoc/>
+    public event Action? OnActiveProfileChanged;
 
     /// <inheritdoc/>
     public async Task<List<ProfileDto>> GetUserProfilesAsync()
@@ -101,6 +119,15 @@ public class ProfileSwitcherService : IProfileSwitcherService
                 var content = await response.Content.ReadAsStringAsync();
                 var profile = JsonSerializer.Deserialize<ProfileDto>(content, _jsonOptions);
                 _logger.LogInformation($"[ProfileSwitcherService] Retrieved active profile: {profile?.Id}");
+                
+                // Update cached state and notify subscribers
+                if (profile != null && profile.Id != _currentActiveProfile?.Id)
+                {
+                    _currentActiveProfile = profile;
+                    _logger.LogInformation($"[ProfileSwitcherService] Active profile updated to: {profile.DisplayName}");
+                    OnActiveProfileChanged?.Invoke();
+                }
+                
                 return profile;
             }
 
@@ -126,6 +153,10 @@ public class ProfileSwitcherService : IProfileSwitcherService
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation($"[ProfileSwitcherService] Successfully switched to profile: {profileId}");
+                
+                // Refresh the active profile cache
+                await GetActiveProfileAsync();
+                
                 return true;
             }
 

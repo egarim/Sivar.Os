@@ -2,16 +2,29 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Authorization
+@using Sivar.Os.Client.Components.ProfileSwitcher
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Shared
+@using Sivar.Os.Shared.DTOs
 @inject IStringLocalizer<NavMenu> Localizer
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IProfileSwitcherService ProfileSwitcherService
+@inject ISivarClient SivarClient
 @implements IAsyncDisposable
+
+<div style="padding: 16px;">
+    <ProfileSwitcher ActiveProfile="@_activeProfile"
+                     UserProfiles="@_userProfiles"
+                     OnProfileChanged="@HandleProfileChanged"
+                     OnCreateProfile="@HandleCreateProfile" />
+</div>
+
+<MudDivider Class="my-2" />
 
 <MudNavMenu>
     <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
     <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">@Localizer["Counter"]</MudNavLink>
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">@Localizer["Weather"]</MudNavLink>
 </MudNavMenu>
 
 @* 
@@ -59,12 +72,20 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     private string _userName = string.Empty;
     private CancellationTokenSource? _cts;
 
+    // Profile switcher state - Blazor Server uses component state, not service cache
+    private ProfileDto? _activeProfile;
+    private List<ProfileDto> _userProfiles = new();
+    private bool _isLoadingProfiles;
+
     protected override async Task OnInitializedAsync()
     {
         _cts = new CancellationTokenSource();
         
         // Initial auth state check
         await RefreshAuthState();
+        
+        // Load active profile and all profiles
+        await LoadActiveProfileAsync();
         
         // Subscribe to auth state changes
         if (AuthStateProvider is not null)
@@ -109,12 +130,162 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     
     private void Logout() => Nav.NavigateTo("/authentication/logout", forceLoad: true);
 
+    // Profile switcher methods
+    
+    /// <summary>
+    /// Load active profile from API and all user profiles
+    /// Blazor Server: Uses component state, calls service methods directly
+    /// </summary>
+    private async Task LoadActiveProfileAsync()
+    {
+        try
+        {
+            Console.WriteLine("[NavMenu] ==================== LoadActiveProfileAsync START ====================");
+            
+            // Step 1: Load the active profile from the service
+            Console.WriteLine("[NavMenu] Step 1: Getting active profile from service");
+            _activeProfile = await ProfileSwitcherService.GetActiveProfileAsync();
+            Console.WriteLine($"[NavMenu] Active profile from service: {_activeProfile?.DisplayName ?? "NULL"}");
+            
+            // Step 2: Load all user profiles
+            Console.WriteLine("[NavMenu] Step 2: Loading all user profiles");
+            await LoadUserProfilesAsync();
+            
+            // Step 3: If active profile is still null, use first from list
+            if (_activeProfile == null && _userProfiles?.Any() == true)
+            {
+                _activeProfile = _userProfiles.FirstOrDefault(p => p.IsActive) ?? _userProfiles.FirstOrDefault();
+                Console.WriteLine($"[NavMenu] Set active profile from list: {_activeProfile?.DisplayName}");
+            }
+            
+            Console.WriteLine($"[NavMenu] ==================== LoadActiveProfileAsync END - Active: {_activeProfile?.DisplayName ?? "NULL"} ====================");
+            
+            // Trigger UI update with the loaded profile
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu] ❌ Error in LoadActiveProfileAsync: {ex.Message}");
+            Console.WriteLine($"[NavMenu] Stack trace: {ex.StackTrace}");
+        }
+    }
+    
+    /// <summary>
+    /// Load all user profiles for the profile switcher
+    /// </summary>
+    private async Task LoadUserProfilesAsync()
+    {
+        try
+        {
+            _isLoadingProfiles = true;
+            Console.WriteLine($"[NavMenu.LoadUserProfilesAsync] START - Current active: {_activeProfile?.DisplayName ?? "NULL"}");
+
+            _userProfiles = await ProfileSwitcherService.GetUserProfilesAsync();
+            Console.WriteLine($"[NavMenu.LoadUserProfilesAsync] Got {_userProfiles?.Count ?? 0} profiles from service");
+
+            if (_userProfiles?.Any() == true)
+            {
+                foreach (var profile in _userProfiles)
+                {
+                    Console.WriteLine($"[NavMenu]   - Profile: {profile.DisplayName}, IsActive: {profile.IsActive}, ID: {profile.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu.LoadUserProfilesAsync] ERROR: {ex.Message}");
+            _userProfiles = new();
+        }
+        finally
+        {
+            _isLoadingProfiles = false;
+            Console.WriteLine($"[NavMenu.LoadUserProfilesAsync] END - Active: {_activeProfile?.DisplayName ?? "NULL"}");
+        }
+    }
+
+    /// <summary>
+    /// Handle profile change when user selects a different profile
+    /// </summary>
+    private async Task HandleProfileChanged(ProfileDto selectedProfile)
+    {
+        try
+        {
+            Console.WriteLine($"[NavMenu] Switching to profile: {selectedProfile.DisplayName}");
+
+            if (await ProfileSwitcherService.SwitchProfileAsync(selectedProfile.Id))
+            {
+                Console.WriteLine($"[NavMenu] Profile switched successfully");
+                
+                // Update local state
+                _activeProfile = selectedProfile;
+                
+                // Navigate to home to refresh the feed
+                Nav.NavigateTo("/home", forceLoad: true);
+            }
+            else
+            {
+                Console.WriteLine("[NavMenu] Failed to switch profile on server");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu] Error switching profile: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle profile creation from the modal
+    /// </summary>
+    private async Task HandleCreateProfile(CreateAnyProfileDto request)
+    {
+        try
+        {
+            Console.WriteLine($"[NavMenu] Creating new profile: {request.DisplayName}");
+
+            var newProfile = await SivarClient.Profiles.CreateProfileAsync(request);
+            
+            if (newProfile != null)
+            {
+                Console.WriteLine($"[NavMenu] Profile created successfully: {newProfile.DisplayName}");
+                
+                // Set as active if requested
+                if (request.SetAsActive)
+                {
+                    try
+                    {
+                        await SivarClient.Profiles.SetMyActiveProfileAsync(newProfile.Id);
+                        Console.WriteLine($"[NavMenu] Set new profile as active");
+                    }
+                    catch (Exception setActiveEx)
+                    {
+                        Console.WriteLine($"[NavMenu] Error setting profile as active: {setActiveEx.Message}");
+                    }
+                }
+                
+                // Reload profiles
+                await LoadUserProfilesAsync();
+                
+                // Navigate to home to refresh
+                Nav.NavigateTo("/home", forceLoad: true);
+            }
+            else
+            {
+                Console.WriteLine("[NavMenu] Profile creation returned null");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu] Error creating profile: {ex.Message}");
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (AuthStateProvider is not null)
         {
             AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         }
+        
         _cts?.Cancel();
         _cts?.Dispose();
     }

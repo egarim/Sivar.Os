@@ -98,13 +98,8 @@
                         OnNext="@(() => NextPage())" />
         </div>
 
-        <!-- Right: Profile Switcher + Who to Follow -->
+        <!-- Right: Who to Follow -->
         <div>
-            <ProfileSwitcher ActiveProfile="@_activeProfile"
-                             UserProfiles="@_userProfiles"
-                             OnProfileChanged="@HandleProfileChanged"
-                             OnCreateProfile="@HandleCreateProfile" />
-
             <WhoToFollowSidebar SuggestedUsers="@_suggestedUsers"
                                 OnFollowToggle="@((user) => ToggleFollow(user))"
                                 OnUserNameClick="@((name) => ViewProfile(name))" />
