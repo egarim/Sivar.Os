@@ -1,0 +1,1 @@
+SELECT "FirstName", "LastName", "Email" FROM "Sivar_Users" WHERE "IsDeleted" = false ORDER BY "FirstName";
