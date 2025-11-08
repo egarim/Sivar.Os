@@ -203,10 +203,16 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
     /// </summary>
     public async Task<(IEnumerable<Profile> Profiles, int TotalCount)> SearchProfilesAsync(string searchTerm, int page = 1, int pageSize = 20)
     {
+        Console.WriteLine($"[ProfileRepository.SearchProfilesAsync] START - SearchTerm='{searchTerm}', Page={page}, PageSize={pageSize}");
+        
         if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            Console.WriteLine($"[ProfileRepository.SearchProfilesAsync] Empty search term - falling back to GetPublicProfilesAsync");
             return await GetPublicProfilesAsync(page, pageSize);
+        }
 
         var term = searchTerm.ToLower();
+        Console.WriteLine($"[ProfileRepository.SearchProfilesAsync] Building query - SearchTerm='{term}'");
 
         var query = _dbSet
             .Include(p => p.User)
@@ -217,12 +223,15 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
             ));
 
         var totalCount = await query.CountAsync();
+        Console.WriteLine($"[ProfileRepository.SearchProfilesAsync] Total matching profiles: {totalCount}");
 
         var profiles = await query
             .OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+            
+        Console.WriteLine($"[ProfileRepository.SearchProfilesAsync] Retrieved {profiles.Count} profiles for page {page}");
 
         return (profiles, totalCount);
     }

@@ -65,6 +65,11 @@
     <comment>Home navigation menu item</comment>
   </data>
   
+  <data name="Search" xml:space="preserve">
+    <value>Search</value>
+    <comment>Search navigation menu item</comment>
+  </data>
+  
   <data name="Counter" xml:space="preserve">
     <value>Counter</value>
     <comment>Counter navigation menu item</comment>

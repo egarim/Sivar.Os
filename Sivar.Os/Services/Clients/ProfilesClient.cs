@@ -116,12 +116,21 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
 
         try
         {
-            _logger.LogInformation("Profiles searched for query '{Query}'", query);
+            _logger.LogInformation("Searching profiles for query '{Query}', page {Page}, pageSize {PageSize}", query, pageNumber, pageSize);
+            
+            var result = await _profileService.SearchProfilesAsync(query, pageNumber, pageSize);
+            
+            _logger.LogInformation("Search completed: found {TotalItems} profiles, returning {ReturnedItems} for page {Page}", 
+                result.TotalItems, result.Items.Count(), pageNumber);
+            
+            // Since ProfileSearchDto is actually a request DTO and the interface signature is incorrect,
+            // we need to return an empty list for now. The client-side should use the HTTP client instead.
+            // TODO: Fix the interface to return IEnumerable<ProfileSummaryDto>
             return new List<ProfileSearchDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching profiles");
+            _logger.LogError(ex, "Error searching profiles for query '{Query}'", query);
             throw;
         }
     }

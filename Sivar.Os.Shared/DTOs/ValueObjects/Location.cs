@@ -1,34 +1,78 @@
+using System.ComponentModel;
+
 namespace Sivar.Os.Shared.DTOs.ValueObjects;
 
 /// <summary>
 /// Value object representing a geographic location
 /// </summary>
-public class Location
+public class Location : INotifyPropertyChanging, INotifyPropertyChanged
 {
+    public event PropertyChangingEventHandler? PropertyChanging;
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private string _city = string.Empty;
+    private string _state = string.Empty;
+    private string _country = string.Empty;
+    private double? _latitude;
+    private double? _longitude;
+
     /// <summary>
     /// City name
     /// </summary>
-    public virtual string City { get; set; } = string.Empty;
+    public virtual string City 
+    { 
+        get => _city;
+        set => SetProperty(ref _city, value);
+    }
 
     /// <summary>
     /// State or province name
     /// </summary>
-    public virtual string State { get; set; } = string.Empty;
+    public virtual string State 
+    { 
+        get => _state;
+        set => SetProperty(ref _state, value);
+    }
 
     /// <summary>
     /// Country name
     /// </summary>
-    public virtual string Country { get; set; } = string.Empty;
+    public virtual string Country 
+    { 
+        get => _country;
+        set => SetProperty(ref _country, value);
+    }
 
     /// <summary>
     /// Latitude coordinate (optional)
     /// </summary>
-    public virtual double? Latitude { get; set; }
+    public virtual double? Latitude 
+    { 
+        get => _latitude;
+        set => SetProperty(ref _latitude, value);
+    }
 
     /// <summary>
     /// Longitude coordinate (optional)
     /// </summary>
-    public virtual double? Longitude { get; set; }
+    public virtual double? Longitude 
+    { 
+        get => _longitude;
+        set => SetProperty(ref _longitude, value);
+    }
+
+    /// <summary>
+    /// Helper method to set property values with change notification
+    /// </summary>
+    private void SetProperty<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        if (!EqualityComparer<T>.Default.Equals(field, value))
+        {
+            PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 
     /// <summary>
     /// Creates a new Location instance
@@ -45,11 +89,11 @@ public class Location
     /// <param name="longitude">Optional longitude coordinate</param>
     public Location(string city, string state, string country, double? latitude = null, double? longitude = null)
     {
-        City = city ?? string.Empty;
-        State = state ?? string.Empty;
-        Country = country ?? string.Empty;
-        Latitude = latitude;
-        Longitude = longitude;
+        _city = city ?? string.Empty;
+        _state = state ?? string.Empty;
+        _country = country ?? string.Empty;
+        _latitude = latitude;
+        _longitude = longitude;
     }
 
     /// <summary>
@@ -74,11 +118,11 @@ public class Location
         if (obj is not Location other)
             return false;
 
-        return City == other.City &&
-               State == other.State &&
-               Country == other.Country &&
-               Latitude == other.Latitude &&
-               Longitude == other.Longitude;
+        return _city == other._city &&
+               _state == other._state &&
+               _country == other._country &&
+               _latitude == other._latitude &&
+               _longitude == other._longitude;
     }
 
     /// <summary>
@@ -86,7 +130,7 @@ public class Location
     /// </summary>
     public override int GetHashCode()
     {
-        return HashCode.Combine(City, State, Country, Latitude, Longitude);
+        return HashCode.Combine(_city, _state, _country, _latitude, _longitude);
     }
 
     /// <summary>

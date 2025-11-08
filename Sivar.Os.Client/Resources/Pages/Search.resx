@@ -31,7 +31,7 @@
               <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
               <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
               <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
+              <xsd:attribute ref="xml:space" msdata:Ordinal="5" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="resheader">
@@ -59,50 +59,96 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   
-  <!-- Navigation Menu Items -->
-  <data name="Home" xml:space="preserve">
-    <value>Inicio</value>
-    <comment>Elemento del menú de navegación Inicio</comment>
+  <!-- Page Title -->
+  <data name="PageTitle" xml:space="preserve">
+    <value>Search Profiles</value>
   </data>
   
-  <data name="Search" xml:space="preserve">
-    <value>Buscar</value>
-    <comment>Elemento del menú de navegación Buscar</comment>
+  <!-- Search Input -->
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search by name or bio...</value>
+  </data>
+  <data name="SearchLabel" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="SearchButton" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ClearSearch" xml:space="preserve">
+    <value>Clear</value>
   </data>
   
-  <data name="Counter" xml:space="preserve">
-    <value>Contador</value>
-    <comment>Elemento del menú de navegación Contador</comment>
+  <!-- View Toggle -->
+  <data name="GridView" xml:space="preserve">
+    <value>Grid View</value>
+  </data>
+  <data name="ListView" xml:space="preserve">
+    <value>List View</value>
   </data>
   
-  <data name="Weather" xml:space="preserve">
-    <value>Clima</value>
-    <comment>Elemento del menú de navegación Clima</comment>
+  <!-- Results -->
+  <data name="SearchingMessage" xml:space="preserve">
+    <value>Searching...</value>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>No profiles found matching your search</value>
+  </data>
+  <data name="NoResultsDescription" xml:space="preserve">
+    <value>Try a different search term or clear your filters</value>
+  </data>
+  <data name="ResultsCount" xml:space="preserve">
+    <value>Found {0} profile(s)</value>
+  </data>
+  <data name="ShowingResults" xml:space="preserve">
+    <value>Showing {0}-{1} of {2} results</value>
   </data>
   
-  <!-- Authentication Section (currently commented out) -->
-  <data name="Authenticating" xml:space="preserve">
-    <value>Autenticando...</value>
-    <comment>Mensaje de carga mientras se verifica el estado de autenticación</comment>
+  <!-- Profile Card -->
+  <data name="ViewProfile" xml:space="preserve">
+    <value>View Profile</value>
+  </data>
+  <data name="Views" xml:space="preserve">
+    <value>{0} views</value>
   </data>
   
-  <data name="LoggedInAs" xml:space="preserve">
-    <value>Sesión iniciada como:</value>
-    <comment>Etiqueta sobre el nombre de usuario en el menú de navegación</comment>
+  <!-- Empty States -->
+  <data name="EmptySearchTitle" xml:space="preserve">
+    <value>Start Searching</value>
+  </data>
+  <data name="EmptySearchDescription" xml:space="preserve">
+    <value>Enter a name or keyword to find profiles</value>
+  </data>
+  <data name="TrySearchingFor" xml:space="preserve">
+    <value>Try searching for names, keywords, or browse popular profiles</value>
   </data>
   
-  <data name="DefaultUser" xml:space="preserve">
-    <value>Usuario</value>
-    <comment>Nombre de usuario predeterminado cuando no hay nombre disponible</comment>
+  <!-- Quick Links -->
+  <data name="PopularProfiles" xml:space="preserve">
+    <value>Popular Profiles</value>
+  </data>
+  <data name="RecentProfiles" xml:space="preserve">
+    <value>Recent Profiles</value>
+  </data>
+  <data name="BrowseAll" xml:space="preserve">
+    <value>Browse All</value>
   </data>
   
-  <data name="Logout" xml:space="preserve">
-    <value>Cerrar sesión</value>
-    <comment>Texto del botón cerrar sesión</comment>
+  <!-- Errors -->
+  <data name="ErrorLoadingProfiles" xml:space="preserve">
+    <value>Error loading profiles</value>
+  </data>
+  <data name="ErrorSearchingProfiles" xml:space="preserve">
+    <value>Error searching profiles. Please try again.</value>
   </data>
   
-  <data name="Login" xml:space="preserve">
-    <value>Iniciar sesión</value>
-    <comment>Texto del botón iniciar sesión</comment>
+  <!-- Pagination -->
+  <data name="PreviousPage" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Page</value>
   </data>
 </root>

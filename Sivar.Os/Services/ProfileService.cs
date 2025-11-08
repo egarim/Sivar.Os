@@ -584,9 +584,19 @@ public class ProfileService : IProfileService
     /// </summary>
     public async Task<PagedResult<ProfileSummaryDto>> SearchProfilesAsync(string searchTerm, int page = 1, int pageSize = 20)
     {
+        var requestId = Guid.NewGuid().ToString("N")[..8];
+        _logger.LogInformation("[ProfileService.SearchProfilesAsync] START - RequestId={RequestId}, SearchTerm='{SearchTerm}', Page={Page}, PageSize={PageSize}", 
+            requestId, searchTerm, page, pageSize);
+        
         var (profiles, totalCount) = await _profileRepository.SearchProfilesAsync(searchTerm, page, pageSize);
+        
+        _logger.LogInformation("[ProfileService.SearchProfilesAsync] Database query completed - RequestId={RequestId}, ProfilesFound={Count}, TotalCount={TotalCount}", 
+            requestId, profiles.Count(), totalCount);
 
         var summaries = profiles.Select(MapToProfileSummaryDto).ToList();
+        
+        _logger.LogInformation("[ProfileService.SearchProfilesAsync] SUCCESS - RequestId={RequestId}, ReturnedProfiles={Count}, TotalCount={TotalCount}, Page={Page}/{TotalPages}", 
+            requestId, summaries.Count, totalCount, page, (int)Math.Ceiling(totalCount / (double)pageSize));
 
         return new PagedResult<ProfileSummaryDto>
         {

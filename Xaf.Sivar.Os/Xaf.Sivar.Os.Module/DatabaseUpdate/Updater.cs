@@ -1,4 +1,4 @@
-﻿using DevExpress.Data.Filtering;
+using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.EF;
 using DevExpress.ExpressApp.Security;
@@ -10,6 +10,8 @@ using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using Microsoft.Extensions.DependencyInjection;
 using Xaf.Sivar.Os.Module.BusinessObjects;
 using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.DTOs.ValueObjects;
+using Sivar.Os.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -35,6 +37,15 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
         {
             base.UpdateDatabaseAfterUpdateSchema();
             
+            // Run async seeding in a synchronous context
+            Task.Run(async () => await UpdateDatabaseAfterUpdateSchemaAsync()).Wait();
+        }
+
+        /// <summary>
+        /// Async version of UpdateDatabaseAfterUpdateSchema for seeding operations
+        /// </summary>
+        private async Task UpdateDatabaseAfterUpdateSchemaAsync()
+        {
             // Seed SQL scripts first (before executing them)
             SeedSqlScripts();
             ObjectSpace.CommitChanges();

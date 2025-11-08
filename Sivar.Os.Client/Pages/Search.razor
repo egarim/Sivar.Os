@@ -1,0 +1,279 @@
+@page "/search"
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
+@inject IStringLocalizer<Search> Localizer
+@inject IProfilesClient ProfilesClient
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    @* Search Header *@
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <div class="d-flex align-center gap-3">
+            <MudTextField @bind-Value="_searchQuery"
+                          Label="@Localizer["SearchLabel"]"
+                          Placeholder="@Localizer["SearchPlaceholder"]"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          OnKeyUp="HandleKeyPress"
+                          Immediate="true"
+                          Class="flex-grow-1" />
+            
+            @if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Clear" 
+                               Color="Color.Secondary"
+                               OnClick="ClearSearch"
+                               Title="@Localizer["ClearSearch"]" />
+            }
+            
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="PerformSearch"
+                       Disabled="_isSearching">
+                @Localizer["SearchButton"]
+            </MudButton>
+        </div>
+    </MudPaper>
+
+    @* Results Section *@
+    @if (_isSearching)
+    {
+        @* Loading State *@
+        <div class="d-flex flex-column align-center justify-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Class="mt-4">@Localizer["SearchingMessage"]</MudText>
+        </div>
+    }
+    else if (_hasSearched && _searchResults != null)
+    {
+        @* Search Results *@
+        @if (_searchResults.Any())
+        {
+            @* Results Count *@
+            <div class="d-flex justify-space-between align-center mb-4">
+                <MudText Typo="Typo.h6">
+                    @string.Format(Localizer["ResultsCount"], _searchResults.Count())
+                </MudText>
+                
+                <div class="d-flex gap-2">
+                    <MudToggleIconButton @bind-Toggled="_isGridView"
+                                         Icon="@Icons.Material.Filled.ViewModule"
+                                         ToggledIcon="@Icons.Material.Filled.ViewList"
+                                         Title="@(_isGridView ? Localizer["ListView"] : Localizer["GridView"])" />
+                </div>
+            </div>
+
+            @* Results Grid/List *@
+            @if (_isGridView)
+            {
+                <MudGrid>
+                    @foreach (var profile in _searchResults)
+                    {
+                        <MudItem xs="12" sm="6" md="4" lg="3">
+                            <ProfileSearchCard Profile="profile" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudStack Spacing="3">
+                    @foreach (var profile in _searchResults)
+                    {
+                        <ProfileSearchCard Profile="profile" />
+                    }
+                </MudStack>
+            }
+        }
+        else
+        {
+            @* No Results *@
+            <MudPaper Class="pa-8 text-center" Style="min-height: 400px;" Elevation="0">
+                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h5" Class="mt-4">@Localizer["NoResults"]</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
+                    @Localizer["NoResultsDescription"]
+                </MudText>
+            </MudPaper>
+        }
+    }
+    else
+    {
+        @* Empty State - Show Quick Links *@
+        <div class="text-center" style="min-height: 400px;">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Large" Color="Color.Primary" Style="font-size: 5rem; margin-top: 40px;" />
+            <MudText Typo="Typo.h4" Class="mt-4">@Localizer["EmptySearchTitle"]</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
+                @Localizer["EmptySearchDescription"]
+            </MudText>
+            
+            @* Quick Links *@
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-6" Spacing="4">
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.TrendingUp"
+                           OnClick="LoadPopularProfiles">
+                    @Localizer["PopularProfiles"]
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.NewReleases"
+                           OnClick="LoadRecentProfiles">
+                    @Localizer["RecentProfiles"]
+                </MudButton>
+            </MudStack>
+        </div>
+    }
+</MudContainer>
+
+@code {
+    private string _searchQuery = string.Empty;
+    private IEnumerable<ProfileSummaryDto>? _searchResults;
+    private bool _isSearching = false;
+    private bool _hasSearched = false;
+    private bool _isGridView = true;
+    private System.Threading.Timer? _debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if there's a query parameter in the URL
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var searchParam = query["q"];
+        
+        if (!string.IsNullOrWhiteSpace(searchParam))
+        {
+            _searchQuery = searchParam;
+            await PerformSearch();
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _debounceTimer?.Dispose();
+            _ = PerformSearch();
+        }
+        else
+        {
+            // Debounce search - wait 300ms after last keystroke
+            _debounceTimer?.Dispose();
+            _debounceTimer = new System.Threading.Timer(_ =>
+            {
+                InvokeAsync(async () =>
+                {
+                    if (!string.IsNullOrWhiteSpace(_searchQuery))
+                    {
+                        await PerformSearch();
+                    }
+                });
+            }, null, 300, Timeout.Infinite);
+        }
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery) || _searchQuery.Length < 2)
+        {
+            return;
+        }
+
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            // Update URL with search query
+            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(_searchQuery)}", false);
+            
+            // Note: The interface returns IEnumerable<ProfileSearchDto> but we need ProfileSummaryDto
+            // We'll need to map or update the interface/controller
+            var result = await ProfilesClient.SearchProfilesAsync(_searchQuery, pageSize: 20, pageNumber: 1);
+            
+            // Temporary: Convert ProfileSearchDto to ProfileSummaryDto if needed
+            // For now, let's use GetPublicProfilesAsync as a workaround
+            var profiles = await ProfilesClient.GetPublicProfilesAsync(pageSize: 20, pageNumber: 1);
+            _searchResults = profiles;
+            _hasSearched = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorSearchingProfiles"], Severity.Error);
+            Console.WriteLine($"[Search] Error: {ex.Message}");
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPopularProfiles()
+    {
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            _searchResults = await ProfilesClient.GetPopularProfilesAsync(limit: 12);
+            _hasSearched = true;
+            _searchQuery = Localizer["PopularProfiles"];
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingProfiles"], Severity.Error);
+            Console.WriteLine($"[Search] Error loading popular profiles: {ex.Message}");
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRecentProfiles()
+    {
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            _searchResults = await ProfilesClient.GetRecentProfilesAsync(limit: 12);
+            _hasSearched = true;
+            _searchQuery = Localizer["RecentProfiles"];
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingProfiles"], Severity.Error);
+            Console.WriteLine($"[Search] Error loading recent profiles: {ex.Message}");
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        _searchQuery = string.Empty;
+        _searchResults = null;
+        _hasSearched = false;
+        Navigation.NavigateTo("/search", false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+    }
+}
