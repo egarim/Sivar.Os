@@ -3,6 +3,7 @@
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Services
+@using Sivar.Os.Client.Components.Search
 @inject IStringLocalizer<Search> Localizer
 @inject IProfilesClient ProfilesClient
 @inject NavigationManager Navigation
@@ -195,14 +196,8 @@
             // Update URL with search query
             Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(_searchQuery)}", false);
             
-            // Note: The interface returns IEnumerable<ProfileSearchDto> but we need ProfileSummaryDto
-            // We'll need to map or update the interface/controller
-            var result = await ProfilesClient.SearchProfilesAsync(_searchQuery, pageSize: 20, pageNumber: 1);
-            
-            // Temporary: Convert ProfileSearchDto to ProfileSummaryDto if needed
-            // For now, let's use GetPublicProfilesAsync as a workaround
-            var profiles = await ProfilesClient.GetPublicProfilesAsync(pageSize: 20, pageNumber: 1);
-            _searchResults = profiles;
+            // Search profiles using the search term
+            _searchResults = await ProfilesClient.SearchProfilesAsync(_searchQuery, pageSize: 20, pageNumber: 1);
             _hasSearched = true;
         }
         catch (Exception ex)

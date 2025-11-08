@@ -106,12 +106,12 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
         }
     }
 
-    public async Task<IEnumerable<ProfileSearchDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProfileSummaryDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(query))
         {
             _logger.LogWarning("SearchProfilesAsync called with empty query");
-            return new List<ProfileSearchDto>();
+            return new List<ProfileSummaryDto>();
         }
 
         try
@@ -123,10 +123,7 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
             _logger.LogInformation("Search completed: found {TotalItems} profiles, returning {ReturnedItems} for page {Page}", 
                 result.TotalItems, result.Items.Count(), pageNumber);
             
-            // Since ProfileSearchDto is actually a request DTO and the interface signature is incorrect,
-            // we need to return an empty list for now. The client-side should use the HTTP client instead.
-            // TODO: Fix the interface to return IEnumerable<ProfileSummaryDto>
-            return new List<ProfileSearchDto>();
+            return result.Items;
         }
         catch (Exception ex)
         {

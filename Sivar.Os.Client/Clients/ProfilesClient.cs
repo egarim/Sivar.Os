@@ -118,9 +118,9 @@ public class ProfilesClient : BaseClient, IProfilesClient
         return await GetAsync<ProfileDto>($"api/profiles/by-identifier/{Uri.EscapeDataString(identifier)}", cancellationToken);
     }
 
-    public async Task<IEnumerable<ProfileSearchDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProfileSummaryDto>> SearchProfilesAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<IEnumerable<ProfileSearchDto>>($"api/profiles/search?query={Uri.EscapeDataString(query)}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+        return await GetAsync<IEnumerable<ProfileSummaryDto>>($"api/profiles/search?query={Uri.EscapeDataString(query)}&pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
     }
 
     public async Task<IEnumerable<ProfileSummaryDto>> GetProfilesByLocationAsync(string location, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)

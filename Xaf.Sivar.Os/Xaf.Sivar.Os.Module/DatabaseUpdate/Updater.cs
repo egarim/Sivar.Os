@@ -104,6 +104,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedProfileTypes();
 
             ObjectSpace.CommitChanges(); //This line persists created object(s);
+            
+            // Seed default profiles for users (runs in both DEBUG and RELEASE)
+            SeedDefaultProfiles();
+
+            ObjectSpace.CommitChanges(); //This line persists created object(s);
         }
         
         /// <summary>
@@ -720,6 +725,121 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 organizationProfileType.CreatedAt = now;
                 organizationProfileType.UpdatedAt = now;
             }
+        }
+        
+        /// <summary>
+        /// Seeds default profiles for known users from users.txt
+        /// Creates a Personal profile for each user if they don't already have one
+        /// </summary>
+        void SeedDefaultProfiles()
+        {
+            var now = DateTime.UtcNow;
+            var personalProfileTypeId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedDefaultProfiles...");
+            
+            // Get the PersonalProfile type to ensure it exists
+            var personalProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == personalProfileTypeId);
+            if (personalProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] PersonalProfile type not found. Skipping profile seeding.");
+                return;
+            }
+            
+            // Define users from users.txt
+            var usersToSeed = new[]
+            {
+                new { Name = "Roberto Guzman", KeycloakId = "20b52564-e505-404a-bd7a-be5916c8e0a4", Handle = "roberto-guzman" },
+                new { Name = "Jaime Macias", KeycloakId = "b65fd3b2-e181-4830-8678-fff5f96492b9", Handle = "jaime-macias" },
+                new { Name = "Joche Ojeda", KeycloakId = "28b46a88-d191-4c63-8812-1bb8f3332228", Handle = "joche-ojeda" },
+                new { Name = "Oscar Ojeda", KeycloakId = "ea06c2da-07f3-4606-aa65-46a67cb0a471", Handle = "oscar-ojeda" }
+            };
+            
+            foreach (var userInfo in usersToSeed)
+            {
+                try
+                {
+                    // Find or create user by Keycloak ID
+                    var user = ObjectSpace.GetObjectsQuery<User>()
+                        .FirstOrDefault(u => u.KeycloakId == userInfo.KeycloakId);
+                    
+                    if (user == null)
+                    {
+                        // User doesn't exist, create it
+                        System.Diagnostics.Debug.WriteLine($"[Updater] User not found. Creating user: {userInfo.Name} (KeycloakId: {userInfo.KeycloakId})");
+                        
+                        // Parse name into first and last name
+                        var nameParts = userInfo.Name.Split(' ', 2);
+                        var firstName = nameParts.Length > 0 ? nameParts[0] : userInfo.Name;
+                        var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+                        
+                        user = ObjectSpace.CreateObject<User>();
+                        user.Id = Guid.NewGuid();
+                        user.KeycloakId = userInfo.KeycloakId;
+                        user.Email = $"{userInfo.Handle}@sivar.os"; // Generate default email
+                        user.FirstName = firstName;
+                        user.LastName = lastName;
+                        user.Role = UserRole.RegisteredUser;
+                        user.IsActive = true;
+                        user.PreferredLanguage = "en";
+                        user.TimeZone = "UTC";
+                        user.CreatedAt = now;
+                        user.UpdatedAt = now;
+                        
+                        // Commit the user first before creating profile
+                        ObjectSpace.CommitChanges();
+                        System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created user: {userInfo.Name} (ID: {user.Id})");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] User found: {userInfo.Name} (ID: {user.Id})");
+                    }
+                    
+                    // Check if user already has a Personal profile
+                    var existingProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                        .FirstOrDefault(p => p.UserId == user.Id && p.ProfileTypeId == personalProfileTypeId);
+                    
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] User {userInfo.Name} already has a Personal profile. Skipping.");
+                        continue;
+                    }
+                    
+                    // Check if handle is already taken
+                    var handleExists = ObjectSpace.GetObjectsQuery<Profile>()
+                        .Any(p => p.Handle == userInfo.Handle);
+                    
+                    var finalHandle = userInfo.Handle;
+                    if (handleExists)
+                    {
+                        // Add a suffix to make handle unique
+                        finalHandle = $"{userInfo.Handle}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Handle '{userInfo.Handle}' already exists. Using '{finalHandle}' instead.");
+                    }
+                    
+                    // Create default Personal profile
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = Guid.NewGuid();
+                    profile.UserId = user.Id;
+                    profile.ProfileTypeId = personalProfileTypeId;
+                    profile.DisplayName = userInfo.Name;
+                    profile.Handle = finalHandle;
+                    profile.Bio = $"Welcome to {userInfo.Name}'s profile!";
+                    profile.Avatar = string.Empty;
+                    profile.IsActive = true; // Set as active profile
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created Personal profile for {userInfo.Name} (Handle: {finalHandle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile for {userInfo.Name}: {ex.Message}");
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] Finished SeedDefaultProfiles.");
         }
     }
 }
