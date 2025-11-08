@@ -1,26 +1,498 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Pages
+@using Microsoft.JSInterop
 @inject IStringLocalizer<MainLayout> Localizer
+@inject IJSRuntime JS
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">@Localizer["ApplicationTitle"]</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
-    </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">
-        @Body
-    </MudMainContent>
-</MudLayout>
+
+<CascadingValue Value="this">
+    <MudLayout>
+        <!-- Top AppBar -->
+        <MudAppBar Elevation="1" Dense="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" 
+                           Color="Color.Inherit" 
+                           Edge="Edge.Start" 
+                           OnClick="@ToggleLeftDrawer" 
+                           Title="Toggle Navigation" />
+            <MudText Typo="Typo.h6" Class="ml-3">@Localizer["ApplicationTitle"]</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Search" 
+                           Color="Color.Inherit" 
+                           Title="Search" />
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
+                           Color="Color.Inherit" 
+                           Title="Notifications" />
+            <MudIconButton Icon="@(DarkLightModeButtonIcon)" 
+                           Color="Color.Inherit" 
+                           OnClick="@DarkModeToggle"
+                           Title="Toggle Theme" />
+            <MudIconButton Icon="@Icons.Material.Filled.SmartToy" 
+                           Color="@(_aiChatVisible ? Color.Primary : Color.Inherit)" 
+                           OnClick="@ToggleAIChat"
+                           Title="Toggle AI Assistant" />
+        </MudAppBar>
+
+        <!-- Left Drawer - Navigation -->
+        <MudDrawer @bind-Open="_leftDrawerOpen" 
+                   ClipMode="DrawerClipMode.Always" 
+                   Elevation="2"
+                   Variant="@DrawerVariant.Persistent">
+            <NavMenu />
+        </MudDrawer>
+
+        <!-- Main Content -->
+        <MudMainContent Class="@(_aiChatVisible ? "" : "pt-16")" Style="@(_aiChatVisible ? "padding: 0 !important;" : "")">
+            @if (_aiChatVisible)
+            {
+                <!-- AI Chat takes over the entire content area - bypass the drawer wrapper -->
+                <div class="ai-chat-fullscreen-container">
+                    <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
+                        <Sivar.Os.Client.Components.AIChat.ChatHistory 
+                            IsOpen="@_historyOpen"
+                            Conversations="@_conversations"
+                            CurrentConversationId="@_currentConversationId"
+                            OnClose="@(() => _historyOpen = !_historyOpen)"
+                            OnNewConversation="@NewConversation"
+                            OnConversationSelect="@SelectConversationById" />
+
+                        <div class="chat-main-container">
+                            <div class="chat-header">
+                                <div class="chat-header-left">
+                                    <button class="history-toggle-btn" @onclick="@(() => _historyOpen = !_historyOpen)" title="Toggle conversation history">
+                                        <MudIcon Icon="@Icons.Material.Filled.Menu" Size="Size.Medium" />
+                                    </button>
+                                    <div class="chat-header-info">
+                                        <div class="chat-ai-avatar">🤖</div>
+                                        <div class="chat-header-text">
+                                            <h4>Sivar AI Assistant</h4>
+                                            <p>Always here to help you explore</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="chat-header-actions">
+                                    <button class="chat-close-btn" @onclick="@ToggleAIChat">
+                                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <Sivar.Os.Client.Components.AIChat.ChatMessages 
+                                Messages="@_chatMessages"
+                                IsTyping="@_isTyping"
+                                OnQuickAction="@HandleQuickAction"
+                                OnResultView="@(() => {})"
+                                OnResultSave="@(() => {})"
+                                OnResultFollow="@(() => {})" />
+
+                            <Sivar.Os.Client.Components.AIChat.ChatInput 
+                                InputText="@_chatInput"
+                                InputTextChanged="@((text) => _chatInput = text)"
+                                OnSend="@SendChat" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Normal feed content -->
+                @Body
+            }
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
+
+<style>
+    /* Full-screen AI Chat container */
+    .ai-chat-fullscreen-container {
+        position: fixed;
+        top: 64px;
+        left: 256px;
+        right: 0;
+        bottom: 0;
+        z-index: 1200;
+        background: var(--mud-palette-surface);
+    }
+
+    .ai-chat-panel-fullscreen {
+        height: 100%;
+        display: flex;
+        position: relative;
+    }
+
+    .ai-chat-panel-fullscreen .chat-main-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--mud-palette-surface, #ffffff);
+    }
+
+    /* Chat Header Styles */
+    .ai-chat-panel-fullscreen .chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .ai-chat-panel-fullscreen .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ai-chat-panel-fullscreen .history-toggle-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        line-height: 1;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ai-chat-panel-fullscreen .history-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.35);
+        transform: scale(1.08);
+    }
+
+    .ai-chat-panel-fullscreen .chat-header-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-ai-avatar {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-header-text h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .ai-chat-panel-fullscreen .chat-header-text p {
+        margin: 0;
+        font-size: 11px;
+        opacity: 0.9;
+    }
+
+    .ai-chat-panel-fullscreen .chat-close-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px;
+        line-height: 1;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-chat-panel-fullscreen .chat-close-btn:hover {
+        transform: scale(1.2);
+    }
+
+    /* Chat Messages Styles */
+    .ai-chat-panel-fullscreen .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: var(--mud-palette-background, #1a1a27);
+    }
+
+    /* Chat Message Bubble Styles - Dark Theme */
+    .ai-chat-panel-fullscreen .chat-message {
+        display: flex;
+        gap: 12px;
+        animation: slideIn 0.3s ease;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message.user {
+        flex-direction: row-reverse;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message.ai .chat-message-avatar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message.user .chat-message-avatar {
+        background: var(--mud-palette-primary, #7e6fff);
+        color: white;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message-content {
+        max-width: 75%;
+    }
+
+    .ai-chat-panel-fullscreen .chat-bubble {
+        max-width: 75%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message.ai .chat-bubble {
+        background: var(--mud-palette-surface, #1e1e2d);
+        color: var(--mud-palette-text-primary, #b2b0bf);
+        border: 1px solid var(--mud-palette-lines-default, #33323e);
+        border-bottom-left-radius: 4px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message.user .chat-bubble {
+        background: var(--mud-palette-primary, #7e6fff);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-message-time {
+        font-size: 10px;
+        color: var(--mud-palette-text-secondary, #92929f);
+        margin-top: 4px;
+        opacity: 0.7;
+    }
+
+    /* Quick Action Buttons */
+    .ai-chat-panel-fullscreen .chat-quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 5px;
+    }
+
+    .ai-chat-panel-fullscreen .chat-quick-actions .quick-action-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: rgba(126, 111, 255, 0.1);
+        color: var(--mud-palette-primary, #7e6fff);
+        border: 1px solid var(--mud-palette-primary, #7e6fff);
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ai-chat-panel-fullscreen .chat-quick-actions .quick-action-btn:hover {
+        background: var(--mud-palette-primary, #7e6fff);
+        color: white;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Chat Input Styles */
+    .ai-chat-panel-fullscreen .chat-input-container {
+        padding: 16px;
+        border-top: 1px solid var(--mud-palette-lines-default, #33323e);
+        background: var(--mud-palette-surface, #1e1e2d);
+        flex-shrink: 0;
+    }
+
+    /* Chat History Sidebar Styles */
+    .ai-chat-panel-fullscreen .chat-history-sidebar {
+        width: 280px;
+        background: var(--mud-palette-surface, #1e1e2d);
+        border-right: 1px solid var(--mud-palette-lines-default, #33323e);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .ai-chat-panel-fullscreen .chat-history-sidebar.active {
+        display: flex;
+    }
+
+    .ai-chat-panel-fullscreen .chat-history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--mud-palette-lines-default, #33323e);
+    }
+
+    .ai-chat-panel-fullscreen .chat-history-header h4 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--mud-palette-text-primary, #b2b0bf);
+    }
+
+    .ai-chat-panel-fullscreen .history-close-btn {
+        background: transparent;
+        border: none;
+        font-size: 20px;
+        color: var(--mud-palette-text-secondary, #92929f);
+        cursor: pointer;
+        padding: 5px;
+        transition: all 0.2s ease;
+    }
+
+    .ai-chat-panel-fullscreen .history-close-btn:hover {
+        color: var(--mud-palette-text-primary, #b2b0bf);
+        transform: scale(1.1);
+    }
+
+    .ai-chat-panel-fullscreen .new-chat-btn {
+        margin: 10px;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .ai-chat-panel-fullscreen .new-chat-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .ai-chat-panel-fullscreen .chat-history-list {
+        padding: 8px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* Conversation Item Styles */
+    .ai-chat-panel-fullscreen .conversation-item {
+        background: var(--mud-palette-background-gray, #151521);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .ai-chat-panel-fullscreen .conversation-item:hover {
+        border-color: var(--mud-palette-primary, #7e6fff);
+        transform: translateX(3px);
+        box-shadow: 0 2px 6px rgba(126, 111, 255, 0.3);
+        background: var(--mud-palette-gray-light, #2a2833);
+    }
+
+    .ai-chat-panel-fullscreen .conversation-item.active {
+        border-color: var(--mud-palette-primary, #7e6fff);
+        background: var(--mud-palette-gray-light, #2a2833);
+        box-shadow: 0 2px 8px rgba(126, 111, 255, 0.4);
+    }
+
+    .ai-chat-panel-fullscreen .conversation-item-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
+    .ai-chat-panel-fullscreen .conversation-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary, #b2b0bf);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.3;
+    }
+
+    .ai-chat-panel-fullscreen .conversation-time {
+        font-size: 11px;
+        color: var(--mud-palette-text-secondary, #92929f);
+        white-space: nowrap;
+        margin-left: 6px;
+        opacity: 0.8;
+    }
+
+    .ai-chat-panel-fullscreen .conversation-preview {
+        font-size: 13px;
+        color: var(--mud-palette-text-secondary, #92929f);
+        overflow: hidden;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 5px;
+    }
+
+    .ai-chat-panel-fullscreen .conversation-meta {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .ai-chat-panel-fullscreen .conversation-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        padding: 3px 8px;
+        background: rgba(126, 111, 255, 0.2);
+        color: var(--mud-palette-primary, #7e6fff);
+        border-radius: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+</style>
 
 <div id="blazor-error-ui" data-nosnippet>
     @Localizer["ErrorMessage"]
@@ -29,9 +501,34 @@
 </div>
 
 @code {
-    private bool _drawerOpen = true;
+    private bool _leftDrawerOpen = true;
+    private bool _aiChatVisible = false;
     private bool _isDarkMode = true;
     private MudTheme? _theme = null;
+
+    // AI Chat State
+    private bool _historyOpen;
+    private string _chatInput = string.Empty;
+    private string _currentConversationId = string.Empty;
+    private List<ChatMessage> _chatMessages = new();
+    private List<Conversation> _conversations = new();
+    private Dictionary<string, List<ChatMessage>> _conversationMessages = new();
+    private bool _isTyping;
+    private Random _random = new();
+
+    private readonly string[] _cannedReplies = new[]
+    {
+        "That's interesting � tell me more.",
+        "I can help with that. What's your next step?",
+        "Got it. Anything else you'd like to discuss?",
+        "Hmm � let me check that for you. One moment...",
+        "Great question! Here's what I think�",
+        "I understand. Would you like me to explore this further?",
+        "Makes sense. How can I assist you with that?",
+        "Absolutely! Let's dive into that."
+    };
+
+    public bool IsAIChatVisible => _aiChatVisible;
 
     protected override void OnInitialized()
     {
@@ -43,16 +540,289 @@
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
+
+        // Initialize AI chat
+        InitializeAIChat();
     }
 
-    private void DrawerToggle()
+    private void InitializeAIChat()
     {
-        _drawerOpen = !_drawerOpen;
+        // Create initial conversation
+        var initialConversation = new Conversation("Welcome");
+        _conversations.Add(initialConversation);
+        _currentConversationId = initialConversation.Id;
+        
+        var welcomeMessage = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
+
+🔍 Find profiles and businesses
+📝 Search posts and content
+🏪 Discover local services
+📊 Explore activity streams
+
+Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+        {
+            QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+        };
+        
+        _chatMessages = new List<ChatMessage> { welcomeMessage };
+        _conversationMessages[_currentConversationId] = _chatMessages;
+    }
+
+    private void ToggleLeftDrawer()
+    {
+        _leftDrawerOpen = !_leftDrawerOpen;
+    }
+
+    private void ToggleAIChat()
+    {
+        _aiChatVisible = !_aiChatVisible;
+        StateHasChanged();
     }
 
     private void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
+    }
+
+    // AI Chat Methods
+    private void NewConversation()
+    {
+        var conversation = new Conversation($"Conversation {_conversations.Count + 1}");
+        _conversations.Insert(0, conversation);
+        _conversationMessages[conversation.Id] = new List<ChatMessage>();
+        LoadConversation(conversation.Id);
+    }
+
+    private void SelectConversationById(string conversationId)
+    {
+        var conversation = _conversations.FirstOrDefault(c => c.Id == conversationId);
+        if (conversation == null || conversation.Id == _currentConversationId) return;
+
+        _conversationMessages[_currentConversationId] = _chatMessages;
+        _currentConversationId = conversation.Id;
+
+        if (!_conversationMessages.ContainsKey(conversation.Id))
+        {
+            _conversationMessages[conversation.Id] = new List<ChatMessage>();
+        }
+
+        LoadConversation(conversation.Id);
+    }
+
+    private void LoadConversation(string id)
+    {
+        _currentConversationId = id;
+        if (!_conversationMessages.ContainsKey(id))
+        {
+            _conversationMessages[id] = new List<ChatMessage>();
+        }
+
+        _chatMessages = _conversationMessages[id];
+        if (!_chatMessages.Any())
+        {
+            var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
+
+🔍 Find profiles and businesses
+📝 Search posts and content
+🏪 Discover local services
+📊 Explore activity streams
+
+Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+            {
+                QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+            };
+            _chatMessages.Add(welcome);
+        }
+
+        UpdateConversationPreview(id);
+        _ = ScrollChatToBottom();
+    }
+
+    private void AddMessage(string conversationId, ChatMessage message)
+    {
+        if (!_conversationMessages.ContainsKey(conversationId))
+        {
+            _conversationMessages[conversationId] = new List<ChatMessage>();
+        }
+
+        _conversationMessages[conversationId].Add(message);
+
+        if (_currentConversationId == conversationId)
+        {
+            _chatMessages = _conversationMessages[conversationId];
+        }
+    }
+
+    private void UpdateConversationPreview(string id)
+    {
+        var conversation = _conversations.FirstOrDefault(c => c.Id == id);
+        if (conversation is null) return;
+
+        if (_conversationMessages.TryGetValue(id, out var messages) && messages.Any())
+        {
+            var last = messages.Last();
+            var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
+            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}..." : previewText;
+            conversation.LastUpdated = last.Time;
+            conversation.MessageCount = messages.Count;
+            conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
+
+            if (conversation.Title.StartsWith("Conversation ") && messages.Count > 2)
+            {
+                var firstUserMessage = messages.FirstOrDefault(m => m.Sender == "user");
+                if (firstUserMessage != null)
+                {
+                    var titleText = firstUserMessage.Text.Length > 30 ? $"{firstUserMessage.Text[..27]}..." : firstUserMessage.Text;
+                    conversation.Title = titleText;
+                }
+            }
+        }
+    }
+
+    private async Task SendChat()
+    {
+        if (string.IsNullOrWhiteSpace(_chatInput)) return;
+
+        var userMessage = new ChatMessage("user", _chatInput);
+        AddMessage(_currentConversationId, userMessage);
+
+        var userQuery = _chatInput;
+        _chatInput = string.Empty;
+        _isTyping = true;
+        StateHasChanged();
+        await ScrollChatToBottom();
+
+        var aiResponse = await GetMockResponseAsync(userQuery);
+        _isTyping = false;
+
+        if (aiResponse == "PIZZA_SEARCH")
+        {
+            var resultMessage = new ChatMessage("ai", "I found 3 pizza places near you:", "result-card");
+            AddMessage(_currentConversationId, resultMessage);
+
+            var pizzaResults = new[]
+            {
+                new ChatResultCard("p1", "🍕", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza ⭐ 4.8⭐ ⭐ $$ ⭐ Open now"),
+                new ChatResultCard("p2", "🍕", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired ⭐ 4.9⭐ ⭐ $$$ ⭐ Closes 10pm"),
+                new ChatResultCard("p3", "🍕", "Pizza Express", "Fast Food", "Quick delivery & takeout ⭐ 4.2⭐ ⭐ $ ⭐ Open 24hrs")
+            };
+
+            foreach (var card in pizzaResults)
+            {
+                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
+                AddMessage(_currentConversationId, cardMessage);
+            }
+        }
+        else if (aiResponse == "TECH_SEARCH")
+        {
+            var resultMessage = new ChatMessage("ai", "Here are tech companies in your area:", "result-card");
+            AddMessage(_currentConversationId, resultMessage);
+
+            var techResults = new[]
+            {
+                new ChatResultCard("t1", "💼", "TechCorp Solutions", "Technology", "Cloud services & AI development ⭐ 200+ employees"),
+                new ChatResultCard("t2", "💼", "Innovation Labs", "Startup", "Mobile app development ⭐ Series A funded"),
+                new ChatResultCard("t3", "💼", "DataWorks Inc", "Enterprise", "Big data analytics platform ⭐ Fortune 500")
+            };
+
+            foreach (var card in techResults)
+            {
+                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
+                AddMessage(_currentConversationId, cardMessage);
+            }
+        }
+        else if (aiResponse == "EVENT_SEARCH")
+        {
+            var resultMessage = new ChatMessage("ai", "Upcoming events you might like:", "result-card");
+            AddMessage(_currentConversationId, resultMessage);
+
+            var eventResults = new[]
+            {
+                new ChatResultCard("e1", "🎉", "Tech Conference 2024", "Conference", "3-day tech summit ⭐ Mar 15-17 ⭐ Downtown Center"),
+                new ChatResultCard("e2", "🎉", "Startup Pitch Night", "Networking", "Monthly startup showcase ⭐ Mar 10 ⭐ 6pm"),
+                new ChatResultCard("e3", "🎉", "Code & Coffee", "Meetup", "Weekly developer hangout ⭐ Every Saturday")
+            };
+
+            foreach (var card in eventResults)
+            {
+                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
+                AddMessage(_currentConversationId, cardMessage);
+            }
+        }
+        else if (aiResponse == "JOB_SEARCH")
+        {
+            var resultMessage = new ChatMessage("ai", "Here are job openings matching your profile:", "result-card");
+            AddMessage(_currentConversationId, resultMessage);
+
+            var jobResults = new[]
+            {
+                new ChatResultCard("j1", "💼", "Senior Developer", "TechCorp", "Full-stack position ⭐ $120k-150k ⭐ Remote available"),
+                new ChatResultCard("j2", "💼", "UX Designer", "Design Studio", "Lead designer role ⭐ $90k-110k ⭐ Hybrid"),
+                new ChatResultCard("j3", "💼", "Product Manager", "StartupXYZ", "PM for AI products ⭐ $130k-160k ⭐ On-site")
+            };
+
+            foreach (var card in jobResults)
+            {
+                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
+                AddMessage(_currentConversationId, cardMessage);
+            }
+        }
+        else
+        {
+            var aiMessage = new ChatMessage("ai", aiResponse);
+            AddMessage(_currentConversationId, aiMessage);
+        }
+
+        UpdateConversationPreview(_currentConversationId);
+        StateHasChanged();
+        await ScrollChatToBottom();
+    }
+
+    private void HandleQuickAction(string action)
+    {
+        _chatInput = action;
+        _ = SendChat();
+    }
+
+    private async Task ScrollChatToBottom()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "document.getElementById('chatMessages')?.scrollTo(0, document.getElementById('chatMessages').scrollHeight)");
+        }
+        catch
+        {
+            // ignore when DOM is unavailable
+        }
+    }
+
+    private async Task<string> GetMockResponseAsync(string userText)
+    {
+        await Task.Delay(600 + _random.Next(300));
+
+        if (string.IsNullOrWhiteSpace(userText))
+        {
+            return _cannedReplies[_random.Next(_cannedReplies.Length)];
+        }
+
+        var lower = userText.ToLowerInvariant();
+
+        if (lower.Contains("pizza") || lower.Contains("??"))
+            return "PIZZA_SEARCH";
+        if (lower.Contains("tech") || lower.Contains("company") || lower.Contains("companies") || lower.Contains("??"))
+            return "TECH_SEARCH";
+        if (lower.Contains("event") || lower.Contains("??"))
+            return "EVENT_SEARCH";
+        if (lower.Contains("job") || lower.Contains("jobs") || lower.Contains("hiring"))
+            return "JOB_SEARCH";
+        if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
+            return "Sure � what specifically do you need help with?";
+        if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
+            return "Sorry to hear that. Can you share the steps to reproduce?";
+        if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
+            return "For design feedback, consider spacing, contrast, and alignment � need a checklist?";
+        
+        return _cannedReplies[_random.Next(_cannedReplies.Length)];
     }
 
     private readonly PaletteLight _lightPalette = new()

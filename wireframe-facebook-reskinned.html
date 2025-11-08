@@ -1,0 +1,3796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sivar Social - Activity Stream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .profile-type-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .profile-type-switcher {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            min-width: 200px;
+        }
+
+        .profile-type-switcher:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .profile-type-switcher:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .user-details {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 30px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .user-card:hover {
+            background: #f7f7f7;
+            transform: translateX(5px);
+        }
+
+        .user-card.following {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .small-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .user-card-info {
+            flex: 1;
+        }
+
+        .user-card-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .user-card-bio {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .follow-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .follow-btn.follow {
+            background: #667eea;
+            color: white;
+        }
+
+        .follow-btn.follow:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .follow-btn.following {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .follow-btn.following:hover {
+            background: #ffebee;
+            color: #e53935;
+            border-color: #e53935;
+        }
+
+        /* Feed */
+        .feed {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feed h2 {
+            margin-bottom: 25px;
+            color: #667eea;
+            font-size: 24px;
+        }
+
+        /* Post Composer */
+        .post-composer {
+            background: #f7f7f7;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .post-composer h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .composer-profile-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #e3f2fd;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1976d2;
+        }
+
+        .post-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .post-type-option {
+            padding: 8px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .post-type-option:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .post-type-option.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .post-type-option.disabled {
+            display: none; /* Hide instead of graying out */
+        }
+
+        .post-type-option {
+            position: relative;
+        }
+
+        .post-type-option .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .post-type-option .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+
+        .post-type-option:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .post-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .post-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .post-input-short {
+            min-height: 40px;
+            resize: none;
+        }
+
+        .post-form-fields {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        .post-form-fields.active {
+            display: block;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .post-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .post-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .post-option {
+            padding: 8px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .post-option:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .post-option.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .post-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .post-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Post Card */
+        .post-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .post-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .post-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .post-author-info {
+            flex: 1;
+        }
+
+        .post-author-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .post-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .post-visibility {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .post-type-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .post-type-badge.business {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .post-type-badge.product {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .post-type-badge.service {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .post-type-badge.event {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .post-type-badge.job {
+            background: #e0f2f1;
+            color: #00695c;
+        }
+
+        .post-metadata {
+            background: #f9f9f9;
+            border-left: 3px solid #667eea;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .post-metadata-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .post-metadata-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .post-metadata-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .post-metadata-value {
+            color: #333;
+        }
+
+        .post-content {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .post-actions-buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .action-btn:hover {
+            background: #f7f7f7;
+            color: #667eea;
+        }
+
+        .action-btn.active {
+            color: #667eea;
+        }
+
+        /* Stats */
+        .stats-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .stats-panel h3 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        /* Notifications */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e53935;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 15px;
+            gap: 20px;
+        }
+
+        .pagination-btn {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #ccc;
+            color: #999;
+        }
+
+        .pagination-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .page-indicator {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .posts-info {
+            font-size: 13px;
+            color: #666;
+        }
+
+        #current-page {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Profile Page */
+        .profile-page {
+            display: none;
+        }
+
+        .profile-page.active {
+            display: block;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            color: white;
+            position: relative;
+        }
+
+        .profile-header-content {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .profile-avatar-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 48px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-display-name {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .profile-email {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .profile-bio {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: white;
+            color: #667eea;
+            transform: translateX(-5px);
+        }
+
+        .profile-stats-row {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .profile-stat {
+            text-align: center;
+        }
+
+        .profile-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .profile-stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .profile-action-btn {
+            padding: 12px 30px;
+            border: 2px solid white;
+            border-radius: 25px;
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .profile-action-btn:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .profile-action-btn.primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .profile-action-btn.primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .profile-tabs {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .profile-tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .profile-tab:hover {
+            background: #f7f7f7;
+            color: #667eea;
+        }
+
+        .profile-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .profile-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        /* Clickable elements */
+        .clickable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clickable:hover {
+            opacity: 0.8;
+            transform: scale(1.02);
+        }
+
+        .post-author-name.clickable:hover,
+        .user-name.clickable:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 250px 1fr;
+            }
+
+            .right-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .left-sidebar {
+                display: none;
+            }
+
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .pagination {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .pagination-btn {
+                width: 100%;
+            }
+        }
+
+        /* Demo Badge */
+        .demo-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #e53935;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(229, 57, 53, 0.3);
+            z-index: 1000;
+        }
+
+        /* AI Chat Widget */
+        .ai-chat-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        .ai-chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .ai-chat-button.active {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                box-shadow: 0 5px 30px rgba(102, 126, 234, 0.8);
+            }
+        }
+
+        .chat-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid white;
+        }
+
+        /* AI Chat Panel */
+        .ai-chat-panel {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: row;
+            z-index: 999;
+            overflow: hidden;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .ai-chat-panel.active {
+            display: flex;
+        }
+
+        .ai-chat-panel.with-history {
+            width: 700px;
+        }
+
+        /* Chat History Sidebar */
+        .chat-history-sidebar {
+            width: 280px;
+            background: #f7f7f7;
+            border-right: 1px solid #e0e0e0;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-history-sidebar.active {
+            display: flex;
+        }
+
+        .chat-history-header {
+            padding: 15px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-history-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .history-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .history-close-btn:hover {
+            color: #333;
+            transform: scale(1.1);
+        }
+
+        .chat-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .conversation-item {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .conversation-item:hover {
+            border-color: #667eea;
+            transform: translateX(3px);
+        }
+
+        .conversation-item.active {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .conversation-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .conversation-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .conversation-time {
+            font-size: 10px;
+            color: #999;
+            white-space: nowrap;
+            margin-left: 5px;
+        }
+
+        .conversation-preview {
+            font-size: 12px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .conversation-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .conversation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            padding: 2px 6px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .new-chat-btn {
+            margin: 10px;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Main Chat Container */
+        .chat-main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+
+        .history-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header-text h4 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-header-text p {
+            margin: 0;
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .chat-close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .chat-close-btn:hover {
+            transform: scale(1.2);
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 10px;
+            animation: fadeInMessage 0.3s ease;
+        }
+
+        @keyframes fadeInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .chat-message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-message.user .chat-message-avatar {
+            background: #333;
+        }
+
+        .chat-message-content {
+            max-width: 75%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-message.user .chat-message-content {
+            align-items: flex-end;
+        }
+
+        .chat-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chat-message-time {
+            font-size: 10px;
+            color: #999;
+            padding: 0 5px;
+        }
+
+        /* Chat Result Cards */
+        .chat-result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chat-result-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .chat-result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .chat-result-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .chat-result-info {
+            flex: 1;
+        }
+
+        .chat-result-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .chat-result-type {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .chat-result-description {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .chat-result-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-result-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-result-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .chat-result-btn.primary:hover {
+            background: #5568d3;
+        }
+
+        .chat-result-btn.secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .chat-result-btn.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: none;
+            font-family: inherit;
+            max-height: 100px;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .chat-send-btn {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typingDot 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingDot {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Quick Actions */
+        .chat-quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .quick-action-btn {
+            padding: 6px 12px;
+            background: #f0f3ff;
+            border: 1px solid #667eea;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-action-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Saved Results Section */
+        .saved-results-section {
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .saved-results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 0 5px;
+        }
+
+        .saved-results-header h5 {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .clear-saved-btn {
+            background: transparent;
+            border: none;
+            font-size: 11px;
+            color: #f44336;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .clear-saved-btn:hover {
+            background: #ffebee;
+        }
+
+        .saved-result-item {
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .saved-result-item:hover {
+            border-color: #667eea;
+            transform: translateX(3px);
+        }
+
+        .saved-result-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .saved-result-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .saved-result-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .saved-result-type {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* Empty State */
+        .empty-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-history-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .empty-history-text {
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .ai-chat-panel {
+                width: calc(100vw - 20px);
+                height: calc(100vh - 100px);
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                margin: 0 auto;
+                flex-direction: column;
+            }
+
+            .ai-chat-panel.with-history {
+                width: calc(100vw - 20px);
+            }
+
+            .chat-history-sidebar {
+                width: 100%;
+                max-height: 50%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .chat-main-container {
+                height: 50%;
+            }
+
+            .ai-chat-button {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+    
+/* =========================================================
+   Facebook iOS Style Reskin (full theme replacement)
+   ========================================================= */
+:root{
+  --fb-blue: #1877F2;
+  --fb-bg: #f0f2f5;
+  --fb-text: #1c1e21;
+  --fb-subtle: #65676b;
+  --fb-card: #fff;
+  --fb-border: #e4e6eb;
+  --fb-pill: #e7f3ff;
+  --fb-like: #2078f4;
+}
+body {
+  background: var(--fb-bg) !important;
+  color: var(--fb-text) !important;
+}
+.header {
+  background: var(--fb-card) !important;
+  border-bottom: 1px solid var(--fb-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.logo {
+  color: var(--fb-blue) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--fb-blue) !important;
+}
+.profile-type-label { color: var(--fb-subtle) !important; }
+.profile-type-switcher {
+  border: 1px solid var(--fb-border) !important;
+  color: var(--fb-text) !important;
+  background: #fff !important;
+}
+.user-avatar, .small-avatar, .post-avatar {
+  background: #d8dadf !important;
+  color: #2f3031 !important;
+}
+.feed, .sidebar, .stats-panel {
+  background: var(--fb-card) !important;
+  border: 1px solid var(--fb-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.feed h2, .sidebar h3, .stats-panel h3 {
+  color: var(--fb-text) !important;
+}
+.post-composer {
+  background: var(--fb-card) !important;
+  border: 1px solid var(--fb-border) !important;
+}
+.composer-profile-indicator {
+  background: var(--fb-pill) !important;
+  color: var(--fb-blue) !important;
+}
+.post-type-selector {
+  border-bottom: 1px solid var(--fb-border) !important;
+}
+.post-type-option {
+  border: none !important;
+  background: transparent !important;
+  color: var(--fb-subtle) !important;
+}
+.post-type-option.active {
+  color: var(--fb-blue) !important;
+  position: relative;
+}
+.post-type-option.active::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px;
+  background: var(--fb-blue);
+}
+.post-input {
+  border: 1px solid var(--fb-border) !important;
+  border-radius: 999px !important;
+  background: #f7f8fa !important;
+}
+.post-btn {
+  background: var(--fb-blue) !important;
+  border-radius: 999px !important;
+  border: none !important;
+}
+.post-card {
+  border: 1px solid var(--fb-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.post-footer {
+  border-top: 1px solid var(--fb-border) !important;
+}
+.action-btn {
+  color: var(--fb-subtle) !important;
+}
+.action-btn.active {
+  color: var(--fb-like) !important;
+}
+.pagination {
+  background: #fff !important;
+  border: 1px solid var(--fb-border) !important;
+  border-radius: 12px !important;
+}
+.pagination-btn {
+  border: 1px solid var(--fb-border) !important;
+  color: var(--fb-text) !important;
+}
+.page-indicator { color: var(--fb-text) !important; }
+#current-page { color: var(--fb-blue) !important; }
+.stat-label { color: var(--fb-subtle) !important; }
+.stat-value { color: var(--fb-blue) !important; }
+.profile-header {
+  background: var(--fb-blue) !important;
+  color: #fff !important;
+}
+.profile-action-btn { border-radius: 999px !important; }
+.ai-chat-button {
+  background: var(--fb-blue) !important;
+  animation: none !important;
+}
+.chat-badge { background: #f02849 !important; }
+.ai-chat-panel .chat-header { background: var(--fb-blue) !important; }
+.chat-message.user .chat-bubble { background: var(--fb-blue) !important; }
+
+</style>
+</head>
+<body>
+    <div class="demo-badge">🎨 UI WIREFRAME DEMO</div>
+
+    <!-- AI Chat Button -->
+    <button class="ai-chat-button" id="aiChatButton" onclick="toggleChat()">
+        🤖
+        <span class="chat-badge" id="chatBadge" style="display: none;">1</span>
+    </button>
+
+    <!-- AI Chat Panel -->
+    <div class="ai-chat-panel" id="aiChatPanel">
+        <!-- Chat History Sidebar -->
+        <div class="chat-history-sidebar" id="chatHistorySidebar">
+            <div class="chat-history-header">
+                <h4>💬 Conversations</h4>
+                <button class="history-close-btn" onclick="toggleHistory()">→</button>
+            </div>
+            
+            <button class="new-chat-btn" onclick="startNewConversation()">
+                ➕ New Conversation
+            </button>
+            
+            <div class="chat-history-list" id="chatHistoryList">
+                <!-- Conversation items will be added here -->
+                <div class="empty-history">
+                    <div class="empty-history-icon">💬</div>
+                    <div class="empty-history-text">No conversations yet.<br>Start chatting to see history!</div>
+                </div>
+            </div>
+
+            <!-- Saved Results Section -->
+            <div class="saved-results-section" id="savedResultsSection" style="display: none;">
+                <div class="saved-results-header">
+                    <h5>📌 Saved Results</h5>
+                    <button class="clear-saved-btn" onclick="clearSavedResults()">Clear</button>
+                </div>
+                <div id="savedResultsList">
+                    <!-- Saved results will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Container -->
+        <div class="chat-main-container">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <button class="history-toggle-btn" onclick="toggleHistory()" title="Toggle history">
+                        ☰
+                    </button>
+                    <div class="chat-header-info">
+                        <div class="chat-ai-avatar">🤖</div>
+                        <div class="chat-header-text">
+                            <h4>Sivar AI Assistant</h4>
+                            <p>Always here to help you explore</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="chat-close-btn" onclick="toggleChat()">×</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome message -->
+                <div class="chat-message">
+                    <div class="chat-message-avatar">🤖</div>
+                    <div class="chat-message-content">
+                        <div class="chat-bubble">
+                            Hi! I'm your Sivar AI assistant. I can help you:
+                            <br><br>
+                            🔍 Find profiles and businesses<br>
+                            📰 Search posts and content<br>
+                            🍕 Discover local services<br>
+                            👥 Explore activity streams
+                            <br><br>
+                            Try asking me something like "I want a pizza" or "Find tech companies"!
+                        </div>
+                        <div class="chat-quick-actions">
+                            <button class="quick-action-btn" onclick="quickAction('Find pizza places')">🍕 Find pizza</button>
+                            <button class="quick-action-btn" onclick="quickAction('Show tech companies')">💼 Tech companies</button>
+                            <button class="quick-action-btn" onclick="quickAction('Find events')">🎉 Events</button>
+                            <button class="quick-action-btn" onclick="quickAction('Job openings')">💼 Jobs</button>
+                        </div>
+                        <span class="chat-message-time">Just now</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Ask me anything..."
+                    rows="1"
+                    onkeypress="handleChatKeyPress(event)"
+                ></textarea>
+                <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🌐 Sivar Social</div>
+            <div class="header-center">
+                <span class="profile-type-label">Current Profile:</span>
+                <select class="profile-type-switcher" id="profileTypeSwitcher" onchange="switchProfileType()">
+                    <option value="personal">👤 User B - Personal</option>
+                    <option value="business">🏢 User B Company - Business</option>
+                    <option value="organization">🏛️ User B Foundation - Organization</option>
+                </select>
+            </div>
+            <div class="user-info clickable" onclick="showProfile('B', 'User B', 'userb@test.com', 'This is User B profile (You!)', true)">
+                <div class="user-details">
+                    <div class="user-name clickable">User B</div>
+                    <div class="user-email">userb@test.com</div>
+                </div>
+                <div class="user-avatar clickable">B</div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Sidebar - Discover Users -->
+            <aside class="left-sidebar">
+                <div class="sidebar">
+                    <h3>👥 Discover Users</h3>
+                    
+                    <div class="user-card following" id="userA-card">
+                        <div class="small-avatar clickable" onclick="showProfile('A', 'User A', 'usera@test.com', 'This is User A profile', false)">A</div>
+                        <div class="user-card-info clickable" onclick="showProfile('A', 'User A', 'usera@test.com', 'This is User A profile', false)">
+                            <div class="user-card-name">User A</div>
+                            <div class="user-card-bio">This is User A's profile</div>
+                        </div>
+                        <button class="follow-btn following" onclick="toggleFollow('A'); event.stopPropagation();">Following</button>
+                    </div>
+
+                    <div class="user-card" id="userC-card">
+                        <div class="small-avatar clickable" onclick="showProfile('C', 'User C', 'userc@test.com', 'This is User C profile', false)">C</div>
+                        <div class="user-card-info clickable" onclick="showProfile('C', 'User C', 'userc@test.com', 'This is User C profile', false)">
+                            <div class="user-card-name">User C</div>
+                            <div class="user-card-bio">This is User C's profile</div>
+                        </div>
+                        <button class="follow-btn follow" onclick="toggleFollow('C'); event.stopPropagation();">Follow</button>
+                    </div>
+
+                    <div class="user-card" id="userD-card">
+                        <div class="small-avatar clickable" onclick="showProfile('D', 'User D', 'userd@test.com', 'Developer & Creator', false)">D</div>
+                        <div class="user-card-info clickable" onclick="showProfile('D', 'User D', 'userd@test.com', 'Developer & Creator', false)">
+                            <div class="user-card-name">User D</div>
+                            <div class="user-card-bio">Developer & Creator</div>
+                        </div>
+                        <button class="follow-btn follow" onclick="toggleFollow('D'); event.stopPropagation();">Follow</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Feed -->
+            <main class="feed">
+                <h2>📰 Activity Feed</h2>
+
+                <!-- Post Composer -->
+                <div class="post-composer">
+                    <h3>
+                        ✍️ What's on your mind?
+                        <span class="composer-profile-indicator" id="composer-profile-indicator">
+                            👤 Posting as: User B - Personal
+                        </span>
+                    </h3>
+                    
+                    <!-- Post Type Selector -->
+                    <div class="post-type-selector">
+                        <button class="post-type-option active" data-type="general" onclick="selectPostType('general')">
+                            📝 General
+                            <span class="tooltip">Share thoughts, updates, and media with your followers</span>
+                        </button>
+                        <button class="post-type-option disabled" data-type="businesslocation" onclick="selectPostType('businesslocation')">
+                            📍 Business Location
+                            <span class="tooltip">Share business location with address and hours</span>
+                        </button>
+                        <button class="post-type-option disabled" data-type="product" onclick="selectPostType('product')">
+                            🛍️ Product
+                            <span class="tooltip">Showcase products with pricing and availability</span>
+                        </button>
+                        <button class="post-type-option disabled" data-type="service" onclick="selectPostType('service')">
+                            💼 Service
+                            <span class="tooltip">Promote services with pricing and booking info</span>
+                        </button>
+                        <button class="post-type-option disabled" data-type="event" onclick="selectPostType('event')">
+                            🎉 Event
+                            <span class="tooltip">Create event announcements with date and location</span>
+                        </button>
+                        <button class="post-type-option disabled" data-type="jobposting" onclick="selectPostType('jobposting')">
+                            💼 Job
+                            <span class="tooltip">Post job openings with requirements and salary</span>
+                        </button>
+                    </div>
+
+                    <!-- General Post Form (Default) -->
+                    <div id="form-general" class="post-form-fields active">
+                        <textarea class="post-input" id="postContent-general" placeholder="Share something with your followers..."></textarea>
+                    </div>
+
+                    <!-- Business Location Form -->
+                    <div id="form-businesslocation" class="post-form-fields">
+                        <div class="form-group">
+                            <label>Location Name</label>
+                            <input type="text" id="location-name" placeholder="e.g., Downtown Office">
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" id="location-address" placeholder="123 Main St, City">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="location-phone" placeholder="(555) 123-4567">
+                            </div>
+                            <div class="form-group">
+                                <label>Business Hours</label>
+                                <input type="text" id="location-hours" placeholder="Mon-Fri 9AM-5PM">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="location-description" placeholder="Tell people about this location..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Product Form -->
+                    <div id="form-product" class="post-form-fields">
+                        <div class="form-group">
+                            <label>Product Name</label>
+                            <input type="text" id="product-name" placeholder="e.g., Premium Widget">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Price</label>
+                                <input type="text" id="product-price" placeholder="$99.99">
+                            </div>
+                            <div class="form-group">
+                                <label>Availability</label>
+                                <select id="product-availability">
+                                    <option value="in-stock">In Stock</option>
+                                    <option value="limited">Limited Stock</option>
+                                    <option value="pre-order">Pre-Order</option>
+                                    <option value="out-of-stock">Out of Stock</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="product-description" placeholder="Describe your product..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Service Form -->
+                    <div id="form-service" class="post-form-fields">
+                        <div class="form-group">
+                            <label>Service Name</label>
+                            <input type="text" id="service-name" placeholder="e.g., Consulting Services">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Price Range</label>
+                                <input type="text" id="service-price" placeholder="$50 - $200/hour">
+                            </div>
+                            <div class="form-group">
+                                <label>Duration</label>
+                                <input type="text" id="service-duration" placeholder="e.g., 1-2 hours">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="service-description" placeholder="Describe your service..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Booking Link (optional)</label>
+                            <input type="url" id="service-booking" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <!-- Event Form -->
+                    <div id="form-event" class="post-form-fields">
+                        <div class="form-group">
+                            <label>Event Title</label>
+                            <input type="text" id="event-title" placeholder="e.g., Tech Meetup 2024">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="event-date">
+                            </div>
+                            <div class="form-group">
+                                <label>Time</label>
+                                <input type="time" id="event-time">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="event-location" placeholder="Venue or Online">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="event-description" placeholder="What's this event about?"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Job Posting Form -->
+                    <div id="form-jobposting" class="post-form-fields">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" id="job-title" placeholder="e.g., Senior Developer">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Company</label>
+                                <input type="text" id="job-company" placeholder="Company Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <input type="text" id="job-location" placeholder="City or Remote">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Salary Range</label>
+                                <input type="text" id="job-salary" placeholder="$80k - $120k">
+                            </div>
+                            <div class="form-group">
+                                <label>Job Type</label>
+                                <select id="job-type">
+                                    <option value="full-time">Full-Time</option>
+                                    <option value="part-time">Part-Time</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="internship">Internship</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Requirements</label>
+                            <textarea id="job-requirements" placeholder="List key requirements..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="post-actions">
+                        <div class="post-options">
+                            <button class="post-option active" id="visibility-public">🌍 Public</button>
+                            <button class="post-option" id="visibility-followers">👥 Followers</button>
+                            <button class="post-option" id="visibility-private">🔒 Private</button>
+                        </div>
+                        <button class="post-btn" onclick="createPost()">Post</button>
+                    </div>
+                </div>
+
+                <!-- Posts Feed -->
+                <div id="posts-container">
+                    <!-- Post from User A (Following) -->
+                    <div class="post-card">
+                        <div class="post-header">
+                            <div class="post-avatar">A</div>
+                            <div class="post-author-info">
+                                <div class="post-author-name">User A Profile</div>
+                                <div class="post-time">2 minutes ago</div>
+                            </div>
+                            <span class="post-visibility">🌍 Public</span>
+                        </div>
+                        <div class="post-content">
+                            Hello World! This is my first post on Sivar Social. Excited to connect with everyone! 🎉
+                        </div>
+                        <div class="post-footer">
+                            <div class="post-actions-buttons">
+                                <button class="action-btn">❤️ <span>12</span></button>
+                                <button class="action-btn">💬 <span>3</span></button>
+                                <button class="action-btn">🔄 <span>1</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post from User A (Another one) -->
+                    <div class="post-card">
+                        <div class="post-header">
+                            <div class="post-avatar">A</div>
+                            <div class="post-author-info">
+                                <div class="post-author-name">User A Profile</div>
+                                <div class="post-time">15 minutes ago</div>
+                            </div>
+                            <span class="post-visibility">👥 Followers</span>
+                        </div>
+                        <div class="post-content">
+                            Just finished working on an amazing new feature. Can't wait to share it with all of you! Stay tuned... 🚀
+                        </div>
+                        <div class="post-footer">
+                            <div class="post-actions-buttons">
+                                <button class="action-btn active">❤️ <span>24</span></button>
+                                <button class="action-btn">💬 <span>7</span></button>
+                                <button class="action-btn">🔄 <span>5</span></button>
+                            </div>
+                        </div>
+                    </post-card">
+
+                    <!-- Empty state placeholder (hidden by default) -->
+                    <div class="empty-state" id="empty-state" style="display: none;">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">No posts yet</div>
+                        <div class="empty-state-subtext">Follow some users to see their posts here!</div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <button class="pagination-btn" id="prev-btn" onclick="previousPage()" disabled>
+                        ← Previous
+                    </button>
+                    <div class="pagination-info">
+                        <span class="page-indicator">Page <span id="current-page">1</span> of <span id="total-pages">3</span></span>
+                        <span class="posts-info">Showing <span id="showing-count">2</span> of <span id="total-posts-count">6</span> posts</span>
+                    </div>
+                    <button class="pagination-btn" id="next-btn" onclick="nextPage()">
+                        Next →
+                    </button>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - Stats -->
+            <aside class="right-sidebar">
+                <div class="stats-panel">
+                    <h3>📊 Your Stats</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Following</span>
+                        <span class="stat-value" id="following-count">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Followers</span>
+                        <span class="stat-value" id="followers-count">5</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Posts</span>
+                        <span class="stat-value" id="posts-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Reactions</span>
+                        <span class="stat-value" id="reactions-count">1</span>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <h3>🔔 Recent Activity</h3>
+                    <div style="font-size: 13px; color: #666; line-height: 1.6;">
+                        <p style="margin-bottom: 12px;">
+                            <strong>User A</strong> started following you<br>
+                            <span style="color: #999;">3 hours ago</span>
+                        </p>
+                        <p style="margin-bottom: 12px;">
+                            <strong>User E</strong> reacted to your post<br>
+                            <span style="color: #999;">5 hours ago</span>
+                        </p>
+                        <p style="margin-bottom: 12px;">
+                            <strong>User D</strong> commented on your post<br>
+                            <span style="color: #999;">1 day ago</span>
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Profile Page (Hidden by default) -->
+        <div class="profile-page" id="profile-page">
+            <div class="profile-header">
+                <button class="back-button" onclick="showFeed()">← Back to Feed</button>
+                
+                <div class="profile-header-content">
+                    <div class="profile-avatar-large" id="profile-avatar-large">A</div>
+                    <div class="profile-info">
+                        <div class="profile-display-name" id="profile-display-name">User A Profile</div>
+                        <div class="profile-email" id="profile-user-email">usera@test.com</div>
+                        <div class="profile-bio" id="profile-bio">This is User A's profile. Passionate about technology and innovation.</div>
+                        
+                        <div class="profile-stats-row">
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-posts-count">12</div>
+                                <div class="profile-stat-label">Posts</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-followers-count">342</div>
+                                <div class="profile-stat-label">Followers</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-following-count">156</div>
+                                <div class="profile-stat-label">Following</div>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions" id="profile-actions">
+                            <button class="profile-action-btn primary" id="profile-follow-btn">Follow</button>
+                            <button class="profile-action-btn">Message</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-tabs">
+                <button class="profile-tab active">Posts</button>
+                <button class="profile-tab">Media</button>
+                <button class="profile-tab">Likes</button>
+            </div>
+
+            <div class="profile-content">
+                <div id="profile-posts-container">
+                    <!-- User's posts will be shown here -->
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-text">Posts will appear here</div>
+                        <div class="empty-state-subtext">This user's posts from the activity feed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo JavaScript for interactive wireframe
+        let followingCount = 1;
+        let followersCount = 5;
+        let postsCount = 0;
+        let reactionsCount = 1;
+
+        // Pagination variables
+        let currentPage = 1;
+        const postsPerPage = 2;
+        let allPosts = []; // Will store all post data
+
+        // Current profile type and post type
+        let currentProfileType = 'personal';
+        let currentPostType = 'general';
+
+        // Post type availability by profile type
+        const postTypeAvailability = {
+            personal: ['general'],
+            business: ['general', 'businesslocation', 'product', 'service', 'event', 'jobposting'],
+            organization: ['general', 'event', 'jobposting']
+        };
+
+        // Switch profile type
+        function switchProfileType() {
+            const switcher = document.getElementById('profileTypeSwitcher');
+            currentProfileType = switcher.value;
+            
+            // Update composer indicator
+            const selectedText = switcher.selectedOptions[0].text;
+            const indicator = document.getElementById('composer-profile-indicator');
+            const icon = selectedText.split(' ')[0]; // Get the emoji
+            const name = selectedText.split(' - ')[0].substring(2).trim(); // Get name without emoji
+            const type = selectedText.split(' - ')[1]; // Get type
+            indicator.innerHTML = `${icon} Posting as: ${name} - ${type}`;
+            
+            updatePostTypeAvailability();
+        }
+
+        // Update which post types are available
+        function updatePostTypeAvailability() {
+            const availableTypes = postTypeAvailability[currentProfileType];
+            const postTypeOptions = document.querySelectorAll('.post-type-option');
+            
+            let hasActiveTypeAvailable = false;
+            let firstAvailableType = 'general';
+            
+            postTypeOptions.forEach(option => {
+                const type = option.getAttribute('data-type');
+                if (availableTypes.includes(type)) {
+                    option.classList.remove('disabled');
+                    if (firstAvailableType === 'general' || type === 'general') {
+                        firstAvailableType = type;
+                    }
+                    if (option.classList.contains('active')) {
+                        hasActiveTypeAvailable = true;
+                    }
+                } else {
+                    option.classList.add('disabled');
+                }
+            });
+            
+            // If current active type is not available, switch to first available
+            if (!hasActiveTypeAvailable) {
+                selectPostType(firstAvailableType);
+            }
+        }
+
+        // Select post type
+        function selectPostType(type) {
+            const availableTypes = postTypeAvailability[currentProfileType];
+            if (!availableTypes.includes(type)) {
+                return; // Don't allow selecting disabled types
+            }
+
+            currentPostType = type;
+            
+            // Update active state
+            document.querySelectorAll('.post-type-option').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.post-type-option[data-type="${type}"]`).classList.add('active');
+            
+            // Show relevant form
+            document.querySelectorAll('.post-form-fields').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`form-${type}`).classList.add('active');
+        }
+
+        // Profile navigation
+        function showProfile(userId, displayName, email, bio, isOwnProfile) {
+            // Hide main layout, show profile page
+            document.querySelector('.main-layout').style.display = 'none';
+            document.getElementById('profile-page').classList.add('active');
+            
+            // Update profile information
+            document.getElementById('profile-avatar-large').textContent = userId;
+            document.getElementById('profile-display-name').textContent = displayName + ' Profile';
+            document.getElementById('profile-user-email').textContent = email;
+            document.getElementById('profile-bio').textContent = bio;
+            
+            // Update stats (simulated)
+            const stats = {
+                'A': { posts: 12, followers: 342, following: 156 },
+                'B': { posts: postsCount, followers: followersCount, following: followingCount },
+                'C': { posts: 8, followers: 89, following: 234 },
+                'D': { posts: 15, followers: 567, following: 123 }
+            };
+            
+            const userStats = stats[userId] || { posts: 0, followers: 0, following: 0 };
+            document.getElementById('profile-posts-count').textContent = userStats.posts;
+            document.getElementById('profile-followers-count').textContent = userStats.followers;
+            document.getElementById('profile-following-count').textContent = userStats.following;
+            
+            // Show/hide follow button
+            const profileActions = document.getElementById('profile-actions');
+            if (isOwnProfile) {
+                profileActions.innerHTML = `
+                    <button class="profile-action-btn primary">Edit Profile</button>
+                    <button class="profile-action-btn">Settings</button>
+                `;
+            } else {
+                const isFollowing = document.getElementById('user' + userId + '-card')?.classList.contains('following');
+                profileActions.innerHTML = `
+                    <button class="profile-action-btn primary" id="profile-follow-btn" onclick="toggleFollowFromProfile('${userId}')">
+                        ${isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                    <button class="profile-action-btn">Message</button>
+                `;
+            }
+            
+            // Show user's posts
+            showUserPosts(userId);
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showFeed() {
+            // Hide profile page, show main layout
+            document.getElementById('profile-page').classList.remove('active');
+            document.querySelector('.main-layout').style.display = 'grid';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showUserPosts(userId) {
+            const profilePostsContainer = document.getElementById('profile-posts-container');
+            const userPosts = allPosts.filter(post => post.user === userId);
+            
+            profilePostsContainer.innerHTML = '';
+            
+            if (userPosts.length === 0) {
+                profilePostsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-text">No posts yet</div>
+                        <div class="empty-state-subtext">This user hasn't posted anything yet</div>
+                    </div>
+                `;
+            } else {
+                userPosts.forEach(post => {
+                    const postCard = createPostElement(post);
+                    profilePostsContainer.appendChild(postCard);
+                });
+            }
+        }
+
+        function toggleFollowFromProfile(userId) {
+            toggleFollow(userId);
+            
+            // Update the profile follow button
+            const card = document.getElementById('user' + userId + '-card');
+            const isFollowing = card?.classList.contains('following');
+            const profileFollowBtn = document.getElementById('profile-follow-btn');
+            if (profileFollowBtn) {
+                profileFollowBtn.textContent = isFollowing ? 'Following' : 'Follow';
+            }
+        }
+
+        // Sample posts data for pagination demo with different types
+        const samplePosts = [
+            {
+                user: 'A',
+                name: 'User A Profile',
+                time: '2 minutes ago',
+                content: 'Hello World! This is my first post on Sivar Social. Excited to connect with everyone! 🎉',
+                visibility: '🌍 Public',
+                type: 'general',
+                reactions: 12,
+                comments: 3,
+                shares: 1
+            },
+            {
+                user: 'A',
+                name: 'User A Profile (Business)',
+                time: '15 minutes ago',
+                content: 'Check out our new downtown location!',
+                visibility: '🌍 Public',
+                type: 'businesslocation',
+                metadata: {
+                    locationName: 'Downtown Office',
+                    address: '123 Main St, Downtown',
+                    phone: '(555) 123-4567',
+                    hours: 'Mon-Fri 9AM-6PM'
+                },
+                reactions: 24,
+                comments: 7,
+                shares: 5
+            },
+            {
+                user: 'A',
+                name: 'User A Profile (Business)',
+                time: '1 hour ago',
+                content: 'Introducing our newest product!',
+                visibility: '🌍 Public',
+                type: 'product',
+                metadata: {
+                    productName: 'Premium Widget Pro',
+                    price: '$149.99',
+                    availability: 'In Stock',
+                    description: 'The ultimate solution for your business needs. High quality and reliable.'
+                },
+                reactions: 38,
+                comments: 12,
+                shares: 8
+            },
+            {
+                user: 'A',
+                name: 'User A Profile (Business)',
+                time: '3 hours ago',
+                content: 'Professional consulting services now available!',
+                visibility: '🌍 Public',
+                type: 'service',
+                metadata: {
+                    serviceName: 'Business Consulting',
+                    priceRange: '$100 - $250/hour',
+                    duration: '1-3 hours',
+                    description: 'Expert business strategy and growth consulting for startups and enterprises.'
+                },
+                reactions: 21,
+                comments: 5,
+                shares: 3
+            },
+            {
+                user: 'A',
+                name: 'User A Profile (Organization)',
+                time: '5 hours ago',
+                content: 'Join us for an exciting tech event!',
+                visibility: '🌍 Public',
+                type: 'event',
+                metadata: {
+                    eventTitle: 'Tech Innovation Summit 2024',
+                    date: '2024-03-15',
+                    time: '10:00 AM',
+                    location: 'Convention Center Hall A',
+                    description: 'Annual gathering of tech leaders and innovators. Network, learn, and grow!'
+                },
+                reactions: 56,
+                comments: 18,
+                shares: 22
+            },
+            {
+                user: 'A',
+                name: 'User A Profile (Business)',
+                time: '1 day ago',
+                content: 'We\'re hiring! Join our amazing team.',
+                visibility: '🌍 Public',
+                type: 'jobposting',
+                metadata: {
+                    jobTitle: 'Senior Full-Stack Developer',
+                    company: 'Tech Innovations Inc.',
+                    location: 'Remote / San Francisco',
+                    salary: '$120k - $180k',
+                    jobType: 'Full-Time',
+                    requirements: '5+ years experience with React, Node.js, and cloud platforms. Strong problem-solving skills.'
+                },
+                reactions: 42,
+                comments: 15,
+                shares: 28
+            }
+        ];
+
+        // Initialize pagination
+        function initializePagination() {
+            allPosts = [...samplePosts];
+            renderPage(currentPage);
+        }
+
+        function renderPage(page) {
+            const postsContainer = document.getElementById('posts-container');
+            const startIndex = (page - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const postsToShow = allPosts.slice(startIndex, endIndex);
+
+            // Clear existing posts (except empty state)
+            const existingPosts = postsContainer.querySelectorAll('.post-card');
+            existingPosts.forEach(post => post.remove());
+
+            // Render posts for current page
+            postsToShow.forEach(post => {
+                const postCard = createPostElement(post);
+                postsContainer.insertBefore(postCard, postsContainer.firstChild);
+            });
+
+            // Update pagination info
+            updatePaginationInfo();
+
+            // Show/hide empty state
+            const emptyState = document.getElementById('empty-state');
+            if (allPosts.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+            }
+
+            // Scroll to top of feed smoothly
+            document.querySelector('.feed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function createPostElement(post) {
+            const postCard = document.createElement('div');
+            postCard.className = 'post-card';
+            
+            // Determine email and bio for profile
+            const userInfo = {
+                'A': { email: 'usera@test.com', bio: 'This is User A profile' },
+                'B': { email: 'userb@test.com', bio: 'This is User B profile (You!)' },
+                'C': { email: 'userc@test.com', bio: 'This is User C profile' },
+                'D': { email: 'userd@test.com', bio: 'Developer & Creator' }
+            };
+            
+            const info = userInfo[post.user] || { email: 'user@test.com', bio: 'User profile' };
+            const isOwnPost = post.user === 'B';
+            
+            // Get post type badge
+            const postTypeBadge = getPostTypeBadge(post.type);
+            
+            // Get post metadata HTML
+            const metadataHTML = getPostMetadataHTML(post);
+            
+            postCard.innerHTML = `
+                <div class="post-header">
+                    <div class="post-avatar clickable" onclick="showProfile('${post.user}', '${post.name.replace(' Profile', '')}', '${info.email}', '${info.bio}', ${isOwnPost})">${post.user}</div>
+                    <div class="post-author-info">
+                        <div class="post-author-name clickable" onclick="showProfile('${post.user}', '${post.name.replace(' Profile', '')}', '${info.email}', '${info.bio}', ${isOwnPost})">${post.name}</div>
+                        <div class="post-time">${post.time}</div>
+                    </div>
+                    <div>
+                        <span class="post-visibility">${post.visibility}</span>
+                        ${postTypeBadge}
+                    </div>
+                </div>
+                <div class="post-content">
+                    ${post.content}
+                    ${metadataHTML}
+                </div>
+                <div class="post-footer">
+                    <div class="post-actions-buttons">
+                        <button class="action-btn">❤️ <span>${post.reactions}</span></button>
+                        <button class="action-btn">💬 <span>${post.comments}</span></button>
+                        <button class="action-btn">🔄 <span>${post.shares}</span></button>
+                    </div>
+                </div>
+            `;
+            return postCard;
+        }
+
+        function getPostTypeBadge(type) {
+            const badges = {
+                'general': '',
+                'businesslocation': '<span class="post-type-badge business">📍 Location</span>',
+                'product': '<span class="post-type-badge product">🛍️ Product</span>',
+                'service': '<span class="post-type-badge service">💼 Service</span>',
+                'event': '<span class="post-type-badge event">🎉 Event</span>',
+                'jobposting': '<span class="post-type-badge job">💼 Job</span>'
+            };
+            return badges[type] || '';
+        }
+
+        function getPostMetadataHTML(post) {
+            if (!post.metadata) return '';
+            
+            const type = post.type;
+            let html = '<div class="post-metadata">';
+            
+            switch(type) {
+                case 'businesslocation':
+                    html += `
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📍 Location:</span>
+                            <span class="post-metadata-value">${post.metadata.locationName}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">🏠 Address:</span>
+                            <span class="post-metadata-value">${post.metadata.address}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📞 Phone:</span>
+                            <span class="post-metadata-value">${post.metadata.phone}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">🕐 Hours:</span>
+                            <span class="post-metadata-value">${post.metadata.hours}</span>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'product':
+                    html += `
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">🛍️ Product:</span>
+                            <span class="post-metadata-value">${post.metadata.productName}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">💰 Price:</span>
+                            <span class="post-metadata-value">${post.metadata.price}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📦 Availability:</span>
+                            <span class="post-metadata-value">${post.metadata.availability}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">ℹ️ Details:</span>
+                            <span class="post-metadata-value">${post.metadata.description}</span>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'service':
+                    html += `
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">💼 Service:</span>
+                            <span class="post-metadata-value">${post.metadata.serviceName}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">💰 Price:</span>
+                            <span class="post-metadata-value">${post.metadata.priceRange}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">⏱️ Duration:</span>
+                            <span class="post-metadata-value">${post.metadata.duration}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">ℹ️ Details:</span>
+                            <span class="post-metadata-value">${post.metadata.description}</span>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'event':
+                    html += `
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">🎉 Event:</span>
+                            <span class="post-metadata-value">${post.metadata.eventTitle}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📅 Date:</span>
+                            <span class="post-metadata-value">${post.metadata.date} at ${post.metadata.time}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📍 Location:</span>
+                            <span class="post-metadata-value">${post.metadata.location}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">ℹ️ About:</span>
+                            <span class="post-metadata-value">${post.metadata.description}</span>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'jobposting':
+                    html += `
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">💼 Position:</span>
+                            <span class="post-metadata-value">${post.metadata.jobTitle}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">🏢 Company:</span>
+                            <span class="post-metadata-value">${post.metadata.company}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📍 Location:</span>
+                            <span class="post-metadata-value">${post.metadata.location}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">💰 Salary:</span>
+                            <span class="post-metadata-value">${post.metadata.salary}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">⏰ Type:</span>
+                            <span class="post-metadata-value">${post.metadata.jobType}</span>
+                        </div>
+                        <div class="post-metadata-row">
+                            <span class="post-metadata-label">📋 Requirements:</span>
+                            <span class="post-metadata-value">${post.metadata.requirements}</span>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+
+        function updatePaginationInfo() {
+            const totalPages = Math.ceil(allPosts.length / postsPerPage);
+            const startPost = (currentPage - 1) * postsPerPage + 1;
+            const endPost = Math.min(currentPage * postsPerPage, allPosts.length);
+
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('showing-count').textContent = endPost - startPost + 1;
+            document.getElementById('total-posts-count').textContent = allPosts.length;
+
+            // Enable/disable buttons
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === totalPages || allPosts.length === 0;
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(allPosts.length / postsPerPage);
+            if (currentPage < totalPages) {
+                showLoadingState();
+                setTimeout(() => {
+                    currentPage++;
+                    renderPage(currentPage);
+                    hideLoadingState();
+                }, 500); // Simulate loading delay
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                showLoadingState();
+                setTimeout(() => {
+                    currentPage--;
+                    renderPage(currentPage);
+                    hideLoadingState();
+                }, 500); // Simulate loading delay
+            }
+        }
+
+        function showLoadingState() {
+            const feed = document.querySelector('.feed');
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.id = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading posts...</div>
+            `;
+            feed.style.position = 'relative';
+            feed.appendChild(overlay);
+        }
+
+        function hideLoadingState() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
+        function toggleFollow(user) {
+            const card = document.getElementById(`user${user}-card`);
+            const btn = card.querySelector('.follow-btn');
+            
+            if (btn.classList.contains('follow')) {
+                // Follow user
+                btn.classList.remove('follow');
+                btn.classList.add('following');
+                btn.textContent = 'Following';
+                card.classList.add('following');
+                followingCount++;
+                
+                // Show success message
+                showNotification(`You are now following User ${user}! 🎉`);
+                
+                // Add their posts to feed (simulated)
+                if (user === 'C') {
+                    addUserCPosts();
+                }
+            } else {
+                // Unfollow user
+                btn.classList.remove('following');
+                btn.classList.add('follow');
+                btn.textContent = 'Follow';
+                card.classList.remove('following');
+                followingCount--;
+                
+                // Show notification
+                showNotification(`You unfollowed User ${user}`);
+                
+                // Remove their posts from feed (simulated)
+                if (user === 'A') {
+                    removeUserAPosts();
+                }
+            }
+            
+            updateStats();
+        }
+
+        function createPost() {
+            // Get visibility
+            let visibility = '🌍 Public';
+            if (document.getElementById('visibility-followers').classList.contains('active')) {
+                visibility = '👥 Followers';
+            } else if (document.getElementById('visibility-private').classList.contains('active')) {
+                visibility = '🔒 Private';
+            }
+            
+            let content = '';
+            let metadata = null;
+            
+            // Get content and metadata based on post type
+            switch(currentPostType) {
+                case 'general':
+                    content = document.getElementById('postContent-general').value.trim();
+                    if (!content) {
+                        alert('Please write something before posting!');
+                        return;
+                    }
+                    break;
+                    
+                case 'businesslocation':
+                    const locationName = document.getElementById('location-name').value.trim();
+                    const address = document.getElementById('location-address').value.trim();
+                    if (!locationName || !address) {
+                        alert('Please fill in location name and address!');
+                        return;
+                    }
+                    content = `Check out our location: ${locationName}`;
+                    metadata = {
+                        locationName: locationName,
+                        address: address,
+                        phone: document.getElementById('location-phone').value || 'N/A',
+                        hours: document.getElementById('location-hours').value || 'N/A'
+                    };
+                    break;
+                    
+                case 'product':
+                    const productName = document.getElementById('product-name').value.trim();
+                    if (!productName) {
+                        alert('Please enter a product name!');
+                        return;
+                    }
+                    content = `New product available: ${productName}`;
+                    metadata = {
+                        productName: productName,
+                        price: document.getElementById('product-price').value || 'Contact for price',
+                        availability: document.getElementById('product-availability').value,
+                        description: document.getElementById('product-description').value || 'N/A'
+                    };
+                    break;
+                    
+                case 'service':
+                    const serviceName = document.getElementById('service-name').value.trim();
+                    if (!serviceName) {
+                        alert('Please enter a service name!');
+                        return;
+                    }
+                    content = `Service offering: ${serviceName}`;
+                    metadata = {
+                        serviceName: serviceName,
+                        priceRange: document.getElementById('service-price').value || 'Contact for pricing',
+                        duration: document.getElementById('service-duration').value || 'Varies',
+                        description: document.getElementById('service-description').value || 'N/A'
+                    };
+                    break;
+                    
+                case 'event':
+                    const eventTitle = document.getElementById('event-title').value.trim();
+                    const eventDate = document.getElementById('event-date').value;
+                    if (!eventTitle || !eventDate) {
+                        alert('Please enter event title and date!');
+                        return;
+                    }
+                    content = `Upcoming event: ${eventTitle}`;
+                    metadata = {
+                        eventTitle: eventTitle,
+                        date: eventDate,
+                        time: document.getElementById('event-time').value || 'TBA',
+                        location: document.getElementById('event-location').value || 'TBA',
+                        description: document.getElementById('event-description').value || 'N/A'
+                    };
+                    break;
+                    
+                case 'jobposting':
+                    const jobTitle = document.getElementById('job-title').value.trim();
+                    if (!jobTitle) {
+                        alert('Please enter a job title!');
+                        return;
+                    }
+                    content = `We're hiring: ${jobTitle}`;
+                    metadata = {
+                        jobTitle: jobTitle,
+                        company: document.getElementById('job-company').value || 'Our Company',
+                        location: document.getElementById('job-location').value || 'TBA',
+                        salary: document.getElementById('job-salary').value || 'Competitive',
+                        jobType: document.getElementById('job-type').value,
+                        requirements: document.getElementById('job-requirements').value || 'N/A'
+                    };
+                    break;
+            }
+            
+            // Add new post to the beginning of allPosts array
+            const profileSelector = document.getElementById('profileTypeSwitcher');
+            const selectedText = profileSelector.selectedOptions[0].text;
+            const newPost = {
+                user: 'B',
+                name: selectedText.split(' - ')[0], // Extract just the profile name part
+                time: 'Just now',
+                content: content,
+                visibility: visibility,
+                type: currentPostType,
+                metadata: metadata,
+                reactions: 0,
+                comments: 0,
+                shares: 0
+            };
+            
+            allPosts.unshift(newPost);
+            
+            // Clear all form inputs
+            document.querySelectorAll('.post-form-fields input, .post-form-fields textarea, .post-form-fields select').forEach(input => {
+                if (input.type === 'select-one') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            // Update stats
+            postsCount++;
+            updateStats();
+            
+            // Go to first page to show the new post
+            currentPage = 1;
+            renderPage(currentPage);
+            
+            // Show success notification
+            showNotification('Post created successfully! 🎉');
+        }
+
+        function addUserCPosts() {
+            // Add User C's posts to the allPosts array
+            const userCPosts = [
+                {
+                    user: 'C',
+                    name: 'User C Profile',
+                    time: '30 minutes ago',
+                    content: 'Hello from User C! Glad to connect with everyone on Sivar Social! 👋',
+                    visibility: '🌍 Public',
+                    reactions: 8,
+                    comments: 2,
+                    shares: 0
+                },
+                {
+                    user: 'C',
+                    name: 'User C Profile',
+                    time: '2 hours ago',
+                    content: 'Working on some exciting projects! Can\'t wait to share more details soon. 🎨',
+                    visibility: '🌍 Public',
+                    reactions: 15,
+                    comments: 4,
+                    shares: 2
+                }
+            ];
+            
+            // Add to allPosts
+            allPosts = [...userCPosts, ...allPosts];
+            
+            // Re-render current page
+            currentPage = 1;
+            renderPage(currentPage);
+        }
+
+        function removeUserAPosts() {
+            // Remove all User A's posts from allPosts array
+            allPosts = allPosts.filter(post => post.user !== 'A');
+            
+            // Reset to first page if current page doesn't exist anymore
+            const totalPages = Math.ceil(allPosts.length / postsPerPage);
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+            } else if (totalPages === 0) {
+                currentPage = 1;
+            }
+            
+            // Re-render current page
+            renderPage(currentPage);
+        }
+
+        function updateStats() {
+            document.getElementById('following-count').textContent = followingCount;
+            document.getElementById('followers-count').textContent = followersCount;
+            document.getElementById('posts-count').textContent = postsCount;
+            document.getElementById('reactions-count').textContent = reactionsCount;
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                z-index: 1001;
+                animation: slideIn 0.3s ease;
+                font-weight: 500;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Visibility toggle
+        document.querySelectorAll('.post-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.post-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // AI Chat functionality
+        let chatOpen = false;
+        let historyOpen = false;
+        let currentConversationId = null;
+        let conversations = []; // Array of conversation objects
+        let savedResults = []; // Array of saved result cards
+
+        // Load from localStorage
+        function loadChatData() {
+            const stored = localStorage.getItem('sivarChatData');
+            if (stored) {
+                const data = JSON.parse(stored);
+                conversations = data.conversations || [];
+                savedResults = data.savedResults || [];
+                updateHistorySidebar();
+                updateSavedResults();
+            }
+        }
+
+        // Save to localStorage
+        function saveChatData() {
+            localStorage.setItem('sivarChatData', JSON.stringify({
+                conversations: conversations,
+                savedResults: savedResults
+            }));
+        }
+
+        function toggleChat() {
+            chatOpen = !chatOpen;
+            const panel = document.getElementById('aiChatPanel');
+            const button = document.getElementById('aiChatButton');
+            const badge = document.getElementById('chatBadge');
+            
+            panel.classList.toggle('active');
+            button.classList.toggle('active');
+            
+            if (chatOpen) {
+                loadChatData();
+                document.getElementById('chatInput').focus();
+                badge.style.display = 'none';
+                
+                // If no conversation active, start new one
+                if (!currentConversationId) {
+                    startNewConversation();
+                }
+            }
+        }
+
+        function toggleHistory() {
+            historyOpen = !historyOpen;
+            const sidebar = document.getElementById('chatHistorySidebar');
+            const panel = document.getElementById('aiChatPanel');
+            
+            sidebar.classList.toggle('active');
+            panel.classList.toggle('with-history');
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        function startNewConversation() {
+            const conversationId = 'conv_' + Date.now();
+            currentConversationId = conversationId;
+            
+            const newConv = {
+                id: conversationId,
+                title: 'New Conversation',
+                preview: 'Start chatting...',
+                timestamp: new Date().toISOString(),
+                messages: [],
+                resultCount: 0
+            };
+            
+            conversations.unshift(newConv);
+            
+            // Clear chat display
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="chat-message">
+                    <div class="chat-message-avatar">🤖</div>
+                    <div class="chat-message-content">
+                        <div class="chat-bubble">
+                            Hi! I'm your Sivar AI assistant. I can help you:
+                            <br><br>
+                            🔍 Find profiles and businesses<br>
+                            📰 Search posts and content<br>
+                            🍕 Discover local services<br>
+                            👥 Explore activity streams
+                            <br><br>
+                            Try asking me something like "I want a pizza" or "Find tech companies"!
+                        </div>
+                        <div class="chat-quick-actions">
+                            <button class="quick-action-btn" onclick="quickAction('Find pizza places')">🍕 Find pizza</button>
+                            <button class="quick-action-btn" onclick="quickAction('Show tech companies')">💼 Tech companies</button>
+                            <button class="quick-action-btn" onclick="quickAction('Find events')">🎉 Events</button>
+                            <button class="quick-action-btn" onclick="quickAction('Job openings')">💼 Jobs</button>
+                        </div>
+                        <span class="chat-message-time">Just now</span>
+                    </div>
+                </div>
+            `;
+            
+            updateHistorySidebar();
+            saveChatData();
+        }
+
+        function loadConversation(conversationId) {
+            currentConversationId = conversationId;
+            const conv = conversations.find(c => c.id === conversationId);
+            
+            if (!conv) return;
+            
+            // Clear and rebuild chat messages
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            // Reload all messages from this conversation
+            conv.messages.forEach(msg => {
+                if (msg.type === 'text') {
+                    addChatMessage(msg.content, msg.sender, false);
+                } else if (msg.type === 'result') {
+                    addChatResultCard(msg.data, false);
+                }
+            });
+            
+            updateHistorySidebar();
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addChatMessage(message, 'user');
+            
+            // Update conversation title if this is first user message
+            updateConversationTitle(message);
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Simulate AI response
+            setTimeout(() => {
+                hideTypingIndicator();
+                handleAIResponse(message);
+            }, 1500);
+        }
+
+        function updateConversationTitle(firstMessage) {
+            const conv = conversations.find(c => c.id === currentConversationId);
+            if (conv && conv.title === 'New Conversation') {
+                conv.title = firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '');
+                conv.preview = firstMessage;
+                updateHistorySidebar();
+                saveChatData();
+            }
+        }
+
+        function quickAction(action) {
+            document.getElementById('chatInput').value = action;
+            sendChatMessage();
+        }
+
+        function addChatMessage(message, sender, saveToHistory = true) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            
+            const avatar = sender === 'user' ? 'B' : '🤖';
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="chat-message-avatar">${avatar}</div>
+                <div class="chat-message-content">
+                    <div class="chat-bubble">${message}</div>
+                    <span class="chat-message-time">${time}</span>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Save to conversation history
+            if (saveToHistory && currentConversationId) {
+                const conv = conversations.find(c => c.id === currentConversationId);
+                if (conv) {
+                    conv.messages.push({
+                        type: 'text',
+                        sender: sender,
+                        content: message,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Update preview with last message
+                    if (sender === 'user') {
+                        conv.preview = message.substring(0, 50);
+                    }
+                    
+                    updateHistorySidebar();
+                    saveChatData();
+                }
+            }
+        }
+
+        function addChatResultCard(result, saveToHistory = true) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="chat-message-avatar">🤖</div>
+                <div class="chat-message-content">
+                    <div class="chat-result-card">
+                        <div class="chat-result-header">
+                            <div class="chat-result-avatar">${result.avatar}</div>
+                            <div class="chat-result-info">
+                                <div class="chat-result-name">${result.name}</div>
+                                <div class="chat-result-type">${result.type}</div>
+                            </div>
+                        </div>
+                        <div class="chat-result-description">${result.description}</div>
+                        <div class="chat-result-actions">
+                            <button class="chat-result-btn primary" onclick="viewInFeed('${result.id}')">
+                                👁️ View Profile
+                            </button>
+                            <button class="chat-result-btn secondary" onclick="saveResult('${result.id}', '${result.name}', '${result.avatar}', '${result.type}')">
+                                📌 Save
+                            </button>
+                            <button class="chat-result-btn secondary" onclick="followFromChat('${result.id}')">
+                                ➕ Follow
+                            </button>
+                        </div>
+                    </div>
+                    <span class="chat-message-time">${time}</span>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Save to conversation history
+            if (saveToHistory && currentConversationId) {
+                const conv = conversations.find(c => c.id === currentConversationId);
+                if (conv) {
+                    conv.messages.push({
+                        type: 'result',
+                        data: result,
+                        timestamp: new Date().toISOString()
+                    });
+                    conv.resultCount = (conv.resultCount || 0) + 1;
+                    updateHistorySidebar();
+                    saveChatData();
+                }
+            }
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message';
+            typingDiv.id = 'typing-indicator';
+            
+            typingDiv.innerHTML = `
+                <div class="chat-message-avatar">🤖</div>
+                <div class="chat-message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function handleAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            // Pizza search
+            if (lowerMessage.includes('pizza')) {
+                addChatMessage("Great! I found some pizza places near you. Here are the top results:", 'ai');
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'pizza1',
+                        avatar: '🍕',
+                        name: "Tony's Pizza Palace",
+                        type: "🏢 Business Profile • Italian Restaurant",
+                        description: "Authentic Italian pizza made with fresh ingredients. Open daily 11AM-10PM. Delivery available!"
+                    });
+                }, 300);
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'pizza2',
+                        avatar: '🍕',
+                        name: "Pizza Express Downtown",
+                        type: "🏢 Business Profile • Fast Food",
+                        description: "Quick service pizza restaurant. Great for lunch breaks! Special: 2 for 1 on Tuesdays."
+                    });
+                }, 600);
+                
+                setTimeout(() => {
+                    addChatMessage("Would you like to see their menus or find more restaurants?", 'ai');
+                }, 900);
+            }
+            // Tech companies
+            else if (lowerMessage.includes('tech') || lowerMessage.includes('company') || lowerMessage.includes('companies')) {
+                addChatMessage("I found several tech companies in your network:", 'ai');
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'tech1',
+                        avatar: '💻',
+                        name: "TechVision Solutions",
+                        type: "🏢 Business Profile • Software Development",
+                        description: "Leading software development company specializing in AI and cloud solutions. Currently hiring!"
+                    });
+                }, 300);
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'tech2',
+                        avatar: '🚀',
+                        name: "Innovation Labs",
+                        type: "🏛️ Organization Profile • Tech Incubator",
+                        description: "Supporting startups and tech entrepreneurs. Check out our upcoming events and mentorship programs."
+                    });
+                }, 600);
+            }
+            // Events
+            else if (lowerMessage.includes('event')) {
+                addChatMessage("Here are upcoming events you might be interested in:", 'ai');
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'event1',
+                        avatar: '🎉',
+                        name: "Tech Innovation Summit 2024",
+                        type: "🎉 Event • March 15, 2024",
+                        description: "Annual gathering of tech leaders and innovators. Network, learn, and grow! Free admission."
+                    });
+                }, 300);
+            }
+            // Jobs
+            else if (lowerMessage.includes('job')) {
+                addChatMessage("I found some job openings that match common interests:", 'ai');
+                
+                setTimeout(() => {
+                    addChatResultCard({
+                        id: 'job1',
+                        avatar: '💼',
+                        name: "Senior Full-Stack Developer",
+                        type: "💼 Job Posting • Full-Time, Remote",
+                        description: "TechVision Solutions is hiring! $120k-$180k. 5+ years experience with React and Node.js required."
+                    });
+                }, 300);
+            }
+            // Default response
+            else {
+                const responses = [
+                    "I'm here to help! Try asking me to find profiles, businesses, events, or jobs.",
+                    "I can search for content across Sivar Social. What are you looking for?",
+                    "Let me know what you need - I can find profiles, posts, businesses, and more!",
+                ];
+                addChatMessage(responses[Math.floor(Math.random() * responses.length)], 'ai');
+            }
+        }
+
+        function updateHistorySidebar() {
+            const historyList = document.getElementById('chatHistoryList');
+            
+            if (conversations.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-history">
+                        <div class="empty-history-icon">💬</div>
+                        <div class="empty-history-text">No conversations yet.<br>Start chatting to see history!</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            
+            conversations.forEach(conv => {
+                const timeAgo = getTimeAgo(new Date(conv.timestamp));
+                const isActive = conv.id === currentConversationId;
+                
+                const convItem = document.createElement('div');
+                convItem.className = `conversation-item ${isActive ? 'active' : ''}`;
+                convItem.onclick = () => loadConversation(conv.id);
+                
+                convItem.innerHTML = `
+                    <div class="conversation-item-header">
+                        <div class="conversation-title">${conv.title}</div>
+                        <div class="conversation-time">${timeAgo}</div>
+                    </div>
+                    <div class="conversation-preview">${conv.preview}</div>
+                    <div class="conversation-meta">
+                        <span class="conversation-badge">💬 ${conv.messages.length} msgs</span>
+                        ${conv.resultCount > 0 ? `<span class="conversation-badge">📄 ${conv.resultCount} results</span>` : ''}
+                    </div>
+                `;
+                
+                historyList.appendChild(convItem);
+            });
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+            return date.toLocaleDateString();
+        }
+
+        function saveResult(id, name, avatar, type) {
+            const existing = savedResults.find(r => r.id === id);
+            if (existing) {
+                showNotification('Already saved! 📌');
+                return;
+            }
+            
+            savedResults.push({
+                id: id,
+                name: name,
+                avatar: avatar,
+                type: type,
+                savedAt: new Date().toISOString()
+            });
+            
+            updateSavedResults();
+            saveChatData();
+            showNotification('Result saved! 📌');
+        }
+
+        function updateSavedResults() {
+            const section = document.getElementById('savedResultsSection');
+            const list = document.getElementById('savedResultsList');
+            
+            if (savedResults.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            list.innerHTML = '';
+            
+            savedResults.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'saved-result-item';
+                item.onclick = () => viewInFeed(result.id);
+                
+                item.innerHTML = `
+                    <div class="saved-result-avatar">${result.avatar}</div>
+                    <div class="saved-result-info">
+                        <div class="saved-result-name">${result.name}</div>
+                        <div class="saved-result-type">${result.type}</div>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        function clearSavedResults() {
+            if (confirm('Clear all saved results?')) {
+                savedResults = [];
+                updateSavedResults();
+                saveChatData();
+                showNotification('Saved results cleared! 🗑️');
+            }
+        }
+
+        function viewInFeed(resultId) {
+            showNotification('Opening profile... (Demo: Would navigate to profile page)');
+            // In real implementation, this would navigate to the profile or show it in the feed
+            // toggleChat();
+        }
+
+        function followFromChat(resultId) {
+            showNotification('Following! (Demo: Would follow the profile)');
+            followingCount++;
+            updateStats();
+        }
+
+        // Auto-resize chat input
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+                });
+            }
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize pagination on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            initializePagination();
+        });
+    </script>
+</body>
+</html>

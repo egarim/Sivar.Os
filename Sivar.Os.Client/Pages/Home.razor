@@ -110,27 +110,6 @@
                                 OnUserNameClick="@((name) => ViewProfile(name))" />
         </div>
     </div>
-
-    <!-- AI Chat Floating Button & Panel -->
-    <AIFloatingButton OnClick="@(() => _chatOpen = !_chatOpen)" />
-
-    <AIChatPanel IsOpen="@_chatOpen"
-                 ShowHistory="@_historyOpen"
-                 CurrentConversationId="@_currentConversationId"
-                 Conversations="@_conversations"
-                 Messages="@_chatMessages"
-                 InputText="@_chatInput"
-                 IsTyping="@_isTyping"
-                 OnClose="@(() => _chatOpen = !_chatOpen)"
-                 OnToggleHistory="@(() => ToggleHistory())"
-                 OnNewConversation="@(() => NewConversation())"
-                 OnConversationSelect="@((conversationId) => SelectConversationById(conversationId))"
-                 OnSendMessage="@(() => SendChat())"
-                 InputTextChanged="@((text) => _chatInput = text)"
-                 OnQuickAction="@((action) => HandleQuickAction(action))"
-                 OnResultView="@(() => {})"
-                 OnResultSave="@(() => {})"
-                 OnResultFollow="@(() => {})" />
 </MudContainer>
 
 @code {
