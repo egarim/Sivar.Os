@@ -237,6 +237,9 @@ builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherClient>();
 // Register browser permissions service for GPS and other browser APIs
 builder.Services.AddScoped<BrowserPermissionsService>();
 
+// Register culture service for localization
+builder.Services.AddScoped<ICultureService, CultureService>();
+
 // --- Auth (Keycloak OIDC) ---
 var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080/realms/blazor-interactive";
 var metadata = builder.Configuration["Keycloak:MetadataAddress"] ?? $"{authority}/.well-known/openid-configuration";

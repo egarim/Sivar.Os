@@ -96,15 +96,18 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
             _logger.LogInformation("[ProfileSwitcherClient] Getting active profile");
 
             var keycloakId = GetCurrentUserKeycloakId();
+            _logger.LogInformation("[ProfileSwitcherClient] KeycloakId: {KeycloakId}", keycloakId);
+            
             var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);
 
             if (activeProfile != null)
             {
-                _logger.LogInformation("[ProfileSwitcherClient] Retrieved active profile: {ProfileId}", activeProfile.Id);
+                _logger.LogInformation("[ProfileSwitcherClient] Retrieved active profile: {ProfileId}, DisplayName: '{DisplayName}', IsActive: {IsActive}", 
+                    activeProfile.Id, activeProfile.DisplayName ?? "(null)", activeProfile.IsActive);
             }
             else
             {
-                _logger.LogWarning("[ProfileSwitcherClient] No active profile found for user");
+                _logger.LogWarning("[ProfileSwitcherClient] No active profile found for user with KeycloakId: {KeycloakId}", keycloakId);
             }
 
             return activeProfile;

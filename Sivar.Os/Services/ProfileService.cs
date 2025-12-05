@@ -426,10 +426,30 @@ public class ProfileService : IProfileService
     public async Task<ProfileDto?> GetMyActiveProfileAsync(string keycloakId)
     {
         if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            _logger.LogWarning("[GetMyActiveProfileAsync] KeycloakId is null or empty");
             return null;
+        }
 
+        _logger.LogInformation("[GetMyActiveProfileAsync] Looking up active profile for KeycloakId: {KeycloakId}", keycloakId);
+        
         var activeProfile = await _profileRepository.GetActiveProfileByKeycloakIdAsync(keycloakId);
-        return activeProfile != null ? await MapToProfileDtoAsync(activeProfile) : null;
+        
+        if (activeProfile == null)
+        {
+            _logger.LogWarning("[GetMyActiveProfileAsync] No active profile entity found for KeycloakId: {KeycloakId}", keycloakId);
+            return null;
+        }
+        
+        _logger.LogInformation("[GetMyActiveProfileAsync] Found profile entity: Id={ProfileId}, DisplayName='{DisplayName}', IsActive={IsActive}", 
+            activeProfile.Id, activeProfile.DisplayName ?? "(null)", activeProfile.IsActive);
+        
+        var dto = await MapToProfileDtoAsync(activeProfile);
+        
+        _logger.LogInformation("[GetMyActiveProfileAsync] Mapped to DTO: Id={ProfileId}, DisplayName='{DisplayName}'", 
+            dto.Id, dto.DisplayName ?? "(null)");
+        
+        return dto;
     }
 
     /// <summary>

@@ -84,8 +84,16 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         // Initial auth state check
         await RefreshAuthState();
         
-        // Load active profile and all profiles
-        await LoadActiveProfileAsync();
+        // Only load profiles if user is authenticated
+        if (_isAuthenticated)
+        {
+            Console.WriteLine("[NavMenu] User is authenticated, loading profiles...");
+            await LoadActiveProfileAsync();
+        }
+        else
+        {
+            Console.WriteLine("[NavMenu] User is not authenticated, skipping profile load");
+        }
         
         // Subscribe to auth state changes
         if (AuthStateProvider is not null)
@@ -123,6 +131,20 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     {
         Console.WriteLine($"[NavMenu] AuthenticationStateChanged event received");
         await RefreshAuthState();
+        
+        // Reload profiles when authentication state changes (e.g., after login)
+        if (_isAuthenticated)
+        {
+            Console.WriteLine("[NavMenu] User is now authenticated, reloading profiles...");
+            await LoadActiveProfileAsync();
+        }
+        else
+        {
+            Console.WriteLine("[NavMenu] User is no longer authenticated, clearing profiles");
+            _activeProfile = null;
+            _userProfiles = new();
+        }
+        
         await InvokeAsync(StateHasChanged);
     }
 

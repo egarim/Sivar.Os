@@ -9,11 +9,11 @@
     <div class="active-profile-card" @onclick="ToggleDropdown">
         <div class="active-profile-content">
             <div class="active-profile-avatar">
-                @GetProfileInitials(ActiveProfile?.DisplayName ?? "User")
+                @GetProfileInitials(string.IsNullOrWhiteSpace(ActiveProfile?.DisplayName) ? "User" : ActiveProfile.DisplayName)
             </div>
             <div class="active-profile-info">
-                <div class="active-profile-name">@(ActiveProfile?.DisplayName ?? "Select Profile")</div>
-                <div class="active-profile-type">@(ActiveProfile?.ProfileType?.DisplayName ?? "Personal")</div>
+                <div class="active-profile-name">@(string.IsNullOrWhiteSpace(ActiveProfile?.DisplayName) ? "Select Profile" : ActiveProfile.DisplayName)</div>
+                <div class="active-profile-type">@(string.IsNullOrWhiteSpace(ActiveProfile?.ProfileType?.DisplayName) ? "Personal" : ActiveProfile.ProfileType.DisplayName)</div>
             </div>
         </div>
         <svg class="profile-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
