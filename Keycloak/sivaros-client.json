@@ -1,0 +1,54 @@
+{
+  "clientId": "sivaros-client",
+  "name": "Sivar.Os WebAssembly Client",
+  "description": "Public client for Blazor WebAssembly",
+  "surrogateAuthRequired": false,
+  "enabled": true,
+  "alwaysDisplayInConsole": false,
+  "clientAuthenticatorType": "client-secret",
+  "redirectUris": [
+    "http://os.sivar.lat/authentication/login-callback",
+    "http://os.sivar.lat/authentication/logout-callback",
+    "https://localhost:5001/authentication/login-callback",
+    "https://localhost:5001/authentication/logout-callback",
+    "http://localhost:5000/authentication/login-callback",
+    "http://localhost:5000/authentication/logout-callback"
+  ],
+  "webOrigins": [
+    "http://os.sivar.lat",
+    "https://localhost:5001",
+    "http://localhost:5000"
+  ],
+  "notBefore": 0,
+  "bearerOnly": false,
+  "consentRequired": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "publicClient": true,
+  "frontchannelLogout": true,
+  "protocol": "openid-connect",
+  "attributes": {
+    "realm_client": "false",
+    "post.logout.redirect.uris": "http://os.sivar.lat/*##https://localhost:5001/*##http://localhost:5000/*",
+    "pkce.code.challenge.method": "S256"
+  },
+  "authenticationFlowBindingOverrides": {},
+  "fullScopeAllowed": true,
+  "nodeReRegistrationTimeout": -1,
+  "defaultClientScopes": [
+    "openid",
+    "profile",
+    "email",
+    "roles"
+  ],
+  "optionalClientScopes": [
+    "offline_access"
+  ],
+  "access": {
+    "view": true,
+    "configure": true,
+    "manage": true
+  }
+}

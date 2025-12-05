@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11123.170 d18.0
+VisualStudioVersion = 18.0.11123.170
 MinimumVisualStudioVersion = 16.0.0.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sivar.Os", "Sivar.Os\Sivar.Os.csproj", "{8B70AD4F-762C-44C8-BBDB-638BEC8A1B48}"
 EndProject
@@ -21,6 +21,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sivar.Os.Tests", "Sivar.Os.Tests\Sivar.Os.Tests.csproj", "{E4D8F5C1-A2B3-4E6D-8F9C-1B2D3E4F5A6B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sivar.Os.DataSeeder", "Sivar.Os.DataSeeder\Sivar.Os.DataSeeder.csproj", "{2D994163-5DEB-4176-B12A-3257AB080354}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SetupScripts", "SetupScripts", "{3E7E42C9-1B6E-46AF-A1E3-2241FEDBCB5D}"
+	ProjectSection(SolutionItems) = preProject
+		ScriptsRepos.txt = ScriptsRepos.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

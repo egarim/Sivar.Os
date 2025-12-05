@@ -1,0 +1,49 @@
+===========================================
+KEYCLOAK CLIENT REDIRECT URIs
+===========================================
+
+-------------------------------------------
+sivaros-server (Confidential Client)
+-------------------------------------------
+
+Valid Redirect URIs:
+http://os.sivar.lat/signin-oidc
+http://os.sivar.lat/signout-callback-oidc
+https://localhost:5001/signin-oidc
+https://localhost:5001/signout-callback-oidc
+http://localhost:5000/signin-oidc
+http://localhost:5000/signout-callback-oidc
+
+Web Origins:
+http://os.sivar.lat
+https://localhost:5001
+http://localhost:5000
+
+Post Logout Redirect URIs (Advanced Settings):
+http://os.sivar.lat/*
+https://localhost:5001/*
+http://localhost:5000/*
+
+-------------------------------------------
+sivaros-client (Public Client)
+-------------------------------------------
+
+Valid Redirect URIs:
+http://os.sivar.lat/authentication/login-callback
+http://os.sivar.lat/authentication/logout-callback
+https://localhost:5001/authentication/login-callback
+https://localhost:5001/authentication/logout-callback
+http://localhost:5000/authentication/login-callback
+http://localhost:5000/authentication/logout-callback
+
+Web Origins:
+http://os.sivar.lat
+https://localhost:5001
+http://localhost:5000
+
+Post Logout Redirect URIs (Advanced Settings):
+http://os.sivar.lat/*
+https://localhost:5001/*
+http://localhost:5000/*
+
+===========================================
