@@ -32,9 +32,12 @@
    These override MudBlazor's default styles for specific pages.
    ======================================== */
 
-/* Remove MudMainContent padding for Home page */
+/* Remove MudMainContent horizontal padding but keep top padding for AppBar */
 .mud-main-content {
-    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
+    /* padding-top is set via inline style in MainLayout.razor */
 }
 
 /* Hide scroll to top button on Home page */

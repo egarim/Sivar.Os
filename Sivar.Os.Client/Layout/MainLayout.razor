@@ -41,13 +41,11 @@
                    Elevation="2"
                    Variant="@_drawerVariant"
                    Breakpoint="Breakpoint.Md">
-            <MudDrawerContainer Style="display: flex; flex-direction: column; height: 100%;">
-                <NavMenu />
-            </MudDrawerContainer>
+            <NavMenu />
         </MudDrawer>
 
         <!-- Main Content -->
-        <MudMainContent Class="@(_aiChatVisible ? "" : "pt-16")" Style="@(_aiChatVisible ? "padding: 0 !important;" : "")">
+        <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important;" : "padding-top: 48px;")">
             @if (_aiChatVisible)
             {
                 <!-- AI Chat takes over the entire content area - bypass the drawer wrapper -->

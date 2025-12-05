@@ -5,9 +5,10 @@
 /* Base Container */
 .wire-container.wireframe-landing {
     background: var(--wire-bg);
-    min-height: 100vh;
+    min-height: calc(100vh - 48px); /* Account for Dense AppBar height */
     padding: 0 !important;
     max-width: none !important;
+    margin-top: 0 !important;
 }
 
 /* Main Grid Layout */
