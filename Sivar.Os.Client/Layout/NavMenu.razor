@@ -13,19 +13,70 @@
 @inject ISivarClient SivarClient
 @implements IAsyncDisposable
 
-<div style="padding: 16px;">
-    <ProfileSwitcher ActiveProfile="@_activeProfile"
-                     UserProfiles="@_userProfiles"
-                     OnProfileChanged="@HandleProfileChanged"
-                     OnCreateProfile="@HandleCreateProfile" />
+<div class="nav-menu-container">
+    <div class="nav-menu-profile">
+        <ProfileSwitcher ActiveProfile="@_activeProfile"
+                         UserProfiles="@_userProfiles"
+                         OnProfileChanged="@HandleProfileChanged"
+                         OnCreateProfile="@HandleCreateProfile" />
+    </div>
+
+    <MudDivider Class="my-2" />
+
+    <MudNavMenu>
+        <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
+        <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
+    </MudNavMenu>
 </div>
 
-<MudDivider Class="my-2" />
+<style>
+    .nav-menu-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
 
-<MudNavMenu>
-    <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
-    <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
-</MudNavMenu>
+    .nav-menu-profile {
+        padding: 16px;
+    }
+
+    /* Tablet responsive */
+    @@media (max-width: 960px) {
+        .nav-menu-profile {
+            padding: 12px;
+        }
+
+        .nav-menu-container .mud-navmenu {
+            padding: 8px;
+        }
+
+        .nav-menu-container .mud-nav-link {
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 600px) {
+        .nav-menu-profile {
+            padding: 8px;
+        }
+
+        .nav-menu-container .mud-navmenu {
+            padding: 4px;
+        }
+
+        .nav-menu-container .mud-nav-link {
+            padding: 12px 10px;
+            font-size: 13px;
+            min-height: 44px;
+        }
+
+        .nav-menu-container .mud-nav-link .mud-icon-root {
+            font-size: 20px;
+        }
+    }
+</style>
 
 @* 
 ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:

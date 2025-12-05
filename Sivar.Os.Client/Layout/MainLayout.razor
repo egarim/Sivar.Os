@@ -4,6 +4,7 @@
 @using Microsoft.JSInterop
 @inject IStringLocalizer<MainLayout> Localizer
 @inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -21,9 +22,6 @@
                            Title="Toggle Navigation" />
             <MudText Typo="Typo.h6" Class="ml-3">@Localizer["ApplicationTitle"]</MudText>
             <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Filled.Search" 
-                           Color="Color.Inherit" 
-                           Title="Search" />
             <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
                            Color="Color.Inherit" 
                            Title="Notifications" />
@@ -41,8 +39,11 @@
         <MudDrawer @bind-Open="_leftDrawerOpen" 
                    ClipMode="DrawerClipMode.Always" 
                    Elevation="2"
-                   Variant="@DrawerVariant.Persistent">
-            <NavMenu />
+                   Variant="@_drawerVariant"
+                   Breakpoint="Breakpoint.Md">
+            <MudDrawerContainer Style="display: flex; flex-direction: column; height: 100%;">
+                <NavMenu />
+            </MudDrawerContainer>
         </MudDrawer>
 
         <!-- Main Content -->
@@ -492,6 +493,103 @@
         font-weight: 600;
         white-space: nowrap;
     }
+
+    /* Mobile Responsive Styles for AI Chat */
+    @@media (max-width: 960px) {
+        .ai-chat-fullscreen-container {
+            left: 0 !important;
+            top: 48px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header {
+            padding: 12px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header-text h4 {
+            font-size: 14px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header-text p {
+            font-size: 11px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-ai-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-history-sidebar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 280px;
+            z-index: 10;
+        }
+
+        .ai-chat-panel-fullscreen .chat-messages {
+            padding: 12px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-message {
+            max-width: 90%;
+        }
+
+        .ai-chat-panel-fullscreen .chat-input-container {
+            padding: 12px;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .ai-chat-fullscreen-container {
+            top: 48px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .ai-chat-panel-fullscreen .history-toggle-btn {
+            width: 36px;
+            height: 36px;
+            padding: 8px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-ai-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header-text h4 {
+            font-size: 13px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-header-text p {
+            display: none;
+        }
+
+        .ai-chat-panel-fullscreen .chat-messages {
+            padding: 8px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-message-content {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-quick-actions .quick-action-btn {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .ai-chat-panel-fullscreen .chat-input-container {
+            padding: 8px;
+        }
+    }
 </style>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -502,9 +600,12 @@
 
 @code {
     private bool _leftDrawerOpen = true;
+    private DrawerVariant _drawerVariant = DrawerVariant.Responsive;
     private bool _aiChatVisible = false;
     private bool _isDarkMode = true;
     private MudTheme? _theme = null;
+    private DotNetObjectReference<MainLayout>? _dotNetRef;
+    private int _currentWindowWidth;
 
     // AI Chat State
     private bool _historyOpen;
@@ -543,6 +644,48 @@
 
         // Initialize AI chat
         InitializeAIChat();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                // Get initial window width and set up resize listener
+                _currentWindowWidth = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+                UpdateDrawerForWidth(_currentWindowWidth);
+                
+                // Add resize listener
+                await JS.InvokeVoidAsync("eval", @"
+                    window.sivarOsResizeHandler = function() {
+                        DotNet.invokeMethodAsync('Sivar.Os.Client', 'OnWindowResize', window.innerWidth);
+                    };
+                    window.addEventListener('resize', window.sivarOsResizeHandler);
+                ");
+            }
+            catch
+            {
+                // JS interop not available during prerender
+            }
+        }
+    }
+
+    [JSInvokable("OnWindowResize")]
+    public static async Task OnWindowResizeStatic(int width)
+    {
+        // This is a static method for JS callback - we handle it differently with instance method
+    }
+
+    private void UpdateDrawerForWidth(int width)
+    {
+        // Close drawer automatically on small screens (below 960px = md breakpoint)
+        if (width < 960 && _leftDrawerOpen)
+        {
+            _leftDrawerOpen = false;
+            StateHasChanged();
+        }
     }
 
     private void InitializeAIChat()
@@ -869,6 +1012,26 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,
     };
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // Remove resize listener
+            await JS.InvokeVoidAsync("eval", @"
+                if (window.sivarOsResizeHandler) {
+                    window.removeEventListener('resize', window.sivarOsResizeHandler);
+                    window.sivarOsResizeHandler = null;
+                }
+            ");
+        }
+        catch
+        {
+            // Ignore errors during disposal
+        }
+        
+        _dotNetRef?.Dispose();
+    }
 }
 
 

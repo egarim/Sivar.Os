@@ -258,6 +258,103 @@
         color: var(--mud-palette-primary);
         flex-shrink: 0;
     }
+
+    /* Tablet responsive */
+    @@media (max-width: 960px) {
+        .active-profile-card {
+            padding: 10px 12px;
+        }
+
+        .active-profile-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 13px;
+        }
+
+        .active-profile-name {
+            font-size: 13px;
+        }
+
+        .active-profile-type {
+            font-size: 11px;
+        }
+
+        .profile-dropdown {
+            min-width: 240px;
+        }
+
+        .profile-item {
+            padding: 10px 12px;
+            gap: 10px;
+        }
+
+        .profile-item-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+        }
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 600px) {
+        .active-profile-card {
+            padding: 8px 10px;
+        }
+
+        .active-profile-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+        }
+
+        .active-profile-name {
+            font-size: 12px;
+        }
+
+        .active-profile-type {
+            font-size: 10px;
+        }
+
+        .profile-dropdown-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .profile-dropdown {
+            min-width: 200px;
+            max-width: calc(100vw - 32px);
+        }
+
+        .profile-item {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .profile-item-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 11px;
+        }
+
+        .profile-item-name {
+            font-size: 13px;
+        }
+
+        .profile-item-type {
+            font-size: 11px;
+        }
+
+        .create-profile-btn {
+            padding: 10px;
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .profile-plus-icon {
+            width: 18px;
+            height: 18px;
+        }
+    }
 </style>
 
 @code {

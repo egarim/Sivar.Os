@@ -1685,3 +1685,139 @@
     align-items: center;
     gap: 4px;
 }
+
+/* ========================================
+   Mobile Responsive Styles for Components
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Post Card Mobile */
+    .wireframe-landing .post-card {
+        border-radius: 8px;
+        margin: 0 -4px;
+    }
+
+    .wireframe-landing .post-card .post-header {
+        gap: 8px;
+    }
+
+    .wireframe-landing .post-card .post-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .wireframe-landing .post-card .author-name {
+        font-size: 14px;
+    }
+
+    .wireframe-landing .post-card .post-time {
+        font-size: 11px;
+    }
+
+    .wireframe-landing .post-card .post-content {
+        font-size: 14px;
+    }
+
+    /* Post Composer Mobile */
+    .wireframe-landing .post-composer {
+        border-radius: 8px;
+    }
+
+    .wireframe-landing .post-composer .composer-header {
+        gap: 8px;
+    }
+
+    /* Comments Mobile */
+    .comment-item .comment-content {
+        margin-left: 36px;
+        font-size: 13px;
+    }
+
+    .comment-item .comment-actions {
+        margin-left: 36px;
+        gap: 12px;
+        font-size: 12px;
+    }
+
+    .comment-item .comment-avatar {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Post Card Small Mobile */
+    .wireframe-landing .post-card .post-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .wireframe-landing .post-card .post-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .wireframe-landing .post-card .post-actions {
+        justify-content: space-between;
+        padding: 8px 0;
+        border-top: 1px solid var(--wire-border);
+        margin-top: 8px;
+    }
+
+    .wireframe-landing .post-card .action-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+
+    /* Post Composer Small Mobile */
+    .wireframe-landing .post-composer .post-types {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 4px;
+    }
+
+    .wireframe-landing .post-composer .post-types::-webkit-scrollbar {
+        display: none;
+    }
+
+    .wireframe-landing .post-composer .composer-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .wireframe-landing .post-composer .composer-actions button {
+        width: 100%;
+    }
+
+    /* Comments Small Mobile */
+    .comment-item {
+        padding: 8px 0;
+    }
+
+    .comment-item .comment-content,
+    .comment-item .comment-actions {
+        margin-left: 0;
+        padding-left: 0;
+    }
+
+    /* User Cards Mobile */
+    .wireframe-landing .user-card {
+        padding: 8px;
+    }
+
+    .wireframe-landing .user-card .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Stats Panel - Hidden on small mobile */
+    .wireframe-landing .stats-panel {
+        display: none;
+    }
+}

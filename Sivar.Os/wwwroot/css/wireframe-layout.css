@@ -71,3 +71,101 @@
         min-height: 44px;
     }
 }
+
+/* Additional Mobile Responsive Styles */
+@media (max-width: 600px) {
+    .wireframe-landing .main-layout {
+        padding: 4px;
+        gap: 8px;
+    }
+
+    .wireframe-landing .feed {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .wireframe-landing .post-card,
+    .wireframe-landing .post-composer {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .wireframe-landing .post-card .post-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .wireframe-landing .post-card .post-actions {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .wireframe-landing .post-card .action-btn {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .wireframe-landing .post-composer .composer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .wireframe-landing .post-composer .post-types {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .wireframe-landing .post-composer .post-type-option {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .wireframe-landing .post-composer textarea {
+        min-height: 80px;
+        font-size: 14px;
+    }
+
+    .wireframe-landing .post-composer .composer-options {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .wireframe-landing .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    /* Feed header mobile */
+    .wireframe-landing .feed-header h1 {
+        font-size: 20px;
+    }
+
+    .wireframe-landing .feed-header p {
+        font-size: 13px;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+    .wireframe-landing .main-layout {
+        padding: 2px;
+    }
+
+    .wireframe-landing .post-card,
+    .wireframe-landing .post-composer {
+        padding: 8px;
+        margin: 0 -2px;
+        border-radius: 0;
+    }
+
+    .wireframe-landing .post-card .action-btn span {
+        display: none;
+    }
+
+    .wireframe-landing .post-composer .post-type-option span {
+        display: none;
+    }
+}
