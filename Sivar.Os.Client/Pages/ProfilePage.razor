@@ -40,58 +40,38 @@
     }
 
     .profile-page {
-        min-height: 100vh;
+        min-height: calc(100vh - 48px);
         background: var(--wire-bg);
         padding: 0;
     }
 
-    /* Header matching wireframe */
-    .profile-page .profile-header-bar {
-        background: var(--wire-surface);
-        border-bottom: 1px solid var(--wire-border);
-        padding: 16px 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: var(--wire-shadow);
-        border-radius: 0 !important;
-    }
-
-    .profile-page .profile-header-bar .page-title {
-        font-weight: 600;
-        letter-spacing: -0.3px;
-    }
-
     .profile-container {
-        max-width: 900px;
+        max-width: 680px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 16px;
     }
 
     /* Profile Card */
     .profile-page .profile-card {
         background: var(--wire-surface);
         border: 1px solid var(--wire-border);
-        border-radius: 12px;
-        padding: 32px;
-        margin-bottom: 20px;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
     }
 
     .profile-main {
         display: flex;
         align-items: flex-start;
-        gap: 24px;
-        margin-bottom: 24px;
-        padding-bottom: 24px;
+        gap: 16px;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
         border-bottom: 1px solid var(--wire-border);
     }
 
     .profile-page .profile-avatar {
         background: linear-gradient(135deg, var(--wire-primary), #42a5f5) !important;
-        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
         flex-shrink: 0;
     }
 
@@ -101,18 +81,21 @@
     }
 
     .profile-page .profile-name {
-        margin: 0 0 6px 0;
-        letter-spacing: -0.5px;
+        margin: 0 0 2px 0;
+        font-size: 16px;
+        font-weight: 600;
     }
 
     .profile-page .profile-username {
-        margin-bottom: 16px;
+        font-size: 13px;
+        color: var(--wire-text-secondary);
+        margin-bottom: 8px;
     }
 
     .profile-stats {
         display: flex;
-        gap: 32px;
-        margin-top: 16px;
+        gap: 24px;
+        margin-top: 8px;
     }
 
     .stat {
@@ -122,10 +105,14 @@
     }
 
     .profile-page .stat-value {
+        font-size: 16px;
+        font-weight: 700;
         line-height: 1.2;
     }
 
     .profile-page .stat-label {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
         margin-top: 2px;
     }
 
@@ -134,148 +121,144 @@
     }
 
     .profile-page .profile-section-title {
-        margin: 0 0 12px 0;
-        letter-spacing: -0.2px;
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     .profile-page .profile-bio {
-        line-height: 1.6;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--wire-text-secondary);
     }
 
     /* Coming Soon Card */
     .profile-page .coming-soon-card {
-        border-radius: 12px;
-        margin-top: 20px;
+        border-radius: 8px;
+        margin-top: 12px;
     }
 
     .profile-page .coming-soon-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 6px;
+        gap: 6px;
+        margin-bottom: 4px;
     }
 
     .profile-page .coming-soon-icon {
-        font-size: 20px;
+        font-size: 16px;
     }
 
     .profile-page .coming-soon-subtext {
-        line-height: 1.5;
-        margin-left: 28px;
-        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.4;
+        margin-left: 22px;
+        margin-top: 2px;
     }
 
     /* Posts Section */
     .profile-page .profile-posts-section {
-        margin-top: 24px;
+        margin-top: 16px;
     }
 
     .profile-page .profile-posts-section > h6,
     .profile-page .profile-posts-section > .mud-typography-h6 {
         color: var(--wire-text-primary);
+        font-size: 14px;
         font-weight: 600;
-        margin-bottom: 16px;
-        letter-spacing: -0.2px;
+        margin-bottom: 12px;
     }
 
     .profile-page .posts-list {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
     }
 
     .profile-page .post-wrapper {
         width: 100%;
     }
 
-    /* Don't override wireframe-landing post-card styles - they're already perfect */
-    /* Just add small spacing adjustments if needed */
-
     /* Action Buttons */
     .profile-page .profile-actions {
         display: flex;
-        gap: 12px;
-        margin-top: 16px;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .profile-page .profile-actions .mud-button-root {
+        font-size: 13px;
+        padding: 6px 14px;
     }
 
     /* Mobile Responsive */
     @@media (max-width: 768px) {
         .profile-container {
-            padding: 16px;
+            padding: 12px;
         }
 
         .profile-card {
-            padding: 20px;
+            padding: 14px;
         }
 
         .profile-main {
             flex-direction: column;
             align-items: center;
             text-align: center;
+            gap: 12px;
         }
 
         .profile-avatar {
-            width: 100px;
-            height: 100px;
-            font-size: 40px;
+            width: 64px !important;
+            height: 64px !important;
+            font-size: 24px !important;
         }
 
         .profile-name {
-            font-size: 24px;
+            font-size: 15px !important;
         }
 
         .profile-stats {
             justify-content: center;
-            gap: 24px;
+            gap: 20px;
         }
 
         .stat {
             align-items: center;
         }
 
-        .profile-header-bar {
-            padding: 12px 16px;
-        }
-
-        .profile-header-bar .page-title {
-            font-size: 16px;
-        }
-
         .coming-soon-card {
-            padding: 16px 20px;
+            padding: 12px 14px;
         }
 
         .coming-soon-subtext {
             margin-left: 0;
-            margin-top: 8px;
+            margin-top: 6px;
         }
     }
 
     @@media (max-width: 480px) {
         .profile-avatar {
-            width: 80px;
-            height: 80px;
-            font-size: 32px;
+            width: 56px !important;
+            height: 56px !important;
+            font-size: 20px !important;
         }
 
         .profile-stats {
-            flex-direction: row;
             gap: 16px;
         }
 
         .stat-value {
-            font-size: 20px;
+            font-size: 14px !important;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px !important;
         }
     }
 </style>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="profile-page wireframe-landing">
-    <ProfileHeader Title="@Localizer["ProfileTitle"]" OnBackClick="GoBack" />
-
     <div class="profile-container">
         <ProfileCard>
             <ProfileMain 

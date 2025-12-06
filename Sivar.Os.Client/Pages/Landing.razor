@@ -453,7 +453,16 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
-            Navigation.NavigateTo("/home", forceLoad: true);
+            try
+            {
+                Navigation.NavigateTo("/home", forceLoad: true);
+            }
+            catch (Exception)
+            {
+                
+                //throw;
+            }
+         
         }
     }
 

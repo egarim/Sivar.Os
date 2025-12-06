@@ -11,10 +11,10 @@
 
 <PageTitle>@Localizer["PageTitle"]</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="search-page-container">
     @* Search Header *@
-    <MudPaper Elevation="2" Class="pa-4 mb-4">
-        <div class="d-flex align-center gap-3">
+    <div class="search-header">
+        <div class="search-input-wrapper">
             <MudTextField @bind-Value="_searchQuery"
                           Label="@Localizer["SearchLabel"]"
                           Placeholder="@Localizer["SearchPlaceholder"]"
@@ -23,33 +23,37 @@
                           AdornmentIcon="@Icons.Material.Filled.Search"
                           OnKeyUp="HandleKeyPress"
                           Immediate="true"
-                          Class="flex-grow-1" />
+                          Margin="Margin.Dense"
+                          Class="search-input" />
             
             @if (!string.IsNullOrWhiteSpace(_searchQuery))
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Clear" 
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="ClearSearch"
                                Title="@Localizer["ClearSearch"]" />
             }
             
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
+                       Size="Size.Small"
                        StartIcon="@Icons.Material.Filled.Search"
                        OnClick="PerformSearch"
-                       Disabled="_isSearching">
+                       Disabled="_isSearching"
+                       Class="search-btn">
                 @Localizer["SearchButton"]
             </MudButton>
         </div>
-    </MudPaper>
+    </div>
 
     @* Results Section *@
     @if (_isSearching)
     {
         @* Loading State *@
-        <div class="d-flex flex-column align-center justify-center" style="min-height: 400px;">
-            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-            <MudText Typo="Typo.h6" Class="mt-4">@Localizer["SearchingMessage"]</MudText>
+        <div class="search-loading">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span class="search-loading-text">@Localizer["SearchingMessage"]</span>
         </div>
     }
     else if (_hasSearched && _searchResults != null)
@@ -58,15 +62,16 @@
         @if (_searchResults.Any())
         {
             @* Results Count *@
-            <div class="d-flex justify-space-between align-center mb-4">
-                <MudText Typo="Typo.h6">
+            <div class="search-results-header">
+                <span class="results-count">
                     @string.Format(Localizer["ResultsCount"], _searchResults.Count())
-                </MudText>
+                </span>
                 
-                <div class="d-flex gap-2">
+                <div class="view-toggle">
                     <MudToggleIconButton @bind-Toggled="_isGridView"
                                          Icon="@Icons.Material.Filled.ViewModule"
                                          ToggledIcon="@Icons.Material.Filled.ViewList"
+                                         Size="Size.Small"
                                          Title="@(_isGridView ? Localizer["ListView"] : Localizer["GridView"])" />
                 </div>
             </div>
@@ -74,51 +79,46 @@
             @* Results Grid/List *@
             @if (_isGridView)
             {
-                <MudGrid>
-                    @foreach (var profile in _searchResults)
-                    {
-                        <MudItem xs="12" sm="6" md="4" lg="3">
-                            <ProfileSearchCard Profile="profile" />
-                        </MudItem>
-                    }
-                </MudGrid>
-            }
-            else
-            {
-                <MudStack Spacing="3">
+                <div class="search-results-grid">
                     @foreach (var profile in _searchResults)
                     {
                         <ProfileSearchCard Profile="profile" />
                     }
-                </MudStack>
+                </div>
+            }
+            else
+            {
+                <div class="search-results-list">
+                    @foreach (var profile in _searchResults)
+                    {
+                        <ProfileSearchCard Profile="profile" />
+                    }
+                </div>
             }
         }
         else
         {
             @* No Results *@
-            <MudPaper Class="pa-8 text-center" Style="min-height: 400px;" Elevation="0">
-                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" />
-                <MudText Typo="Typo.h5" Class="mt-4">@Localizer["NoResults"]</MudText>
-                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
-                    @Localizer["NoResultsDescription"]
-                </MudText>
-            </MudPaper>
+            <div class="search-empty-state">
+                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Class="empty-icon" />
+                <h3 class="empty-title">@Localizer["NoResults"]</h3>
+                <p class="empty-description">@Localizer["NoResultsDescription"]</p>
+            </div>
         }
     }
     else
     {
         @* Empty State - Show Quick Links *@
-        <div class="text-center" style="min-height: 400px;">
-            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Large" Color="Color.Primary" Style="font-size: 5rem; margin-top: 40px;" />
-            <MudText Typo="Typo.h4" Class="mt-4">@Localizer["EmptySearchTitle"]</MudText>
-            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
-                @Localizer["EmptySearchDescription"]
-            </MudText>
+        <div class="search-empty-state">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="empty-icon primary" />
+            <h3 class="empty-title">@Localizer["EmptySearchTitle"]</h3>
+            <p class="empty-description">@Localizer["EmptySearchDescription"]</p>
             
             @* Quick Links *@
-            <MudStack Row="true" Justify="Justify.Center" Class="mt-6" Spacing="4">
+            <div class="quick-links">
                 <MudButton Variant="Variant.Outlined" 
                            Color="Color.Primary"
+                           Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.TrendingUp"
                            OnClick="LoadPopularProfiles">
                     @Localizer["PopularProfiles"]
@@ -126,14 +126,168 @@
                 
                 <MudButton Variant="Variant.Outlined" 
                            Color="Color.Primary"
+                           Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.NewReleases"
                            OnClick="LoadRecentProfiles">
                     @Localizer["RecentProfiles"]
                 </MudButton>
-            </MudStack>
+            </div>
         </div>
     }
 </MudContainer>
+
+<style>
+    /* Search Page Container */
+    .search-page-container {
+        padding: 16px 24px;
+        max-width: 680px !important;
+    }
+
+    /* Search Header */
+    .search-header {
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+    }
+
+    .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .search-input {
+        flex: 1;
+    }
+
+    .search-input .mud-input-root {
+        font-size: 14px;
+    }
+
+    .search-btn {
+        font-size: 13px;
+        padding: 6px 16px;
+    }
+
+    /* Loading State */
+    .search-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        gap: 12px;
+    }
+
+    .search-loading-text {
+        font-size: 14px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    /* Results Header */
+    .search-results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 0 4px;
+    }
+
+    .results-count {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    /* Results Grid */
+    .search-results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+    }
+
+    /* Results List */
+    .search-results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* Empty State */
+    .search-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 250px;
+        padding: 24px;
+    }
+
+    .empty-icon {
+        font-size: 48px !important;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 12px;
+    }
+
+    .empty-icon.primary {
+        color: var(--mud-palette-primary);
+    }
+
+    .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .empty-description {
+        font-size: 13px;
+        color: var(--mud-palette-text-secondary);
+        margin: 0 0 16px 0;
+    }
+
+    .quick-links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Responsive */
+    @@media (max-width: 600px) {
+        .search-page-container {
+            padding: 12px 16px;
+        }
+
+        .search-header {
+            padding: 10px 12px;
+        }
+
+        .search-input-wrapper {
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            width: 100%;
+            flex: none;
+        }
+
+        .search-results-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-links {
+            flex-direction: column;
+        }
+
+        .quick-links .mud-button-root {
+            width: 100%;
+        }
+    }
+</style>
 
 @code {
     private string _searchQuery = string.Empty;

@@ -1,15 +1,49 @@
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<ComingSoonAlert> Localizer
 
-<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="coming-soon-card">
+<div class="coming-soon-card">
     <div class="coming-soon-header">
-        <MudIcon Icon="@Icons.Material.Filled.Rocket" Class="coming-soon-icon" />
-        <MudText Typo="Typo.subtitle1" Class="coming-soon-text">@Title</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.Rocket" Size="Size.Small" />
+        <span class="coming-soon-title">@Title</span>
     </div>
-    <MudText Typo="Typo.body2" Class="coming-soon-subtext">
-        @Message
-    </MudText>
-</MudAlert>
+    <p class="coming-soon-message">@Message</p>
+</div>
+
+<style>
+    .coming-soon-card {
+        background: var(--mud-palette-info-lighten);
+        border: 1px solid var(--mud-palette-info);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-top: 12px;
+    }
+
+    .coming-soon-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .coming-soon-header .mud-icon-root {
+        font-size: 16px !important;
+        color: var(--mud-palette-info);
+    }
+
+    .coming-soon-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--mud-palette-info-darken);
+    }
+
+    .coming-soon-message {
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--mud-palette-info-darken);
+        margin: 0;
+        margin-left: 22px;
+    }
+</style>
 
 @code {
     [Parameter]

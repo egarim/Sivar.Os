@@ -2,11 +2,25 @@
 @inject IStringLocalizer<ProfileAbout> Localizer
 
 <div class="profile-section">
-    <MudText Typo="Typo.h6" Class="profile-section-title">@Localizer["SectionTitle"]</MudText>
-    <MudText Typo="Typo.body1" Class="profile-bio">
-        @Bio
-    </MudText>
+    <h6 class="profile-section-title">@Localizer["SectionTitle"]</h6>
+    <p class="profile-bio">@Bio</p>
 </div>
+
+<style>
+    .profile-section-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .profile-bio {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--mud-palette-text-secondary);
+        margin: 0;
+    }
+</style>
 
 @code {
     [Parameter]

@@ -17,6 +17,13 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
     private readonly IProfileTypeService _profileTypeService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ProfileSwitcherClient> _logger;
+    
+    // Request-scoped caching to prevent concurrent DbContext access
+    private ProfileDto? _cachedActiveProfile;
+    private bool _activeProfileLoaded;
+    private List<ProfileDto>? _cachedProfiles;
+    private readonly SemaphoreSlim _profileLock = new(1, 1);
+    private readonly SemaphoreSlim _activeProfileLock = new(1, 1);
 
     public ProfileSwitcherClient(
         IProfileService profileService,
@@ -64,14 +71,25 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
     /// <inheritdoc/>
     public async Task<List<ProfileDto>> GetUserProfilesAsync()
     {
+        // Use lock to prevent concurrent DbContext access
+        await _profileLock.WaitAsync();
         try
         {
+            // Return cached value if already loaded this request
+            if (_cachedProfiles != null)
+            {
+                _logger.LogDebug("[ProfileSwitcherClient] Returning cached profiles");
+                return _cachedProfiles;
+            }
+            
             _logger.LogInformation("[ProfileSwitcherClient] Getting user profiles");
 
             var keycloakId = GetCurrentUserKeycloakId();
             var profiles = await _profileService.GetMyProfilesAsync(keycloakId);
 
             var profileList = profiles?.ToList() ?? new List<ProfileDto>();
+            _cachedProfiles = profileList; // Cache the result
+            
             _logger.LogInformation("[ProfileSwitcherClient] Retrieved {ProfileCount} profiles", profileList.Count);
 
             return profileList;
@@ -86,19 +104,36 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
             _logger.LogError("[ProfileSwitcherClient] Error getting profiles: {Message}", ex.Message);
             return new List<ProfileDto>();
         }
+        finally
+        {
+            _profileLock.Release();
+        }
     }
 
     /// <inheritdoc/>
     public async Task<ProfileDto?> GetActiveProfileAsync()
     {
+        // Use lock to prevent concurrent DbContext access
+        await _activeProfileLock.WaitAsync();
         try
         {
+            // Return cached value if already loaded this request
+            if (_activeProfileLoaded)
+            {
+                _logger.LogDebug("[ProfileSwitcherClient] Returning cached active profile");
+                return _cachedActiveProfile;
+            }
+            
             _logger.LogInformation("[ProfileSwitcherClient] Getting active profile");
 
             var keycloakId = GetCurrentUserKeycloakId();
             _logger.LogInformation("[ProfileSwitcherClient] KeycloakId: {KeycloakId}", keycloakId);
             
             var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+
+            // Cache the result
+            _cachedActiveProfile = activeProfile;
+            _activeProfileLoaded = true;
 
             if (activeProfile != null)
             {
@@ -122,6 +157,10 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
             _logger.LogError("[ProfileSwitcherClient] Error getting active profile: {Message}", ex.Message);
             return null;
         }
+        finally
+        {
+            _activeProfileLock.Release();
+        }
     }
 
     /// <inheritdoc/>
@@ -136,6 +175,11 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
 
             if (success)
             {
+                // Invalidate cache on successful switch
+                _cachedActiveProfile = null;
+                _activeProfileLoaded = false;
+                _cachedProfiles = null;
+                
                 _logger.LogInformation("[ProfileSwitcherClient] Successfully switched to profile: {ProfileId}", profileId);
             }
             else

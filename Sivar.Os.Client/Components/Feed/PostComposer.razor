@@ -1,6 +1,9 @@
 @using MudBlazor
+@using System.IO
+@using Sivar.Os.Shared
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
 @using Microsoft.Extensions.Logging
@@ -9,6 +12,8 @@
 @inject ILogger<PostComposer> Logger
 @inject IStringLocalizer<PostComposer> Localizer
 @inject IJSRuntime JS
+@inject ISivarClient SivarClient
+@inject IImageCompressionService ImageCompression
 
 @* PostComposer component for creating new posts *@
 
@@ -21,18 +26,21 @@
         </span>
     </div>
     
-    <div class="post-type-selector">
-        @foreach (var option in PostTypeOptions)
-        {
-            <button type="button" 
-                    class="post-type-option @(option.Id == SelectedType ? "active" : null)" 
-                    @onclick="() => SelectedTypeChanged.InvokeAsync(option.Id)">
-                <MudIcon Icon="@option.Icon" Size="Size.Small" />
-                @option.Label
-                <span class="tooltip">@option.Tooltip</span>
-            </button>
-        }
-    </div>
+    @if (FilteredPostTypeOptions.Count > 1)
+    {
+        <div class="post-type-selector">
+            @foreach (var option in FilteredPostTypeOptions)
+            {
+                <button type="button" 
+                        class="post-type-option @(option.Id == SelectedType ? "active" : null)" 
+                        @onclick="() => SelectedTypeChanged.InvokeAsync(option.Id)">
+                    <MudIcon Icon="@option.Icon" Size="Size.Small" />
+                    @option.Label
+                    <span class="tooltip">@option.Tooltip</span>
+                </button>
+            }
+        </div>
+    }
     
     <textarea class="post-input" 
               placeholder="@Localizer["PostPlaceholder"]" 
@@ -153,14 +161,15 @@
         </button>
     </div>
 
-    @* Image Preview Section *@
+    @* Image Preview Section with Upload Status *@
     @if (SelectedFiles != null && SelectedFiles.Count > 0)
     {
         <div class="image-preview-section">
             <div class="preview-grid">
                 @foreach (var (file, index) in SelectedFiles.Select((f, i) => (f, i)))
                 {
-                    <div class="preview-item @(file.ContentType == "image/gif" ? "gif-placeholder" : "")">
+                    var uploadStatus = UploadStatuses.TryGetValue(index, out var status) ? status : FileUploadStatus.Pending;
+                    <div class="preview-item @(file.ContentType == "image/gif" ? "gif-placeholder" : "") @(uploadStatus == FileUploadStatus.Uploading ? "uploading" : "") @(uploadStatus == FileUploadStatus.Completed ? "uploaded" : "") @(uploadStatus == FileUploadStatus.Failed ? "failed" : "")">
                         @if (PreviewUrls.ContainsKey(index))
                         {
                             @if (file.ContentType == "image/gif")
@@ -180,6 +189,27 @@
                                 <img src="@PreviewUrls[index]" alt="Preview @file.Name" class="preview-image" />
                             }
                         }
+                        
+                        @* Upload Status Overlay *@
+                        @if (uploadStatus == FileUploadStatus.Uploading)
+                        {
+                            <div class="upload-status-overlay uploading">
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                            </div>
+                        }
+                        else if (uploadStatus == FileUploadStatus.Completed)
+                        {
+                            <div class="upload-status-overlay completed">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" />
+                            </div>
+                        }
+                        else if (uploadStatus == FileUploadStatus.Failed)
+                        {
+                            <div class="upload-status-overlay failed">
+                                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Medium" />
+                            </div>
+                        }
+                        
                         <button type="button" class="remove-preview-btn" @onclick="() => RemoveImage(index)" title="@Localizer["RemoveImageTitle"]">
                             <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
                         </button>
@@ -323,6 +353,54 @@
         overflow: hidden;
         background: var(--wire-background-alt);
         border: 1px solid var(--wire-border);
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .preview-item.uploading {
+        border-color: var(--mud-palette-primary);
+        box-shadow: 0 0 8px rgba(var(--mud-palette-primary-rgb), 0.3);
+    }
+
+    .preview-item.uploaded {
+        border-color: var(--mud-palette-success);
+        box-shadow: 0 0 8px rgba(var(--mud-palette-success-rgb), 0.3);
+    }
+
+    .preview-item.failed {
+        border-color: var(--mud-palette-error);
+        box-shadow: 0 0 8px rgba(var(--mud-palette-error-rgb), 0.3);
+    }
+
+    /* Upload Status Overlay */
+    .upload-status-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 30px; /* Leave room for filename */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    .upload-status-overlay.uploading {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .upload-status-overlay.completed {
+        background: rgba(76, 175, 80, 0.2);
+        animation: fade-in 0.3s ease-out;
+    }
+
+    .upload-status-overlay.failed {
+        background: rgba(244, 67, 54, 0.2);
+    }
+
+    @@keyframes fade-in {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
     }
 
     .preview-image {
@@ -440,6 +518,13 @@
     public string ProfileTypeTitle { get; set; } = "Personal Profile";
 
     /// <summary>
+    /// Current profile type name (e.g., "PersonalProfile", "BusinessProfile")
+    /// Used to filter available post types
+    /// </summary>
+    [Parameter]
+    public string CurrentProfileTypeName { get; set; } = "PersonalProfile";
+
+    /// <summary>
     /// Available post type options
     /// </summary>
     [Parameter]
@@ -451,6 +536,25 @@
         new("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
         new("job", "Job", Icons.Material.Filled.Work, "Share an open role with the community.")
     };
+
+    /// <summary>
+    /// Filtered post type options based on current profile type
+    /// Business profiles: all options
+    /// Personal profiles: only General
+    /// </summary>
+    private List<PostTypeOption> FilteredPostTypeOptions => GetFilteredPostTypeOptions();
+
+    private List<PostTypeOption> GetFilteredPostTypeOptions()
+    {
+        // Business profiles can use all post types
+        if (CurrentProfileTypeName?.ToLower().Contains("business") == true)
+        {
+            return PostTypeOptions;
+        }
+        
+        // Personal and other profiles can only use General
+        return PostTypeOptions.Where(o => o.Id == "general").ToList();
+    }
 
     /// <summary>
     /// Available attachment options
@@ -655,17 +759,55 @@
     /// </summary>
     private Dictionary<int, string> PreviewUrls { get; set; } = new();
 
+    /// <summary>
+    /// Dictionary to track upload status per file index (uploading, completed, failed)
+    /// </summary>
+    private Dictionary<int, FileUploadStatus> UploadStatuses { get; set; } = new();
+
+    /// <summary>
+    /// List of successfully uploaded file results
+    /// </summary>
+    private List<FileUploadResult> UploadedFileResults { get; set; } = new();
+
+    #endregion
+
+    #region Upload Status Enum
+
+    private enum FileUploadStatus
+    {
+        Pending,
+        Uploading,
+        Completed,
+        Failed
+    }
+
+    #endregion
+
+    #region Uploaded Files Parameter
+
+    /// <summary>
+    /// List of uploaded file results (FileId, URL, etc.) for parent component to use
+    /// </summary>
+    [Parameter]
+    public List<FileUploadResult> UploadedFiles { get; set; } = new();
+
+    /// <summary>
+    /// Callback when uploaded files change
+    /// </summary>
+    [Parameter]
+    public EventCallback<List<FileUploadResult>> UploadedFilesChanged { get; set; }
+
     #endregion
 
     #region Methods
 
     /// <summary>
-    /// Handle file selection from InputFile
+    /// Handle file selection from InputFile - IMMEDIATELY starts upload for fast UX
     /// </summary>
     private async Task OnFilesSelected(InputFileChangeEventArgs e)
     {
-        var files = e.GetMultipleFiles(maximumFileCount: 4);
-        Logger.LogInformation("[PostComposer] Files selected - Count: {Count}", files?.Count ?? 0);
+        var files = e.GetMultipleFiles(maximumFileCount: 10);
+        Logger.LogInformation("[PostComposer] ⚡ Files selected - Count: {Count} - Starting IMMEDIATE upload", files?.Count ?? 0);
 
         if (files == null || files.Count == 0)
             return;
@@ -676,10 +818,23 @@
 
         foreach (var file in files)
         {
-            // Check file type
-            if (!file.ContentType.StartsWith("image/"))
+            Logger.LogInformation("[PostComposer] Validating file: {FileName}, ContentType: '{ContentType}', Size: {Size}", 
+                file.Name, file.ContentType, file.Size);
+            
+            // Check file type - be more flexible with content type detection
+            var contentType = file.ContentType?.ToLowerInvariant() ?? "";
+            var fileName = file.Name?.ToLowerInvariant() ?? "";
+            var isImage = contentType.StartsWith("image/") || 
+                          fileName.EndsWith(".png") || 
+                          fileName.EndsWith(".jpg") || 
+                          fileName.EndsWith(".jpeg") || 
+                          fileName.EndsWith(".gif") || 
+                          fileName.EndsWith(".webp") ||
+                          fileName.EndsWith(".bmp");
+            
+            if (!isImage)
             {
-                ValidationMessage = $"File {file.Name} is not an image";
+                ValidationMessage = $"File {file.Name} is not an image (type: {file.ContentType})";
                 Logger.LogWarning("[PostComposer] Invalid file type - FileName: {FileName}, ContentType: {ContentType}", 
                     file.Name, file.ContentType);
                 continue;
@@ -695,6 +850,7 @@
             }
 
             validFiles.Add(file);
+            Logger.LogInformation("[PostComposer] ✅ File validated: {FileName}", file.Name);
         }
 
         if (validFiles.Count == 0)
@@ -703,17 +859,120 @@
             return;
         }
 
-        // Update selected files
+        // Update selected files and clear previous upload state
         SelectedFiles = validFiles;
+        UploadStatuses.Clear();
+        UploadedFileResults.Clear();
         await SelectedFilesChanged.InvokeAsync(SelectedFiles);
 
-        // Generate preview URLs
+        // Generate preview URLs first for immediate visual feedback
         await GeneratePreviewUrlsAsync();
 
         ValidationMessage = string.Empty;
         StateHasChanged();
 
-        Logger.LogInformation("[PostComposer] Files validated and previews generated - ValidCount: {Count}", validFiles.Count);
+        Logger.LogInformation("[PostComposer] Files validated - starting IMMEDIATE background uploads for {Count} files", validFiles.Count);
+
+        // ⚡ IMMEDIATE UPLOAD: Start uploading files in background RIGHT NOW
+        // This makes the app feel FAST - files upload while user types their post
+        _ = UploadFilesImmediatelyAsync(validFiles);
+    }
+
+    /// <summary>
+    /// Upload files immediately in the background - doesn't block UI
+    /// </summary>
+    private async Task UploadFilesImmediatelyAsync(List<IBrowserFile> files)
+    {
+        Logger.LogInformation("[PostComposer] ⚡ Starting immediate background upload for {Count} files", files.Count);
+
+        var uploadTasks = new List<Task>();
+
+        for (int i = 0; i < files.Count; i++)
+        {
+            var index = i;
+            var file = files[i];
+
+            // Mark as uploading
+            UploadStatuses[index] = FileUploadStatus.Uploading;
+            await InvokeAsync(StateHasChanged);
+
+            // Start upload (non-blocking)
+            uploadTasks.Add(UploadSingleFileAsync(index, file));
+        }
+
+        // Wait for all uploads to complete
+        await Task.WhenAll(uploadTasks);
+
+        // Update parent with all uploaded files
+        UploadedFiles = new List<FileUploadResult>(UploadedFileResults);
+        await UploadedFilesChanged.InvokeAsync(UploadedFiles);
+
+        Logger.LogInformation("[PostComposer] ⚡ All uploads complete - {Success}/{Total} succeeded", 
+            UploadedFileResults.Count, files.Count);
+    }
+
+    /// <summary>
+    /// Upload a single file and track its status
+    /// </summary>
+    private async Task UploadSingleFileAsync(int index, IBrowserFile file)
+    {
+        try
+        {
+            Logger.LogInformation("[PostComposer] ⚡ Uploading file {Index}: {FileName} ({Size} bytes, ContentType: {ContentType})", 
+                index, file.Name, file.Size, file.ContentType);
+
+            // Determine content type - use file extension as fallback
+            var contentType = file.ContentType;
+            if (string.IsNullOrEmpty(contentType) || contentType == "application/octet-stream")
+            {
+                var ext = Path.GetExtension(file.Name)?.ToLowerInvariant();
+                contentType = ext switch
+                {
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".gif" => "image/gif",
+                    ".webp" => "image/webp",
+                    ".bmp" => "image/bmp",
+                    _ => "image/jpeg"
+                };
+                Logger.LogInformation("[PostComposer] ContentType was empty/octet-stream, using fallback: {ContentType}", contentType);
+            }
+
+            // Open stream for processing
+            using var originalStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+
+            // Compress the image before uploading (uses default 1920x1920 max dimensions and 80% quality)
+            var compressionResult = await ImageCompression.CompressImageAsync(originalStream, file.Name);
+            
+            Logger.LogInformation("[PostComposer] 📦 Compression: {OriginalSize} bytes → {CompressedSize} bytes ({Ratio:F1}% reduction)", 
+                compressionResult.OriginalSizeBytes, 
+                compressionResult.CompressedSizeBytes,
+                compressionResult.CompressionRatio);
+
+            // Upload the compressed stream
+            var result = await SivarClient.Files.UploadFileAsync(
+                compressionResult.CompressedStream, 
+                compressionResult.NewFileName, 
+                compressionResult.ContentType, 
+                "posts");
+
+            // Mark as completed
+            UploadStatuses[index] = FileUploadStatus.Completed;
+            UploadedFileResults.Add(result);
+
+            Logger.LogInformation("[PostComposer] ✅ Upload complete - FileId: {FileId}, URL: {Url}", 
+                result.FileId, result.Url);
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[PostComposer] ❌ Upload FAILED for file {Index}: {FileName} - Error: {Message}", 
+                index, file.Name, ex.Message);
+            UploadStatuses[index] = FileUploadStatus.Failed;
+            ValidationMessage = $"Upload failed for {file.Name}: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     /// <summary>

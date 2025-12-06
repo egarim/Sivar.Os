@@ -3,12 +3,12 @@
 @inject IStringLocalizer<ProfileMain> Localizer
 
 <div class="profile-main">
-    <MudAvatar Size="Size.Large" Class="profile-avatar" Style="width: 120px; height: 120px; font-size: 48px;">
+    <MudAvatar Size="Size.Large" Class="profile-avatar" Style="width: 72px; height: 72px; font-size: 28px;">
         @Initials
     </MudAvatar>
     <div class="profile-details">
-        <MudText Typo="Typo.h4" Class="profile-name">@DisplayName</MudText>
-        <MudText Typo="Typo.body1" Class="profile-username">@("@" + Username)</MudText>
+        <MudText Typo="Typo.h6" Class="profile-name">@DisplayName</MudText>
+        <MudText Typo="Typo.body2" Class="profile-username">@("@" + Username)</MudText>
         <ProfileStats Stats="@Stats" />
         @if (ShowActions)
         {

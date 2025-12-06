@@ -1,93 +1,223 @@
 @using Sivar.Os.Shared.DTOs
 
-<MudCard Class="profile-search-card" Style="height: 100%;">
-    <MudCardContent>
-        <div class="d-flex flex-column align-center text-center" style="gap: 12px;">
-            @* Avatar *@
-            <MudAvatar Size="Size.Large" Style="width: 96px; height: 96px;">
-                @if (!string.IsNullOrWhiteSpace(Profile.Avatar))
-                {
-                    <MudImage Src="@Profile.Avatar" Alt="@Profile.DisplayName" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
-                }
-            </MudAvatar>
-
-            @* Display Name *@
-            <div>
-                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 4px;">
-                    @Profile.DisplayName
-                </MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @("@" + Profile.Handle)
-                </MudText>
-            </div>
-
-            @* Bio Preview *@
-            @if (!string.IsNullOrWhiteSpace(Profile.BioPreview))
+<div class="profile-search-card">
+    <div class="profile-card-content">
+        @* Avatar *@
+        <div class="profile-avatar">
+            @if (!string.IsNullOrWhiteSpace(Profile.Avatar))
             {
-                <MudText Typo="Typo.body2" Class="text-truncate-2-lines" Style="min-height: 40px;">
-                    @Profile.BioPreview
-                </MudText>
+                <img src="@Profile.Avatar" alt="@Profile.DisplayName" />
             }
             else
             {
-                <div style="min-height: 40px;"></div>
+                <span>@GetInitials(Profile.DisplayName)</span>
             }
-
-            @* Metadata Icons *@
-            <div class="d-flex justify-center flex-wrap" style="gap: 12px; margin-top: 4px;">
-                @if (!string.IsNullOrWhiteSpace(Profile.LocationDisplay))
-                {
-                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.LocationOn" Color="Color.Default" Variant="Variant.Text">
-                        @Profile.LocationDisplay
-                    </MudChip>
-                }
-                
-                @if (Profile.ViewCount > 0)
-                {
-                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Visibility" Color="Color.Default" Variant="Variant.Text">
-                        @Profile.ViewCount
-                    </MudChip>
-                }
-            </div>
         </div>
-    </MudCardContent>
+
+        @* Display Name & Handle *@
+        <div class="profile-info">
+            <span class="profile-name">@Profile.DisplayName</span>
+            <span class="profile-handle">@("@" + Profile.Handle)</span>
+        </div>
+
+        @* Bio Preview *@
+        @if (!string.IsNullOrWhiteSpace(Profile.BioPreview))
+        {
+            <p class="profile-bio">@Profile.BioPreview</p>
+        }
+
+        @* Metadata *@
+        <div class="profile-meta">
+            @if (!string.IsNullOrWhiteSpace(Profile.LocationDisplay))
+            {
+                <span class="meta-item">
+                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
+                    @Profile.LocationDisplay
+                </span>
+            }
+            
+            @if (Profile.ViewCount > 0)
+            {
+                <span class="meta-item">
+                    <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" />
+                    @Profile.ViewCount
+                </span>
+            }
+        </div>
+    </div>
     
-    <MudCardActions Class="d-flex justify-center">
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   FullWidth="true"
-                   Href="@($"/{Profile.Handle}")"
-                   StartIcon="@Icons.Material.Filled.Person">
-            View Profile
-        </MudButton>
-    </MudCardActions>
-</MudCard>
+    <a href="@($"/{Profile.Handle}")" class="view-profile-btn">
+        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+        View Profile
+    </a>
+</div>
 
 <style>
     .profile-search-card {
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .profile-search-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
-    .text-truncate-2-lines {
+    .profile-card-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .profile-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--mud-palette-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+        overflow: hidden;
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .profile-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .profile-handle {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .profile-bio {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        margin: 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.5;
+        line-height: 1.4;
+        min-height: 34px;
+    }
+
+    .profile-meta {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .meta-item .mud-icon-root {
+        font-size: 14px !important;
+    }
+
+    .view-profile-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: var(--mud-palette-primary);
+        color: white;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .view-profile-btn:hover {
+        background: var(--mud-palette-primary-darken);
+        text-decoration: none;
+        color: white;
+    }
+
+    .view-profile-btn .mud-icon-root {
+        font-size: 16px !important;
+    }
+
+    /* List view adjustments */
+    .search-results-list .profile-search-card {
+        flex-direction: row;
+        align-items: center;
+        padding: 10px 12px;
+    }
+
+    .search-results-list .profile-card-content {
+        flex-direction: row;
+        text-align: left;
+        flex: 1;
+        gap: 12px;
+    }
+
+    .search-results-list .profile-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+
+    .search-results-list .profile-info {
+        align-items: flex-start;
+    }
+
+    .search-results-list .profile-bio {
+        display: none;
+    }
+
+    .search-results-list .profile-meta {
+        justify-content: flex-start;
+    }
+
+    .search-results-list .view-profile-btn {
+        padding: 6px 12px;
+        font-size: 12px;
     }
 </style>
 
 @code {
     [Parameter, EditorRequired]
     public ProfileSummaryDto Profile { get; set; } = null!;
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length > 0 ? name[0].ToString().ToUpper() : "?";
+    }
 }

@@ -4,6 +4,7 @@
 <div class="profile-actions">
     <MudButton Variant="Variant.Filled" 
                Color="Color.Primary" 
+               Size="Size.Small"
                StartIcon="@Icons.Material.Filled.PersonAdd"
                Class="action-button primary"
                OnClick="HandleFollowClick">
@@ -11,12 +12,30 @@
     </MudButton>
     <MudButton Variant="Variant.Outlined" 
                Color="Color.Default"
+               Size="Size.Small"
                StartIcon="@Icons.Material.Filled.Message"
                Class="action-button secondary"
                OnClick="HandleMessageClick">
         @Localizer["MessageButton"]
     </MudButton>
 </div>
+
+<style>
+    .profile-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .profile-actions .mud-button-root {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+
+    .profile-actions .mud-icon-root {
+        font-size: 16px !important;
+    }
+</style>
 
 @code {
     [Parameter]

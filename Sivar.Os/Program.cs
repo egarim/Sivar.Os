@@ -208,6 +208,7 @@ builder.Services.Configure<VectorEmbeddingOptions>(options =>
 });
 
 builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+builder.Services.AddScoped<IImageCompressionService, ImageCompressionService>();
 
 // Configure Azure Blob Storage options
 builder.Services.Configure<Sivar.Os.Shared.Configuration.AzureBlobStorageConfiguration>(
@@ -499,6 +500,12 @@ builder.Services.AddRazorComponents()
 builder.Services.Configure<CircuitOptions>(options =>
 {
     options.DetailedErrors = true;
+});
+
+// ⚡ Configure SignalR for large file uploads (up to 10MB)
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB - matches our file size limit
 });
 
 var app = builder.Build();

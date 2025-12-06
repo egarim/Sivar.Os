@@ -1,14 +1,49 @@
-<MudPaper Elevation="0" Class="profile-header-bar">
-    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" 
-               Variant="Variant.Outlined" 
-               Color="Color.Default" 
-               Size="Size.Small"
-               Class="back-button" 
-               OnClick="OnBackClick">
-        Back to Feed
-    </MudButton>
-    <MudText Typo="Typo.h6" Class="page-title">@Title</MudText>
-</MudPaper>
+<div class="profile-header-bar">
+    <button class="back-btn" @onclick="OnBackClick">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" />
+        <span>Back</span>
+    </button>
+    <span class="page-title">@Title</span>
+</div>
+
+<style>
+    .profile-header-bar {
+        background: var(--mud-palette-surface);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .back-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 10px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--mud-palette-text-primary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .back-btn .mud-icon-root {
+        font-size: 16px !important;
+    }
+
+    .page-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+</style>
 
 @code {
     [Parameter]

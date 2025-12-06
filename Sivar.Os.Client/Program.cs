@@ -160,6 +160,9 @@ builder.Services.AddScoped<IFilesClient>(sp =>
     return new FilesClient(httpClient, options.Value);
 });
 
+// Register image compression service for optimizing uploads
+builder.Services.AddScoped<IImageCompressionService, ImageCompressionService>();
+
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient>(sp =>
 {

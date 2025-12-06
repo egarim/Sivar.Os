@@ -50,6 +50,7 @@
                         Subtitle="@Localizer["FeedSubtitle"]" />
 
             <PostComposer ProfileTypeTitle="@Localizer["CreatePostTitle"]"
+                          CurrentProfileTypeName="@(_activeProfile?.ProfileType?.Name ?? "PersonalProfile")"
                           @bind-SelectedType="@_selectedPostType"
                           @bind-PostText="@_postText"
                           @bind-ActiveAttachment="@_activeAttachment"
@@ -62,6 +63,7 @@
                           @bind-PostLocation="@_postLocation"
                           @bind-PostBusinessMetadata="@_postBusinessMetadata"
                           @bind-SelectedFiles="@_selectedFiles"
+                          @bind-UploadedFiles="@_uploadedFiles"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             @foreach (var activity in _activities)
@@ -127,6 +129,7 @@
     private TimeOnly? _scheduledTime;
     private string _scheduledLocation = string.Empty;
     private List<IBrowserFile> _selectedFiles = new();
+    private List<FileUploadResult> _uploadedFiles = new(); // Pre-uploaded files from PostComposer
     
     // Post Composer Advanced Options
     private VisibilityLevel _postVisibility = VisibilityLevel.Public;
@@ -1489,46 +1492,33 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 ? pt 
                 : PostType.General;
             
-            // Upload selected images first
+            // ⚡ Use PRE-UPLOADED files from PostComposer (immediate upload for fast UX)
             var attachments = new List<CreatePostAttachmentDto>();
             
-            if (_selectedFiles != null && _selectedFiles.Count > 0)
+            if (_uploadedFiles != null && _uploadedFiles.Count > 0)
             {
-                Console.WriteLine($"[Home] Uploading {_selectedFiles.Count} images...");
+                Console.WriteLine($"[Home] ⚡ Using {_uploadedFiles.Count} PRE-UPLOADED files (instant post!)");
                 
-                foreach (var file in _selectedFiles)
+                for (int i = 0; i < _uploadedFiles.Count; i++)
                 {
-                    try
+                    var uploadResult = _uploadedFiles[i];
+                    var file = _selectedFiles.Count > i ? _selectedFiles[i] : null;
+                    
+                    Console.WriteLine($"[Home] ⚡ Using pre-uploaded file: FileId={uploadResult.FileId}");
+                    
+                    attachments.Add(new CreatePostAttachmentDto
                     {
-                        Console.WriteLine($"[Home] Uploading file: {file.Name} ({file.Size} bytes, {file.ContentType})");
-                        
-                        // Open stream and upload
-                        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max
-                        var uploadResult = await SivarClient.Files.UploadFileAsync(stream, file.Name, file.ContentType, "posts");
-                        
-                        Console.WriteLine($"[Home] File uploaded - FileId: {uploadResult.FileId}, URL: {uploadResult.Url}");
-                        
-                        // ⭐ Add to attachments - DO NOT store URL, only FileId
-                        // URL will be generated dynamically by PostService using GetFileUrlAsync
-                        attachments.Add(new CreatePostAttachmentDto
-                        {
-                            AttachmentType = AttachmentType.Image,
-                            FileId = uploadResult.FileId,
-                            FilePath = "", // ⭐ Empty - URL generated server-side from FileId
-                            OriginalFilename = file.Name,
-                            MimeType = file.ContentType,
-                            FileSize = file.Size,
-                            DisplayOrder = attachments.Count
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[Home] Error uploading file {file.Name}: {ex.Message}");
-                        // Continue with other files
-                    }
+                        AttachmentType = AttachmentType.Image,
+                        FileId = uploadResult.FileId,
+                        FilePath = "", // URL generated server-side from FileId
+                        OriginalFilename = uploadResult.OriginalFileName ?? file?.Name ?? "unknown",
+                        MimeType = uploadResult.ContentType ?? file?.ContentType ?? "image/jpeg",
+                        FileSize = uploadResult.FileSizeBytes > 0 ? uploadResult.FileSizeBytes : (file?.Size ?? 0),
+                        DisplayOrder = i
+                    });
                 }
                 
-                Console.WriteLine($"[Home] Successfully uploaded {attachments.Count}/{_selectedFiles.Count} images");
+                Console.WriteLine($"[Home] ⚡ Created {attachments.Count} attachments from pre-uploaded files");
             }
             
             // Build CreatePostDto with all fields from PostComposer - INCLUDE ProfileId from active profile
@@ -1567,6 +1557,7 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _scheduledTime = null;
                 _scheduledLocation = string.Empty;
                 _selectedFiles = new();  // Create new empty list
+                _uploadedFiles = new();  // ⚡ Clear pre-uploaded files
                 
                 // Clear advanced options
                 _postVisibility = VisibilityLevel.Public;

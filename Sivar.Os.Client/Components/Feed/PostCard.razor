@@ -25,14 +25,22 @@
     {
         Logger.LogInformation("[PostCard] Rendering {Count} attachments for Post {PostId}", Post.Attachments.Count, Post.Id);
         
+        @foreach (var att in Post.Attachments)
+        {
+            Logger.LogInformation("[PostCard] Attachment {AttachmentId}: FileId={FileId}, FilePath={FilePath}, MimeType={MimeType}, OriginalName={OriginalName}",
+                att.Id, att.FileId ?? "NULL", att.FilePath ?? "NULL", att.MimeType ?? "NULL", att.OriginalFilename ?? "NULL");
+        }
+        
         <div class="post-attachments">
             @if (Post.Attachments.Count == 1)
             {
+                var singleAttachment = Post.Attachments[0];
                 <div class="single-image" @onclick="@(() => OpenImageViewer(0))" style="cursor: pointer;">
-                    <img src="@Post.Attachments[0].FilePath" 
-                         alt="@(Post.Attachments[0].AltText ?? Post.Attachments[0].OriginalFilename)" 
-                         class="attachment-image" />
-                    @if (Post.Attachments[0].MimeType == "image/gif")
+                    <img src="@singleAttachment.FilePath" 
+                         alt="@(singleAttachment.AltText ?? singleAttachment.OriginalFilename)" 
+                         class="attachment-image"
+                         @onerror="@(() => LogImageLoadError(singleAttachment.FilePath, singleAttachment.FileId, Post.Id))" />
+                    @if (singleAttachment.MimeType == "image/gif")
                     {
                         <div class="gif-badge">@Localizer["GifBadge"]</div>
                     }
@@ -55,7 +63,8 @@
                             <div class="carousel-image-container" @onclick="@(() => OpenImageViewer(index))" style="cursor: pointer;">
                                 <img src="@attachment.FilePath" 
                                      alt="@(attachment.AltText ?? attachment.OriginalFilename)" 
-                                     class="carousel-image" />
+                                     class="carousel-image"
+                                     @onerror="@(() => LogImageLoadError(attachment.FilePath, attachment.FileId, Post.Id))" />
                                 @if (attachment.MimeType == "image/gif")
                                 {
                                     <div class="gif-badge">@Localizer["GifBadge"]</div>
@@ -255,6 +264,16 @@
         };
 
         dialogRef = await DialogService.ShowAsync<ImageViewerDialog>("", parameters, options);
+    }
+
+    /// <summary>
+    /// Log image load error for debugging
+    /// </summary>
+    private void LogImageLoadError(string? filePath, string? fileId, Guid postId)
+    {
+        Logger.LogError("[PostCard] IMAGE LOAD FAILED - PostId={PostId}, FileId={FileId}, FilePath={FilePath}",
+            postId, fileId ?? "NULL", filePath ?? "NULL");
+        Console.WriteLine($"[PostCard] IMAGE LOAD FAILED - PostId={postId}, FileId={fileId ?? "NULL"}, FilePath={filePath ?? "NULL"}");
     }
 
     // Comment section state
