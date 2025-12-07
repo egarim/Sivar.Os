@@ -49,5 +49,12 @@ namespace Sivar.Os.Shared.Configuration
         /// Whether to use hierarchical namespace (folders) in blob names
         /// </summary>
         public bool UseHierarchicalNamespace { get; set; } = true;
+
+        /// <summary>
+        /// When true, uses only BaseContainer for all uploads (no container name concatenation).
+        /// Useful when using a container-scoped SAS token.
+        /// Files are organized using folder prefixes instead of separate containers.
+        /// </summary>
+        public bool UseSingleContainer { get; set; } = false;
     }
 }

@@ -135,6 +135,22 @@ public class PostService : IPostService
             UpdatedAt = DateTime.UtcNow
         };
 
+        // Set blog-specific fields if this is a blog post
+        if (createPostDto.PostType == PostType.Blog)
+        {
+            post.BlogContent = createPostDto.BlogContent;
+            post.CoverImageUrl = createPostDto.CoverImageUrl;
+            post.CoverImageFileId = createPostDto.CoverImageFileId;
+            post.Subtitle = createPostDto.Subtitle;
+            post.CanonicalUrl = createPostDto.CanonicalUrl;
+            post.IsDraft = createPostDto.IsDraft;
+            post.ReadTimeMinutes = CalculateReadTimeMinutes(createPostDto.BlogContent);
+            post.PublishedAt = createPostDto.IsDraft ? null : DateTime.UtcNow;
+            
+            _logger.LogInformation("[CreatePostAsync] Blog post created: IsDraft={IsDraft}, ReadTime={ReadTime}min", 
+                post.IsDraft, post.ReadTimeMinutes);
+        }
+
         // Set location if provided
         if (createPostDto.Location != null)
         {
@@ -943,7 +959,16 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt,
             IsEdited = post.IsEdited,
-            EditedAt = post.EditedAt
+            EditedAt = post.EditedAt,
+            // Blog-specific fields
+            BlogContent = post.BlogContent,
+            CoverImageUrl = post.CoverImageUrl,
+            CoverImageFileId = post.CoverImageFileId,
+            Subtitle = post.Subtitle,
+            ReadTimeMinutes = post.ReadTimeMinutes,
+            IsDraft = post.IsDraft,
+            PublishedAt = post.PublishedAt,
+            CanonicalUrl = post.CanonicalUrl
         };
 
         // Add location if present
@@ -1397,6 +1422,36 @@ public class PostService : IPostService
                 latitude, longitude, requestId);
             throw;
         }
+    }
+
+    #endregion
+
+    #region Blog Helper Methods
+
+    /// <summary>
+    /// Calculates the estimated read time in minutes based on word count
+    /// Uses average reading speed of 200 words per minute
+    /// </summary>
+    /// <param name="content">The blog content to analyze</param>
+    /// <returns>Estimated read time in minutes, minimum 1 minute</returns>
+    private static int CalculateReadTimeMinutes(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return 1;
+
+        // Strip HTML tags for accurate word count
+        var plainText = System.Text.RegularExpressions.Regex.Replace(content, "<[^>]*>", " ");
+        
+        // Count words (split by whitespace)
+        var words = plainText.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var wordCount = words.Length;
+
+        // Average reading speed: 200 words per minute
+        const int wordsPerMinute = 200;
+        var readTime = (int)Math.Ceiling((double)wordCount / wordsPerMinute);
+
+        // Minimum 1 minute
+        return Math.Max(1, readTime);
     }
 
     #endregion

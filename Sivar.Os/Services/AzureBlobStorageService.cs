@@ -80,6 +80,26 @@ public class AzureBlobStorageService : IFileStorageService
             _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Uploading file - RequestId={RequestId}, FileId={FileId}, FileName={FileName}",
                 requestId, fileId, request.FileName);
 
+            // CRITICAL: Reset stream position to beginning before upload
+            // The stream may have been read elsewhere (e.g., during compression or logging)
+            if (request.FileStream.CanSeek)
+            {
+                var currentPosition = request.FileStream.Position;
+                var streamLength = request.FileStream.Length;
+                _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Stream state before reset - RequestId={RequestId}, Position={Position}, Length={Length}",
+                    requestId, currentPosition, streamLength);
+                
+                request.FileStream.Position = 0;
+                
+                _logger.LogInformation("[AzureBlobStorageService.UploadFileAsync] Stream position reset to 0 - RequestId={RequestId}",
+                    requestId);
+            }
+            else
+            {
+                _logger.LogWarning("[AzureBlobStorageService.UploadFileAsync] Stream is not seekable, cannot reset position - RequestId={RequestId}",
+                    requestId);
+            }
+
             // Upload the file
             var response = await blobClient.UploadAsync(request.FileStream, uploadOptions);
             
@@ -280,11 +300,45 @@ public class AzureBlobStorageService : IFileStorageService
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
-        _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] START - RequestId={RequestId}, FileId={FileId}",
-            requestId, fileId);
+        _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] START - RequestId={RequestId}, FileId={FileId}, UseSingleContainer={UseSingleContainer}",
+            requestId, fileId, _config.UseSingleContainer);
 
         try
         {
+            if (_config.UseSingleContainer)
+            {
+                // Single container mode - search only in BaseContainer
+                var containerClient = _blobServiceClient.GetBlobContainerClient(_config.BaseContainer);
+                var possiblePrefixes = new[] { "posts", "profile-images", "blog-covers", "image", "" };
+                
+                foreach (var folder in possiblePrefixes)
+                {
+                    var searchPrefix = _config.UseHierarchicalNamespace && !string.IsNullOrEmpty(folder)
+                        ? $"{folder}/{fileId}"
+                        : fileId;
+                    
+                    var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: searchPrefix);
+                    
+                    await foreach (var blob in blobs)
+                    {
+                        if (blob.Name.Contains(fileId) || 
+                            (blob.Metadata?.ContainsKey("file_id") == true && blob.Metadata["file_id"] == fileId))
+                        {
+                            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                            _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] SUCCESS - File found - RequestId={RequestId}, FileId={FileId}, Container={Container}, Duration={Duration}ms",
+                                requestId, fileId, _config.BaseContainer, elapsed);
+                            return true;
+                        }
+                    }
+                }
+                
+                var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] SUCCESS - File not found - RequestId={RequestId}, FileId={FileId}, Container={Container}, Duration={Duration}ms",
+                    requestId, fileId, _config.BaseContainer, elapsedNotFound);
+                return false;
+            }
+            
+            // Multi-container mode - search all containers
             var containers = _blobServiceClient.GetBlobContainersAsync();
             var containerCount = 0;
             
@@ -292,7 +346,7 @@ public class AzureBlobStorageService : IFileStorageService
             {
                 containerCount++;
                 var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
-                var blobs = containerClient.GetBlobsAsync(prefix: fileId);
+                var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: fileId);
                 
                 await foreach (var blob in blobs)
                 {
@@ -308,9 +362,9 @@ public class AzureBlobStorageService : IFileStorageService
                 }
             }
 
-            var elapsedNotFound = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            var elapsedNotFoundMulti = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[AzureBlobStorageService.FileExistsAsync] SUCCESS - File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}, Duration={Duration}ms",
-                requestId, fileId, containerCount, elapsedNotFound);
+                requestId, fileId, containerCount, elapsedNotFoundMulti);
 
             return false;
         }
@@ -328,76 +382,19 @@ public class AzureBlobStorageService : IFileStorageService
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
-        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] START - RequestId={RequestId}, FileId={FileId}",
-            requestId, fileId);
+        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] START - RequestId={RequestId}, FileId={FileId}, UseSingleContainer={UseSingleContainer}",
+            requestId, fileId, _config.UseSingleContainer);
 
         try
         {
-            var containers = _blobServiceClient.GetBlobContainersAsync();
-            var containerCount = 0;
-            
-            _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Starting container search - RequestId={RequestId}, FileId={FileId}",
-                requestId, fileId);
-            
-            await foreach (var container in containers)
+            // When using single container mode (container-scoped SAS), search only in that container
+            if (_config.UseSingleContainer)
             {
-                containerCount++;
-                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Searching container - RequestId={RequestId}, FileId={FileId}, Container={Container}",
-                    requestId, fileId, container.Name);
-                
-                var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
-                
-                // ⭐ Generate the correct blob prefix based on namespace configuration
-                // This matches the logic in GenerateBlobName()
-                var searchPrefix = _config.UseHierarchicalNamespace 
-                    ? $"posts/{fileId}"  // Hierarchical: "posts/abc123"
-                    : fileId;            // Flat: "abc123"
-                
-                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Using search prefix - RequestId={RequestId}, Prefix={Prefix}, UseHierarchicalNamespace={UseHierarchical}",
-                    requestId, searchPrefix, _config.UseHierarchicalNamespace);
-                
-                // ⭐ CRITICAL: Request metadata with BlobTraits.Metadata
-                var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: searchPrefix);
-                
-                var blobCount = 0;
-                await foreach (var blob in blobs)
-                {
-                    blobCount++;
-                    _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Found blob with prefix - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, HasMetadata={HasMetadata}",
-                        requestId, fileId, blob.Name, blob.Metadata != null);
-                    
-                    if (blob.Metadata?.ContainsKey("file_id") == true)
-                    {
-                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Blob has file_id metadata - RequestId={RequestId}, FileId={FileId}, MetadataFileId={MetadataFileId}, Match={Match}",
-                            requestId, fileId, blob.Metadata["file_id"], blob.Metadata["file_id"] == fileId);
-                    }
-                    
-                    if (blob.Metadata?.ContainsKey("file_id") == true && 
-                        blob.Metadata["file_id"] == fileId)
-                    {
-                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] File found - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Container={Container}",
-                            requestId, fileId, blob.Name, container.Name);
-
-                        var blobClient = containerClient.GetBlobClient(blob.Name);
-                        var originalFileName = blob.Metadata.TryGetValue("original_filename", out var fileName) ? fileName : "unknown";
-                        var url = GeneratePublicUrl(blobClient.Uri, container.Name, fileId, originalFileName);
-
-                        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, OriginalFileName={OriginalFileName}, Duration={Duration}ms",
-                            requestId, fileId, originalFileName, elapsed);
-
-                        return url;
-                    }
-                }
-                
-                _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] Container search complete - RequestId={RequestId}, FileId={FileId}, Container={Container}, BlobsFound={BlobsFound}",
-                    requestId, fileId, container.Name, blobCount);
+                return await GetFileUrlFromSingleContainerAsync(requestId, fileId, startTime);
             }
-
-            _logger.LogWarning("[AzureBlobStorageService.GetFileUrlAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
-                requestId, fileId, containerCount);
-
-            throw new FileNotFoundException($"File with ID {fileId} not found");
+            
+            // Original logic for multi-container mode (account-level access)
+            return await GetFileUrlFromMultipleContainersAsync(requestId, fileId, startTime);
         }
         catch (Exception ex) when (!(ex is FileNotFoundException))
         {
@@ -406,6 +403,101 @@ public class AzureBlobStorageService : IFileStorageService
                 requestId, fileId, elapsed);
             throw;
         }
+    }
+
+    private async Task<string> GetFileUrlFromSingleContainerAsync(Guid requestId, string fileId, DateTime startTime)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_config.BaseContainer);
+        
+        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlFromSingleContainerAsync] Searching in single container - RequestId={RequestId}, FileId={FileId}, Container={Container}",
+            requestId, fileId, _config.BaseContainer);
+
+        // Search with multiple possible prefixes since we don't know which logical folder the file is in
+        var possiblePrefixes = new[] { "posts", "profile-images", "blog-covers", "image", "" };
+        
+        foreach (var folder in possiblePrefixes)
+        {
+            var searchPrefix = _config.UseHierarchicalNamespace && !string.IsNullOrEmpty(folder)
+                ? $"{folder}/{fileId}"
+                : fileId;
+            
+            _logger.LogDebug("[AzureBlobStorageService.GetFileUrlFromSingleContainerAsync] Trying prefix - RequestId={RequestId}, Prefix={Prefix}",
+                requestId, searchPrefix);
+            
+            var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: searchPrefix);
+            
+            await foreach (var blob in blobs)
+            {
+                // Check if blob name contains the fileId (since blob name format is: folder/fileId_filename.ext)
+                if (blob.Name.Contains(fileId) || 
+                    (blob.Metadata?.ContainsKey("file_id") == true && blob.Metadata["file_id"] == fileId))
+                {
+                    var blobClient = containerClient.GetBlobClient(blob.Name);
+                    var originalFileName = blob.Metadata?.TryGetValue("original_filename", out var fileName) == true ? fileName : "unknown";
+                    var url = GeneratePublicUrl(blobClient.Uri, _config.BaseContainer, fileId, originalFileName);
+
+                    var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                    _logger.LogInformation("[AzureBlobStorageService.GetFileUrlFromSingleContainerAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, BlobName={BlobName}, Duration={Duration}ms",
+                        requestId, fileId, blob.Name, elapsed);
+
+                    return url;
+                }
+            }
+        }
+
+        _logger.LogWarning("[AzureBlobStorageService.GetFileUrlFromSingleContainerAsync] File not found - RequestId={RequestId}, FileId={FileId}, Container={Container}",
+            requestId, fileId, _config.BaseContainer);
+
+        throw new FileNotFoundException($"File with ID {fileId} not found in container {_config.BaseContainer}");
+    }
+
+    private async Task<string> GetFileUrlFromMultipleContainersAsync(Guid requestId, string fileId, DateTime startTime)
+    {
+        var containers = _blobServiceClient.GetBlobContainersAsync();
+        var containerCount = 0;
+        
+        _logger.LogInformation("[AzureBlobStorageService.GetFileUrlFromMultipleContainersAsync] Starting container search - RequestId={RequestId}, FileId={FileId}",
+            requestId, fileId);
+        
+        await foreach (var container in containers)
+        {
+            containerCount++;
+            _logger.LogInformation("[AzureBlobStorageService.GetFileUrlFromMultipleContainersAsync] Searching container - RequestId={RequestId}, FileId={FileId}, Container={Container}",
+                requestId, fileId, container.Name);
+            
+            var containerClient = _blobServiceClient.GetBlobContainerClient(container.Name);
+            
+            var searchPrefix = _config.UseHierarchicalNamespace 
+                ? $"posts/{fileId}"
+                : fileId;
+            
+            var blobs = containerClient.GetBlobsAsync(traits: BlobTraits.Metadata, prefix: searchPrefix);
+            
+            var blobCount = 0;
+            await foreach (var blob in blobs)
+            {
+                blobCount++;
+                
+                if (blob.Metadata?.ContainsKey("file_id") == true && 
+                    blob.Metadata["file_id"] == fileId)
+                {
+                    var blobClient = containerClient.GetBlobClient(blob.Name);
+                    var originalFileName = blob.Metadata.TryGetValue("original_filename", out var fileName) ? fileName : "unknown";
+                    var url = GeneratePublicUrl(blobClient.Uri, container.Name, fileId, originalFileName);
+
+                    var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                    _logger.LogInformation("[AzureBlobStorageService.GetFileUrlFromMultipleContainersAsync] SUCCESS - RequestId={RequestId}, FileId={FileId}, Duration={Duration}ms",
+                        requestId, fileId, elapsed);
+
+                    return url;
+                }
+            }
+        }
+
+        _logger.LogWarning("[AzureBlobStorageService.GetFileUrlFromMultipleContainersAsync] File not found - RequestId={RequestId}, FileId={FileId}, ContainersSearched={ContainersSearched}",
+            requestId, fileId, containerCount);
+
+        throw new FileNotFoundException($"File with ID {fileId} not found");
     }
 
     public async Task<BulkDeleteResult> DeleteFilesAsync(IEnumerable<string> fileIds)
@@ -602,6 +694,13 @@ public class AzureBlobStorageService : IFileStorageService
 
     private string GetContainerName(string logicalContainer)
     {
+        // If using single container mode (e.g., with container-scoped SAS token),
+        // always use the BaseContainer and organize files with folder prefixes instead
+        if (_config.UseSingleContainer)
+        {
+            return _config.BaseContainer.ToLowerInvariant();
+        }
+
         // Ensure container name meets Azure naming requirements
         var containerName = $"{_config.BaseContainer}-{logicalContainer}".ToLowerInvariant();
         

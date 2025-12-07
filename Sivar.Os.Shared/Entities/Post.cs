@@ -223,6 +223,53 @@ public class Post : BaseEntity
     /// </summary>
     public virtual DateTime? AnalyzedAt { get; set; }
 
+    // ==================== BLOG-SPECIFIC FIELDS ====================
+
+    /// <summary>
+    /// Full blog content (Markdown/HTML) - only used when PostType = Blog
+    /// The Content field stores the summary/excerpt for blogs
+    /// </summary>
+    public virtual string? BlogContent { get; set; }
+
+    /// <summary>
+    /// Cover/featured image URL for blog posts
+    /// </summary>
+    [StringLength(500)]
+    public virtual string? CoverImageUrl { get; set; }
+
+    /// <summary>
+    /// Cover image file ID from blob storage
+    /// </summary>
+    [StringLength(255)]
+    public virtual string? CoverImageFileId { get; set; }
+
+    /// <summary>
+    /// Estimated read time in minutes (auto-calculated based on word count)
+    /// </summary>
+    public virtual int? ReadTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Indicates if this is a draft (not yet published)
+    /// </summary>
+    public virtual bool IsDraft { get; set; } = false;
+
+    /// <summary>
+    /// When the blog was published (separate from CreatedAt for drafts)
+    /// </summary>
+    public virtual DateTime? PublishedAt { get; set; }
+
+    /// <summary>
+    /// Subtitle or excerpt for blog posts
+    /// </summary>
+    [StringLength(500)]
+    public virtual string? Subtitle { get; set; }
+
+    /// <summary>
+    /// Canonical URL if republished from another source
+    /// </summary>
+    [StringLength(500)]
+    public virtual string? CanonicalUrl { get; set; }
+
     // Helper methods for business metadata
 
     /// <summary>

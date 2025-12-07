@@ -51,6 +51,38 @@ public record CreatePostDto
     /// Attachment information for images, videos, files
     /// </summary>
     public List<CreatePostAttachmentDto> Attachments { get; init; } = new();
+
+    // ==================== BLOG-SPECIFIC FIELDS ====================
+
+    /// <summary>
+    /// Full blog content (Markdown/HTML) - only used when PostType = Blog
+    /// </summary>
+    public string? BlogContent { get; init; }
+
+    /// <summary>
+    /// Cover/featured image URL for blog posts
+    /// </summary>
+    public string? CoverImageUrl { get; init; }
+
+    /// <summary>
+    /// Cover image file ID from blob storage
+    /// </summary>
+    public string? CoverImageFileId { get; init; }
+
+    /// <summary>
+    /// Blog subtitle or excerpt
+    /// </summary>
+    public string? Subtitle { get; init; }
+
+    /// <summary>
+    /// Whether this is a draft (not yet published)
+    /// </summary>
+    public bool IsDraft { get; init; } = false;
+
+    /// <summary>
+    /// Canonical URL if republished from another source
+    /// </summary>
+    public string? CanonicalUrl { get; init; }
 }
 
 /// <summary>
@@ -82,6 +114,33 @@ public record UpdatePostDto
     /// Updated business metadata
     /// </summary>
     public string? BusinessMetadata { get; init; }
+
+    // ==================== BLOG-SPECIFIC FIELDS ====================
+
+    /// <summary>
+    /// Updated blog content (Markdown/HTML)
+    /// </summary>
+    public string? BlogContent { get; init; }
+
+    /// <summary>
+    /// Updated cover image URL
+    /// </summary>
+    public string? CoverImageUrl { get; init; }
+
+    /// <summary>
+    /// Updated cover image file ID
+    /// </summary>
+    public string? CoverImageFileId { get; init; }
+
+    /// <summary>
+    /// Updated subtitle
+    /// </summary>
+    public string? Subtitle { get; init; }
+
+    /// <summary>
+    /// Updated canonical URL
+    /// </summary>
+    public string? CanonicalUrl { get; init; }
 }
 
 /// <summary>
@@ -183,6 +242,48 @@ public record PostDto
     /// When the post was edited (if applicable)
     /// </summary>
     public DateTime? EditedAt { get; init; }
+
+    // ==================== BLOG-SPECIFIC FIELDS ====================
+
+    /// <summary>
+    /// Full blog content (Markdown/HTML) - only for Blog post type
+    /// </summary>
+    public string? BlogContent { get; init; }
+
+    /// <summary>
+    /// Cover/featured image URL for blog posts
+    /// </summary>
+    public string? CoverImageUrl { get; init; }
+
+    /// <summary>
+    /// Cover image file ID from blob storage
+    /// </summary>
+    public string? CoverImageFileId { get; init; }
+
+    /// <summary>
+    /// Blog subtitle or excerpt
+    /// </summary>
+    public string? Subtitle { get; init; }
+
+    /// <summary>
+    /// Estimated read time in minutes
+    /// </summary>
+    public int? ReadTimeMinutes { get; init; }
+
+    /// <summary>
+    /// Whether this is a draft (not yet published)
+    /// </summary>
+    public bool IsDraft { get; init; }
+
+    /// <summary>
+    /// When the blog was published
+    /// </summary>
+    public DateTime? PublishedAt { get; init; }
+
+    /// <summary>
+    /// Canonical URL if republished from another source
+    /// </summary>
+    public string? CanonicalUrl { get; init; }
 }
 
 /// <summary>

@@ -37,7 +37,35 @@ public class ImageCompressionService : IImageCompressionService
             if (inputStream.CanSeek)
                 inputStream.Position = 0;
 
-            // Load image
+            // Determine file extension
+            var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
+
+            // ⭐ CRITICAL: Handle GIFs BEFORE loading with ImageSharp
+            // ImageSharp's Image.LoadAsync consumes the stream, and for network streams
+            // or non-seekable streams, we can't reset and re-read afterwards.
+            // GIFs should be passed through unchanged to preserve animation.
+            if (extension == ".gif")
+            {
+                _logger.LogInformation("[ImageCompression] GIF detected - copying directly without loading to preserve animation and stream integrity");
+                
+                // Copy the input stream to a new memory stream
+                var gifOutputStream = new MemoryStream();
+                await inputStream.CopyToAsync(gifOutputStream);
+                gifOutputStream.Position = 0;
+                
+                _logger.LogInformation("[ImageCompression] GIF copied - OutputSize={Size} bytes", gifOutputStream.Length);
+                
+                return new ImageCompressionResult
+                {
+                    CompressedStream = gifOutputStream,
+                    ContentType = "image/gif",
+                    NewFileName = fileName,
+                    OriginalSizeBytes = originalSize,
+                    CompressedSizeBytes = gifOutputStream.Length
+                };
+            }
+
+            // Load image (for non-GIF formats)
             using var image = await Image.LoadAsync(inputStream);
             
             var originalWidth = image.Width;
@@ -65,28 +93,10 @@ public class ImageCompressionService : IImageCompressionService
             }
 
             // Determine output format - convert PNGs without transparency to JPEG for better compression
-            var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
+            // Note: extension was already determined before Image.LoadAsync
             var outputStream = new MemoryStream();
             string contentType;
             string newFileName;
-
-            // GIFs should not be compressed (they're animated)
-            if (extension == ".gif")
-            {
-                _logger.LogInformation("[ImageCompression] GIF detected - skipping compression to preserve animation");
-                if (inputStream.CanSeek)
-                    inputStream.Position = 0;
-                await inputStream.CopyToAsync(outputStream);
-                outputStream.Position = 0;
-                return new ImageCompressionResult
-                {
-                    CompressedStream = outputStream,
-                    ContentType = "image/gif",
-                    NewFileName = fileName,
-                    OriginalSizeBytes = originalSize,
-                    CompressedSizeBytes = outputStream.Length
-                };
-            }
 
             // For PNG, check if it has transparency - if not, convert to JPEG
             if (extension == ".png")

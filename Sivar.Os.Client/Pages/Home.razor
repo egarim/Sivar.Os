@@ -64,6 +64,12 @@
                           @bind-PostBusinessMetadata="@_postBusinessMetadata"
                           @bind-SelectedFiles="@_selectedFiles"
                           @bind-UploadedFiles="@_uploadedFiles"
+                          @bind-BlogTitle="@_blogTitle"
+                          @bind-BlogSubtitle="@_blogSubtitle"
+                          @bind-BlogContent="@_blogContent"
+                          @bind-BlogCoverImageUrl="@_blogCoverImageUrl"
+                          @bind-BlogCoverImageFileId="@_blogCoverImageFileId"
+                          @bind-BlogIsDraft="@_blogIsDraft"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             @foreach (var activity in _activities)
@@ -137,6 +143,14 @@
     private List<string> _postTags = new();
     private LocationDto _postLocation = new() { City = string.Empty };
     private string _postBusinessMetadata = string.Empty;
+
+    // Blog-specific fields
+    private string _blogTitle = string.Empty;
+    private string _blogContent = string.Empty;
+    private string _blogSubtitle = string.Empty;
+    private string _blogCoverImageUrl = string.Empty;
+    private string? _blogCoverImageFileId = null;
+    private bool _blogIsDraft = false;
 
     // Feed & Pagination
     private List<ActivityDto> _activities = new();
@@ -1525,7 +1539,8 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             var createPostDto = new CreatePostDto
             {
                 ProfileId = _currentProfileId,  // Send active profile ID to server
-                Content = _postText,
+                // For blog posts, use blog title as the main content; for regular posts, use post text
+                Content = postType == PostType.Blog ? _blogTitle : _postText,
                 PostType = postType,
                 Visibility = _postVisibility,
                 Language = _postLanguage,
@@ -1536,7 +1551,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 BusinessMetadata = !string.IsNullOrEmpty(_postBusinessMetadata)
                     ? _postBusinessMetadata
                     : null,
-                Attachments = attachments
+                Attachments = attachments,
+                // Blog-specific fields
+                BlogContent = postType == PostType.Blog ? _blogContent : null,
+                Subtitle = postType == PostType.Blog ? _blogSubtitle : null,
+                CoverImageUrl = postType == PostType.Blog ? _blogCoverImageUrl : null,
+                CoverImageFileId = postType == PostType.Blog ? _blogCoverImageFileId : null,
+                IsDraft = postType == PostType.Blog && _blogIsDraft
             };
 
             var newPost = await SivarClient.Posts.CreatePostAsync(createPostDto);
@@ -1565,6 +1586,14 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 _postTags = new();
                 _postLocation = new() { City = string.Empty };
                 _postBusinessMetadata = string.Empty;
+                
+                // Clear blog-specific fields
+                _blogTitle = string.Empty;
+                _blogContent = string.Empty;
+                _blogSubtitle = string.Empty;
+                _blogCoverImageUrl = string.Empty;
+                _blogCoverImageFileId = null;
+                _blogIsDraft = false;
                 
                 StateHasChanged();
             }

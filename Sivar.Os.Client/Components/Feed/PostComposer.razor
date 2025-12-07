@@ -6,6 +6,7 @@
 @using Sivar.Os.Shared.Services
 @using Sivar.Os.Client
 @using Sivar.Os.Client.Shared
+@using Sivar.Os.Client.Components.Feed
 @using Microsoft.Extensions.Logging
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Forms
@@ -42,10 +43,24 @@
         </div>
     }
     
-    <textarea class="post-input" 
-              placeholder="@Localizer["PostPlaceholder"]" 
-              value="@PostText"
-              @oninput="@((ChangeEventArgs e) => HandlePostTextInputAsync(e))"></textarea>
+    @* Show either regular textarea or BlogEditor based on post type *@
+    @if (SelectedType == "blog")
+    {
+        <BlogEditor @bind-Title="BlogTitle"
+                    @bind-Subtitle="BlogSubtitle"
+                    @bind-Content="BlogContent"
+                    @bind-CoverImageUrl="BlogCoverImageUrl"
+                    @bind-CoverImageFileId="BlogCoverImageFileId"
+                    @bind-IsDraft="BlogIsDraft"
+                    OnCoverImageUploaded="OnBlogCoverImageUploaded" />
+    }
+    else
+    {
+        <textarea class="post-input" 
+                  placeholder="@Localizer["PostPlaceholder"]" 
+                  value="@PostText"
+                  @oninput="@((ChangeEventArgs e) => HandlePostTextInputAsync(e))"></textarea>
+    }
 
     @* Advanced Options Section *@
     <div class="composer-advanced-section">
@@ -147,7 +162,7 @@
             }
         </div>
         <button class="post-btn" 
-                disabled="@(string.IsNullOrWhiteSpace(PostText) || IsSubmitting)" 
+                disabled="@(IsPublishDisabled || IsSubmitting)" 
                 @onclick="OnPublish">
             @if (IsSubmitting)
             {
@@ -531,6 +546,7 @@
     public List<PostTypeOption> PostTypeOptions { get; set; } = new()
     {
         new("general", "General", Icons.Material.Filled.Article, "Share updates with everyone."),
+        new("blog", "Blog", Icons.Material.Filled.EditNote, "Write a long-form article or blog post."),
         new("product", "Product", Icons.Material.Filled.Storefront, "Highlight new features or releases."),
         new("service", "Service", Icons.Material.Filled.HeadsetMic, "Promote a service offering."),
         new("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
@@ -540,7 +556,7 @@
     /// <summary>
     /// Filtered post type options based on current profile type
     /// Business profiles: all options
-    /// Personal profiles: only General
+    /// Personal profiles: General and Blog
     /// </summary>
     private List<PostTypeOption> FilteredPostTypeOptions => GetFilteredPostTypeOptions();
 
@@ -552,8 +568,8 @@
             return PostTypeOptions;
         }
         
-        // Personal and other profiles can only use General
-        return PostTypeOptions.Where(o => o.Id == "general").ToList();
+        // Personal and other profiles can use General and Blog
+        return PostTypeOptions.Where(o => o.Id == "general" || o.Id == "blog").ToList();
     }
 
     /// <summary>
@@ -672,6 +688,76 @@
 
     #endregion
 
+    #region Blog Parameters
+
+    /// <summary>
+    /// Blog post title
+    /// </summary>
+    [Parameter]
+    public string BlogTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> BlogTitleChanged { get; set; }
+
+    /// <summary>
+    /// Blog post subtitle
+    /// </summary>
+    [Parameter]
+    public string BlogSubtitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> BlogSubtitleChanged { get; set; }
+
+    /// <summary>
+    /// Blog HTML content
+    /// </summary>
+    [Parameter]
+    public string BlogContent { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> BlogContentChanged { get; set; }
+
+    /// <summary>
+    /// Blog cover image URL
+    /// </summary>
+    [Parameter]
+    public string BlogCoverImageUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> BlogCoverImageUrlChanged { get; set; }
+
+    /// <summary>
+    /// Blog cover image file ID
+    /// </summary>
+    [Parameter]
+    public string? BlogCoverImageFileId { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> BlogCoverImageFileIdChanged { get; set; }
+
+    /// <summary>
+    /// Is this blog a draft
+    /// </summary>
+    [Parameter]
+    public bool BlogIsDraft { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> BlogIsDraftChanged { get; set; }
+
+    /// <summary>
+    /// Callback when blog cover image is uploaded
+    /// </summary>
+    private async Task OnBlogCoverImageUploaded(FileUploadResult result)
+    {
+        Logger.LogInformation("[PostComposer] Blog cover image uploaded: {FileId}", result.FileId);
+        BlogCoverImageUrl = result.Url;
+        BlogCoverImageFileId = result.FileId;
+        await BlogCoverImageUrlChanged.InvokeAsync(BlogCoverImageUrl);
+        await BlogCoverImageFileIdChanged.InvokeAsync(BlogCoverImageFileId);
+    }
+
+    #endregion
+
     #region State Management
 
     /// <summary>
@@ -748,6 +834,23 @@
     /// Is the post being submitted
     /// </summary>
     private bool IsSubmitting { get; set; }
+
+    /// <summary>
+    /// Determines if the publish button should be disabled based on post type and content
+    /// </summary>
+    private bool IsPublishDisabled
+    {
+        get
+        {
+            if (SelectedType == "blog")
+            {
+                // For blogs, require at least a title and some content
+                return string.IsNullOrWhiteSpace(BlogTitle) || string.IsNullOrWhiteSpace(BlogContent);
+            }
+            // For regular posts, require post text
+            return string.IsNullOrWhiteSpace(PostText);
+        }
+    }
 
     /// <summary>
     /// Validation message if any

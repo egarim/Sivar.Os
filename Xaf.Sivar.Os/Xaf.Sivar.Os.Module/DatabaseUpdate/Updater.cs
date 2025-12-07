@@ -670,6 +670,7 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
      ""AllowsBookings"": false,
              ""AllowsProducts"": false,
          ""AllowsContactInfo"": true,
+    ""AllowsBlogging"": true,
     ""MaxBioLength"": 1000
      }";
                 personalProfileType.CreatedAt = now;
@@ -695,6 +696,7 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
      ""AllowsBookings"": true,
    ""AllowsProducts"": true,
        ""AllowsContactInfo"": true,
+    ""AllowsBlogging"": true,
           ""MaxBioLength"": 2000
             }";
                 businessProfileType.CreatedAt = now;
@@ -720,6 +722,7 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 ""AllowsBookings"": false,
                       ""AllowsProducts"": false,
                         ""AllowsContactInfo"": true,
+    ""AllowsBlogging"": true,
                    ""MaxBioLength"": 2000
             }";
                 organizationProfileType.CreatedAt = now;

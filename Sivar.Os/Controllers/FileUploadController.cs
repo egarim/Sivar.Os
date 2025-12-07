@@ -62,10 +62,19 @@ public class FileUploadController : ControllerBase
 
         try
         {
+            // Read the file into a MemoryStream first to ensure we have all bytes
+            // IFormFile streams can have issues with Azure SDK when used directly
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
+            _logger.LogInformation("[FileUploadController.UploadFile] File copied to memory - RequestId={RequestId}, MemoryStreamLength={Length}", 
+                requestId, memoryStream.Length);
+
             var request = new FileUploadRequest
             {
                 FileName = file.FileName,
-                FileStream = file.OpenReadStream(),
+                FileStream = memoryStream,
                 Container = container,
                 ContentType = file.ContentType,
                 Metadata = new Dictionary<string, string>
@@ -99,6 +108,89 @@ public class FileUploadController : ControllerBase
             _logger.LogError(ex, "[FileUploadController.UploadFile] ERROR - FileName={FileName}, RequestId={RequestId}, Duration={Duration}ms", 
                 file.FileName, requestId, elapsed);
             return StatusCode(500, "Internal server error during file upload");
+        }
+    }
+
+    /// <summary>
+    /// Upload a single image for BlazorMarkdownEditor.
+    /// Returns JSON with filePath property (required by EasyMDE/MarkdownEditor).
+    /// </summary>
+    /// <param name="file">The image file to upload</param>
+    /// <returns>JSON object with filePath containing the uploaded image URL</returns>
+    [HttpPost("image")]
+    public async Task<IActionResult> UploadImage(IFormFile file)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FileUploadController.UploadImage] START - RequestId={RequestId}, FileName={FileName}, Size={Size} bytes, ContentType={ContentType}", 
+            requestId, file?.FileName, file?.Length ?? 0, file?.ContentType);
+
+        if (file == null || file.Length == 0)
+        {
+            _logger.LogWarning("[FileUploadController.UploadImage] BAD_REQUEST - No file provided, RequestId={RequestId}", requestId);
+            return BadRequest("No file provided");
+        }
+
+        // Validate file size (10MB limit)
+        const long maxFileSize = 10 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            _logger.LogWarning("[FileUploadController.UploadImage] FILE_TOO_LARGE - FileName={FileName}, Size={Size} bytes, RequestId={RequestId}", 
+                file.FileName, file.Length, requestId);
+            return BadRequest("File size exceeds 10MB limit");
+        }
+
+        // Validate file type (images only)
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+        {
+            _logger.LogWarning("[FileUploadController.UploadImage] INVALID_FILE_TYPE - FileName={FileName}, ContentType={ContentType}, RequestId={RequestId}", 
+                file.FileName, file.ContentType, requestId);
+            return BadRequest($"File type {file.ContentType} is not allowed. Only images are accepted.");
+        }
+
+        try
+        {
+            // Read the file into a MemoryStream first to ensure we have all bytes
+            // IFormFile streams can have issues with Azure SDK when used directly
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
+            _logger.LogInformation("[FileUploadController.UploadImage] File copied to memory - RequestId={RequestId}, MemoryStreamLength={Length}", 
+                requestId, memoryStream.Length);
+
+            var request = new FileUploadRequest
+            {
+                FileName = file.FileName,
+                FileStream = memoryStream,
+                Container = "blog-images",
+                ContentType = file.ContentType,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["uploaded_by"] = "html_editor",
+                    ["uploaded_at"] = DateTime.UtcNow.ToString("O"),
+                    ["original_name"] = file.FileName
+                }
+            };
+
+            var result = await _fileStorageService.UploadFileAsync(request);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FileUploadController.UploadImage] SUCCESS - FileId={FileId}, Url={Url}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.FileId, result.Url, requestId, elapsed);
+
+            // BlazorMarkdownEditor reads response.Content.ReadAsStringAsync() and uses it as URL
+            // Must return plain text URL, not JSON
+            return Content(result.Url, "text/plain");
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FileUploadController.UploadImage] ERROR - FileName={FileName}, RequestId={RequestId}, Duration={Duration}ms", 
+                file.FileName, requestId, elapsed);
+            return StatusCode(500, "Internal server error during image upload");
         }
     }
 

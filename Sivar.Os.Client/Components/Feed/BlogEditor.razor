@@ -1,0 +1,566 @@
+@using MudBlazor
+@using PSC.Blazor.Components.MarkdownEditor
+@using PSC.Blazor.Components.MarkdownEditor.EventsArgs
+@using PSC.Blazor.Components.MarkdownEditor.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
+@using System.Net.Http.Headers
+
+@inject ILogger<BlogEditor> Logger
+@inject NavigationManager NavigationManager
+@inject HttpClient HttpClient
+
+@* BlogEditor component - Markdown Editor for blog post content *@
+
+<div class="blog-editor-container">
+    @* Cover Image Preview at Top *@
+    <div class="blog-cover-section @(string.IsNullOrWhiteSpace(CoverImageUrl) ? "no-preview" : "has-preview")">
+        @if (!string.IsNullOrWhiteSpace(CoverImageUrl))
+        {
+            <div class="cover-image-preview">
+                <img src="@CoverImageUrl" alt="Cover image preview" />
+                <div class="cover-image-overlay">
+                    <label for="coverImageUpload" class="change-cover-btn">
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                        <span>Change</span>
+                    </label>
+                    <button type="button" class="remove-cover-btn" @onclick="RemoveCoverImage">
+                        <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+                        <span>Remove</span>
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <label for="coverImageUpload" class="cover-upload-area">
+                <MudIcon Icon="@Icons.Material.Outlined.AddPhotoAlternate" Size="Size.Large" />
+                <span>Add a cover image</span>
+                <small>Recommended: 1200 x 630px</small>
+            </label>
+        }
+        
+        <InputFile id="coverImageUpload" 
+                   OnChange="OnCoverImageSelected" 
+                   accept="image/*" 
+                   style="display: none;" />
+        
+        @if (IsUploadingCover)
+        {
+            <div class="upload-progress-overlay">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <span>Uploading...</span>
+            </div>
+        }
+    </div>
+
+    @* Title Input *@
+    <div class="blog-title-section">
+        <input type="text" 
+               class="blog-title-input" 
+               placeholder="Blog Title (required)" 
+               @bind="Title" 
+               @bind:event="oninput"
+               @onblur="OnTitleChanged" />
+    </div>
+
+    @* Subtitle Input *@
+    <div class="blog-subtitle-section">
+        <input type="text" 
+               class="blog-subtitle-input" 
+               placeholder="Add a subtitle (optional)" 
+               @bind="Subtitle" 
+               @bind:event="oninput"
+               @onblur="OnSubtitleChanged" />
+    </div>
+
+    @* Markdown Editor *@
+    <div class="blog-content-section">
+        <MarkdownEditor @bind-Value="@_markdownContent"
+                        ValueHTMLChanged="@OnMarkdownHtmlChanged"
+                        MinHeight="300px"
+                        MaxHeight="600px"
+                        UploadImage="true"
+                        ImageMaxSize="@(10 * 1024 * 1024)"
+                        ImageAccept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                        CustomImageUpload="@OnCustomImageUpload"
+                        ImageUploadStarted="@OnImageUploadStarted"
+                        ImageUploadEnded="@OnImageUploadEnded"
+                        ErrorCallback="@OnEditorError"
+                        Placeholder="Write your blog content here... (Markdown supported)" />
+    </div>
+
+    @* Draft Toggle *@
+    <div class="blog-options-section">
+        <MudSwitch T="bool" 
+                   Color="Color.Primary" 
+                   @bind-Value="IsDraft"
+                   Label="Save as draft" />
+        <small class="draft-hint">Drafts are only visible to you until published</small>
+    </div>
+</div>
+
+<style>
+    .blog-editor-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 0;
+    }
+
+    /* Cover Image Section - At Top */
+    .blog-cover-section {
+        position: relative;
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .blog-cover-section.no-preview {
+        min-height: 120px;
+        border: 2px dashed var(--wire-border);
+        background: var(--wire-card);
+    }
+
+    .blog-cover-section.no-preview:hover {
+        border-color: var(--wire-primary);
+        background: rgba(29, 161, 242, 0.05);
+    }
+
+    .blog-cover-section.has-preview {
+        min-height: 200px;
+    }
+
+    .cover-upload-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 120px;
+        color: var(--wire-text-secondary);
+        cursor: pointer;
+    }
+
+    .cover-upload-area:hover {
+        color: var(--wire-primary);
+    }
+
+    .cover-upload-area span {
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .cover-upload-area small {
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+    .cover-image-preview {
+        position: relative;
+        width: 100%;
+    }
+
+    .cover-image-preview img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .cover-image-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .cover-image-preview:hover .cover-image-overlay {
+        opacity: 1;
+    }
+
+    .change-cover-btn,
+    .remove-cover-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .change-cover-btn {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--wire-text-primary);
+    }
+
+    .change-cover-btn:hover {
+        background: white;
+    }
+
+    .remove-cover-btn {
+        background: rgba(244, 67, 54, 0.9);
+        color: white;
+    }
+
+    .remove-cover-btn:hover {
+        background: #f44336;
+    }
+
+    .upload-progress-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        font-size: 14px;
+    }
+
+    .blog-title-section,
+    .blog-subtitle-section {
+        width: 100%;
+    }
+
+    .blog-title-input {
+        width: 100%;
+        font-size: 24px;
+        font-weight: 700;
+        padding: 12px;
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
+        background: var(--wire-background);
+        color: var(--wire-text-primary);
+    }
+
+    .blog-title-input:focus {
+        outline: none;
+        border-color: var(--wire-primary);
+        box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.1);
+    }
+
+    .blog-subtitle-input {
+        width: 100%;
+        font-size: 16px;
+        font-weight: 400;
+        padding: 10px 12px;
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
+        background: var(--wire-background);
+        color: var(--wire-text-secondary);
+    }
+
+    .blog-subtitle-input:focus {
+        outline: none;
+        border-color: var(--wire-primary);
+        box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.1);
+    }
+
+    .blog-content-section {
+        width: 100%;
+    }
+
+    /* Markdown Editor customizations */
+    .blog-content-section .EasyMDEContainer {
+        border: 1px solid var(--wire-border) !important;
+        border-radius: 8px !important;
+    }
+
+    .blog-content-section .EasyMDEContainer .editor-toolbar {
+        background: var(--wire-background) !important;
+        border-bottom: 1px solid var(--wire-border) !important;
+        border-top-left-radius: 8px !important;
+        border-top-right-radius: 8px !important;
+    }
+
+    .blog-content-section .EasyMDEContainer .CodeMirror {
+        background: var(--wire-background) !important;
+        color: var(--wire-text-primary) !important;
+        border-bottom-left-radius: 8px !important;
+        border-bottom-right-radius: 8px !important;
+    }
+
+    .blog-options-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 0;
+    }
+
+    .draft-hint {
+        font-size: 12px;
+        color: var(--wire-text-secondary);
+    }
+</style>
+
+@code {
+    #region Parameters
+
+    /// <summary>
+    /// Blog title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> TitleChanged { get; set; }
+
+    /// <summary>
+    /// Blog subtitle
+    /// </summary>
+    [Parameter]
+    public string Subtitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SubtitleChanged { get; set; }
+
+    /// <summary>
+    /// Blog content (HTML rendered from markdown)
+    /// </summary>
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    /// <summary>
+    /// Cover image URL
+    /// </summary>
+    [Parameter]
+    public string CoverImageUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> CoverImageUrlChanged { get; set; }
+
+    /// <summary>
+    /// Cover image file ID (for storage reference)
+    /// </summary>
+    [Parameter]
+    public string? CoverImageFileId { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> CoverImageFileIdChanged { get; set; }
+
+    /// <summary>
+    /// Is this a draft
+    /// </summary>
+    [Parameter]
+    public bool IsDraft { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> IsDraftChanged { get; set; }
+
+    /// <summary>
+    /// Callback when cover image is uploaded
+    /// </summary>
+    [Parameter]
+    public EventCallback<FileUploadResult> OnCoverImageUploaded { get; set; }
+
+    #endregion
+
+    #region State
+
+    private string _markdownContent = string.Empty;
+    private bool IsUploadingCover { get; set; }
+
+    #endregion
+
+    #region Methods
+
+    private async Task OnTitleChanged()
+    {
+        await TitleChanged.InvokeAsync(Title);
+    }
+
+    private async Task OnSubtitleChanged()
+    {
+        await SubtitleChanged.InvokeAsync(Subtitle);
+    }
+
+    private Task OnImageUploadStarted(FileStartedEventArgs args)
+    {
+        Logger.LogInformation("[BlogEditor] Image upload started: {FileName}", args.File?.Name);
+        return Task.CompletedTask;
+    }
+
+    private Task OnImageUploadEnded(FileEndedEventArgs args)
+    {
+        if (args.Success)
+        {
+            Logger.LogInformation("[BlogEditor] Image upload succeeded: {FileName}", args.File?.Name);
+        }
+        else
+        {
+            Logger.LogWarning("[BlogEditor] Image upload failed: {FileName}", args.File?.Name);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnEditorError(string errorMessage)
+    {
+        Logger.LogError("[BlogEditor] Editor error: {Error}", errorMessage);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Custom image upload handler that uses the injected HttpClient
+    /// This bypasses the internal HttpClient created by MarkdownEditor
+    /// which doesn't work well with Blazor Server (loopback issues)
+    /// </summary>
+    private async Task<FileEntry> OnCustomImageUpload(MarkdownEditor editor, FileEntry fileInfo)
+    {
+        Logger.LogInformation("[BlogEditor] Custom image upload started: {FileName}, Size: {Size} bytes", 
+            fileInfo.Name, fileInfo.Size);
+        
+        try
+        {
+            // Convert base64 content to bytes
+            byte[] fileBytes = Convert.FromBase64String(fileInfo.ContentBase64);
+            
+            // Create multipart form content
+            using var form = new MultipartFormDataContent();
+            using var fileContent = new ByteArrayContent(fileBytes);
+            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(fileInfo.Type ?? "image/png");
+            form.Add(fileContent, "file", fileInfo.Name);
+            
+            // Use the injected HttpClient which has proper base URL and cookies
+            var response = await HttpClient.PostAsync("/api/fileupload/image", form);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // The endpoint returns plain text URL
+                var imageUrl = await response.Content.ReadAsStringAsync();
+                fileInfo.UploadUrl = imageUrl;
+                Logger.LogInformation("[BlogEditor] Image uploaded successfully: {Url}", imageUrl);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                fileInfo.ErrorMessage = $"Upload failed: {response.StatusCode} - {errorContent}";
+                Logger.LogError("[BlogEditor] Image upload failed: {Status} - {Error}", 
+                    response.StatusCode, errorContent);
+                throw new Exception(fileInfo.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            fileInfo.ErrorMessage = ex.Message;
+            Logger.LogError(ex, "[BlogEditor] Exception during image upload");
+            throw;
+        }
+        
+        return fileInfo;
+    }
+
+    private async Task OnMarkdownHtmlChanged(string htmlContent)
+    {
+        // The MarkdownEditor gives us the rendered HTML
+        Content = htmlContent;
+        await ContentChanged.InvokeAsync(htmlContent);
+        Logger.LogDebug("[BlogEditor] Content updated, HTML length: {Length}", htmlContent?.Length ?? 0);
+    }
+
+    private async Task OnCoverImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+            return;
+
+        // Validate
+        const long maxSize = 5 * 1024 * 1024; // 5MB for cover images
+        if (file.Size > maxSize)
+        {
+            Logger.LogWarning("[BlogEditor] Cover image too large: {Size} bytes", file.Size);
+            return;
+        }
+
+        var validTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+        if (!validTypes.Contains(file.ContentType))
+        {
+            Logger.LogWarning("[BlogEditor] Invalid cover image type: {Type}", file.ContentType);
+            return;
+        }
+
+        IsUploadingCover = true;
+        StateHasChanged();
+
+        try
+        {
+            // Read file and upload via API
+            using var stream = file.OpenReadStream(maxSize);
+            using var content = new MultipartFormDataContent();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var fileContent = new StreamContent(memoryStream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            using var httpClient = new HttpClient();
+            httpClient.BaseAddress = new Uri(NavigationManager.BaseUri);
+
+            var response = await httpClient.PostAsync($"api/fileupload/upload?container=blog-covers", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<FileUploadResult>();
+                if (result != null)
+                {
+                    CoverImageUrl = result.Url;
+                    CoverImageFileId = result.FileId;
+                    
+                    await CoverImageUrlChanged.InvokeAsync(CoverImageUrl);
+                    await CoverImageFileIdChanged.InvokeAsync(CoverImageFileId);
+                    await OnCoverImageUploaded.InvokeAsync(result);
+
+                    Logger.LogInformation("[BlogEditor] Cover image uploaded: {Url}", CoverImageUrl);
+                }
+            }
+            else
+            {
+                Logger.LogError("[BlogEditor] Failed to upload cover image: {Status}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[BlogEditor] Error uploading cover image");
+        }
+        finally
+        {
+            IsUploadingCover = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveCoverImage()
+    {
+        CoverImageUrl = string.Empty;
+        CoverImageFileId = null;
+        
+        await CoverImageUrlChanged.InvokeAsync(CoverImageUrl);
+        await CoverImageFileIdChanged.InvokeAsync(CoverImageFileId);
+    }
+
+    #endregion
+}

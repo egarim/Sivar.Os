@@ -59,6 +59,25 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.IsFeatured)
             .HasDefaultValue(false);
         
+        // Blog-specific fields
+        builder.Property(p => p.BlogContent)
+            .HasColumnType("text"); // Unlimited length for long-form content
+            
+        builder.Property(p => p.CoverImageUrl)
+            .HasMaxLength(500);
+            
+        builder.Property(p => p.CoverImageFileId)
+            .HasMaxLength(255);
+            
+        builder.Property(p => p.Subtitle)
+            .HasMaxLength(500);
+            
+        builder.Property(p => p.CanonicalUrl)
+            .HasMaxLength(500);
+            
+        builder.Property(p => p.IsDraft)
+            .HasDefaultValue(false);
+        
         // Location value object configuration
         builder.OwnsOne(p => p.Location, location =>
         {
@@ -95,6 +114,12 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasIndex(p => p.PostType);
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => new { p.ProfileId, p.PostType });
+        
+        // Blog-specific indexes
+        builder.HasIndex(p => new { p.IsDraft, p.ProfileId })
+            .HasDatabaseName("IX_Posts_Blog_Drafts");
+        builder.HasIndex(p => p.PublishedAt)
+            .HasDatabaseName("IX_Posts_Blog_PublishedAt");
         
         // GIN indexes for JSONB columns (Phase 2: PostgreSQL optimization)
         builder.HasIndex(p => p.BusinessMetadata)

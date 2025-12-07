@@ -102,6 +102,23 @@
     border-color: var(--mud-palette-primary, #1da1f2);
 }
 
+/* Blog summary section styles */
+.blog-summary-section {
+    margin-top: 16px;
+}
+
+.blog-summary-section .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wire-text-secondary, #657786);
+    margin-bottom: 6px;
+}
+
+.blog-summary-input {
+    min-height: 60px !important;
+}
+
 .post-actions {
     display: flex;
     justify-content: space-between;

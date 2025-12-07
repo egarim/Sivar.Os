@@ -30,20 +30,24 @@ public enum PostType
     /// </summary>
     Service = 4,
     
-    /// <summary>
-    /// Event announcement post
-    /// Available to: Organization, Business profiles
-    /// </summary>
-    Event = 5,
+/// <summary>
+/// Event announcement post
+/// Available to: Organization, Business profiles
+/// </summary>
+Event = 5,
     
 /// <summary>
 /// Job posting
 /// Available to: Business, Organization profiles
 /// </summary>
-JobPosting = 6
-}
+JobPosting = 6,
 
 /// <summary>
+/// Blog post - long-form content with rich text
+/// Available to: All profile types (based on FeatureFlags)
+/// </summary>
+Blog = 7
+}/// <summary>
 /// Types of reactions users can have on posts and comments
 /// </summary>
 public enum ReactionType
