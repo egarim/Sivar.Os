@@ -54,9 +54,12 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
         {
             var (conversation, messages) = await _chatService.GetConversationWithMessagesAsync(conversationId);
             
+            // Create a new DTO with messages included
+            var result = conversation with { Messages = messages };
+            
             _logger.LogInformation("[ChatClient.GetConversationAsync] SUCCESS - ConversationId={ConversationId}, MessageCount={Count}", 
                 conversationId, messages?.Count ?? 0);
-            return conversation;
+            return result;
         }
         catch (Exception ex)
         {

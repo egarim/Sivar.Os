@@ -33,6 +33,11 @@ public record ConversationDto
     public bool IsActive { get; init; }
     public DateTime CreatedAt { get; init; }
     public int MessageCount { get; init; }
+    
+    /// <summary>
+    /// Messages in this conversation (populated when loading a specific conversation)
+    /// </summary>
+    public List<ChatMessageDto>? Messages { get; init; }
 }
 
 /// <summary>

@@ -933,9 +933,28 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                     conversationId, loadId);
                 var conversationWithMessages = await SivarClient.Chat.GetConversationAsync(conversationId);
                 Logger.LogInformation("[MainLayout.LoadConversationAsync] Backend returned - MessageCount={Count}, LoadId={LoadId}", 
-                    conversationWithMessages?.MessageCount ?? 0, loadId);
-                // Note: GetConversationAsync returns ConversationDto, which may include messages
-                // For now, we'll start with welcome message if no messages
+                    conversationWithMessages?.Messages?.Count ?? 0, loadId);
+                
+                // Map backend messages to UI ChatMessage objects
+                if (conversationWithMessages?.Messages != null && conversationWithMessages.Messages.Any())
+                {
+                    var loadedMessages = new List<ChatMessage>();
+                    foreach (var msg in conversationWithMessages.Messages.OrderBy(m => m.MessageOrder))
+                    {
+                        var role = msg.Role == "user" ? "user" : "ai";
+                        loadedMessages.Add(new ChatMessage(role, msg.Content));
+                    }
+                    _conversationMessages[conversationId] = loadedMessages;
+                    _chatMessages = loadedMessages;
+                    
+                    Logger.LogInformation("[MainLayout.LoadConversationAsync] Loaded {Count} messages from backend - LoadId={LoadId}", 
+                        loadedMessages.Count, loadId);
+                    
+                    UpdateConversationPreview(conversationId);
+                    await ScrollChatToBottom();
+                    StateHasChanged();
+                    return;
+                }
             }
             catch (Exception ex)
             {

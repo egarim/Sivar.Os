@@ -9,7 +9,6 @@
                   ValueChanged="@OnInputChanged"
                   Placeholder="Ask me anything..." 
                   Immediate="true" 
-                  OnKeyDown="HandleKeyDown" 
                   Adornment="Adornment.End" 
                   AdornmentIcon="@Icons.Material.Filled.Send" 
                   OnAdornmentClick="HandleSend"
@@ -32,7 +31,7 @@
     public EventCallback<string> InputTextChanged { get; set; }
 
     /// <summary>
-    /// Callback when send button is clicked or Enter is pressed
+    /// Callback when send button is clicked
     /// </summary>
     [Parameter]
     public EventCallback OnSend { get; set; }
@@ -57,14 +56,9 @@
         if (!string.IsNullOrWhiteSpace(_localInput))
         {
             await OnSend.InvokeAsync();
-        }
-    }
-
-    private async Task HandleKeyDown(KeyboardEventArgs args)
-    {
-        if (args.Key == "Enter" && !args.ShiftKey)
-        {
-            await HandleSend();
+            // Clear the input after sending
+            _localInput = string.Empty;
+            await InputTextChanged.InvokeAsync(string.Empty);
         }
     }
 }
