@@ -21,57 +21,93 @@
                          OnCreateProfile="@HandleCreateProfile" />
     </div>
 
-    <MudDivider Class="my-2" />
-
-    <MudNavMenu>
+    <MudNavMenu Class="nav-menu-items">
         <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
         <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
     </MudNavMenu>
+
+    <div class="nav-menu-spacer"></div>
+
+    <div class="nav-menu-logout">
+        <MudDivider Class="mb-2" />
+        <MudButton Variant="Variant.Text" 
+                   StartIcon="@Icons.Material.Filled.Logout" 
+                   FullWidth="true" 
+                   OnClick="Logout" 
+                   Class="justify-start"
+                   Color="Color.Error">
+            @Localizer["Logout"]
+        </MudButton>
+    </div>
 </div>
 
 <style>
     .nav-menu-container {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 0;
     }
 
     .nav-menu-profile {
-        padding: 16px;
+        padding: 16px 16px 8px 16px;
+    }
+
+    .nav-menu-items {
+        padding: 8px 8px 0 8px;
+    }
+
+    .nav-menu-spacer {
+        flex: 1;
+        min-height: 16px;
+    }
+
+    .nav-menu-logout {
+        padding: 0 16px 16px 16px;
     }
 
     /* Tablet responsive */
     @@media (max-width: 960px) {
         .nav-menu-profile {
-            padding: 12px;
+            padding: 12px 12px 6px 12px;
         }
 
-        .nav-menu-container .mud-navmenu {
-            padding: 8px;
+        .nav-menu-items {
+            padding: 6px;
         }
 
-        .nav-menu-container .mud-nav-link {
+        .nav-menu-items .mud-nav-link {
             padding: 10px 12px;
             font-size: 14px;
+        }
+
+        .nav-menu-logout {
+            padding: 0 12px 12px 12px;
         }
     }
 
     /* Mobile responsive */
     @@media (max-width: 600px) {
         .nav-menu-profile {
-            padding: 8px;
+            padding: 8px 8px 4px 8px;
         }
 
-        .nav-menu-container .mud-navmenu {
+        .nav-menu-items {
             padding: 4px;
         }
 
-        .nav-menu-container .mud-nav-link {
+        .nav-menu-items .mud-nav-link {
             padding: 12px 10px;
             font-size: 13px;
             min-height: 44px;
         }
 
-        .nav-menu-container .mud-nav-link .mud-icon-root {
+        .nav-menu-items .mud-nav-link .mud-icon-root {
             font-size: 20px;
+        }
+
+        .nav-menu-logout {
+            padding: 0 10px 12px 10px;
         }
     }
 </style>

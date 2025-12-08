@@ -1,35 +1,76 @@
 ﻿<CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-                <NotAuthorized>
-                    @{
-                        var allowAnonymous = routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), true).Any();
-                        if (allowAnonymous)
-                        {
-                            // Page allows anonymous access, render it using DynamicComponent
-                            var parameters = routeData.RouteValues?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object?>();
-                            <DynamicComponent Type="routeData.PageType" Parameters="parameters" />
+            @{
+                // Check if this is a landing page route and user is authenticated
+                var currentPath = new Uri(Navigation.Uri).AbsolutePath.ToLowerInvariant().TrimEnd('/');
+                var isLandingPage = currentPath == "" || currentPath == "/" || currentPath == "/welcome";
+            }
+            
+            @if (isLandingPage)
+            {
+                <!-- For landing pages, check auth and redirect if authenticated -->
+                <AuthorizeView>
+                    <Authorized>
+                        @{
+                            Navigation.NavigateTo("/home", forceLoad: false);
                         }
-                        else
-                        {
-                            // Page requires authentication, redirect to login
-                            var returnUrl = System.Net.WebUtility.UrlEncode(routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
-                                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
-                                .FirstOrDefault()?.Template ?? "/");
-                            Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
-                        }
-                    }
-                </NotAuthorized>
-                <Authorizing>
-                    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
-                            <div style="font-size: 24px; font-weight: 600;">Authenticating...</div>
+                        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px;">Redirecting...</div>
+                            </div>
                         </div>
-                    </div>
-                </Authorizing>
-            </AuthorizeRouteView>
+                    </Authorized>
+                    <NotAuthorized>
+                        <!-- Show landing page for unauthenticated users -->
+                        @{
+                            var landingParams = routeData.RouteValues?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object?>();
+                        }
+                        <DynamicComponent Type="routeData.PageType" Parameters="landingParams" />
+                    </NotAuthorized>
+                    <Authorizing>
+                        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+                                <div style="font-size: 24px; font-weight: 600;">Authenticating...</div>
+                            </div>
+                        </div>
+                    </Authorizing>
+                </AuthorizeView>
+            }
+            else
+            {
+                <!-- For all other pages, use normal AuthorizeRouteView -->
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                    <NotAuthorized>
+                        @{
+                            var allowAnonymous = routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), true).Any();
+                            if (allowAnonymous)
+                            {
+                                // Page allows anonymous access, render it using DynamicComponent
+                                var parameters = routeData.RouteValues?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object?>();
+                                <DynamicComponent Type="routeData.PageType" Parameters="parameters" />
+                            }
+                            else
+                            {
+                                // Page requires authentication, redirect to login
+                                var returnUrl = System.Net.WebUtility.UrlEncode(routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
+                                    .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                                    .FirstOrDefault()?.Template ?? "/");
+                                Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+                            }
+                        }
+                    </NotAuthorized>
+                    <Authorizing>
+                        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+                                <div style="font-size: 24px; font-weight: 600;">Authenticating...</div>
+                            </div>
+                        </div>
+                    </Authorizing>
+                </AuthorizeRouteView>
+            }
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
     </Router>

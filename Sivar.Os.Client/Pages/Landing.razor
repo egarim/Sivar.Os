@@ -3,11 +3,9 @@
 @layout LandingLayout
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IStringLocalizer<Landing> Localizer
 
 <style>
@@ -447,24 +445,8 @@
     private string _fullName = string.Empty;
     private bool _agreeToTerms = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // If user is already authenticated, redirect to home
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
-        {
-            try
-            {
-                Navigation.NavigateTo("/home", forceLoad: true);
-            }
-            catch (Exception)
-            {
-                
-                //throw;
-            }
-         
-        }
-    }
+    // Note: Authentication redirect is handled at the router level (Routes.razor)
+    // Authenticated users are redirected to /home before this component renders
 
     private void HandleSignIn()
     {
