@@ -1,4 +1,5 @@
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Enums;
 
 namespace Sivar.Os.Shared.Clients;
 
@@ -15,7 +16,7 @@ public interface IPostsClient
 
     // Feed and discovery
     Task<PostFeedDto> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default);
-    Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default);
+    Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, PostType? postType = null, CancellationToken cancellationToken = default);
     Task<PostFeedDto> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default);
     Task<PostFeedDto> GetTrendingPostsAsync(int pageSize = 20, CancellationToken cancellationToken = default);
 

@@ -63,8 +63,9 @@ public interface IPostService
     /// <param name="requestingKeycloakId">Keycloak ID of user requesting (for permission checks)</param>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of posts per page</param>
+    /// <param name="postType">Optional filter by post type</param>
     /// <returns>Paginated list of posts by the profile</returns>
-    Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 10);
+    Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 10, PostType? postType = null);
 
     /// <summary>
     /// Gets posts by post type with pagination

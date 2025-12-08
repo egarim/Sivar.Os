@@ -7,6 +7,7 @@
 @using Sivar.Os.Client.Components.Feed
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.Logging
 @using Microsoft.Extensions.Localization
@@ -287,6 +288,12 @@
             Title="@Localizer["ComingSoonTitle"]"
             Message="@Localizer["ComingSoonMessage"]" />
 
+        @* Content Tabs for filtering by type *@
+        <ProfileContentTabs 
+            ProfileTypeName="@viewedProfileTypeName"
+            SelectedTab="@selectedContentTab"
+            SelectedTabChanged="@OnContentTabChanged" />
+
         @if (isLoadingPosts)
         {
             <MudCard Class="mt-4">
@@ -301,7 +308,6 @@
         else if (posts.Any())
         {
             <div class="profile-posts-section">
-                <MudText Typo="Typo.h6" Class="mb-3" style="color: var(--wire-text-primary); font-weight: 600;">@Localizer["PostsSectionTitle"]</MudText>
                 <div class="posts-list">
                     @foreach (var post in posts)
                     {
@@ -367,6 +373,10 @@
     private int currentPage = 1;
     private int pageSize = 10;
     private int totalPostCount = 0;
+    
+    // Content tabs state
+    private string viewedProfileTypeName = "PersonalProfile";
+    private string selectedContentTab = "activity";
     
     // Helper to check if viewing own profile
     private bool IsOwnProfile => viewedProfileId.HasValue && 
@@ -436,6 +446,10 @@
                     profile.DisplayName, profile.Id);
                 viewedProfileId = profile.Id;
                 
+                // Store profile type for content tabs
+                viewedProfileTypeName = profile.ProfileType?.Name ?? "PersonalProfile";
+                Logger.LogInformation("[LoadProfileAsync] Profile type: {ProfileTypeName}", viewedProfileTypeName);
+                
                 // SEO: Redirect from GUID to handle for better URLs
                 if (Guid.TryParse(Identifier, out _) && !string.IsNullOrEmpty(profile.Handle))
                 {
@@ -457,7 +471,7 @@
                     Stats = stats
                 };
                 
-                // Load posts for this profile
+                // Load posts for this profile (based on selected content tab)
                 await LoadPostsAsync();
             }
         }
@@ -662,6 +676,15 @@
 
     #region Post Loading and Interaction Methods
 
+    private async Task OnContentTabChanged(string tabValue)
+    {
+        selectedContentTab = tabValue;
+        Logger.LogInformation("[OnContentTabChanged] Tab changed to: {TabValue}", tabValue);
+        
+        // Reload posts with the new filter
+        await LoadPostsAsync();
+    }
+
     private async Task LoadPostsAsync()
     {
         if (!viewedProfileId.HasValue)
@@ -670,23 +693,32 @@
             return;
         }
 
+        // Activity tab shows activity stream (not implemented yet - will show all posts for now)
+        // Other tabs filter by PostType
+        var postType = ProfileContentTabs.GetPostTypeFromTab(selectedContentTab);
+        
         isLoadingPosts = true;
         currentPage = 1;
         posts.Clear();
+        StateHasChanged();
         
         try
         {
-            Logger.LogInformation("[LoadPostsAsync] Loading posts for profile: {ProfileId}", viewedProfileId.Value);
+            Logger.LogInformation("[LoadPostsAsync] Loading posts for profile: {ProfileId}, Tab: {Tab}, PostType: {PostType}", 
+                viewedProfileId.Value, selectedContentTab, postType?.ToString() ?? "All");
             
-            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage, postType);
             
             if (postFeed != null)
             {
                 posts = postFeed.Posts ?? new List<PostDto>();
                 totalPostCount = postFeed.TotalCount;
                 
-                // Update the post count in profile stats
-                profileData.Stats.Posts = totalPostCount;
+                // Update the post count in profile stats (only for all posts, not filtered)
+                if (selectedContentTab == "activity")
+                {
+                    profileData.Stats.Posts = totalPostCount;
+                }
                 
                 Logger.LogInformation("[LoadPostsAsync] Loaded {PostCount} posts (Total: {TotalCount})", 
                     posts.Count, totalPostCount);
@@ -710,15 +742,17 @@
         if (!viewedProfileId.HasValue || isLoadingPosts)
             return;
 
+        var postType = ProfileContentTabs.GetPostTypeFromTab(selectedContentTab);
+        
         isLoadingPosts = true;
         currentPage++;
         
         try
         {
-            Logger.LogInformation("[LoadMorePosts] Loading page {Page} for profile: {ProfileId}", 
-                currentPage, viewedProfileId.Value);
+            Logger.LogInformation("[LoadMorePosts] Loading page {Page} for profile: {ProfileId}, PostType: {PostType}", 
+                currentPage, viewedProfileId.Value, postType?.ToString() ?? "All");
             
-            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage);
+            var postFeed = await PostsClient.GetProfilePostsAsync(viewedProfileId.Value, pageSize, currentPage, postType);
             
             if (postFeed?.Posts != null && postFeed.Posts.Any())
             {

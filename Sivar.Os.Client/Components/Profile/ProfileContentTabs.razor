@@ -1,0 +1,164 @@
+@using MudBlazor
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProfileContentTabs> Localizer
+
+<div class="profile-content-tabs">
+    <MudChipSet T="string" 
+                SelectedValue="@_selectedTab" 
+                SelectedValueChanged="@OnTabSelected"
+                Mandatory="true"
+                Class="profile-tabs-chipset">
+        @foreach (var tab in GetAvailableTabs())
+        {
+            <MudChip T="string"
+                     Value="@tab.Value"
+                     Icon="@tab.Icon"
+                     Color="@(tab.Value == _selectedTab ? Color.Primary : Color.Default)"
+                     Variant="@(tab.Value == _selectedTab ? Variant.Filled : Variant.Outlined)"
+                     Class="profile-tab-chip">
+                @tab.Label
+                @if (tab.Count.HasValue)
+                {
+                    <span class="tab-count">(@tab.Count.Value)</span>
+                }
+            </MudChip>
+        }
+    </MudChipSet>
+</div>
+
+<style>
+    .profile-content-tabs {
+        margin: 16px 0;
+    }
+
+    .profile-tabs-chipset {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .profile-tab-chip {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .tab-count {
+        margin-left: 4px;
+        opacity: 0.7;
+        font-size: 12px;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 600px) {
+        .profile-tabs-chipset {
+            gap: 6px;
+        }
+
+        .profile-tab-chip {
+            font-size: 12px;
+            padding: 4px 10px;
+        }
+
+        .tab-count {
+            font-size: 11px;
+        }
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// The profile type name (e.g., "PersonalProfile", "BusinessProfile", "OrganizationProfile")
+    /// </summary>
+    [Parameter]
+    public string ProfileTypeName { get; set; } = "PersonalProfile";
+
+    /// <summary>
+    /// Currently selected tab value
+    /// </summary>
+    [Parameter]
+    public string SelectedTab { get; set; } = "activity";
+
+    /// <summary>
+    /// Event callback when tab selection changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> SelectedTabChanged { get; set; }
+
+    /// <summary>
+    /// Optional counts for each tab (key = tab value, value = count)
+    /// </summary>
+    [Parameter]
+    public Dictionary<string, int>? TabCounts { get; set; }
+
+    private string _selectedTab = "activity";
+
+    protected override void OnParametersSet()
+    {
+        _selectedTab = SelectedTab;
+    }
+
+    private async Task OnTabSelected(string value)
+    {
+        _selectedTab = value;
+        await SelectedTabChanged.InvokeAsync(value);
+    }
+
+    private List<TabInfo> GetAvailableTabs()
+    {
+        var tabs = new List<TabInfo>();
+
+        // Activity tab is always available
+        tabs.Add(new TabInfo("activity", Localizer["Activity"], Icons.Material.Filled.Timeline, GetCount("activity")));
+
+        // Posts (General) - available to all
+        tabs.Add(new TabInfo("general", Localizer["Posts"], Icons.Material.Filled.Article, GetCount("general")));
+
+        // Blogs - available to all (based on FeatureFlags, but we show for all for now)
+        tabs.Add(new TabInfo("blog", Localizer["Blogs"], Icons.Material.Filled.EditNote, GetCount("blog")));
+
+        // Business-specific tabs
+        if (ProfileTypeName == "BusinessProfile")
+        {
+            tabs.Add(new TabInfo("product", Localizer["Products"], Icons.Material.Filled.Storefront, GetCount("product")));
+            tabs.Add(new TabInfo("service", Localizer["Services"], Icons.Material.Filled.HeadsetMic, GetCount("service")));
+            tabs.Add(new TabInfo("businesslocation", Localizer["Locations"], Icons.Material.Filled.LocationOn, GetCount("businesslocation")));
+            tabs.Add(new TabInfo("event", Localizer["Events"], Icons.Material.Filled.Event, GetCount("event")));
+            tabs.Add(new TabInfo("jobposting", Localizer["Jobs"], Icons.Material.Filled.Work, GetCount("jobposting")));
+        }
+        // Organization-specific tabs
+        else if (ProfileTypeName == "OrganizationProfile")
+        {
+            tabs.Add(new TabInfo("event", Localizer["Events"], Icons.Material.Filled.Event, GetCount("event")));
+            tabs.Add(new TabInfo("jobposting", Localizer["Jobs"], Icons.Material.Filled.Work, GetCount("jobposting")));
+        }
+
+        return tabs;
+    }
+
+    private int? GetCount(string tabValue)
+    {
+        if (TabCounts == null) return null;
+        return TabCounts.TryGetValue(tabValue, out var count) ? count : null;
+    }
+
+    /// <summary>
+    /// Converts tab value to PostType enum (returns null for "activity" tab)
+    /// </summary>
+    public static PostType? GetPostTypeFromTab(string tabValue)
+    {
+        return tabValue.ToLowerInvariant() switch
+        {
+            "general" => PostType.General,
+            "blog" => PostType.Blog,
+            "product" => PostType.Product,
+            "service" => PostType.Service,
+            "businesslocation" => PostType.BusinessLocation,
+            "event" => PostType.Event,
+            "jobposting" => PostType.JobPosting,
+            _ => null // "activity" or unknown
+        };
+    }
+
+    private record TabInfo(string Value, string Label, string Icon, int? Count);
+}

@@ -25,9 +25,14 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         Guid profileId, 
         int page = 1, 
         int pageSize = 10, 
-        bool includeRelated = true)
+        bool includeRelated = true,
+        PostType? postType = null)
     {
         var query = GetQueryable().Where(p => p.ProfileId == profileId);
+        
+        // Apply post type filter if specified
+        if (postType.HasValue)
+            query = query.Where(p => p.PostType == postType.Value);
         
         if (includeRelated)
             query = IncludeRelatedEntities(query);

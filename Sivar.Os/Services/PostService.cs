@@ -602,17 +602,17 @@ public class PostService : IPostService
     /// <summary>
     /// Gets posts by a specific profile with pagination
     /// </summary>
-    public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 10)
+    public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPostsByProfileAsync(Guid profileId, string? requestingKeycloakId = null, int page = 1, int pageSize = 10, PostType? postType = null)
     {
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
-        _logger.LogInformation("[PostService.GetPostsByProfileAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}",
-            requestId, profileId, requestingKeycloakId ?? "NULL", page, pageSize);
+        _logger.LogInformation("[PostService.GetPostsByProfileAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}, PostType={PostType}",
+            requestId, profileId, requestingKeycloakId ?? "NULL", page, pageSize, postType?.ToString() ?? "ALL");
 
         try
         {
-            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, page, pageSize);
+            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, page, pageSize, includeRelated: true, postType: postType);
 
             _logger.LogInformation("[PostService.GetPostsByProfileAsync] Repository returned {PostCount} posts (total: {TotalCount}) - RequestId={RequestId}",
                 posts.Count(), totalCount, requestId);

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -306,12 +307,14 @@ public class PostsController : ControllerBase
     /// <param name="profileId">Profile ID</param>
     /// <param name="page">Page number (0-based)</param>
     /// <param name="pageSize">Number of posts per page</param>
+    /// <param name="postType">Optional filter by post type (e.g., General, Blog, Product, Service, BusinessLocation, Event, JobPosting)</param>
     /// <returns>Paginated list of posts by the profile</returns>
     [HttpGet("profile/{profileId}")]
     public async Task<ActionResult<PostFeedDto>> GetPostsByProfile(
         Guid profileId,
         [FromQuery] int page = 0, 
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] PostType? postType = null)
     {
         try
         {
@@ -320,7 +323,7 @@ public class PostsController : ControllerBase
             if (pageSize > 100)
                 pageSize = 100; // Limit page size
 
-            var (posts, totalCount) = await _postService.GetPostsByProfileAsync(profileId, keycloakId, page + 1, pageSize);
+            var (posts, totalCount) = await _postService.GetPostsByProfileAsync(profileId, keycloakId, page + 1, pageSize, postType);
             var postFeed = new PostFeedDto
             {
                 Posts = posts.ToList(),

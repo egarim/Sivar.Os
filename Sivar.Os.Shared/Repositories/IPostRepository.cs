@@ -17,12 +17,14 @@ public interface IPostRepository : IBaseRepository<Post>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
     /// <param name="includeRelated">Include related entities (Profile, Comments, Reactions, Attachments)</param>
+    /// <param name="postType">Optional filter by post type</param>
     /// <returns>Paginated list of posts</returns>
     Task<(IEnumerable<Post> Posts, int TotalCount)> GetByProfileAsync(
         Guid profileId, 
         int page = 1, 
         int pageSize = 10, 
-        bool includeRelated = true);
+        bool includeRelated = true,
+        PostType? postType = null);
 
     /// <summary>
     /// Gets posts by post type with pagination

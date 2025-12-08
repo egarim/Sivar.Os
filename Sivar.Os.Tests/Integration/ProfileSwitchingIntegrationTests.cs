@@ -6,6 +6,7 @@ using Sivar.Os.Client.Services;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 using Sivar.Os.Tests.Fixtures;
@@ -35,7 +36,6 @@ public class ProfileSwitchingIntegrationTests
     private readonly Mock<IProfileService> _profileServiceMock;
     private readonly Mock<IPostService> _postServiceMock;
     private readonly Mock<IProfileRepository> _profileRepositoryMock;
-    private readonly Mock<IPostRepository> _postRepositoryMock;
     private readonly Mock<IProfileSwitcherService> _profileSwitcherServiceMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
     private readonly Mock<ILogger<Sivar.Os.Services.Clients.ProfilesClient>> _profilesClientLoggerMock;
@@ -57,7 +57,6 @@ public class ProfileSwitchingIntegrationTests
         _profileServiceMock = new Mock<IProfileService>();
         _postServiceMock = new Mock<IPostService>();
         _profileRepositoryMock = new Mock<IProfileRepository>();
-        _postRepositoryMock = new Mock<IPostRepository>();
         _profileSwitcherServiceMock = new Mock<IProfileSwitcherService>();
         _httpContextAccessorMock = AuthenticationTestFixture
             .CreateMockHttpContextAccessor(_keycloakId);
@@ -75,7 +74,6 @@ public class ProfileSwitchingIntegrationTests
 
         _postsClient = new Sivar.Os.Services.Clients.PostsClient(
             _postServiceMock.Object,
-            _postRepositoryMock.Object,
             _httpContextAccessorMock.Object,
             _postsClientLoggerMock.Object
         );
@@ -203,7 +201,7 @@ public class ProfileSwitchingIntegrationTests
 
         // ========== STEP 6: Verify Profile 2 has no posts initially ==========
         var profile2InitialPosts = new List<PostDto>();
-        SetupPostRepository_GetByProfile(_profile2Id, profile2InitialPosts, 0);
+        SetupPostService_GetByProfile(_profile2Id, profile2InitialPosts, 0);
         
         var profile2PostsEmpty = await _postsClient.GetProfilePostsAsync(_profile2Id);
         profile2PostsEmpty.Posts.Should().BeEmpty();
@@ -253,7 +251,7 @@ public class ProfileSwitchingIntegrationTests
         activeProfile1Again!.Id.Should().Be(_profile1Id);
 
         // ========== STEP 9: Verify Profile 1 posts still exist ==========
-        SetupPostRepository_GetByProfile(_profile1Id, profile1Posts, profile1Posts.Count);
+        SetupPostService_GetByProfile(_profile1Id, profile1Posts, profile1Posts.Count);
 
         var profile1PostsAfterSwitch = await _postsClient.GetProfilePostsAsync(_profile1Id);
         profile1PostsAfterSwitch.Posts.Should().HaveCount(3);
@@ -270,7 +268,7 @@ public class ProfileSwitchingIntegrationTests
         profile1PostsAfterSwitch.Posts.Should().NotContain(p => p.Content.Contains("Tokyo"));
 
         // Profile 2 should NOT have Profile 1's posts
-        SetupPostRepository_GetByProfile(_profile2Id, profile2Posts, profile2Posts.Count);
+        SetupPostService_GetByProfile(_profile2Id, profile2Posts, profile2Posts.Count);
 
         var profile2PostsAfterSwitch = await _postsClient.GetProfilePostsAsync(_profile2Id);
         profile2PostsAfterSwitch.Posts.Should().HaveCount(2);
@@ -338,7 +336,7 @@ public class ProfileSwitchingIntegrationTests
 
         // Final verification: Posts are still properly isolated
         var finalProfile1Posts = profile1Posts;
-        SetupPostRepository_GetByProfile(_profile1Id, finalProfile1Posts, finalProfile1Posts.Count);
+        SetupPostService_GetByProfile(_profile1Id, finalProfile1Posts, finalProfile1Posts.Count);
         var result1 = await _postsClient.GetProfilePostsAsync(_profile1Id);
         result1.Posts.Should().HaveCount(2);
         result1.Posts.Should().Contain(p => p.Content == "Post A");
@@ -346,7 +344,7 @@ public class ProfileSwitchingIntegrationTests
         result1.Posts.Should().NotContain(p => p.Content == "Post X");
 
         var finalProfile2Posts = profile2Posts;
-        SetupPostRepository_GetByProfile(_profile2Id, finalProfile2Posts, finalProfile2Posts.Count);
+        SetupPostService_GetByProfile(_profile2Id, finalProfile2Posts, finalProfile2Posts.Count);
         var result2 = await _postsClient.GetProfilePostsAsync(_profile2Id);
         result2.Posts.Should().HaveCount(2);
         result2.Posts.Should().Contain(p => p.Content == "Post X");
@@ -410,29 +408,19 @@ public class ProfileSwitchingIntegrationTests
     }
 
     /// <summary>
-    /// Sets up the post repository mock to return posts for a profile
+    /// Sets up the post service mock to return posts for a profile
     /// </summary>
-    private void SetupPostRepository_GetByProfile(Guid profileId, List<PostDto> postDtos, int totalCount)
+    private void SetupPostService_GetByProfile(Guid profileId, List<PostDto> postDtos, int totalCount)
     {
-        // Convert DTOs to mock Post entities with minimal properties
-        var posts = postDtos.Select(dto => new Post
-        {
-            Id = dto.Id,
-            Content = dto.Content,
-            PostType = dto.PostType,
-            Visibility = dto.Visibility,
-            CreatedAt = dto.CreatedAt,
-            UpdatedAt = dto.UpdatedAt
-        }).ToList();
-
-        _postRepositoryMock
-            .Setup(r => r.GetByProfileAsync(
+        _postServiceMock
+            .Setup(s => s.GetPostsByProfileAsync(
                 It.Is<Guid>(p => p == profileId),
+                It.IsAny<string>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
-                It.IsAny<bool>()
+                It.IsAny<PostType?>()
             ))
-            .ReturnsAsync(((IEnumerable<Post>)posts, totalCount));
+            .ReturnsAsync((postDtos.AsEnumerable(), totalCount));
     }
 
     #endregion

@@ -1,6 +1,7 @@
 
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
+using Sivar.Os.Shared.Enums;
 
 namespace Sivar.Os.Client.Clients;
 
@@ -38,9 +39,12 @@ public class PostsClient : BaseClient, IPostsClient
         return await GetAsync<PostFeedDto>($"api/posts/feed?page={pageNumber}&pageSize={pageSize}", cancellationToken);
     }
 
-    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, PostType? postType = null, CancellationToken cancellationToken = default)
     {
-        return await GetAsync<PostFeedDto>($"api/posts/profile/{profileId}?pageSize={pageSize}&pageNumber={pageNumber}", cancellationToken);
+        var url = $"api/posts/profile/{profileId}?pageSize={pageSize}&pageNumber={pageNumber}";
+        if (postType.HasValue)
+            url += $"&postType={postType.Value}";
+        return await GetAsync<PostFeedDto>(url, cancellationToken);
     }
 
     public async Task<PostFeedDto> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)

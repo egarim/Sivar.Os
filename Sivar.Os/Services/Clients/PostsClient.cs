@@ -1,32 +1,28 @@
 
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
-using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
-using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services.Clients;
 
 /// <summary>
-/// Server-side implementation of posts client using repositories and services
-/// Provides the same interface as the HTTP client but operates directly on the service layer
+/// Server-side implementation of posts client.
+/// Delegates all operations to IPostService to ensure unified business logic.
+/// This avoids duplicating mapping/URL resolution logic that exists in the service layer.
 /// </summary>
 public class PostsClient : BaseRepositoryClient, IPostsClient
 {
     private readonly IPostService _postService;
-    private readonly IPostRepository _postRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<PostsClient> _logger;
 
     public PostsClient(
         IPostService postService,
-        IPostRepository postRepository,
         IHttpContextAccessor httpContextAccessor,
         ILogger<PostsClient> logger)
     {
         _postService = postService ?? throw new ArgumentNullException(nameof(postService));
-        _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -38,7 +34,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         if (request == null)
         {
-            _logger.LogWarning("CreatePostAsync called with null request");
+            _logger.LogWarning("[PostsClient.CreatePostAsync] Called with null request");
             return null!;
         }
 
@@ -47,46 +43,47 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var keycloakId = GetKeycloakIdFromContext();
             if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("CreatePostAsync: No authenticated user");
+                _logger.LogWarning("[PostsClient.CreatePostAsync] No authenticated user");
                 return null!;
             }
 
-            _logger.LogInformation("CreatePostAsync: {KeycloakId}, Content length={Length}", keycloakId, request.Content?.Length ?? 0);
+            _logger.LogInformation("[PostsClient.CreatePostAsync] KeycloakId={KeycloakId}, ContentLength={Length}", 
+                keycloakId, request.Content?.Length ?? 0);
+            
             var post = await _postService.CreatePostAsync(keycloakId, request);
             return post ?? null!;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating post");
+            _logger.LogError(ex, "[PostsClient.CreatePostAsync] Error creating post");
             throw;
         }
     }
 
     /// <summary>
-    /// Gets a post by ID
+    /// Gets a post by ID - delegates to PostService.GetPostByIdAsync
     /// </summary>
     public async Task<PostDto> GetPostAsync(Guid postId, CancellationToken cancellationToken = default)
     {
         if (postId == Guid.Empty)
         {
-            _logger.LogWarning("GetPostAsync called with empty post ID");
+            _logger.LogWarning("[PostsClient.GetPostAsync] Called with empty post ID");
             return null!;
         }
 
         try
         {
-            var post = await _postRepository.GetByIdAsync(postId);
-            if (post == null)
-            {
-                _logger.LogWarning("Post not found: {PostId}", postId);
-                return null!;
-            }
-
-            return MapPostToDto(post);
+            var keycloakId = GetKeycloakIdFromContext();
+            _logger.LogInformation("[PostsClient.GetPostAsync] PostId={PostId}, KeycloakId={KeycloakId}", 
+                postId, keycloakId ?? "anonymous");
+            
+            // Delegate to service - it handles URL resolution, visibility checks, etc.
+            var post = await _postService.GetPostByIdAsync(postId, keycloakId);
+            return post ?? null!;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving post {PostId}", postId);
+            _logger.LogError(ex, "[PostsClient.GetPostAsync] Error retrieving post {PostId}", postId);
             throw;
         }
     }
@@ -98,7 +95,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         if (postId == Guid.Empty || request == null)
         {
-            _logger.LogWarning("UpdatePostAsync called with invalid parameters");
+            _logger.LogWarning("[PostsClient.UpdatePostAsync] Called with invalid parameters");
             return null!;
         }
 
@@ -107,17 +104,19 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var keycloakId = GetKeycloakIdFromContext();
             if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("UpdatePostAsync: No authenticated user");
+                _logger.LogWarning("[PostsClient.UpdatePostAsync] No authenticated user");
                 return null!;
             }
 
-            _logger.LogInformation("UpdatePostAsync: {KeycloakId}, PostId={PostId}", keycloakId, postId);
+            _logger.LogInformation("[PostsClient.UpdatePostAsync] KeycloakId={KeycloakId}, PostId={PostId}", 
+                keycloakId, postId);
+            
             var post = await _postService.UpdatePostAsync(postId, keycloakId, request);
             return post ?? null!;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating post {PostId}", postId);
+            _logger.LogError(ex, "[PostsClient.UpdatePostAsync] Error updating post {PostId}", postId);
             throw;
         }
     }
@@ -129,7 +128,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         if (postId == Guid.Empty)
         {
-            _logger.LogWarning("DeletePostAsync called with empty post ID");
+            _logger.LogWarning("[PostsClient.DeletePostAsync] Called with empty post ID");
             return;
         }
 
@@ -138,74 +137,68 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
             var keycloakId = GetKeycloakIdFromContext();
             if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("DeletePostAsync: No authenticated user");
+                _logger.LogWarning("[PostsClient.DeletePostAsync] No authenticated user");
                 return;
             }
 
-            _logger.LogInformation("DeletePostAsync: {KeycloakId}, PostId={PostId}", keycloakId, postId);
+            _logger.LogInformation("[PostsClient.DeletePostAsync] KeycloakId={KeycloakId}, PostId={PostId}", 
+                keycloakId, postId);
+            
             var deleted = await _postService.DeletePostAsync(postId, keycloakId);
             
             if (deleted)
             {
-                _logger.LogInformation("Post deleted: {PostId}", postId);
+                _logger.LogInformation("[PostsClient.DeletePostAsync] Post deleted: {PostId}", postId);
             }
             else
             {
-                _logger.LogWarning("Post not found or unauthorized for deletion: {PostId}", postId);
+                _logger.LogWarning("[PostsClient.DeletePostAsync] Post not found or unauthorized: {PostId}", postId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting post {PostId}", postId);
+            _logger.LogError(ex, "[PostsClient.DeletePostAsync] Error deleting post {PostId}", postId);
             throw;
         }
     }
 
     /// <summary>
-    /// Gets feed posts
+    /// Gets feed posts - delegates to PostService.GetActivityFeedAsync
     /// </summary>
     public async Task<PostFeedDto> GetFeedPostsAsync(int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Server-side called for page {PageNumber}, pageSize {PageSize}", pageNumber, pageSize);
-            
-            // Get Keycloak ID from HttpContext claims
-            var keycloakId = _httpContextAccessor.HttpContext?.User?.Claims
-                .FirstOrDefault(c => c.Type == "sub")?.Value;
+            var keycloakId = GetKeycloakIdFromContext();
             
             if (string.IsNullOrEmpty(keycloakId))
             {
-                _logger.LogWarning("[PostsClient.GetFeedPostsAsync] No Keycloak ID found in claims - user not authenticated. Returning empty feed.");
+                _logger.LogWarning("[PostsClient.GetFeedPostsAsync] No authenticated user - returning empty feed");
                 return new PostFeedDto
                 {
                     Posts = new List<PostDto>(),
-                    Page = pageNumber,  // Keep as 1-based
+                    Page = pageNumber,
                     PageSize = pageSize,
                     TotalCount = 0
                 };
             }
             
-            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Found Keycloak ID: {KeycloakId}, calling PostService", keycloakId);
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] KeycloakId={KeycloakId}, Page={Page}, PageSize={PageSize}", 
+                keycloakId, pageNumber, pageSize);
             
-            // Call the actual PostService
-            var (posts, totalCount) = await _postService.GetActivityFeedAsync(
-                keycloakId, 
-                pageNumber, 
-                pageSize);
+            // Delegate to service - unified business logic
+            var (posts, totalCount) = await _postService.GetActivityFeedAsync(keycloakId, pageNumber, pageSize);
             
-            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] PostService returned {Count} posts (total: {TotalCount})", posts.Count(), totalCount);
+            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Retrieved {Count} posts (Total: {TotalCount})", 
+                posts.Count(), totalCount);
             
-            var feed = new PostFeedDto
+            return new PostFeedDto
             {
                 Posts = posts.ToList(),
-                Page = pageNumber,  // Keep as 1-based to match UI expectations (no -1)
+                Page = pageNumber,
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
-            
-            _logger.LogInformation("[PostsClient.GetFeedPostsAsync] Returning feed with {Count} items", feed.Posts.Count);
-            return feed;
         }
         catch (Exception ex)
         {
@@ -215,17 +208,17 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     }
 
     /// <summary>
-    /// Gets posts for a specific profile
+    /// Gets posts for a specific profile - delegates to PostService.GetPostsByProfileAsync
     /// </summary>
-    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<PostFeedDto> GetProfilePostsAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, PostType? postType = null, CancellationToken cancellationToken = default)
     {
         if (profileId == Guid.Empty)
         {
-            _logger.LogWarning("GetProfilePostsAsync called with empty profile ID");
+            _logger.LogWarning("[PostsClient.GetProfilePostsAsync] Called with empty profile ID");
             return new PostFeedDto
             {
                 Posts = new List<PostDto>(),
-                Page = pageNumber - 1,
+                Page = pageNumber,
                 PageSize = pageSize,
                 TotalCount = 0
             };
@@ -233,37 +226,49 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            var (posts, totalCount) = await _postRepository.GetByProfileAsync(profileId, pageNumber, pageSize);
-            var dtos = posts.Select(MapPostToDto).ToList();
-
-            _logger.LogInformation("Profile posts retrieved for profile {ProfileId}: {Count} items", profileId, dtos.Count);
+            var keycloakId = GetKeycloakIdFromContext();
+            
+            _logger.LogInformation("[PostsClient.GetProfilePostsAsync] ProfileId={ProfileId}, Page={Page}, PageSize={PageSize}, PostType={PostType}", 
+                profileId, pageNumber, pageSize, postType?.ToString() ?? "ALL");
+            
+            // Delegate to service - unified business logic with URL resolution
+            var (posts, totalCount) = await _postService.GetPostsByProfileAsync(
+                profileId, 
+                keycloakId, 
+                pageNumber, 
+                pageSize, 
+                postType);
+            
+            _logger.LogInformation("[PostsClient.GetProfilePostsAsync] Retrieved {Count} posts (Total: {TotalCount})", 
+                posts.Count(), totalCount);
+            
             return new PostFeedDto
             {
-                Posts = dtos,
-                Page = pageNumber,  // Keep as 1-based
+                Posts = posts.ToList(),
+                Page = pageNumber,
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving profile posts for {ProfileId}", profileId);
+            _logger.LogError(ex, "[PostsClient.GetProfilePostsAsync] Error retrieving profile posts for {ProfileId}", profileId);
             throw;
         }
     }
 
     /// <summary>
-    /// Searches for posts
+    /// Searches for posts - delegates to PostService.SearchPostsAsync
     /// </summary>
     public async Task<PostFeedDto> SearchPostsAsync(string query, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
-            _logger.LogWarning("SearchPostsAsync called with empty query");
+            _logger.LogWarning("[PostsClient.SearchPostsAsync] Called with empty query");
             return new PostFeedDto
             {
                 Posts = new List<PostDto>(),
-                Page = pageNumber,  // Keep as 1-based
+                Page = pageNumber,
                 PageSize = pageSize,
                 TotalCount = 0
             };
@@ -271,21 +276,28 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
 
         try
         {
-            var (posts, totalCount) = await _postRepository.SearchPostsAsync(query, pageSize: pageSize, page: pageNumber);
-            var dtos = posts.Select(MapPostToDto).ToList();
-
-            _logger.LogInformation("Search posts found: {Count} items for query '{Query}'", dtos.Count, query);
+            var keycloakId = GetKeycloakIdFromContext();
+            
+            _logger.LogInformation("[PostsClient.SearchPostsAsync] Query='{Query}', Page={Page}, PageSize={PageSize}", 
+                query, pageNumber, pageSize);
+            
+            // Delegate to service - unified business logic
+            var (posts, totalCount) = await _postService.SearchPostsAsync(query, keycloakId, pageNumber, pageSize);
+            
+            _logger.LogInformation("[PostsClient.SearchPostsAsync] Found {Count} posts for query '{Query}'", 
+                posts.Count(), query);
+            
             return new PostFeedDto
             {
-                Posts = dtos,
-                Page = pageNumber,  // Keep as 1-based
+                Posts = posts.ToList(),
+                Page = pageNumber,
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching posts with query '{Query}'", query);
+            _logger.LogError(ex, "[PostsClient.SearchPostsAsync] Error searching posts with query '{Query}'", query);
             throw;
         }
     }
@@ -297,21 +309,31 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         try
         {
-            var (posts, totalCount) = await _postRepository.GetFeaturedPostsAsync(pageSize: pageSize, page: 1);
-            var dtos = posts.Select(MapPostToDto).ToList();
-
-            _logger.LogInformation("Trending posts retrieved: {Count} items", dtos.Count);
+            var keycloakId = GetKeycloakIdFromContext();
+            
+            _logger.LogInformation("[PostsClient.GetTrendingPostsAsync] PageSize={PageSize}", pageSize);
+            
+            // TODO: Add GetTrendingPostsAsync to IPostService and delegate
+            // For now, use GetPostsByTypeAsync with General type as a placeholder
+            var (posts, totalCount) = await _postService.GetPostsByTypeAsync(
+                PostType.General, 
+                keycloakId, 
+                page: 1, 
+                pageSize: pageSize);
+            
+            _logger.LogInformation("[PostsClient.GetTrendingPostsAsync] Retrieved {Count} posts", posts.Count());
+            
             return new PostFeedDto
             {
-                Posts = dtos,
-                Page = 1,  // 1-based page number
+                Posts = posts.ToList(),
+                Page = 1,
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving trending posts");
+            _logger.LogError(ex, "[PostsClient.GetTrendingPostsAsync] Error retrieving trending posts");
             throw;
         }
     }
@@ -323,12 +345,13 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         if (postId == Guid.Empty)
         {
-            _logger.LogWarning("GetPostAnalyticsAsync called with empty post ID");
+            _logger.LogWarning("[PostsClient.GetPostAnalyticsAsync] Called with empty post ID");
             return null!;
         }
 
         try
         {
+            // TODO: Add GetPostAnalyticsAsync to IPostService and delegate
             var analytics = new PostAnalyticsDto
             {
                 PostId = postId,
@@ -339,12 +362,12 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
                 EngagementRate = 0.0
             };
 
-            _logger.LogInformation("Post analytics retrieved for post {PostId}", postId);
+            _logger.LogInformation("[PostsClient.GetPostAnalyticsAsync] Retrieved analytics for post {PostId}", postId);
             return analytics;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving post analytics for {PostId}", postId);
+            _logger.LogError(ex, "[PostsClient.GetPostAnalyticsAsync] Error retrieving analytics for {PostId}", postId);
             throw;
         }
     }
@@ -356,48 +379,49 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
     {
         if (profileId == Guid.Empty)
         {
-            _logger.LogWarning("GetProfileActivityAsync called with empty profile ID");
+            _logger.LogWarning("[PostsClient.GetProfileActivityAsync] Called with empty profile ID");
             return new List<PostActivityDto>();
         }
 
         try
         {
-            var activities = new List<PostActivityDto>();
-            _logger.LogInformation("Profile activity retrieved for profile {ProfileId}: {Count} items", profileId, activities.Count);
-            return activities;
+            // TODO: Add GetProfileActivityAsync to IPostService and delegate
+            _logger.LogInformation("[PostsClient.GetProfileActivityAsync] ProfileId={ProfileId}, Days={Days}", profileId, days);
+            return new List<PostActivityDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving profile activity for {ProfileId}", profileId);
-            throw;
-        }
-    }
-
-    public async Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("FindNearbyPostsAsync: lat={Lat}, lon={Lon}, radius={Radius}km", latitude, longitude, radiusKm);
-        try
-        {
-            // For now, return empty feed - location-based posts will be implemented later
-            return new PostFeedDto
-            {
-                Posts = new List<PostDto>(),
-                Page = pageNumber,
-                PageSize = pageSize,
-                TotalCount = 0
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in FindNearbyPostsAsync");
+            _logger.LogError(ex, "[PostsClient.GetProfileActivityAsync] Error retrieving activity for {ProfileId}", profileId);
             throw;
         }
     }
 
     /// <summary>
+    /// Finds nearby posts - delegates to PostService.FindNearbyPostsAsync
+    /// </summary>
+    public async Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("[PostsClient.FindNearbyPostsAsync] Lat={Lat}, Lon={Lon}, Radius={Radius}km", 
+                latitude, longitude, radiusKm);
+            
+            // Delegate to service
+            var feed = await _postService.FindNearbyPostsAsync(latitude, longitude, radiusKm, pageSize, pageNumber);
+            return feed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PostsClient.FindNearbyPostsAsync] Error finding nearby posts");
+            throw;
+        }
+    }
+
+    #region Helper Methods
+
+    /// <summary>
     /// Extracts the Keycloak ID from the current HTTP context
     /// </summary>
-    /// <returns>The user's Keycloak ID, or null if not authenticated</returns>
     private string? GetKeycloakIdFromContext()
     {
         var httpContext = _httpContextAccessor?.HttpContext;
@@ -421,7 +445,7 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
                 return subClaim;
             }
 
-            // Fallback: try to find "user_id" or "id" claims if "sub" is not available
+            // Fallback: try to find other common claims
             var userIdClaim = httpContext.User.FindFirst("user_id")?.Value 
                            ?? httpContext.User.FindFirst("id")?.Value 
                            ?? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -431,88 +455,5 @@ public class PostsClient : BaseRepositoryClient, IPostsClient
         return null;
     }
 
-    /// <summary>
-    /// Maps a Post entity to PostDto
-    /// </summary>
-    private PostDto MapPostToDto(Post post)
-    {
-        var postDto = new PostDto
-        {
-            Id = post.Id,
-            Content = post.Content,
-            PostType = post.PostType,
-            Visibility = post.Visibility,
-            Language = post.Language,
-            Tags = post.Tags?.ToList() ?? new List<string>(),
-            Location = post.Location != null ? new LocationDto
-            {
-                City = post.Location.City,
-                State = post.Location.State,
-                Country = post.Location.Country,
-                Latitude = post.Location.Latitude,
-                Longitude = post.Location.Longitude
-            } : null,
-            BusinessMetadata = post.BusinessMetadata,
-            CreatedAt = post.CreatedAt,
-            UpdatedAt = post.UpdatedAt,
-            IsEdited = post.IsEdited,
-            EditedAt = post.EditedAt,
-            CommentCount = post.Comments?.Count(c => !c.IsDeleted) ?? 0,
-            Profile = post.Profile != null ? new ProfileDto
-            {
-                Id = post.Profile.Id,
-                DisplayName = post.Profile.DisplayName ?? string.Empty,
-                Bio = post.Profile.Bio ?? string.Empty,
-                Avatar = post.Profile.Avatar ?? string.Empty,
-                UserId = post.Profile.UserId,
-                ProfileTypeId = post.Profile.ProfileTypeId,
-                VisibilityLevel = post.Profile.VisibilityLevel,
-                IsActive = post.Profile.IsActive,
-                CreatedAt = post.Profile.CreatedAt
-            } : null!,
-            Attachments = post.Attachments?.Where(a => !a.IsDeleted).Select(a => new PostAttachmentDto
-            {
-                Id = a.Id,
-                AttachmentType = a.AttachmentType,
-                FileId = a.FileId,
-                FilePath = a.Url ?? string.Empty,
-                OriginalFilename = a.OriginalFileName ?? string.Empty,
-                MimeType = a.MimeType ?? string.Empty,
-                FileSize = a.FileSizeBytes ?? 0,
-                AltText = a.Description,
-                DisplayOrder = a.DisplayOrder,
-                CreatedAt = a.CreatedAt
-            }).ToList() ?? new(),
-            Comments = post.Comments?.Where(c => !c.IsDeleted).Select(c => new CommentDto
-            {
-                Id = c.Id,
-                Content = c.Content ?? string.Empty,
-                PostId = c.PostId,
-                ParentCommentId = c.ParentCommentId,
-                Language = c.Language ?? "en",
-                Profile = c.Profile != null ? new ProfileDto
-                {
-                    Id = c.Profile.Id,
-                    DisplayName = c.Profile.DisplayName ?? string.Empty,
-                    Avatar = c.Profile.Avatar ?? string.Empty,
-                    UserId = c.Profile.UserId,
-                    ProfileTypeId = c.Profile.ProfileTypeId,
-                    VisibilityLevel = c.Profile.VisibilityLevel,
-                    IsActive = c.Profile.IsActive,
-                    CreatedAt = c.Profile.CreatedAt
-                } : null!,
-                Replies = new List<CommentDto>(), // TODO: Map nested replies if needed
-                ReplyCount = c.Replies?.Count(r => !r.IsDeleted) ?? 0,
-                ReactionSummary = null, // TODO: Map reaction summary if needed
-                CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt,
-                IsEdited = c.IsEdited,
-                EditedAt = c.EditedAt,
-                ThreadDepth = 0 // TODO: Calculate thread depth if needed
-            }).ToList() ?? new(),
-            ReactionSummary = null // TODO: Map reaction summary if needed
-        };
-        
-        return postDto;
-    }
+    #endregion
 }
