@@ -1,4 +1,5 @@
 @using Sivar.Os.Client.Pages
+@using System.Text.RegularExpressions
 
 @* ChatMessage component *@
 
@@ -15,7 +16,7 @@
         }
         else
         {
-            <div class="chat-bubble" style="white-space: pre-line;">@Message.Text</div>
+            <div class="chat-bubble" style="white-space: pre-line;">@((MarkupString)RenderMarkdown(Message.Text))</div>
             @if (Message.QuickActions != null && Message.QuickActions.Any())
             {
                 <div class="chat-quick-actions">
@@ -65,4 +66,28 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResultFollow { get; set; }
+
+    /// <summary>
+    /// Renders basic markdown to HTML (links and bold)
+    /// </summary>
+    private string RenderMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        // Escape HTML first to prevent XSS
+        var escaped = System.Net.WebUtility.HtmlEncode(text);
+
+        // Convert markdown links [text](url) to HTML <a> tags with inline styles
+        var linkStyle = "color: #667eea; text-decoration: none; background: rgba(102, 126, 234, 0.15); " +
+                       "padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(102, 126, 234, 0.4); " +
+                       "font-weight: 500; display: inline-block; margin: 2px 0;";
+        escaped = Regex.Replace(escaped, @"\[([^\]]+)\]\(([^)]+)\)", 
+            $"<a href=\"$2\" target=\"_blank\" style=\"{linkStyle}\">🔗 $1</a>");
+
+        // Convert **bold** to <strong>
+        escaped = Regex.Replace(escaped, @"\*\*([^*]+)\*\*", "<strong>$1</strong>");
+
+        return escaped;
+    }
 }

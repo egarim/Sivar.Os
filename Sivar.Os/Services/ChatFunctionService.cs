@@ -186,7 +186,8 @@ public class ChatFunctionService
                     content = p.Content.Length > 150 ? p.Content.Substring(0, 150) + "..." : p.Content,
                     authorName = p.Profile?.DisplayName ?? "Unknown",
                     createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                    postType = p.PostType
+                    postType = p.PostType,
+                    link = $"/post/{p.Id}"
                 })
                 .ToList();
 

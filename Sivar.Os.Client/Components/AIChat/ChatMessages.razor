@@ -1,5 +1,6 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Shared
+@inject IJSRuntime JS
 
 @* ChatMessages component *@
 
@@ -23,16 +24,17 @@
 
     @if (IsTyping)
     {
-        <div class="chat-message ai typing">
-            <div class="chat-message-avatar">🤖</div>
+        <div class="chat-message ai">
+            <div class="chat-message-avatar">
+                <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                </MudAvatar>
+            </div>
             <div class="chat-message-content">
-                <div class="chat-bubble">
-                    <div class="typing-indicator">
-                        <span class="typing-dot"></span>
-                        <span class="typing-dot"></span>
-                        <span class="typing-dot"></span>
-                    </div>
-                </div>
+                <MudPaper Class="chat-bubble typing-bubble" Elevation="0">
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                    <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">Thinking...</MudText>
+                </MudPaper>
             </div>
         </div>
     }
@@ -50,6 +52,11 @@
     /// </summary>
     [Parameter]
     public bool IsTyping { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await JS.InvokeVoidAsync("console.log", $"[ChatMessages] IsTyping={IsTyping}, Messages={Messages?.Count ?? 0}");
+    }
 
     /// <summary>
     /// Callback when quick action is clicked

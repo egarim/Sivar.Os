@@ -65,25 +65,20 @@
                             OnConversationSelect="@SelectConversationById" />
 
                         <div class="chat-main-container">
-                            <div class="chat-header">
-                                <div class="chat-header-left">
-                                    <button class="history-toggle-btn" @onclick="@(() => _historyOpen = !_historyOpen)" title="Toggle conversation history">
-                                        <MudIcon Icon="@Icons.Material.Filled.Menu" Size="Size.Medium" />
-                                    </button>
-                                    <div class="chat-header-info">
-                                        <div class="chat-ai-avatar">🤖</div>
-                                        <div class="chat-header-text">
-                                            <h4>Sivar AI Assistant</h4>
-                                            <p>Always here to help you explore</p>
-                                        </div>
-                                    </div>
+                            <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                                    OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
+                                <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+                                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                                </MudAvatar>
+                                <div class="ml-2">
+                                    <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.7;">Always here to help you explore</MudText>
                                 </div>
-                                <div class="chat-header-actions">
-                                    <button class="chat-close-btn" @onclick="@ToggleAIChat">
-                                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
-                                    </button>
-                                </div>
-                            </div>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
+                                    OnClick="@ToggleAIChat" />
+                            </MudAppBar>
 
                             <Sivar.Os.Client.Components.AIChat.ChatMessages 
                                 Messages="@_chatMessages"
@@ -1057,13 +1052,17 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         var userMessage = new ChatMessage("user", _chatInput);
         AddMessage(_currentConversationId, userMessage);
-        Logger.LogInformation("[MainLayout.SendChat] User message added to UI - ChatId={ChatId}", chatId);
+        await JS.InvokeVoidAsync("console.log", "[SendChat] User message added");
 
         var userQuery = _chatInput;
         _chatInput = string.Empty;
         _isTyping = true;
-        StateHasChanged();
+        await JS.InvokeVoidAsync("console.log", $"[SendChat] TYPING_START - IsTyping={_isTyping}");
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("console.log", "[SendChat] StateHasChanged called");
+        await Task.Delay(100); // Allow UI to render typing indicator
         await ScrollChatToBottom();
+        await JS.InvokeVoidAsync("console.log", "[SendChat] Calling API...");
 
         try
         {
@@ -1078,7 +1077,13 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
                 chatId, _currentConversationId, userQuery.Length > 50 ? userQuery[..50] + "..." : userQuery);
             
             var startTime = DateTime.UtcNow;
-            var response = await SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
+            
+            // Run API call and minimum delay in parallel - ensures typing indicator shows for at least 500ms
+            var apiTask = SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
+            var minDelayTask = Task.Delay(500);
+            await Task.WhenAll(apiTask, minDelayTask);
+            var response = apiTask.Result;
+            
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             
             Logger.LogInformation("[MainLayout.SendChat] API response received - ChatId={ChatId}, Duration={Duration}ms, ResponseLength={Length}", 
