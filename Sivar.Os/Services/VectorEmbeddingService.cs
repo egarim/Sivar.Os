@@ -59,7 +59,7 @@ public class VectorEmbeddingService : IVectorEmbeddingService
             _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Calling embedding generator - RequestId={RequestId}, ProcessedTextLength={ProcessedTextLength}",
                 requestId, processedText.Length);
 
-            var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(processedText);
+            var embedding = await _embeddingGenerator.GenerateAsync(processedText);
             
             _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Embedding generated - RequestId={RequestId}, VectorLength={VectorLength}",
                 requestId, embedding.Vector.Length);

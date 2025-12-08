@@ -117,9 +117,18 @@ public class Conversation
     public Conversation(string title)
     {
         Title = title;
-        Id = Guid.NewGuid().ToString();
+        GuidId = Guid.NewGuid();
+        Id = GuidId.ToString();
     }
 
+    public Conversation(Guid guidId, string title)
+    {
+        GuidId = guidId;
+        Id = guidId.ToString();
+        Title = title;
+    }
+
+    public Guid GuidId { get; }
     public string Id { get; }
     public string Title { get; set; }
     public string Preview { get; set; } = "Start a conversation";

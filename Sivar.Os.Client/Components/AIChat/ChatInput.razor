@@ -4,16 +4,21 @@
 @* ChatInput component *@
 
 <div class="chat-input-container">
-    <MudTextField @bind-Value="InputText" 
+    <MudTextField T="string"
+                  Value="@_localInput" 
+                  ValueChanged="@OnInputChanged"
                   Placeholder="Ask me anything..." 
                   Immediate="true" 
                   OnKeyDown="HandleKeyDown" 
                   Adornment="Adornment.End" 
                   AdornmentIcon="@Icons.Material.Filled.Send" 
-                  OnAdornmentClick="() => OnSend.InvokeAsync()" />
+                  OnAdornmentClick="HandleSend"
+                  Variant="Variant.Outlined" />
 </div>
 
 @code {
+    private string _localInput = string.Empty;
+
     /// <summary>
     /// The input text
     /// </summary>
@@ -32,11 +37,34 @@
     [Parameter]
     public EventCallback OnSend { get; set; }
 
+    protected override void OnParametersSet()
+    {
+        // Sync local input with parent's value
+        if (_localInput != InputText)
+        {
+            _localInput = InputText;
+        }
+    }
+
+    private async Task OnInputChanged(string value)
+    {
+        _localInput = value;
+        await InputTextChanged.InvokeAsync(value);
+    }
+
+    private async Task HandleSend()
+    {
+        if (!string.IsNullOrWhiteSpace(_localInput))
+        {
+            await OnSend.InvokeAsync();
+        }
+    }
+
     private async Task HandleKeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "Enter" && !args.ShiftKey)
         {
-            await OnSend.InvokeAsync();
+            await HandleSend();
         }
     }
 }

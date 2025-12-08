@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Sivar.Os.Shared;
@@ -12,6 +13,7 @@ public class SivarClient : ISivarClient
 {
     private readonly HttpClient _httpClient;
     private readonly SivarClientOptions _options;
+    private readonly ILoggerFactory? _loggerFactory;
 
     // Lazy-loaded sub-clients
     private IAuthClient? _auth;
@@ -27,10 +29,11 @@ public class SivarClient : ISivarClient
     private IProfileTypesClient? _profileTypes;
     private IActivitiesClient? _activities;
 
-    public SivarClient(HttpClient httpClient, IOptions<SivarClientOptions> options)
+    public SivarClient(HttpClient httpClient, IOptions<SivarClientOptions> options, ILoggerFactory? loggerFactory = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _loggerFactory = loggerFactory;
     }
 
     /// <summary>
@@ -41,7 +44,7 @@ public class SivarClient : ISivarClient
     /// <summary>
     /// AI Chat operations (conversations, messages, saved results)
     /// </summary>
-    public ISivarChatClient Chat => _chat ??= new ChatClient(_httpClient, _options);
+    public ISivarChatClient Chat => _chat ??= new ChatClient(_httpClient, _options, _loggerFactory?.CreateLogger<ChatClient>());
 
     /// <summary>
     /// Posts operations (CRUD, feed, search, analytics)

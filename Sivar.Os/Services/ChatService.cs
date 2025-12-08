@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using Microsoft.Agents.AI;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
@@ -11,14 +12,14 @@ using EntityChatMessage = Sivar.Os.Shared.Entities.ChatMessage;
 namespace Sivar.Os.Services;
 
 /// <summary>
-/// Service for managing AI chat conversations
+/// Service for managing AI chat conversations using Microsoft Agent Framework
 /// </summary>
 public class ChatService : IChatService
 {
     private readonly IConversationRepository _conversationRepository;
     private readonly IChatMessageRepository _messageRepository;
     private readonly IProfileRepository _profileRepository;
-    private readonly IChatClient _chatClient;
+    private readonly AIAgent _agent;
     private readonly ChatFunctionService _functionService;
     private readonly ChatServiceOptions _options;
     private readonly ILogger<ChatService> _logger;
@@ -27,7 +28,7 @@ public class ChatService : IChatService
         IConversationRepository conversationRepository,
         IChatMessageRepository messageRepository,
         IProfileRepository profileRepository,
-        IChatClient chatClient,
+        AIAgent agent,
         ChatFunctionService functionService,
         IOptions<ChatServiceOptions> options,
         ILogger<ChatService> logger)
@@ -35,7 +36,7 @@ public class ChatService : IChatService
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
         _messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
-        _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
+        _agent = agent ?? throw new ArgumentNullException(nameof(agent));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -61,6 +62,9 @@ public class ChatService : IChatService
             };
 
             var created = await _conversationRepository.AddAsync(conversation);
+            
+            // CRITICAL: Must save changes to persist the conversation to the database
+            await _conversationRepository.SaveChangesAsync();
             
             _logger.LogInformation("Created conversation {ConversationId} for profile {ProfileId}", 
                 created.Id, dto.ProfileId);
@@ -179,6 +183,8 @@ public class ChatService : IChatService
             };
 
             var savedUserMessage = await _messageRepository.AddAsync(userMessage);
+            await _messageRepository.SaveChangesAsync(); // Persist user message immediately
+            
             _logger.LogInformation("[ChatService.SendMessageAsync] User message saved - MessageId={MessageId}, Order={Order}, RequestId={RequestId}", 
                 savedUserMessage.Id, userMessageOrder, requestId);
 
@@ -192,34 +198,20 @@ public class ChatService : IChatService
             _logger.LogInformation("[ChatService.SendMessageAsync] Chat history built - HistoryCount={Count}, RequestId={RequestId}", 
                 chatHistory.Count, requestId);
 
-            // Create AI functions
-            var functions = new[]
-            {
-                AIFunctionFactory.Create(_functionService.SearchProfiles),
-                AIFunctionFactory.Create(_functionService.SearchPosts),
-                AIFunctionFactory.Create(_functionService.GetPostDetails),
-                AIFunctionFactory.Create(_functionService.FollowProfile),
-                AIFunctionFactory.Create(_functionService.UnfollowProfile),
-                AIFunctionFactory.Create(_functionService.GetMyProfile)
-            };
-
-            // Get AI response with function calling support
-            var chatOptions = new ChatOptions
-            {
-                MaxOutputTokens = _options.MaxTokens,
-                Temperature = (float)_options.Temperature,
-                Tools = functions
-            };
-
-            _logger.LogInformation("[ChatService.SendMessageAsync] Calling AI service - MaxTokens={MaxTokens}, Temperature={Temperature}, RequestId={RequestId}", 
-                _options.MaxTokens, _options.Temperature, requestId);
+            _logger.LogInformation("[ChatService.SendMessageAsync] Calling AI Agent - RequestId={RequestId}", 
+                requestId);
 
             var aiStartTime = DateTime.UtcNow;
-            var response = await _chatClient.CompleteAsync(chatHistory, chatOptions);
+            
+            // Use AIAgent.RunAsync with chat history - agent already has tools configured
+            var agentResponse = await _agent.RunAsync(chatHistory);
             var aiElapsed = (DateTime.UtcNow - aiStartTime).TotalMilliseconds;
             
-            _logger.LogInformation("[ChatService.SendMessageAsync] AI response received - ResponseLength={Length}, AIDuration={Duration}ms, RequestId={RequestId}", 
-                response.Message.Text?.Length ?? 0, aiElapsed, requestId);
+            // Extract text response from agent
+            var responseText = agentResponse.ToString() ?? string.Empty;
+            
+            _logger.LogInformation("[ChatService.SendMessageAsync] AI Agent response received - ResponseLength={Length}, AIDuration={Duration}ms, RequestId={RequestId}", 
+                responseText.Length, aiElapsed, requestId);
 
             // Save assistant message
             var assistantMessageOrder = await _messageRepository.GetNextMessageOrderAsync(dto.ConversationId);
@@ -227,12 +219,14 @@ public class ChatService : IChatService
             {
                 ConversationId = dto.ConversationId,
                 Role = "assistant",
-                Content = response.Message.Text ?? string.Empty,
+                Content = responseText,
                 StructuredResponse = null, // We'll add structured responses in Phase 3
                 MessageOrder = assistantMessageOrder
             };
 
             var savedAssistantMessage = await _messageRepository.AddAsync(assistantMessage);
+            await _messageRepository.SaveChangesAsync(); // Persist assistant message
+            
             _logger.LogInformation("[ChatService.SendMessageAsync] Assistant message saved - MessageId={MessageId}, Order={Order}, RequestId={RequestId}", 
                 savedAssistantMessage.Id, assistantMessageOrder, requestId);
 

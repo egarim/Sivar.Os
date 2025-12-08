@@ -2,8 +2,13 @@
 @using Microsoft.Extensions.Localization
 @using Sivar.Os.Client.Pages
 @using Microsoft.JSInterop
+@using Sivar.Os.Shared
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
 @inject IStringLocalizer<MainLayout> Localizer
 @inject IJSRuntime JS
+@inject ISivarClient SivarClient
+@inject ILogger<MainLayout> Logger
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -48,13 +53,13 @@
         <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important;" : "padding-top: 48px;")">
             @if (_aiChatVisible)
             {
-                <!-- AI Chat takes over the entire content area - bypass the drawer wrapper -->
+                <!-- AI Chat takes over the entire content area -->
                 <div class="ai-chat-fullscreen-container">
                     <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
                         <Sivar.Os.Client.Components.AIChat.ChatHistory 
                             IsOpen="@_historyOpen"
                             Conversations="@_conversations"
-                            CurrentConversationId="@_currentConversationId"
+                            CurrentConversationId="@_currentConversationId.ToString()"
                             OnClose="@(() => _historyOpen = !_historyOpen)"
                             OnNewConversation="@NewConversation"
                             OnConversationSelect="@SelectConversationById" />
@@ -109,18 +114,21 @@
     /* Full-screen AI Chat container */
     .ai-chat-fullscreen-container {
         position: fixed;
-        top: 64px;
-        left: 256px;
+        top: 48px; /* Match MudAppBar Dense height */
+        left: 0;
         right: 0;
         bottom: 0;
         z-index: 1200;
-        background: var(--mud-palette-surface);
+        background: var(--mud-palette-surface, #1e1e2d);
+        display: flex;
+        flex-direction: column;
     }
 
     .ai-chat-panel-fullscreen {
         height: 100%;
         display: flex;
         position: relative;
+        overflow: hidden;
     }
 
     .ai-chat-panel-fullscreen .chat-main-container {
@@ -128,6 +136,9 @@
         display: flex;
         flex-direction: column;
         background: var(--mud-palette-surface, #ffffff);
+        height: 100%;
+        min-height: 0; /* Important for flex children */
+        overflow: hidden;
     }
 
     /* Chat Header Styles */
@@ -227,6 +238,7 @@
         flex-direction: column;
         gap: 16px;
         background: var(--mud-palette-background, #1a1a27);
+        min-height: 0; /* Important for flex children to allow shrinking */
     }
 
     /* Chat Message Bubble Styles - Dark Theme */
@@ -608,24 +620,13 @@
     // AI Chat State
     private bool _historyOpen;
     private string _chatInput = string.Empty;
-    private string _currentConversationId = string.Empty;
+    private Guid _currentConversationId = Guid.Empty;
+    private ActiveProfileDto? _currentProfile;
     private List<ChatMessage> _chatMessages = new();
     private List<Conversation> _conversations = new();
-    private Dictionary<string, List<ChatMessage>> _conversationMessages = new();
+    private Dictionary<Guid, List<ChatMessage>> _conversationMessages = new();
     private bool _isTyping;
-    private Random _random = new();
-
-    private readonly string[] _cannedReplies = new[]
-    {
-        "That's interesting � tell me more.",
-        "I can help with that. What's your next step?",
-        "Got it. Anything else you'd like to discuss?",
-        "Hmm � let me check that for you. One moment...",
-        "Great question! Here's what I think�",
-        "I understand. Would you like me to explore this further?",
-        "Makes sense. How can I assist you with that?",
-        "Absolutely! Let's dive into that."
-    };
+    private bool _isLoadingConversations;
 
     public bool IsAIChatVisible => _aiChatVisible;
 
@@ -639,9 +640,6 @@
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
-
-        // Initialize AI chat
-        InitializeAIChat();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -686,12 +684,85 @@
         }
     }
 
-    private void InitializeAIChat()
+    private async Task InitializeAIChatAsync()
     {
-        // Create initial conversation
+        var initId = Guid.NewGuid().ToString()[..8];
+        Logger.LogInformation("[MainLayout.InitializeAIChatAsync] START - InitId={InitId}, IsLoading={IsLoading}", initId, _isLoadingConversations);
+        
+        if (_isLoadingConversations)
+        {
+            Logger.LogWarning("[MainLayout.InitializeAIChatAsync] SKIPPED - Already loading - InitId={InitId}", initId);
+            return;
+        }
+        _isLoadingConversations = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get current user's profile
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching active profile - InitId={InitId}", initId);
+            _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+            
+            if (_currentProfile == null)
+            {
+                Logger.LogWarning("[MainLayout.InitializeAIChatAsync] NO_ACTIVE_PROFILE - Using local mode - InitId={InitId}", initId);
+                CreateLocalWelcomeConversation();
+                return;
+            }
+
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Profile found - ProfileId={ProfileId}, DisplayName={DisplayName}, InitId={InitId}", 
+                _currentProfile.Id, _currentProfile.DisplayName, initId);
+
+            // Load existing conversations from backend
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching conversations from API - ProfileId={ProfileId}, InitId={InitId}", 
+                _currentProfile.Id, initId);
+            
+            var conversationsDto = await SivarClient.Chat.GetConversationsAsync(_currentProfile.Id);
+            var conversationsList = conversationsDto?.ToList() ?? new List<ConversationDto>();
+            
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Conversations received - Count={Count}, InitId={InitId}", 
+                conversationsList.Count, initId);
+            
+            _conversations = conversationsList.Select(MapConversationFromDto).ToList();
+
+            if (_conversations.Any())
+            {
+                // Load the most recent conversation
+                var mostRecent = _conversations.First();
+                Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Loading most recent conversation - ConversationId={ConversationId}, Title={Title}, InitId={InitId}", 
+                    mostRecent.GuidId, mostRecent.Title, initId);
+                await LoadConversationAsync(mostRecent.GuidId);
+            }
+            else
+            {
+                // Create initial conversation
+                Logger.LogInformation("[MainLayout.InitializeAIChatAsync] No existing conversations, creating new - InitId={InitId}", initId);
+                await CreateNewConversationAsync();
+            }
+            
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] SUCCESS - InitId={InitId}", initId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout.InitializeAIChatAsync] FAILED - InitId={InitId}, Error={Error}", initId, ex.Message);
+            CreateLocalWelcomeConversation();
+        }
+        finally
+        {
+            _isLoadingConversations = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CreateLocalWelcomeConversation()
+    {
+        Logger.LogInformation("[MainLayout.CreateLocalWelcomeConversation] Creating local welcome conversation");
+        
         var initialConversation = new Conversation("Welcome");
         _conversations.Add(initialConversation);
-        _currentConversationId = initialConversation.Id;
+        _currentConversationId = initialConversation.GuidId;
+        
+        Logger.LogInformation("[MainLayout.CreateLocalWelcomeConversation] Created - ConversationId={ConversationId}", _currentConversationId);
         
         var welcomeMessage = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
 
@@ -714,10 +785,40 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         _leftDrawerOpen = !_leftDrawerOpen;
     }
 
+    private async Task ToggleAIChatAsync()
+    {
+        var wasVisible = _aiChatVisible;
+        _aiChatVisible = !_aiChatVisible;
+        
+        Logger.LogInformation("[MainLayout.ToggleAIChatAsync] Chat toggled - WasVisible={WasVisible}, IsNowVisible={IsNowVisible}, ConversationsCount={Count}, IsLoading={IsLoading}", 
+            wasVisible, _aiChatVisible, _conversations.Count, _isLoadingConversations);
+        
+        // Log to browser console for debugging
+        try
+        {
+            await JS.InvokeVoidAsync("console.log", $"[MainLayout] AI Chat toggled: visible={_aiChatVisible}, conversations={_conversations.Count}");
+        }
+        catch { /* Ignore JS errors */ }
+        
+        // Initialize chat on first open
+        if (_aiChatVisible && !_conversations.Any() && !_isLoadingConversations)
+        {
+            Logger.LogInformation("[MainLayout.ToggleAIChatAsync] First open detected, initializing chat");
+            try
+            {
+                await JS.InvokeVoidAsync("console.log", "[MainLayout] First open - initializing chat...");
+            }
+            catch { /* Ignore JS errors */ }
+            await InitializeAIChatAsync();
+        }
+        
+        StateHasChanged();
+    }
+
     private void ToggleAIChat()
     {
-        _aiChatVisible = !_aiChatVisible;
-        StateHasChanged();
+        // Fire and forget - use the async version
+        _ = ToggleAIChatAsync();
     }
 
     private void DarkModeToggle()
@@ -726,41 +827,140 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
     }
 
     // AI Chat Methods
+    private async Task CreateNewConversationAsync()
+    {
+        var createId = Guid.NewGuid().ToString()[..8];
+        Logger.LogInformation("[MainLayout.CreateNewConversationAsync] START - CreateId={CreateId}, HasProfile={HasProfile}", 
+            createId, _currentProfile != null);
+        
+        if (_currentProfile == null)
+        {
+            Logger.LogWarning("[MainLayout.CreateNewConversationAsync] No profile, using local mode - CreateId={CreateId}", createId);
+            // Fallback to local mode
+            var localConversation = new Conversation($"Conversation {_conversations.Count + 1}");
+            _conversations.Insert(0, localConversation);
+            _conversationMessages[localConversation.GuidId] = new List<ChatMessage>();
+            await LoadConversationAsync(localConversation.GuidId);
+            return;
+        }
+
+        try
+        {
+            var createDto = new CreateConversationDto
+            {
+                ProfileId = _currentProfile.Id,
+                Title = $"Conversation {_conversations.Count + 1}"
+            };
+            
+            Logger.LogInformation("[MainLayout.CreateNewConversationAsync] Calling API - ProfileId={ProfileId}, Title={Title}, CreateId={CreateId}", 
+                createDto.ProfileId, createDto.Title, createId);
+            
+            var conversationDto = await SivarClient.Chat.CreateConversationAsync(createDto);
+            
+            Logger.LogInformation("[MainLayout.CreateNewConversationAsync] SUCCESS - ConversationId={ConversationId}, CreateId={CreateId}", 
+                conversationDto?.Id, createId);
+            
+            var conversation = MapConversationFromDto(conversationDto);
+            _conversations.Insert(0, conversation);
+            await LoadConversationAsync(conversation.GuidId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout.CreateNewConversationAsync] FAILED - CreateId={CreateId}, Error={Error}", createId, ex.Message);
+            // Fallback to local
+            var localConversation = new Conversation($"Conversation {_conversations.Count + 1}");
+            _conversations.Insert(0, localConversation);
+            _conversationMessages[localConversation.GuidId] = new List<ChatMessage>();
+            await LoadConversationAsync(localConversation.GuidId);
+        }
+    }
+
     private void NewConversation()
     {
-        var conversation = new Conversation($"Conversation {_conversations.Count + 1}");
-        _conversations.Insert(0, conversation);
-        _conversationMessages[conversation.Id] = new List<ChatMessage>();
-        LoadConversation(conversation.Id);
+        Logger.LogInformation("[MainLayout.NewConversation] Button clicked");
+        _ = CreateNewConversationAsync();
     }
 
     private void SelectConversationById(string conversationId)
     {
-        var conversation = _conversations.FirstOrDefault(c => c.Id == conversationId);
-        if (conversation == null || conversation.Id == _currentConversationId) return;
+        Logger.LogInformation("[MainLayout.SelectConversationById] Selected - ConversationId={ConversationId}", conversationId);
+        
+        if (!Guid.TryParse(conversationId, out var guidId))
+        {
+            Logger.LogWarning("[MainLayout.SelectConversationById] Invalid GUID - ConversationId={ConversationId}", conversationId);
+            return;
+        }
+        
+        var conversation = _conversations.FirstOrDefault(c => c.GuidId == guidId);
+        if (conversation == null || conversation.GuidId == _currentConversationId)
+        {
+            Logger.LogInformation("[MainLayout.SelectConversationById] No change needed - NotFound={NotFound}, SameAsCurrent={Same}", 
+                conversation == null, conversation?.GuidId == _currentConversationId);
+            return;
+        }
 
         _conversationMessages[_currentConversationId] = _chatMessages;
-        _currentConversationId = conversation.Id;
-
-        if (!_conversationMessages.ContainsKey(conversation.Id))
-        {
-            _conversationMessages[conversation.Id] = new List<ChatMessage>();
-        }
-
-        LoadConversation(conversation.Id);
+        
+        _ = LoadConversationAsync(conversation.GuidId);
     }
 
-    private void LoadConversation(string id)
+    private async Task LoadConversationAsync(Guid conversationId)
     {
-        _currentConversationId = id;
-        if (!_conversationMessages.ContainsKey(id))
+        var loadId = Guid.NewGuid().ToString()[..8];
+        Logger.LogInformation("[MainLayout.LoadConversationAsync] START - ConversationId={ConversationId}, LoadId={LoadId}", 
+            conversationId, loadId);
+        
+        _currentConversationId = conversationId;
+        
+        // Check if we already have messages cached
+        if (_conversationMessages.TryGetValue(conversationId, out var cachedMessages) && cachedMessages.Any())
         {
-            _conversationMessages[id] = new List<ChatMessage>();
+            Logger.LogInformation("[MainLayout.LoadConversationAsync] Using cached messages - Count={Count}, LoadId={LoadId}", 
+                cachedMessages.Count, loadId);
+            _chatMessages = cachedMessages;
+            UpdateConversationPreview(conversationId);
+            await ScrollChatToBottom();
+            StateHasChanged();
+            return;
         }
 
-        _chatMessages = _conversationMessages[id];
+        // Try to load from backend
+        if (_currentProfile != null)
+        {
+            try
+            {
+                Logger.LogInformation("[MainLayout.LoadConversationAsync] Fetching from backend - ConversationId={ConversationId}, LoadId={LoadId}", 
+                    conversationId, loadId);
+                var conversationWithMessages = await SivarClient.Chat.GetConversationAsync(conversationId);
+                Logger.LogInformation("[MainLayout.LoadConversationAsync] Backend returned - MessageCount={Count}, LoadId={LoadId}", 
+                    conversationWithMessages?.MessageCount ?? 0, loadId);
+                // Note: GetConversationAsync returns ConversationDto, which may include messages
+                // For now, we'll start with welcome message if no messages
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[MainLayout.LoadConversationAsync] Backend fetch failed - ConversationId={ConversationId}, LoadId={LoadId}, Error={Error}", 
+                    conversationId, loadId, ex.Message);
+            }
+        }
+        else
+        {
+            Logger.LogInformation("[MainLayout.LoadConversationAsync] No profile, skipping backend fetch - LoadId={LoadId}", loadId);
+        }
+
+        // Initialize with welcome message if no messages
+        if (!_conversationMessages.ContainsKey(conversationId))
+        {
+            Logger.LogInformation("[MainLayout.LoadConversationAsync] Creating new message list - ConversationId={ConversationId}, LoadId={LoadId}", 
+                conversationId, loadId);
+            _conversationMessages[conversationId] = new List<ChatMessage>();
+        }
+
+        _chatMessages = _conversationMessages[conversationId];
         if (!_chatMessages.Any())
         {
+            Logger.LogInformation("[MainLayout.LoadConversationAsync] Adding welcome message - ConversationId={ConversationId}, LoadId={LoadId}", 
+                conversationId, loadId);
             var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
 
 🔍 Find profiles and businesses
@@ -775,11 +975,15 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             _chatMessages.Add(welcome);
         }
 
-        UpdateConversationPreview(id);
-        _ = ScrollChatToBottom();
+        Logger.LogInformation("[MainLayout.LoadConversationAsync] COMPLETE - ConversationId={ConversationId}, MessageCount={Count}, LoadId={LoadId}", 
+            conversationId, _chatMessages.Count, loadId);
+        
+        UpdateConversationPreview(conversationId);
+        await ScrollChatToBottom();
+        StateHasChanged();
     }
 
-    private void AddMessage(string conversationId, ChatMessage message)
+    private void AddMessage(Guid conversationId, ChatMessage message)
     {
         if (!_conversationMessages.ContainsKey(conversationId))
         {
@@ -794,12 +998,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
     }
 
-    private void UpdateConversationPreview(string id)
+    private void UpdateConversationPreview(Guid conversationId)
     {
-        var conversation = _conversations.FirstOrDefault(c => c.Id == id);
+        var conversation = _conversations.FirstOrDefault(c => c.GuidId == conversationId);
         if (conversation is null) return;
 
-        if (_conversationMessages.TryGetValue(id, out var messages) && messages.Any())
+        if (_conversationMessages.TryGetValue(conversationId, out var messages) && messages.Any())
         {
             var last = messages.Last();
             var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
@@ -822,10 +1026,19 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
     private async Task SendChat()
     {
-        if (string.IsNullOrWhiteSpace(_chatInput)) return;
+        var chatId = Guid.NewGuid().ToString()[..8];
+        Logger.LogInformation("[MainLayout.SendChat] START - ChatId={ChatId}, ConversationId={ConversationId}, InputLength={Length}", 
+            chatId, _currentConversationId, _chatInput?.Length ?? 0);
+        
+        if (string.IsNullOrWhiteSpace(_chatInput))
+        {
+            Logger.LogWarning("[MainLayout.SendChat] EMPTY_INPUT - ChatId={ChatId}", chatId);
+            return;
+        }
 
         var userMessage = new ChatMessage("user", _chatInput);
         AddMessage(_currentConversationId, userMessage);
+        Logger.LogInformation("[MainLayout.SendChat] User message added to UI - ChatId={ChatId}", chatId);
 
         var userQuery = _chatInput;
         _chatInput = string.Empty;
@@ -833,85 +1046,48 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         StateHasChanged();
         await ScrollChatToBottom();
 
-        var aiResponse = await GetMockResponseAsync(userQuery);
-        _isTyping = false;
-
-        if (aiResponse == "PIZZA_SEARCH")
+        try
         {
-            var resultMessage = new ChatMessage("ai", "I found 3 pizza places near you:", "result-card");
-            AddMessage(_currentConversationId, resultMessage);
-
-            var pizzaResults = new[]
+            // Call the real AI backend
+            var sendMessageDto = new SendMessageDto
             {
-                new ChatResultCard("p1", "🍕", "Joe's Pizza Palace", "Restaurant", "Classic NY-style pizza ⭐ 4.8⭐ ⭐ $$ ⭐ Open now"),
-                new ChatResultCard("p2", "🍕", "Maria's Pizzeria", "Restaurant", "Authentic Italian wood-fired ⭐ 4.9⭐ ⭐ $$$ ⭐ Closes 10pm"),
-                new ChatResultCard("p3", "🍕", "Pizza Express", "Fast Food", "Quick delivery & takeout ⭐ 4.2⭐ ⭐ $ ⭐ Open 24hrs")
+                ConversationId = _currentConversationId,
+                Content = userQuery
             };
 
-            foreach (var card in pizzaResults)
+            Logger.LogInformation("[MainLayout.SendChat] Calling API - ChatId={ChatId}, ConversationId={ConversationId}, Query={Query}", 
+                chatId, _currentConversationId, userQuery.Length > 50 ? userQuery[..50] + "..." : userQuery);
+            
+            var startTime = DateTime.UtcNow;
+            var response = await SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            
+            Logger.LogInformation("[MainLayout.SendChat] API response received - ChatId={ChatId}, Duration={Duration}ms, ResponseLength={Length}", 
+                chatId, elapsed, response?.AssistantMessage?.Content?.Length ?? 0);
+            
+            if (response?.AssistantMessage?.Content == null)
             {
-                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
-                AddMessage(_currentConversationId, cardMessage);
+                Logger.LogWarning("[MainLayout.SendChat] NULL_RESPONSE - ChatId={ChatId}", chatId);
+                throw new InvalidOperationException("Received null response from AI");
             }
-        }
-        else if (aiResponse == "TECH_SEARCH")
-        {
-            var resultMessage = new ChatMessage("ai", "Here are tech companies in your area:", "result-card");
-            AddMessage(_currentConversationId, resultMessage);
-
-            var techResults = new[]
-            {
-                new ChatResultCard("t1", "💼", "TechCorp Solutions", "Technology", "Cloud services & AI development ⭐ 200+ employees"),
-                new ChatResultCard("t2", "💼", "Innovation Labs", "Startup", "Mobile app development ⭐ Series A funded"),
-                new ChatResultCard("t3", "💼", "DataWorks Inc", "Enterprise", "Big data analytics platform ⭐ Fortune 500")
-            };
-
-            foreach (var card in techResults)
-            {
-                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
-                AddMessage(_currentConversationId, cardMessage);
-            }
-        }
-        else if (aiResponse == "EVENT_SEARCH")
-        {
-            var resultMessage = new ChatMessage("ai", "Upcoming events you might like:", "result-card");
-            AddMessage(_currentConversationId, resultMessage);
-
-            var eventResults = new[]
-            {
-                new ChatResultCard("e1", "🎉", "Tech Conference 2024", "Conference", "3-day tech summit ⭐ Mar 15-17 ⭐ Downtown Center"),
-                new ChatResultCard("e2", "🎉", "Startup Pitch Night", "Networking", "Monthly startup showcase ⭐ Mar 10 ⭐ 6pm"),
-                new ChatResultCard("e3", "🎉", "Code & Coffee", "Meetup", "Weekly developer hangout ⭐ Every Saturday")
-            };
-
-            foreach (var card in eventResults)
-            {
-                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
-                AddMessage(_currentConversationId, cardMessage);
-            }
-        }
-        else if (aiResponse == "JOB_SEARCH")
-        {
-            var resultMessage = new ChatMessage("ai", "Here are job openings matching your profile:", "result-card");
-            AddMessage(_currentConversationId, resultMessage);
-
-            var jobResults = new[]
-            {
-                new ChatResultCard("j1", "💼", "Senior Developer", "TechCorp", "Full-stack position ⭐ $120k-150k ⭐ Remote available"),
-                new ChatResultCard("j2", "💼", "UX Designer", "Design Studio", "Lead designer role ⭐ $90k-110k ⭐ Hybrid"),
-                new ChatResultCard("j3", "💼", "Product Manager", "StartupXYZ", "PM for AI products ⭐ $130k-160k ⭐ On-site")
-            };
-
-            foreach (var card in jobResults)
-            {
-                var cardMessage = new ChatMessage("ai", "", "result-card") { ResultCard = card };
-                AddMessage(_currentConversationId, cardMessage);
-            }
-        }
-        else
-        {
-            var aiMessage = new ChatMessage("ai", aiResponse);
+            
+            // Map the response to UI ChatMessage
+            var aiMessage = new ChatMessage("ai", response.AssistantMessage.Content);
             AddMessage(_currentConversationId, aiMessage);
+            
+            Logger.LogInformation("[MainLayout.SendChat] SUCCESS - ChatId={ChatId}, ResponsePreview={Preview}", 
+                chatId, response.AssistantMessage.Content.Length > 100 ? response.AssistantMessage.Content[..100] + "..." : response.AssistantMessage.Content);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout.SendChat] FAILED - ChatId={ChatId}, Error={Error}, StackTrace={StackTrace}", 
+                chatId, ex.Message, ex.StackTrace);
+            var errorMessage = new ChatMessage("ai", $"I'm sorry, I encountered an error: {ex.Message}");
+            AddMessage(_currentConversationId, errorMessage);
+        }
+        finally
+        {
+            _isTyping = false;
         }
 
         UpdateConversationPreview(_currentConversationId);
@@ -937,33 +1113,24 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         }
     }
 
-    private async Task<string> GetMockResponseAsync(string userText)
+    // DTO to UI Model Mappers
+    private static Conversation MapConversationFromDto(ConversationDto dto)
     {
-        await Task.Delay(600 + _random.Next(300));
-
-        if (string.IsNullOrWhiteSpace(userText))
+        return new Conversation(dto.Id, dto.Title)
         {
-            return _cannedReplies[_random.Next(_cannedReplies.Length)];
-        }
+            Preview = "Start chatting...",
+            LastUpdated = dto.LastMessageAt,
+            MessageCount = dto.MessageCount
+        };
+    }
 
-        var lower = userText.ToLowerInvariant();
-
-        if (lower.Contains("pizza") || lower.Contains("??"))
-            return "PIZZA_SEARCH";
-        if (lower.Contains("tech") || lower.Contains("company") || lower.Contains("companies") || lower.Contains("??"))
-            return "TECH_SEARCH";
-        if (lower.Contains("event") || lower.Contains("??"))
-            return "EVENT_SEARCH";
-        if (lower.Contains("job") || lower.Contains("jobs") || lower.Contains("hiring"))
-            return "JOB_SEARCH";
-        if (lower.Contains("help") || lower.Contains("how") || lower.Contains("what"))
-            return "Sure � what specifically do you need help with?";
-        if (lower.Contains("bug") || lower.Contains("error") || lower.Contains("fail"))
-            return "Sorry to hear that. Can you share the steps to reproduce?";
-        if (lower.Contains("design") || lower.Contains("ui") || lower.Contains("layout"))
-            return "For design feedback, consider spacing, contrast, and alignment � need a checklist?";
-        
-        return _cannedReplies[_random.Next(_cannedReplies.Length)];
+    private static ChatMessage MapChatMessageFromDto(ChatMessageDto dto)
+    {
+        var sender = dto.Role.ToLowerInvariant() == "user" ? "user" : "ai";
+        return new ChatMessage(sender, dto.Content)
+        {
+            Time = dto.CreatedAt
+        };
     }
 
     private readonly PaletteLight _lightPalette = new()

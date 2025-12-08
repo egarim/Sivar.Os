@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.Agents.AI;
 using MudBlazor.Services;
 using OpenAI;
 using Sivar.Os.Client.Pages;
@@ -90,13 +92,58 @@ builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<AnalyticsRepository>(); // Phase 7: Continuous Aggregates
 
-// --- AI Client Registration (Ollama) ---
-// Register IChatClient for ChatService
+// --- AI Client Registration (Configurable Provider) ---
+// Register IChatClient for ChatService based on configuration
 builder.Services.AddScoped<IChatClient>(sp =>
 {
-    var endpoint = "http://127.0.0.1:11434/";
- var modelId = "phi3:latest";
-  return GetChatClientOllamaImp(endpoint, modelId);
+    var chatOptions = sp.GetRequiredService<IOptions<ChatServiceOptions>>().Value;
+    var provider = chatOptions.Provider?.ToLowerInvariant() ?? "ollama";
+
+    return provider switch
+    {
+        "openai" => GetChatClientOpenAiImp(
+            chatOptions.OpenAI.ApiKey, 
+            chatOptions.OpenAI.ModelId),
+        "ollama" => GetChatClientOllamaImp(
+            chatOptions.Ollama.Endpoint, 
+            chatOptions.Ollama.ModelId),
+        _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported providers: 'openai', 'ollama'")
+    };
+});
+
+// Register AIAgent (Microsoft Agent Framework) for enhanced chat with function calling
+builder.Services.AddScoped<AIAgent>(sp =>
+{
+    var chatClient = sp.GetRequiredService<IChatClient>();
+    var functionService = sp.GetRequiredService<ChatFunctionService>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    
+    // Create the agent with instructions and tools
+    var tools = new List<AITool>
+    {
+        AIFunctionFactory.Create(functionService.SearchProfiles),
+        AIFunctionFactory.Create(functionService.SearchPosts),
+        AIFunctionFactory.Create(functionService.GetPostDetails),
+        AIFunctionFactory.Create(functionService.FollowProfile),
+        AIFunctionFactory.Create(functionService.UnfollowProfile),
+        AIFunctionFactory.Create(functionService.GetMyProfile)
+    };
+    
+    return new ChatClientAgent(
+        chatClient,
+        instructions: @"You are Sivar, a helpful AI assistant for the Sivar.Os social network platform.
+You can help users:
+- Search for profiles and posts on the network
+- Get details about specific posts
+- Follow and unfollow other users
+- Get information about their own profile
+
+Always be friendly and helpful. When users ask about people or content, use your search tools to find relevant information.
+When performing actions like following users, confirm the action was successful.",
+        name: "SivarAgent",
+        description: "AI assistant for the Sivar.Os social network",
+        tools: tools,
+        loggerFactory: loggerFactory);
 });
 
 // Register IEmbeddingGenerator for VectorEmbeddingService
@@ -179,19 +226,9 @@ switch (locationProvider.ToLowerInvariant())
         throw new InvalidOperationException($"Unknown location provider: {locationProvider}");
 }
 
-// Configure ChatServiceOptions
-builder.Services.Configure<ChatServiceOptions>(options =>
-{
-    options.Provider = "ollama";
-    options.MaxTokens = 2000;
-    options.Temperature = 0.7;
-    options.MaxMessagesPerConversation = 1000;
-    options.Ollama = new ChatServiceOptions.OllamaSettings
-    {
-        Endpoint = "http://127.0.0.1:11434",
-        ModelId = "phi3:latest"
-    };
-});
+// Configure ChatServiceOptions from configuration
+builder.Services.Configure<ChatServiceOptions>(
+    builder.Configuration.GetSection(ChatServiceOptions.SectionName));
 
 // Configure VectorEmbeddingOptions
 builder.Services.Configure<VectorEmbeddingOptions>(options =>
@@ -604,9 +641,11 @@ static IChatClient GetChatClientOpenAiImp(string ApiKey, string ModelId)
 {
     OpenAIClient openAIClient = new OpenAIClient(ApiKey);
 
-    return new OpenAIChatClient(openAIClient, ModelId)
- .AsBuilder()
-     .Build();
+    return openAIClient
+        .GetChatClient(ModelId)
+        .AsIChatClient()
+        .AsBuilder()
+        .Build();
 }
 
 static IChatClient GetChatClientOllamaImp(string endpoint, string modelId)
