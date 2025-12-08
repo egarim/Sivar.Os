@@ -1,6 +1,8 @@
 @using MudBlazor
 @using System.IO
+@using System.Text.Json
 @using Sivar.Os.Shared
+@using Sivar.Os.Shared.Entities
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Services
@@ -53,6 +55,166 @@
                     @bind-CoverImageFileId="BlogCoverImageFileId"
                     @bind-IsDraft="BlogIsDraft"
                     OnCoverImageUploaded="OnBlogCoverImageUploaded" />
+    }
+    else if (SelectedType == "businesslocation")
+    {
+        @* BusinessLocation Form *@
+        <div class="businesslocation-form">
+            <div class="form-header">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Medium" />
+                <span>@Localizer["BusinessLocationFormTitle"]</span>
+            </div>
+            
+            @* Location Name/Title *@
+            <div class="form-group">
+                <MudTextField Value="@BusinessLocationName"
+                              ValueChanged="@((string val) => OnBusinessLocationNameChanged(val))"
+                              Label="@Localizer["LocationNameLabel"]"
+                              Placeholder="@Localizer["LocationNamePlaceholder"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Required="true"
+                              FullWidth="true" />
+            </div>
+            
+            @* Location Description *@
+            <div class="form-group">
+                <MudTextField Value="@BusinessLocationDescription"
+                              ValueChanged="@((string val) => OnBusinessLocationDescriptionChanged(val))"
+                              Label="@Localizer["LocationDescriptionLabel"]"
+                              Placeholder="@Localizer["LocationDescriptionPlaceholder"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="3"
+                              FullWidth="true" />
+            </div>
+            
+            @* Location Type *@
+            <div class="form-group">
+                <MudSelect T="BusinessLocationType" 
+                           Value="@SelectedBusinessLocationType"
+                           ValueChanged="@((BusinessLocationType val) => OnBusinessLocationTypeChanged(val))"
+                           Label="@Localizer["LocationTypeLabel"]"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           FullWidth="true">
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.MainOffice">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                            @Localizer["MainOffice"]
+                        </div>
+                    </MudSelectItem>
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.CustomerBranch">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Small" />
+                            @Localizer["CustomerBranch"]
+                        </div>
+                    </MudSelectItem>
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.AdministrativeOffice">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" />
+                            @Localizer["AdministrativeOffice"]
+                        </div>
+                    </MudSelectItem>
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.RetailStore">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" />
+                            @Localizer["RetailStore"]
+                        </div>
+                    </MudSelectItem>
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.Warehouse">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.Warehouse" Size="Size.Small" />
+                            @Localizer["Warehouse"]
+                        </div>
+                    </MudSelectItem>
+                    <MudSelectItem T="BusinessLocationType" Value="BusinessLocationType.ServiceCenter">
+                        <div class="select-item">
+                            <MudIcon Icon="@Icons.Material.Filled.BuildCircle" Size="Size.Small" />
+                            @Localizer["ServiceCenter"]
+                        </div>
+                    </MudSelectItem>
+                </MudSelect>
+            </div>
+            
+            @* Location Picker Map *@
+            <div class="form-group">
+                <LocationPicker Location="@BusinessPostLocation"
+                                LocationChanged="@OnBusinessPostLocationChanged"
+                                MapHeight="300"
+                                DefaultZoom="13" />
+            </div>
+            
+            @* Contact Information *@
+            <div class="contact-section">
+                <div class="section-header">
+                    <MudIcon Icon="@Icons.Material.Filled.ContactPhone" Size="Size.Small" />
+                    <span>@Localizer["ContactInformation"]</span>
+                </div>
+                
+                <div class="form-row">
+                    <MudTextField Value="@BusinessContactPhone"
+                                  ValueChanged="@((string val) => OnBusinessContactPhoneChanged(val))"
+                                  Label="@Localizer["ContactPhoneLabel"]"
+                                  Placeholder="@Localizer["ContactPhonePlaceholder"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Telephone"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Phone" />
+                    
+                    <MudTextField Value="@BusinessContactEmail"
+                                  ValueChanged="@((string val) => OnBusinessContactEmailChanged(val))"
+                                  Label="@Localizer["ContactEmailLabel"]"
+                                  Placeholder="@Localizer["ContactEmailPlaceholder"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Email"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email" />
+                </div>
+            </div>
+            
+            @* Service Options *@
+            <div class="service-options">
+                <div class="section-header">
+                    <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" />
+                    <span>@Localizer["ServiceOptions"]</span>
+                </div>
+                
+                <div class="options-row">
+                    <MudCheckBox T="bool" 
+                                 Value="@BusinessAcceptsWalkIns"
+                                 ValueChanged="@((bool val) => OnBusinessAcceptsWalkInsChanged(val))"
+                                 Label="@Localizer["AcceptsWalkIns"]"
+                                 Color="Color.Primary" />
+                    
+                    <MudCheckBox T="bool" 
+                                 Value="@BusinessRequiresAppointment"
+                                 ValueChanged="@((bool val) => OnBusinessRequiresAppointmentChanged(val))"
+                                 Label="@Localizer["RequiresAppointment"]"
+                                 Color="Color.Primary" />
+                </div>
+            </div>
+            
+            @* Working Hours *@
+            <div class="working-hours-section">
+                <WorkingHoursEditor WorkingHours="@BusinessWorkingHours"
+                                    WorkingHoursChanged="@OnBusinessWorkingHoursChanged" />
+            </div>
+            
+            @* Special Instructions *@
+            <div class="form-group">
+                <MudTextField Value="@BusinessSpecialInstructions"
+                              ValueChanged="@((string val) => OnBusinessSpecialInstructionsChanged(val))"
+                              Label="@Localizer["SpecialInstructionsLabel"]"
+                              Placeholder="@Localizer["SpecialInstructionsPlaceholder"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              FullWidth="true" />
+            </div>
+        </div>
     }
     else
     {
@@ -547,6 +709,7 @@
     {
         new("general", "General", Icons.Material.Filled.Article, "Share updates with everyone."),
         new("blog", "Blog", Icons.Material.Filled.EditNote, "Write a long-form article or blog post."),
+        new("businesslocation", "Location", Icons.Material.Filled.LocationOn, "Add a business location, branch, or office."),
         new("product", "Product", Icons.Material.Filled.Storefront, "Highlight new features or releases."),
         new("service", "Service", Icons.Material.Filled.HeadsetMic, "Promote a service offering."),
         new("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
@@ -758,6 +921,191 @@
 
     #endregion
 
+    #region BusinessLocation Parameters
+
+    /// <summary>
+    /// Business location name/title
+    /// </summary>
+    private string BusinessLocationName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Business location description
+    /// </summary>
+    private string BusinessLocationDescription { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Selected business location type
+    /// </summary>
+    private BusinessLocationType SelectedBusinessLocationType { get; set; } = BusinessLocationType.CustomerBranch;
+    
+    /// <summary>
+    /// Location data for business location post
+    /// </summary>
+    private LocationDto BusinessPostLocation { get; set; } = new();
+    
+    /// <summary>
+    /// Contact phone for the business location
+    /// </summary>
+    private string BusinessContactPhone { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Contact email for the business location
+    /// </summary>
+    private string BusinessContactEmail { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Whether the location accepts walk-ins
+    /// </summary>
+    private bool BusinessAcceptsWalkIns { get; set; } = true;
+    
+    /// <summary>
+    /// Whether the location requires appointments
+    /// </summary>
+    private bool BusinessRequiresAppointment { get; set; } = false;
+    
+    /// <summary>
+    /// Working hours for the business location
+    /// </summary>
+    private BusinessHours BusinessWorkingHours { get; set; } = new();
+    
+    /// <summary>
+    /// Special instructions for the business location
+    /// </summary>
+    private string BusinessSpecialInstructions { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Build BusinessLocationMetadata from form fields
+    /// </summary>
+    private BusinessLocationMetadata BuildBusinessLocationMetadata()
+    {
+        return new BusinessLocationMetadata
+        {
+            LocationType = SelectedBusinessLocationType,
+            Description = !string.IsNullOrWhiteSpace(BusinessLocationDescription) ? BusinessLocationDescription : null,
+            ContactPhone = !string.IsNullOrWhiteSpace(BusinessContactPhone) ? BusinessContactPhone : null,
+            ContactEmail = !string.IsNullOrWhiteSpace(BusinessContactEmail) ? BusinessContactEmail : null,
+            AcceptsWalkIns = BusinessAcceptsWalkIns,
+            RequiresAppointment = BusinessRequiresAppointment,
+            WorkingHours = BusinessWorkingHours,
+            SpecialInstructions = !string.IsNullOrWhiteSpace(BusinessSpecialInstructions) ? BusinessSpecialInstructions : null
+        };
+    }
+    
+    /// <summary>
+    /// Sync BusinessLocation form data to parent bindings
+    /// This is called when any BusinessLocation field changes
+    /// </summary>
+    private async Task SyncBusinessLocationToParent()
+    {
+        if (SelectedType != "businesslocation")
+            return;
+            
+        // Set the location name as the post content
+        PostText = BusinessLocationName;
+        await PostTextChanged.InvokeAsync(PostText);
+        
+        // Set the location data
+        PostLocation = BusinessPostLocation;
+        await PostLocationChanged.InvokeAsync(PostLocation);
+        
+        // Serialize metadata to JSON
+        var metadata = BuildBusinessLocationMetadata();
+        var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false 
+        });
+        
+        PostBusinessMetadata = metadataJson;
+        BusinessMetadata = metadataJson;
+        await PostBusinessMetadataChanged.InvokeAsync(metadataJson);
+        
+        Logger.LogDebug("[PostComposer] Synced BusinessLocation data to parent");
+    }
+    
+    /// <summary>
+    /// Clear business location form fields
+    /// </summary>
+    private void ClearBusinessLocationFields()
+    {
+        BusinessLocationName = string.Empty;
+        BusinessLocationDescription = string.Empty;
+        SelectedBusinessLocationType = BusinessLocationType.CustomerBranch;
+        BusinessPostLocation = new LocationDto();
+        BusinessContactPhone = string.Empty;
+        BusinessContactEmail = string.Empty;
+        BusinessAcceptsWalkIns = true;
+        BusinessRequiresAppointment = false;
+        BusinessWorkingHours = new BusinessHours();
+        BusinessSpecialInstructions = string.Empty;
+    }
+    
+    // BusinessLocation field change handlers
+    
+    private async Task OnBusinessLocationNameChanged(string value)
+    {
+        BusinessLocationName = value;
+        await SyncBusinessLocationToParent();
+        StateHasChanged(); // Force UI update to re-evaluate IsPublishDisabled
+    }
+    
+    private async Task OnBusinessLocationDescriptionChanged(string value)
+    {
+        BusinessLocationDescription = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessLocationTypeChanged(BusinessLocationType value)
+    {
+        SelectedBusinessLocationType = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessPostLocationChanged(LocationDto value)
+    {
+        BusinessPostLocation = value;
+        await SyncBusinessLocationToParent();
+        StateHasChanged(); // Force UI update to re-evaluate IsPublishDisabled
+    }
+    
+    private async Task OnBusinessContactPhoneChanged(string value)
+    {
+        BusinessContactPhone = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessContactEmailChanged(string value)
+    {
+        BusinessContactEmail = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessAcceptsWalkInsChanged(bool value)
+    {
+        BusinessAcceptsWalkIns = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessRequiresAppointmentChanged(bool value)
+    {
+        BusinessRequiresAppointment = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessWorkingHoursChanged(BusinessHours value)
+    {
+        BusinessWorkingHours = value;
+        await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OnBusinessSpecialInstructionsChanged(string value)
+    {
+        BusinessSpecialInstructions = value;
+        await SyncBusinessLocationToParent();
+    }
+
+    #endregion
+
     #region State Management
 
     /// <summary>
@@ -846,6 +1194,13 @@
             {
                 // For blogs, require at least a title and some content
                 return string.IsNullOrWhiteSpace(BlogTitle) || string.IsNullOrWhiteSpace(BlogContent);
+            }
+            else if (SelectedType == "businesslocation")
+            {
+                // For business locations, require name and coordinates
+                return string.IsNullOrWhiteSpace(BusinessLocationName) || 
+                       !BusinessPostLocation.Latitude.HasValue || 
+                       !BusinessPostLocation.Longitude.HasValue;
             }
             // For regular posts, require post text
             return string.IsNullOrWhiteSpace(PostText);

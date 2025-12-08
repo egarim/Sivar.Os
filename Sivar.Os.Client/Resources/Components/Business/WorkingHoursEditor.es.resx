@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" use="preserve" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <data name="WorkingHours" xml:space="preserve">
+    <value>Horario de Atención</value>
+  </data>
+  <data name="Monday" xml:space="preserve">
+    <value>Lunes</value>
+  </data>
+  <data name="Tuesday" xml:space="preserve">
+    <value>Martes</value>
+  </data>
+  <data name="Wednesday" xml:space="preserve">
+    <value>Miércoles</value>
+  </data>
+  <data name="Thursday" xml:space="preserve">
+    <value>Jueves</value>
+  </data>
+  <data name="Friday" xml:space="preserve">
+    <value>Viernes</value>
+  </data>
+  <data name="Saturday" xml:space="preserve">
+    <value>Sábado</value>
+  </data>
+  <data name="Sunday" xml:space="preserve">
+    <value>Domingo</value>
+  </data>
+  <data name="Closed" xml:space="preserve">
+    <value>Cerrado</value>
+  </data>
+  <data name="ClosedOnThisDay" xml:space="preserve">
+    <value>Cerrado este día</value>
+  </data>
+  <data name="OpenTime" xml:space="preserve">
+    <value>Abre</value>
+  </data>
+  <data name="CloseTime" xml:space="preserve">
+    <value>Cierra</value>
+  </data>
+  <data name="SpecialHoursNote" xml:space="preserve">
+    <value>Nota de Horario Especial</value>
+  </data>
+  <data name="SpecialHoursPlaceholder" xml:space="preserve">
+    <value>ej., Horario de días festivos, cambios de temporada...</value>
+  </data>
+  <data name="CopyMondayToWeekdays" xml:space="preserve">
+    <value>Copiar Lunes a Días de Semana</value>
+  </data>
+  <data name="ResetToDefaults" xml:space="preserve">
+    <value>Restablecer a Valores Predeterminados</value>
+  </data>
+</root>

@@ -202,4 +202,94 @@
     <value>Virtual, Oficina central, etc.</value>
     <comment>Placeholder for event location</comment>
   </data>
+  
+  <!-- BusinessLocation Form -->
+  <data name="BusinessLocationFormTitle" xml:space="preserve">
+    <value>Agregar Ubicación de Negocio</value>
+    <comment>Title of the business location form section</comment>
+  </data>
+  <data name="LocationNameLabel" xml:space="preserve">
+    <value>Nombre de la Ubicación</value>
+    <comment>Label for location name input</comment>
+  </data>
+  <data name="LocationNamePlaceholder" xml:space="preserve">
+    <value>ej., Sucursal Centro, Oficina Principal</value>
+    <comment>Placeholder for location name</comment>
+  </data>
+  <data name="LocationDescriptionLabel" xml:space="preserve">
+    <value>Descripción</value>
+    <comment>Label for location description</comment>
+  </data>
+  <data name="LocationDescriptionPlaceholder" xml:space="preserve">
+    <value>Describa esta ubicación, servicios ofrecidos, etc.</value>
+    <comment>Placeholder for location description</comment>
+  </data>
+  <data name="LocationTypeLabel" xml:space="preserve">
+    <value>Tipo de Ubicación</value>
+    <comment>Label for location type select</comment>
+  </data>
+  <data name="MainOffice" xml:space="preserve">
+    <value>Oficina Principal / Casa Matriz</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="CustomerBranch" xml:space="preserve">
+    <value>Sucursal de Clientes</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="AdministrativeOffice" xml:space="preserve">
+    <value>Oficina Administrativa</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="RetailStore" xml:space="preserve">
+    <value>Tienda Retail</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="Warehouse" xml:space="preserve">
+    <value>Bodega</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="ServiceCenter" xml:space="preserve">
+    <value>Centro de Servicio</value>
+    <comment>Business location type</comment>
+  </data>
+  <data name="ContactInformation" xml:space="preserve">
+    <value>Información de Contacto</value>
+    <comment>Section header for contact info</comment>
+  </data>
+  <data name="ContactPhoneLabel" xml:space="preserve">
+    <value>Teléfono</value>
+    <comment>Label for contact phone</comment>
+  </data>
+  <data name="ContactPhonePlaceholder" xml:space="preserve">
+    <value>+503 2222-3333</value>
+    <comment>Placeholder for contact phone</comment>
+  </data>
+  <data name="ContactEmailLabel" xml:space="preserve">
+    <value>Correo Electrónico</value>
+    <comment>Label for contact email</comment>
+  </data>
+  <data name="ContactEmailPlaceholder" xml:space="preserve">
+    <value>sucursal@ejemplo.com</value>
+    <comment>Placeholder for contact email</comment>
+  </data>
+  <data name="ServiceOptions" xml:space="preserve">
+    <value>Opciones de Servicio</value>
+    <comment>Section header for service options</comment>
+  </data>
+  <data name="AcceptsWalkIns" xml:space="preserve">
+    <value>Acepta Sin Cita</value>
+    <comment>Checkbox label for walk-ins</comment>
+  </data>
+  <data name="RequiresAppointment" xml:space="preserve">
+    <value>Requiere Cita</value>
+    <comment>Checkbox label for appointments</comment>
+  </data>
+  <data name="SpecialInstructionsLabel" xml:space="preserve">
+    <value>Instrucciones Especiales</value>
+    <comment>Label for special instructions</comment>
+  </data>
+  <data name="SpecialInstructionsPlaceholder" xml:space="preserve">
+    <value>Información de parqueo, instrucciones de entrada, etc.</value>
+    <comment>Placeholder for special instructions</comment>
+  </data>
 </root>

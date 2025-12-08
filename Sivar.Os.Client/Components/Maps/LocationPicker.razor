@@ -1,0 +1,414 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Microsoft.Extensions.Localization
+@inject IJSRuntime JS
+@inject IStringLocalizer<LocationPicker> Localizer
+
+<div class="location-picker">
+    <div class="location-picker-header">
+        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
+        <span>@Localizer["PickLocation"]</span>
+    </div>
+    
+    @* Address Search *@
+    <div class="location-search">
+        <MudTextField @bind-Value="SearchQuery"
+                      Label="@Localizer["SearchAddressLabel"]"
+                      Placeholder="@Localizer["SearchAddressPlaceholder"]"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      OnAdornmentClick="SearchAddress"
+                      OnKeyDown="HandleSearchKeyDown"
+                      Immediate="true"
+                      FullWidth="true"
+                      Margin="Margin.Dense" />
+    </div>
+    
+    @if (IsSearching)
+    {
+        <div class="search-loading">
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    
+    @if (SearchResults.Count > 0)
+    {
+        <div class="search-results">
+            @foreach (var result in SearchResults)
+            {
+                <div class="search-result-item" @onclick="() => SelectSearchResult(result)">
+                    <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" Class="me-2" />
+                    <span>@result.DisplayName</span>
+                </div>
+            }
+        </div>
+    }
+    
+    @* Map Container *@
+    <div class="location-map-container">
+        <div id="@MapId" class="location-picker-map" style="height: @($"{MapHeight}px"); width: 100%;"></div>
+        @if (!IsMapLoaded)
+        {
+            <div class="map-loading-overlay">
+                <MudProgressCircular Indeterminate="true" Size="Size.Medium" />
+            </div>
+        }
+    </div>
+    
+    <div class="location-instructions">
+        <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Small" />
+        <span>@Localizer["ClickToSelectLocation"]</span>
+    </div>
+    
+    @* Selected Location Display *@
+    @if (HasSelectedLocation)
+    {
+        <div class="selected-location">
+            <div class="selected-location-header">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                <span>@Localizer["SelectedLocation"]</span>
+            </div>
+            
+            <div class="location-details">
+                @* Address Input *@
+                <MudTextField @bind-Value="AddressLine"
+                              Label="@Localizer["AddressLabel"]"
+                              Variant="Variant.Text"
+                              Margin="Margin.Dense"
+                              OnBlur="UpdateLocation"
+                              FullWidth="true" />
+                
+                <div class="location-row">
+                    <MudTextField Value="@LocationCity"
+                                  ValueChanged="@((string val) => OnCityChanged(val))"
+                                  Label="@Localizer["CityLabel"]"
+                                  Variant="Variant.Text"
+                                  Margin="Margin.Dense" />
+                    
+                    <MudTextField Value="@LocationState"
+                                  ValueChanged="@((string val) => OnStateChanged(val))"
+                                  Label="@Localizer["StateLabel"]"
+                                  Variant="Variant.Text"
+                                  Margin="Margin.Dense" />
+                </div>
+                
+                <div class="location-row">
+                    <MudTextField Value="@LocationCountry"
+                                  ValueChanged="@((string val) => OnCountryChanged(val))"
+                                  Label="@Localizer["CountryLabel"]"
+                                  Variant="Variant.Text"
+                                  Margin="Margin.Dense" />
+                </div>
+                
+                <div class="coordinates">
+                    <span class="coordinate-label">@Localizer["CoordinatesLabel"]:</span>
+                    <span class="coordinate-value">@($"{Location.Latitude:F6}, {Location.Longitude:F6}")</span>
+                </div>
+            </div>
+            
+            <MudButton StartIcon="@Icons.Material.Filled.Clear"
+                       Color="Color.Error"
+                       Variant="Variant.Text"
+                       Size="Size.Small"
+                       OnClick="ClearLocation">
+                @Localizer["ClearLocation"]
+            </MudButton>
+        </div>
+    }
+</div>
+
+@code {
+    private string MapId = $"location-picker-{Guid.NewGuid():N}";
+    private DotNetObjectReference<LocationPicker>? _dotNetRef;
+    private bool IsMapLoaded = false;
+    private bool IsSearching = false;
+    private string SearchQuery = string.Empty;
+    private string AddressLine = string.Empty;
+    private List<SearchResult> SearchResults = new();
+    
+    // Local mutable state for location fields (since LocationDto has init-only props)
+    private string LocationCity = string.Empty;
+    private string LocationState = string.Empty;
+    private string LocationCountry = string.Empty;
+    
+    /// <summary>
+    /// Current location value
+    /// </summary>
+    [Parameter]
+    public LocationDto Location { get; set; } = new();
+    
+    /// <summary>
+    /// Callback when location changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<LocationDto> LocationChanged { get; set; }
+    
+    /// <summary>
+    /// Map height in pixels
+    /// </summary>
+    [Parameter]
+    public int MapHeight { get; set; } = 300;
+    
+    /// <summary>
+    /// Initial latitude (default: El Salvador)
+    /// </summary>
+    [Parameter]
+    public double DefaultLatitude { get; set; } = 13.6929;
+    
+    /// <summary>
+    /// Initial longitude (default: El Salvador)
+    /// </summary>
+    [Parameter]
+    public double DefaultLongitude { get; set; } = -89.2182;
+    
+    /// <summary>
+    /// Initial zoom level
+    /// </summary>
+    [Parameter]
+    public int DefaultZoom { get; set; } = 12;
+    
+    private bool HasSelectedLocation => Location.Latitude.HasValue && Location.Longitude.HasValue;
+    
+    protected override void OnParametersSet()
+    {
+        // Sync local state from Location parameter
+        LocationCity = Location.City ?? string.Empty;
+        LocationState = Location.State ?? string.Empty;
+        LocationCountry = Location.Country ?? string.Empty;
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await InitializeMap();
+        }
+    }
+    
+    private async Task InitializeMap()
+    {
+        try
+        {
+            var lat = Location.Latitude ?? DefaultLatitude;
+            var lng = Location.Longitude ?? DefaultLongitude;
+            
+            await JS.InvokeVoidAsync("leafletInterop.initializeMap", MapId, lat, lng, DefaultZoom);
+            
+            // Enable click-to-select mode
+            await JS.InvokeVoidAsync("leafletInterop.enableLocationPicking", MapId, _dotNetRef);
+            
+            // If we already have a location, add a marker
+            if (HasSelectedLocation)
+            {
+                await JS.InvokeVoidAsync("leafletInterop.addMapMarker", 
+                    MapId, 
+                    Location.Latitude!.Value, 
+                    Location.Longitude!.Value, 
+                    Location.City ?? "Selected Location",
+                    true); // draggable
+            }
+            
+            // Invalidate size after a short delay to ensure proper rendering
+            await Task.Delay(150);
+            await JS.InvokeVoidAsync("leafletInterop.invalidateSize", MapId);
+            
+            IsMapLoaded = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LocationPicker] Error initializing map: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Called from JavaScript when user clicks on the map
+    /// </summary>
+    [JSInvokable]
+    public async Task OnMapLocationSelected(double lat, double lng)
+    {
+        Location = Location with { Latitude = lat, Longitude = lng };
+        await LocationChanged.InvokeAsync(Location);
+        
+        // Try to reverse geocode to get address
+        await ReverseGeocode(lat, lng);
+        
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Called from JavaScript when marker is dragged
+    /// </summary>
+    [JSInvokable]
+    public async Task OnMarkerDragged(double lat, double lng)
+    {
+        await OnMapLocationSelected(lat, lng);
+    }
+    
+    private async Task ReverseGeocode(double lat, double lng)
+    {
+        try
+        {
+            // Use Nominatim for reverse geocoding (free, OpenStreetMap)
+            var result = await JS.InvokeAsync<ReverseGeocodeResult?>(
+                "leafletInterop.reverseGeocode", lat, lng);
+            
+            if (result != null)
+            {
+                Location = Location with
+                {
+                    City = result.City ?? result.Town ?? result.Village ?? Location.City,
+                    State = result.State ?? Location.State,
+                    Country = result.Country ?? Location.Country
+                };
+                
+                AddressLine = result.DisplayName ?? string.Empty;
+                
+                await LocationChanged.InvokeAsync(Location);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LocationPicker] Reverse geocode error: {ex.Message}");
+        }
+    }
+    
+    private async Task SearchAddress()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+            return;
+        
+        IsSearching = true;
+        SearchResults.Clear();
+        StateHasChanged();
+        
+        try
+        {
+            var results = await JS.InvokeAsync<SearchResult[]?>(
+                "leafletInterop.searchAddress", SearchQuery);
+            
+            if (results != null)
+            {
+                SearchResults = results.Take(5).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LocationPicker] Search error: {ex.Message}");
+        }
+        finally
+        {
+            IsSearching = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAddress();
+        }
+    }
+    
+    private async Task SelectSearchResult(SearchResult result)
+    {
+        SearchResults.Clear();
+        SearchQuery = string.Empty;
+        
+        Location = Location with
+        {
+            Latitude = result.Lat,
+            Longitude = result.Lon,
+            City = result.City,
+            State = result.State,
+            Country = result.Country
+        };
+        
+        AddressLine = result.DisplayName ?? string.Empty;
+        
+        await LocationChanged.InvokeAsync(Location);
+        
+        // Center map and add marker
+        await JS.InvokeVoidAsync("leafletInterop.setMapCenter", MapId, result.Lat, result.Lon, 15);
+        await JS.InvokeVoidAsync("leafletInterop.addMapMarker", 
+            MapId, result.Lat, result.Lon, result.DisplayName ?? "Selected", true);
+        
+        StateHasChanged();
+    }
+    
+    private async Task ClearLocation()
+    {
+        Location = new LocationDto();
+        AddressLine = string.Empty;
+        LocationCity = string.Empty;
+        LocationState = string.Empty;
+        LocationCountry = string.Empty;
+        
+        await LocationChanged.InvokeAsync(Location);
+        
+        // Remove marker from map
+        await JS.InvokeVoidAsync("leafletInterop.clearMarkers", MapId);
+        
+        StateHasChanged();
+    }
+    
+    private async Task UpdateLocation()
+    {
+        await LocationChanged.InvokeAsync(Location);
+    }
+    
+    private async Task OnCityChanged(string value)
+    {
+        LocationCity = value;
+        Location = Location with { City = value };
+        await LocationChanged.InvokeAsync(Location);
+    }
+    
+    private async Task OnStateChanged(string value)
+    {
+        LocationState = value;
+        Location = Location with { State = value };
+        await LocationChanged.InvokeAsync(Location);
+    }
+    
+    private async Task OnCountryChanged(string value)
+    {
+        LocationCountry = value;
+        Location = Location with { Country = value };
+        await LocationChanged.InvokeAsync(Location);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        _dotNetRef?.Dispose();
+        try
+        {
+            await JS.InvokeVoidAsync("leafletInterop.disposeMap", MapId);
+        }
+        catch { }
+    }
+    
+    // Helper classes for geocoding
+    private class SearchResult
+    {
+        public double Lat { get; set; }
+        public double Lon { get; set; }
+        public string? DisplayName { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Country { get; set; }
+    }
+    
+    private class ReverseGeocodeResult
+    {
+        public string? DisplayName { get; set; }
+        public string? City { get; set; }
+        public string? Town { get; set; }
+        public string? Village { get; set; }
+        public string? State { get; set; }
+        public string? Country { get; set; }
+    }
+}

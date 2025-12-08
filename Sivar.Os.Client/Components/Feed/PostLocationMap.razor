@@ -1,0 +1,208 @@
+@*
+    PostLocationMap.razor - Displays a location map within a post card
+    Used for BusinessLocation posts and any post with location data
+    Uses static map image to avoid Leaflet overflow issues in cards
+*@
+
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+
+<div class="post-location-map-wrapper">
+    @if (!_isExpanded && !ExpandedByDefault)
+    {
+        <!-- Collapsed state - show button to expand -->
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Primary" 
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Map"
+                   OnClick="ToggleExpanded"
+                   Class="show-map-button">
+            @Localizer["ShowMap"]
+        </MudButton>
+    }
+    else
+    {
+        <!-- Expanded state - show static map image -->
+        <div class="post-map-container">
+            <div class="map-header">
+                <div class="location-info">
+                    @if (!string.IsNullOrEmpty(LocationDisplayText))
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Primary" />
+                        <span class="location-text">@LocationDisplayText</span>
+                    }
+                </div>
+                @if (!ExpandedByDefault)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                   Size="Size.Small" 
+                                   OnClick="ToggleExpanded"
+                                   Title="@Localizer["HideMap"]" />
+                }
+            </div>
+
+            <!-- OpenStreetMap embed iframe - clean static map view -->
+            <div class="static-map-container" style="height: @(Height)px;">
+                <iframe 
+                    class="map-iframe"
+                    src="@_embedMapUrl"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="@Localizer["MapOf"] @LocationDisplayText">
+                </iframe>
+                <!-- Click overlay to open full map -->
+                <a href="@_openStreetMapUrl" target="_blank" class="map-click-overlay" title="@Localizer["OpenInMaps"]">
+                    <div class="map-overlay-hint">
+                        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" />
+                        <span>@Localizer["ClickToOpenMap"]</span>
+                    </div>
+                </a>
+            </div>
+
+            @if (ShowDirectionsLink)
+            {
+                <div class="map-actions">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Directions"
+                               Href="@_directionsUrl"
+                               Target="_blank"
+                               Class="directions-button">
+                        @Localizer["GetDirections"]
+                    </MudButton>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] private Microsoft.Extensions.Localization.IStringLocalizer<PostLocationMap> Localizer { get; set; } = null!;
+
+    /// <summary>
+    /// The post to display location for
+    /// </summary>
+    [Parameter, EditorRequired] public PostDto Post { get; set; } = null!;
+
+    /// <summary>
+    /// Whether to show "Get Directions" link
+    /// </summary>
+    [Parameter] public bool ShowDirectionsLink { get; set; } = true;
+
+    /// <summary>
+    /// Whether map is expanded by default (vs. collapsed with "Show Map" button)
+    /// </summary>
+    [Parameter] public bool ExpandedByDefault { get; set; } = false;
+
+    /// <summary>
+    /// Height of the map in pixels
+    /// </summary>
+    [Parameter] public int Height { get; set; } = 200;
+    
+    /// <summary>
+    /// Width of the static map image (will stretch to container)
+    /// </summary>
+    [Parameter] public int StaticMapWidth { get; set; } = 600;
+
+    private bool _isExpanded = false;
+    private double _latitude = 0;
+    private double _longitude = 0;
+    private string _markerPopup = "";
+    private string _iconType = "Default";
+    private string _directionsUrl = "";
+    private string _embedMapUrl = "";
+    private string _openStreetMapUrl = "";
+
+    protected override void OnParametersSet()
+    {
+        if (Post?.Location != null)
+        {
+            _latitude = Post.Location.Latitude ?? 0;
+            _longitude = Post.Location.Longitude ?? 0;
+            
+            // Build marker popup
+            _markerPopup = BuildPopupContent();
+            
+            // Determine icon type from BusinessLocationType if available
+            _iconType = DetermineIconType();
+            
+            // Build directions URL (Google Maps)
+            var latStr = _latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var lngStr = _longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            _directionsUrl = $"https://www.google.com/maps/dir/?api=1&destination={latStr},{lngStr}";
+            
+            // OpenStreetMap embed URL (works like Google Maps embed)
+            // Format: https://www.openstreetmap.org/export/embed.html?bbox=lng1,lat1,lng2,lat2&layer=mapnik&marker=lat,lng
+            var bboxOffset = 0.005; // Small bbox around the point
+            _embedMapUrl = $"https://www.openstreetmap.org/export/embed.html?" +
+                $"bbox={(_longitude - bboxOffset).ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
+                $"{(_latitude - bboxOffset).ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
+                $"{(_longitude + bboxOffset).ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
+                $"{(_latitude + bboxOffset).ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+                $"&layer=mapnik" +
+                $"&marker={latStr},{lngStr}";
+            
+            // OpenStreetMap link for click-through
+            _openStreetMapUrl = $"https://www.openstreetmap.org/?mlat={latStr}&mlon={lngStr}#map=15/{latStr}/{lngStr}";
+        }
+
+        _isExpanded = ExpandedByDefault;
+    }
+    private string BuildPopupContent()
+    {
+        var parts = new List<string>();
+
+        // Use content preview as title (first 50 chars)
+        var contentPreview = GetContentPreview();
+        if (!string.IsNullOrEmpty(contentPreview))
+        {
+            parts.Add($"<strong>{System.Web.HttpUtility.HtmlEncode(contentPreview)}</strong>");
+        }
+
+        if (Post.Location != null)
+        {
+            var address = FormatAddress(Post.Location);
+            if (!string.IsNullOrEmpty(address))
+            {
+                parts.Add($"<small>📍 {System.Web.HttpUtility.HtmlEncode(address)}</small>");
+            }
+        }
+
+        return string.Join("<br>", parts);
+    }
+
+    private string GetContentPreview()
+    {
+        if (string.IsNullOrEmpty(Post?.Content)) return "";
+        return Post.Content.Length > 50 ? Post.Content.Substring(0, 50) + "..." : Post.Content;
+    }
+
+    private string DetermineIconType()
+    {
+        // TODO: Parse BusinessMetadata to get BusinessLocationType
+        // For now, use default
+        return Post.PostType == PostType.BusinessLocation ? "MainOffice" : "Default";
+    }
+
+    private string FormatAddress(LocationDto location)
+    {
+        var parts = new List<string>();
+        
+        if (!string.IsNullOrEmpty(location.City))
+            parts.Add(location.City);
+        if (!string.IsNullOrEmpty(location.State))
+            parts.Add(location.State);
+        if (!string.IsNullOrEmpty(location.Country))
+            parts.Add(location.Country);
+
+        return string.Join(", ", parts);
+    }
+
+    private string LocationDisplayText => Post?.Location != null ? FormatAddress(Post.Location) : "";
+
+    private void ToggleExpanded()
+    {
+        _isExpanded = !_isExpanded;
+    }
+}

@@ -6,8 +6,11 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    /* Force clip content that escapes */
+    contain: content;
 }
 
 .post-content {

@@ -1,0 +1,232 @@
+@using MudBlazor
+@using Sivar.Os.Shared.Entities
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<WorkingHoursEditor> Localizer
+
+<div class="working-hours-editor">
+    <div class="editor-header">
+        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+        <span>@Localizer["WorkingHours"]</span>
+    </div>
+    
+    <div class="days-grid">
+        @foreach (var day in DayNames)
+        {
+            var schedule = GetDaySchedule(day.Key);
+            <div class="day-row @(schedule.IsClosed ? "closed" : "")">
+                <div class="day-name">@Localizer[day.Value]</div>
+                
+                <div class="day-closed">
+                    <MudCheckBox T="bool" 
+                                 Value="@schedule.IsClosed"
+                                 ValueChanged="@((bool val) => SetDayClosed(day.Key, val))"
+                                 Label="@Localizer["Closed"]"
+                                 Size="Size.Small"
+                                 Dense="true" />
+                </div>
+                
+                @if (!schedule.IsClosed)
+                {
+                    <div class="time-inputs">
+                        <div class="time-group">
+                            <MudTimePicker @bind-Time="@schedule.OpenTimeSpan"
+                                           Label="@Localizer["OpenTime"]"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AmPm="true" />
+                        </div>
+                        <span class="time-separator">-</span>
+                        <div class="time-group">
+                            <MudTimePicker @bind-Time="@schedule.CloseTimeSpan"
+                                           Label="@Localizer["CloseTime"]"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AmPm="true" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="closed-message">
+                        <MudText Typo="Typo.caption" Class="text-secondary">@Localizer["ClosedOnThisDay"]</MudText>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+    
+    @* Special Hours Note *@
+    <div class="special-hours">
+        <MudTextField @bind-Value="@WorkingHours.SpecialHoursNote"
+                      Label="@Localizer["SpecialHoursNote"]"
+                      Placeholder="@Localizer["SpecialHoursPlaceholder"]"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Lines="2"
+                      FullWidth="true" />
+    </div>
+    
+    @* Quick Actions *@
+    <div class="quick-actions">
+        <MudButton StartIcon="@Icons.Material.Filled.ContentCopy"
+                   Variant="Variant.Text"
+                   Size="Size.Small"
+                   OnClick="CopyMondayToWeekdays">
+            @Localizer["CopyMondayToWeekdays"]
+        </MudButton>
+        
+        <MudButton StartIcon="@Icons.Material.Filled.Clear"
+                   Variant="Variant.Text"
+                   Size="Size.Small"
+                   Color="Color.Warning"
+                   OnClick="ResetToDefaults">
+            @Localizer["ResetToDefaults"]
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Working hours value
+    /// </summary>
+    [Parameter]
+    public BusinessHours WorkingHours { get; set; } = new();
+    
+    /// <summary>
+    /// Callback when working hours change
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessHours> WorkingHoursChanged { get; set; }
+    
+    private static readonly Dictionary<DayOfWeek, string> DayNames = new()
+    {
+        { DayOfWeek.Monday, "Monday" },
+        { DayOfWeek.Tuesday, "Tuesday" },
+        { DayOfWeek.Wednesday, "Wednesday" },
+        { DayOfWeek.Thursday, "Thursday" },
+        { DayOfWeek.Friday, "Friday" },
+        { DayOfWeek.Saturday, "Saturday" },
+        { DayOfWeek.Sunday, "Sunday" }
+    };
+    
+    // Wrapper class to handle TimeSpan to TimeOnly conversion for MudTimePicker
+    private class DayScheduleWrapper
+    {
+        private DaySchedule _schedule;
+        
+        public DayScheduleWrapper(DaySchedule schedule)
+        {
+            _schedule = schedule;
+        }
+        
+        public bool IsClosed
+        {
+            get => _schedule.IsClosed;
+            set => _schedule.IsClosed = value;
+        }
+        
+        public TimeSpan? OpenTimeSpan
+        {
+            get => _schedule.OpenTime?.ToTimeSpan();
+            set => _schedule.OpenTime = value.HasValue ? TimeOnly.FromTimeSpan(value.Value) : null;
+        }
+        
+        public TimeSpan? CloseTimeSpan
+        {
+            get => _schedule.CloseTime?.ToTimeSpan();
+            set => _schedule.CloseTime = value.HasValue ? TimeOnly.FromTimeSpan(value.Value) : null;
+        }
+    }
+    
+    private Dictionary<DayOfWeek, DayScheduleWrapper> _scheduleWrappers = new();
+    
+    protected override void OnParametersSet()
+    {
+        WorkingHours ??= new BusinessHours();
+        
+        // Initialize wrappers
+        _scheduleWrappers[DayOfWeek.Monday] = new DayScheduleWrapper(WorkingHours.Monday ??= new());
+        _scheduleWrappers[DayOfWeek.Tuesday] = new DayScheduleWrapper(WorkingHours.Tuesday ??= new());
+        _scheduleWrappers[DayOfWeek.Wednesday] = new DayScheduleWrapper(WorkingHours.Wednesday ??= new());
+        _scheduleWrappers[DayOfWeek.Thursday] = new DayScheduleWrapper(WorkingHours.Thursday ??= new());
+        _scheduleWrappers[DayOfWeek.Friday] = new DayScheduleWrapper(WorkingHours.Friday ??= new());
+        _scheduleWrappers[DayOfWeek.Saturday] = new DayScheduleWrapper(WorkingHours.Saturday ??= new());
+        _scheduleWrappers[DayOfWeek.Sunday] = new DayScheduleWrapper(WorkingHours.Sunday ??= new());
+    }
+    
+    private DayScheduleWrapper GetDaySchedule(DayOfWeek day)
+    {
+        if (_scheduleWrappers.TryGetValue(day, out var wrapper))
+            return wrapper;
+        
+        return new DayScheduleWrapper(new DaySchedule());
+    }
+    
+    private async Task SetDayClosed(DayOfWeek day, bool isClosed)
+    {
+        var schedule = GetDaySchedule(day);
+        schedule.IsClosed = isClosed;
+        
+        await NotifyChanged();
+    }
+    
+    private async Task NotifyChanged()
+    {
+        await WorkingHoursChanged.InvokeAsync(WorkingHours);
+        StateHasChanged();
+    }
+    
+    private async Task CopyMondayToWeekdays()
+    {
+        var monday = WorkingHours.Monday ?? new DaySchedule();
+        
+        WorkingHours.Tuesday = new DaySchedule
+        {
+            IsClosed = monday.IsClosed,
+            OpenTime = monday.OpenTime,
+            CloseTime = monday.CloseTime
+        };
+        WorkingHours.Wednesday = new DaySchedule
+        {
+            IsClosed = monday.IsClosed,
+            OpenTime = monday.OpenTime,
+            CloseTime = monday.CloseTime
+        };
+        WorkingHours.Thursday = new DaySchedule
+        {
+            IsClosed = monday.IsClosed,
+            OpenTime = monday.OpenTime,
+            CloseTime = monday.CloseTime
+        };
+        WorkingHours.Friday = new DaySchedule
+        {
+            IsClosed = monday.IsClosed,
+            OpenTime = monday.OpenTime,
+            CloseTime = monday.CloseTime
+        };
+        
+        // Reinitialize wrappers
+        OnParametersSet();
+        await NotifyChanged();
+    }
+    
+    private async Task ResetToDefaults()
+    {
+        // Default: 9 AM - 5 PM weekdays, closed weekends
+        var defaultOpen = new TimeOnly(9, 0);
+        var defaultClose = new TimeOnly(17, 0);
+        
+        WorkingHours.Monday = new DaySchedule { OpenTime = defaultOpen, CloseTime = defaultClose };
+        WorkingHours.Tuesday = new DaySchedule { OpenTime = defaultOpen, CloseTime = defaultClose };
+        WorkingHours.Wednesday = new DaySchedule { OpenTime = defaultOpen, CloseTime = defaultClose };
+        WorkingHours.Thursday = new DaySchedule { OpenTime = defaultOpen, CloseTime = defaultClose };
+        WorkingHours.Friday = new DaySchedule { OpenTime = defaultOpen, CloseTime = defaultClose };
+        WorkingHours.Saturday = new DaySchedule { IsClosed = true };
+        WorkingHours.Sunday = new DaySchedule { IsClosed = true };
+        WorkingHours.SpecialHoursNote = null;
+        
+        // Reinitialize wrappers
+        OnParametersSet();
+        await NotifyChanged();
+    }
+}

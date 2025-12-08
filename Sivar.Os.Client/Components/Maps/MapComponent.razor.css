@@ -1,0 +1,114 @@
+/* MapComponent.razor.css - Styles for the base map component */
+
+.map-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* 
+   This is the key fix for Leaflet overflow issues.
+   Creating a new containing block with transform forces 
+   the browser to clip transformed children (Leaflet tiles).
+*/
+.map-clipper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* This transform creates a new containing block for positioned descendants */
+    transform: translateZ(0);
+    /* Backup: will-change also creates a new stacking context */
+    will-change: transform;
+}
+
+.map-container {
+    width: 100%;
+    z-index: 1;
+}
+
+.map-hidden {
+    visibility: hidden;
+}
+
+.map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.875rem;
+    z-index: 2;
+    border-radius: 8px;
+}
+
+/* Ensure Leaflet controls are visible */
+::deep .leaflet-control-container {
+    z-index: 10;
+}
+
+/* Custom popup styling */
+::deep .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
+}
+
+::deep .leaflet-popup-content {
+    margin: 12px 16px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+::deep .leaflet-popup-content-inner {
+    max-width: 250px;
+}
+
+::deep .leaflet-popup-content-inner strong {
+    font-size: 1rem;
+    color: var(--mud-palette-text-primary);
+}
+
+::deep .leaflet-popup-content-inner small {
+    color: var(--mud-palette-text-secondary);
+}
+
+::deep .directions-link {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: var(--mud-palette-primary);
+    color: white !important;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+::deep .directions-link:hover {
+    background: var(--mud-palette-primary-darken);
+}
+
+/* Fix Leaflet attribution text */
+::deep .leaflet-control-attribution {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .map-wrapper {
+        border-radius: 0;
+    }
+    
+    ::deep .leaflet-popup-content-inner {
+        max-width: 200px;
+    }
+}

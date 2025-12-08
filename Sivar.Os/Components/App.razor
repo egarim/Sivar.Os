@@ -7,6 +7,10 @@
     <base href="/" />  
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href=@Assets["_content/MudBlazor/MudBlazor.min.css"] rel="stylesheet" />
+    <!-- Leaflet.js CSS for interactive maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
     <link href="_content/PSC.Blazor.Components.MarkdownEditor/css/easymde.min.css" rel="stylesheet" />
     <link href="_content/PSC.Blazor.Components.MarkdownEditor/css/markdowneditor.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
@@ -45,6 +49,12 @@
     </script>
     <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
+    <!-- Leaflet.js for interactive maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <!-- Leaflet JavaScript interop for Blazor -->
+    <script src="js/leaflet-interop.js"></script>
     <script src="_content/PSC.Blazor.Components.MarkdownEditor/js/easymde.min.js"></script>
     <script src="_content/PSC.Blazor.Components.MarkdownEditor/js/markdownEditor.js"></script>
     

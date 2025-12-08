@@ -1,0 +1,250 @@
+@* 
+    MapComponent.razor - Base reusable Leaflet map component
+    Displays an interactive map with optional markers
+*@
+
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="map-wrapper @CssClass">
+    @if (_isLoading)
+    {
+        <div class="map-loading">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+            <span>Loading map...</span>
+        </div>
+    }
+    <div class="map-clipper">
+        <div id="@_mapId" 
+             class="map-container @(_isLoading ? "map-hidden" : "")" 
+             style="height: @(Height)px;">
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Center latitude of the map
+    /// </summary>
+    [Parameter] public double Latitude { get; set; } = 40.7128;
+
+    /// <summary>
+    /// Center longitude of the map
+    /// </summary>
+    [Parameter] public double Longitude { get; set; } = -74.0060;
+
+    /// <summary>
+    /// Initial zoom level (1-18)
+    /// </summary>
+    [Parameter] public int Zoom { get; set; } = 13;
+
+    /// <summary>
+    /// Height of the map in pixels
+    /// </summary>
+    [Parameter] public int Height { get; set; } = 300;
+
+    /// <summary>
+    /// Whether to show a marker at the center location
+    /// </summary>
+    [Parameter] public bool ShowMarker { get; set; } = true;
+
+    /// <summary>
+    /// Popup content for the marker (HTML allowed)
+    /// </summary>
+    [Parameter] public string? MarkerPopup { get; set; }
+
+    /// <summary>
+    /// Marker icon type (MainOffice, CustomerBranch, RetailStore, etc.)
+    /// </summary>
+    [Parameter] public string? MarkerIconType { get; set; }
+
+    /// <summary>
+    /// Whether the marker is draggable
+    /// </summary>
+    [Parameter] public bool MarkerDraggable { get; set; } = false;
+
+    /// <summary>
+    /// Whether to enable scroll wheel zoom
+    /// </summary>
+    [Parameter] public bool ScrollWheelZoom { get; set; } = true;
+
+    /// <summary>
+    /// Additional CSS class for the wrapper
+    /// </summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Callback when map is clicked (returns lat, lng)
+    /// </summary>
+    [Parameter] public EventCallback<(double Lat, double Lng)> OnMapClick { get; set; }
+
+    /// <summary>
+    /// Callback when marker is dragged (returns new lat, lng)
+    /// </summary>
+    [Parameter] public EventCallback<(double Lat, double Lng)> OnMarkerDragEnd { get; set; }
+
+    private readonly string _mapId = $"map-{Guid.NewGuid():N}";
+    private bool _isLoading = true;
+    private bool _isInitialized = false;
+    private DotNetObjectReference<MapComponent>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeMapAsync();
+        }
+    }
+
+    private async Task InitializeMapAsync()
+    {
+        try
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+            var options = new
+            {
+                scrollWheelZoom = ScrollWheelZoom,
+                dragging = true,
+                zoomControl = true
+            };
+
+            // Initialize the map
+            var success = await JS.InvokeAsync<bool>(
+                "initializeMap",
+                _mapId,
+                Latitude,
+                Longitude,
+                Zoom,
+                options,
+                _dotNetRef
+            );
+
+            if (success)
+            {
+                _isInitialized = true;
+
+                // Add marker if requested
+                if (ShowMarker)
+                {
+                    await AddMarkerAsync();
+                }
+
+                // Enable click events if handler is set
+                if (OnMapClick.HasDelegate)
+                {
+                    await JS.InvokeVoidAsync("enableLocationPicking", _mapId);
+                }
+                
+                // Invalidate size after a short delay to ensure proper rendering
+                await Task.Delay(150);
+                await JS.InvokeVoidAsync("leafletInterop.invalidateSize", _mapId);
+            }
+
+            _isLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MapComponent] Error initializing map: {ex.Message}");
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddMarkerAsync()
+    {
+        if (!_isInitialized) return;
+
+        var markerOptions = new
+        {
+            title = "",
+            popup = MarkerPopup ?? "",
+            openPopup = !string.IsNullOrEmpty(MarkerPopup),
+            draggable = MarkerDraggable,
+            iconType = MarkerIconType ?? "Default"
+        };
+
+        await JS.InvokeVoidAsync("addMapMarker", _mapId, Latitude, Longitude, markerOptions);
+    }
+
+    /// <summary>
+    /// Update the map center and marker position
+    /// </summary>
+    public async Task UpdatePositionAsync(double latitude, double longitude)
+    {
+        if (!_isInitialized) return;
+
+        Latitude = latitude;
+        Longitude = longitude;
+
+        await JS.InvokeVoidAsync("updateMapMarker", _mapId, latitude, longitude, true);
+    }
+
+    /// <summary>
+    /// Set map view without moving marker
+    /// </summary>
+    public async Task SetViewAsync(double latitude, double longitude, int? zoom = null)
+    {
+        if (!_isInitialized) return;
+
+        await JS.InvokeVoidAsync("setMapView", _mapId, latitude, longitude, zoom);
+    }
+
+    /// <summary>
+    /// Refresh map size (call after container resize)
+    /// </summary>
+    public async Task InvalidateSizeAsync()
+    {
+        if (!_isInitialized) return;
+
+        await JS.InvokeVoidAsync("invalidateMapSize", _mapId);
+    }
+
+    /// <summary>
+    /// Called from JavaScript when map is clicked
+    /// </summary>
+    [JSInvokable]
+    public async Task OnMapClickCallback(double lat, double lng)
+    {
+        if (OnMapClick.HasDelegate)
+        {
+            await OnMapClick.InvokeAsync((lat, lng));
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript when marker drag ends
+    /// </summary>
+    [JSInvokable]
+    public async Task OnMarkerDragEndCallback(double lat, double lng)
+    {
+        Latitude = lat;
+        Longitude = lng;
+
+        if (OnMarkerDragEnd.HasDelegate)
+        {
+            await OnMarkerDragEnd.InvokeAsync((lat, lng));
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_isInitialized)
+            {
+                await JS.InvokeVoidAsync("destroyMap", _mapId);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected, ignore
+        }
+        finally
+        {
+            _dotNetRef?.Dispose();
+        }
+    }
+}

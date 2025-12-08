@@ -291,3 +291,77 @@
         font-size: 13px;
     }
 }
+
+/* BusinessLocation Form Styles */
+.businesslocation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: var(--mud-palette-background-grey, #f5f8fa);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.businesslocation-form .form-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary, #14171a);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}
+
+.businesslocation-form .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary, #14171a);
+    margin-bottom: 12px;
+}
+
+.businesslocation-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.businesslocation-form .contact-section,
+.businesslocation-form .service-options {
+    padding: 12px;
+    background: var(--mud-palette-surface, #ffffff);
+    border-radius: 8px;
+    border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}
+
+.businesslocation-form .options-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.businesslocation-form .working-hours-section {
+    margin-top: 8px;
+}
+
+.businesslocation-form .select-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Responsive adjustments for BusinessLocation form */
+@media (max-width: 600px) {
+    .businesslocation-form .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .businesslocation-form .options-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+}

@@ -1,5 +1,6 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
 @using Microsoft.Extensions.Logging
 @using Microsoft.Extensions.Localization
 @using MudBlazor
@@ -84,6 +85,14 @@
     {
         Logger.LogWarning("[PostCard] No attachments found for Post {PostId}, Attachments is {IsNull}", 
             Post.Id, Post.Attachments == null ? "NULL" : "EMPTY");
+    }
+
+    @* Display location map for BusinessLocation posts or posts with coordinates *@
+    @if (HasLocationData())
+    {
+        <PostLocationMap Post="@Post" 
+                         ExpandedByDefault="@(Post.PostType == PostType.BusinessLocation)"
+                         ShowDirectionsLink="true" />
     }
 
     <PostReactions ReactionSummary="@Post.ReactionSummary" />
@@ -290,5 +299,19 @@
     {
         Post = Post with { CommentCount = Post.CommentCount + 1 };
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Check if the post has location data that can be displayed on a map
+    /// </summary>
+    private bool HasLocationData()
+    {
+        // Check if post has valid coordinates
+        if (Post?.Location == null) return false;
+        
+        return Post.Location.Latitude.HasValue && 
+               Post.Location.Longitude.HasValue &&
+               Post.Location.Latitude.Value != 0 &&
+               Post.Location.Longitude.Value != 0;
     }
 }

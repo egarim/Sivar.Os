@@ -446,6 +446,7 @@ public class PricingInformation
 public class BusinessLocationMetadata
 {
     public BusinessLocationType LocationType { get; set; }
+    public string? Description { get; set; }
     public string? ContactPhone { get; set; }
     public string? ContactEmail { get; set; }
     public bool AcceptsWalkIns { get; set; } = true;
