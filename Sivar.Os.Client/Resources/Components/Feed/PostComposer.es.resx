@@ -292,4 +292,27 @@
     <value>Información de parqueo, instrucciones de entrada, etc.</value>
     <comment>Placeholder for special instructions</comment>
   </data>
+  
+  <!-- Working Hours -->
+  <data name="NoWorkingHoursSet" xml:space="preserve">
+    <value>Sin horario definido (opcional)</value>
+  </data>
+  <data name="SetWorkingHours" xml:space="preserve">
+    <value>Definir Horario</value>
+  </data>
+  <data name="EditHours" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="ClearHours" xml:space="preserve">
+    <value>Limpiar horario</value>
+  </data>
+  <data name="MonFriShort" xml:space="preserve">
+    <value>Lun-Vie</value>
+  </data>
+  <data name="OpenEveryDay" xml:space="preserve">
+    <value>Abierto todos los días</value>
+  </data>
+  <data name="CustomHours" xml:space="preserve">
+    <value>Abierto {0} días/semana</value>
+  </data>
 </root>

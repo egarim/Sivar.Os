@@ -292,4 +292,27 @@
     <value>Parking info, entry instructions, etc.</value>
     <comment>Placeholder for special instructions</comment>
   </data>
+  
+  <!-- Working Hours -->
+  <data name="NoWorkingHoursSet" xml:space="preserve">
+    <value>No working hours set (optional)</value>
+  </data>
+  <data name="SetWorkingHours" xml:space="preserve">
+    <value>Set Hours</value>
+  </data>
+  <data name="EditHours" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="ClearHours" xml:space="preserve">
+    <value>Clear working hours</value>
+  </data>
+  <data name="MonFriShort" xml:space="preserve">
+    <value>Mon-Fri</value>
+  </data>
+  <data name="OpenEveryDay" xml:space="preserve">
+    <value>Open every day</value>
+  </data>
+  <data name="CustomHours" xml:space="preserve">
+    <value>Open {0} days/week</value>
+  </data>
 </root>

@@ -348,6 +348,44 @@
     margin-top: 8px;
 }
 
+.working-hours-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--mud-palette-background-gray);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    gap: 12px;
+}
+
+.working-hours-summary .hours-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.working-hours-summary .hours-text {
+    font-size: 0.875rem;
+    color: var(--mud-palette-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.working-hours-summary .hours-text.text-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+
+.working-hours-summary .hours-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
 .businesslocation-form .select-item {
     display: flex;
     align-items: center;

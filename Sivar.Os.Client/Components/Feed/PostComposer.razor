@@ -17,6 +17,7 @@
 @inject IJSRuntime JS
 @inject ISivarClient SivarClient
 @inject IImageCompressionService ImageCompression
+@inject IDialogService DialogService
 
 @* PostComposer component for creating new posts *@
 
@@ -197,10 +198,46 @@
                 </div>
             </div>
             
-            @* Working Hours *@
+            @* Working Hours (Optional - Modal) *@
             <div class="working-hours-section">
-                <WorkingHoursEditor WorkingHours="@BusinessWorkingHours"
-                                    WorkingHoursChanged="@OnBusinessWorkingHoursChanged" />
+                <div class="working-hours-summary">
+                    <div class="hours-info">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                        @if (HasWorkingHours())
+                        {
+                            <span class="hours-text">@GetWorkingHoursSummary()</span>
+                        }
+                        else
+                        {
+                            <span class="hours-text text-secondary">@Localizer["NoWorkingHoursSet"]</span>
+                        }
+                    </div>
+                    <div class="hours-actions">
+                        @if (HasWorkingHours())
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="OpenWorkingHoursDialog">
+                                @Localizer["EditHours"]
+                            </MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.Clear"
+                                           Size="Size.Small"
+                                           Color="Color.Warning"
+                                           Title="@Localizer["ClearHours"]"
+                                           OnClick="ClearWorkingHours" />
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Schedule"
+                                       OnClick="OpenWorkingHoursDialog">
+                                @Localizer["SetWorkingHours"]
+                            </MudButton>
+                        }
+                    </div>
+                </div>
             </div>
             
             @* Special Instructions *@
@@ -1096,6 +1133,116 @@
     {
         BusinessWorkingHours = value;
         await SyncBusinessLocationToParent();
+    }
+    
+    private async Task OpenWorkingHoursDialog()
+    {
+        var parameters = new DialogParameters<WorkingHoursDialog>
+        {
+            { x => x.WorkingHours, BusinessWorkingHours }
+        };
+        
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<WorkingHoursDialog>(
+            Localizer["SetWorkingHours"], 
+            parameters, 
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is BusinessHours hours)
+        {
+            BusinessWorkingHours = hours;
+            await SyncBusinessLocationToParent();
+            StateHasChanged();
+        }
+        else if (!result.Canceled && result.Data == null)
+        {
+            // User clicked "Remove Hours"
+            BusinessWorkingHours = new BusinessHours();
+            await SyncBusinessLocationToParent();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ClearWorkingHours()
+    {
+        BusinessWorkingHours = new BusinessHours();
+        await SyncBusinessLocationToParent();
+        StateHasChanged();
+    }
+    
+    private bool HasWorkingHours()
+    {
+        if (BusinessWorkingHours == null) return false;
+        
+        // Check if any day has hours set
+        return HasDaySchedule(BusinessWorkingHours.Monday) ||
+               HasDaySchedule(BusinessWorkingHours.Tuesday) ||
+               HasDaySchedule(BusinessWorkingHours.Wednesday) ||
+               HasDaySchedule(BusinessWorkingHours.Thursday) ||
+               HasDaySchedule(BusinessWorkingHours.Friday) ||
+               HasDaySchedule(BusinessWorkingHours.Saturday) ||
+               HasDaySchedule(BusinessWorkingHours.Sunday);
+    }
+    
+    private bool HasDaySchedule(DaySchedule? schedule)
+    {
+        if (schedule == null) return false;
+        return schedule.IsClosed || schedule.OpenTime.HasValue || schedule.CloseTime.HasValue;
+    }
+    
+    private string GetWorkingHoursSummary()
+    {
+        if (BusinessWorkingHours == null) return string.Empty;
+        
+        // Check for common patterns
+        var weekdays = new[] 
+        { 
+            BusinessWorkingHours.Monday, 
+            BusinessWorkingHours.Tuesday, 
+            BusinessWorkingHours.Wednesday, 
+            BusinessWorkingHours.Thursday, 
+            BusinessWorkingHours.Friday 
+        };
+        var weekend = new[] { BusinessWorkingHours.Saturday, BusinessWorkingHours.Sunday };
+        
+        // Check if all weekdays have same hours
+        var weekdayOpen = weekdays.FirstOrDefault(d => d?.OpenTime != null)?.OpenTime;
+        var weekdayClose = weekdays.FirstOrDefault(d => d?.CloseTime != null)?.CloseTime;
+        var allWeekdaysSame = weekdays.All(d => 
+            (d == null || (!d.IsClosed && d.OpenTime == weekdayOpen && d.CloseTime == weekdayClose)) ||
+            (d?.IsClosed == true && weekdays.All(wd => wd?.IsClosed == true)));
+        
+        var weekendsClosed = weekend.All(d => d?.IsClosed == true);
+        
+        if (allWeekdaysSame && weekdayOpen.HasValue && weekdayClose.HasValue && weekendsClosed)
+        {
+            return $"{Localizer["MonFriShort"]} {weekdayOpen.Value:h\\:mm tt} - {weekdayClose.Value:h\\:mm tt}";
+        }
+        
+        // Count open days
+        var openDays = 0;
+        if (BusinessWorkingHours.Monday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Tuesday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Wednesday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Thursday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Friday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Saturday?.IsClosed != true) openDays++;
+        if (BusinessWorkingHours.Sunday?.IsClosed != true) openDays++;
+        
+        if (openDays == 7)
+        {
+            return Localizer["OpenEveryDay"];
+        }
+        
+        return Localizer["CustomHours", openDays];
     }
     
     private async Task OnBusinessSpecialInstructionsChanged(string value)

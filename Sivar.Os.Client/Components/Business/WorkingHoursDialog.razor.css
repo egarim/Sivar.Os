@@ -1,0 +1,151 @@
+/* WorkingHoursDialog.razor.css - Styles for working hours modal dialog */
+
+.dialog-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.working-hours-dialog-content {
+    min-width: 400px;
+    max-width: 500px;
+}
+
+/* Presets section */
+.presets-section {
+    margin-bottom: 8px;
+}
+
+.presets-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.presets-grid .mud-button-root {
+    font-size: 0.75rem;
+}
+
+/* Same hours toggle */
+.same-hours-toggle {
+    background: var(--mud-palette-background-gray);
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+/* Uniform hours section */
+.uniform-hours {
+    padding: 12px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+}
+
+.time-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.time-row .mud-picker {
+    flex: 1;
+}
+
+.time-separator {
+    color: var(--mud-palette-text-secondary);
+    font-weight: 500;
+}
+
+/* Closed days chips */
+.closed-days-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.day-chip {
+    cursor: pointer;
+    min-width: 40px;
+    justify-content: center;
+}
+
+/* Days grid for individual schedule */
+.days-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.day-row {
+    display: grid;
+    grid-template-columns: 50px 100px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    min-height: 48px;
+}
+
+.day-row.closed {
+    background: var(--mud-palette-background-gray);
+    opacity: 0.8;
+}
+
+.day-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-primary);
+}
+
+.closed-checkbox {
+    margin: 0;
+}
+
+.time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-picker {
+    max-width: 110px;
+}
+
+.time-sep {
+    color: var(--mud-palette-text-secondary);
+}
+
+.closed-label {
+    color: var(--mud-palette-text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .working-hours-dialog-content {
+        min-width: 100%;
+    }
+    
+    .day-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    
+    .time-inputs {
+        width: 100%;
+    }
+    
+    .time-picker {
+        max-width: none;
+        flex: 1;
+    }
+    
+    .presets-grid {
+        flex-direction: column;
+    }
+    
+    .presets-grid .mud-button-root {
+        width: 100%;
+    }
+}

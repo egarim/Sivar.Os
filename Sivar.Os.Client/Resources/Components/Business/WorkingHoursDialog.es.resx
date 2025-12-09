@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="WorkingHoursTitle" xml:space="preserve">
+    <value>Configurar Horario de Atención</value>
+  </data>
+  <data name="QuickPresets" xml:space="preserve">
+    <value>Presets Rápidos</value>
+  </data>
+  <data name="MonFri9to5" xml:space="preserve">
+    <value>Lun-Vie 9-5</value>
+  </data>
+  <data name="Open24_7" xml:space="preserve">
+    <value>Abierto 24/7</value>
+  </data>
+  <data name="WeekendsOnly" xml:space="preserve">
+    <value>Solo Fines de Semana</value>
+  </data>
+  <data name="ClearAll" xml:space="preserve">
+    <value>Limpiar Todo</value>
+  </data>
+  <data name="SameHoursEveryDay" xml:space="preserve">
+    <value>Mismo horario todos los días</value>
+  </data>
+  <data name="OpenTime" xml:space="preserve">
+    <value>Abre</value>
+  </data>
+  <data name="CloseTime" xml:space="preserve">
+    <value>Cierra</value>
+  </data>
+  <data name="ClosedDays" xml:space="preserve">
+    <value>Seleccionar días cerrados:</value>
+  </data>
+  <data name="MondayShort" xml:space="preserve">
+    <value>Lun</value>
+  </data>
+  <data name="TuesdayShort" xml:space="preserve">
+    <value>Mar</value>
+  </data>
+  <data name="WednesdayShort" xml:space="preserve">
+    <value>Mié</value>
+  </data>
+  <data name="ThursdayShort" xml:space="preserve">
+    <value>Jue</value>
+  </data>
+  <data name="FridayShort" xml:space="preserve">
+    <value>Vie</value>
+  </data>
+  <data name="SaturdayShort" xml:space="preserve">
+    <value>Sáb</value>
+  </data>
+  <data name="SundayShort" xml:space="preserve">
+    <value>Dom</value>
+  </data>
+  <data name="Closed" xml:space="preserve">
+    <value>Cerrado</value>
+  </data>
+  <data name="ClosedOnThisDay" xml:space="preserve">
+    <value>Cerrado este día</value>
+  </data>
+  <data name="SpecialHoursNote" xml:space="preserve">
+    <value>Nota de horarios especiales (opcional)</value>
+  </data>
+  <data name="SpecialHoursPlaceholder" xml:space="preserve">
+    <value>Ej: Cerrado en días festivos, horario extendido en diciembre...</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="RemoveHours" xml:space="preserve">
+    <value>Eliminar Horario</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+</root>
