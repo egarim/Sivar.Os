@@ -15,6 +15,10 @@
     border-radius: 8px;
     overflow: hidden;
     background: var(--mud-palette-surface);
+    /* Isolate this container to prevent overflow from children */
+    isolation: isolate;
+    position: relative;
+    z-index: 1;
 }
 
 /* Static map styles */
@@ -22,7 +26,7 @@
     position: relative;
     overflow: hidden;
     background: var(--mud-palette-background-gray);
-    border-radius: 8px;
+    /* Remove border-radius here - parent handles it */
 }
 
 /* OpenStreetMap embed iframe */
@@ -30,11 +34,11 @@
     width: 100%;
     height: 100%;
     border: none;
-    border-radius: 8px;
     pointer-events: none; /* Disable interaction - click overlay instead */
+    display: block; /* Remove inline spacing */
 }
 
-/* Full map click overlay */
+/* Full map click overlay - invisible, just makes map clickable */
 .map-click-overlay {
     position: absolute;
     top: 0;
@@ -42,51 +46,22 @@
     right: 0;
     bottom: 0;
     z-index: 10;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    padding: 8px;
-    text-decoration: none;
     cursor: pointer;
 }
 
-.map-overlay-hint {
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+.map-actions {
     display: flex;
+    justify-content: flex-start;
     align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.map-click-overlay:hover .map-overlay-hint {
-    opacity: 1;
-}
-
-.map-click-overlay:focus .map-overlay-hint {
-    opacity: 1;
-}
-
-/* Fallback placeholder when static map fails to load */
-.map-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--mud-palette-background-gray) 0%, var(--mud-palette-surface) 100%);
     gap: 8px;
+    padding: 4px 8px;
+    background: var(--mud-palette-surface);
+    border-top: 1px solid var(--mud-palette-lines-default);
 }
 
-.placeholder-coords {
-    font-size: 0.875rem;
-    color: var(--mud-palette-text-secondary);
-    font-family: monospace;
+.directions-button,
+.open-map-button {
+    font-size: 0.75rem;
 }
 
 .map-header {
@@ -112,18 +87,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.map-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding: 8px 12px;
-    background: var(--mud-palette-surface);
-    border-top: 1px solid var(--mud-palette-lines-default);
-}
-
-.directions-button {
-    font-size: 0.75rem;
 }
 
 /* Mobile adjustments */

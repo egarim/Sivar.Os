@@ -50,19 +50,15 @@
                     referrerpolicy="no-referrer-when-downgrade"
                     title="@Localizer["MapOf"] @LocationDisplayText">
                 </iframe>
-                <!-- Click overlay to open full map -->
+                <!-- Invisible click overlay to open full map -->
                 <a href="@_openStreetMapUrl" target="_blank" class="map-click-overlay" title="@Localizer["OpenInMaps"]">
-                    <div class="map-overlay-hint">
-                        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" />
-                        <span>@Localizer["ClickToOpenMap"]</span>
-                    </div>
                 </a>
             </div>
 
-            @if (ShowDirectionsLink)
-            {
-                <div class="map-actions">
-                    <MudButton Variant="Variant.Outlined"
+            <div class="map-actions">
+                @if (ShowDirectionsLink)
+                {
+                    <MudButton Variant="Variant.Text"
                                Color="Color.Primary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Directions"
@@ -71,8 +67,17 @@
                                Class="directions-button">
                         @Localizer["GetDirections"]
                     </MudButton>
-                </div>
-            }
+                }
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.OpenInNew"
+                           Href="@_openStreetMapUrl"
+                           Target="_blank"
+                           Class="open-map-button">
+                    @Localizer["ClickToOpenMap"]
+                </MudButton>
+            </div>
         </div>
     }
 </div>
