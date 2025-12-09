@@ -2,29 +2,35 @@ using System.ComponentModel;
 using System.Text.Json;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
+using Sivar.Os.Shared.Services;
 
 namespace Sivar.Os.Services;
 
 /// <summary>
-/// Service that provides AI-callable functions for social platform actions
+/// Service that provides AI-callable functions for social platform actions.
+/// Includes PostGIS-powered spatial search for nearby profiles and posts.
 /// </summary>
 public class ChatFunctionService
 {
     private readonly IProfileRepository _profileRepository;
     private readonly IPostRepository _postRepository;
     private readonly IProfileFollowerRepository _followerRepository;
+    private readonly ILocationService _locationService;
     private readonly ILogger<ChatFunctionService> _logger;
     private Guid _currentProfileId; // Set before each AI call
+    private (double Latitude, double Longitude)? _currentLocation; // Optional user location context
 
     public ChatFunctionService(
         IProfileRepository profileRepository,
         IPostRepository postRepository,
         IProfileFollowerRepository followerRepository,
+        ILocationService locationService,
         ILogger<ChatFunctionService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _followerRepository = followerRepository ?? throw new ArgumentNullException(nameof(followerRepository));
+        _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -55,6 +61,25 @@ public class ChatFunctionService
             _logger.LogError(ex, "[ChatFunctionService.SetCurrentProfile] EXCEPTION - RequestId={RequestId}, ExceptionType={ExceptionType}",
                 requestId, ex.GetType().Name);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Set the current user's location for proximity-aware searches.
+    /// When set, searches can prioritize nearby results and show distances.
+    /// </summary>
+    public void SetCurrentLocation(double? latitude, double? longitude)
+    {
+        if (latitude.HasValue && longitude.HasValue)
+        {
+            _currentLocation = (latitude.Value, longitude.Value);
+            _logger.LogInformation("[ChatFunctionService.SetCurrentLocation] Location set - Lat={Lat}, Lng={Lng}",
+                latitude, longitude);
+        }
+        else
+        {
+            _currentLocation = null;
+            _logger.LogInformation("[ChatFunctionService.SetCurrentLocation] Location cleared");
         }
     }
 
@@ -141,52 +166,97 @@ public class ChatFunctionService
     }
 
     /// <summary>
-    /// Search for posts by content or author
+    /// Search for posts by content, author, or location
     /// </summary>
-    [Description("Search for posts on the social network. Returns posts matching the search query.")]
+    [Description("Search for posts on the social network. Searches content, author names, and location (city/country). Use this for queries like 'pizzerias in San Salvador' or 'events near downtown'.")]
     public async Task<string> SearchPosts(
-        [Description("The search query - can be post content keywords or author name")]
+        [Description("Search keywords - can be post content, business name, or type of place")]
         string query,
-        [Description("Maximum number of results to return (default 5, max 10)")]
-        int maxResults = 5)
+        [Description("Optional: filter by city name (e.g., 'San Salvador')")]
+        string? city = null,
+        [Description("Optional: filter by country (e.g., 'El Salvador')")]
+        string? country = null,
+        [Description("Maximum number of results to return (default 10, max 20)")]
+        int maxResults = 10)
     {
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
-        _logger.LogInformation("[ChatFunctionService.SearchPosts] START - RequestId={RequestId}, Timestamp={Timestamp}, Query={Query}, MaxResults={MaxResults}",
-            requestId, startTime, query, maxResults);
+        _logger.LogInformation("[ChatFunctionService.SearchPosts] START - RequestId={RequestId}, Query={Query}, City={City}, Country={Country}, MaxResults={MaxResults}",
+            requestId, query, city, country, maxResults);
 
         try
         {
             // Validate inputs
-            if (string.IsNullOrWhiteSpace(query))
+            if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(city) && string.IsNullOrWhiteSpace(country))
             {
-                _logger.LogError("[ChatFunctionService.SearchPosts] VALIDATION ERROR - RequestId={RequestId}, QueryNull=true",
+                _logger.LogError("[ChatFunctionService.SearchPosts] VALIDATION ERROR - RequestId={RequestId}, AllFieldsEmpty=true",
                     requestId);
-                throw new ArgumentException("Query cannot be null or empty", nameof(query));
+                return "Please provide at least a search query, city, or country to search.";
             }
 
-            _logger.LogInformation("AI searching for posts with query: {Query}", query);
-
             // Limit max results
-            maxResults = Math.Min(maxResults, 10);
+            maxResults = Math.Min(maxResults, 20);
 
-            // Get posts with profiles
+            // Get all posts
             var allPosts = await _postRepository.GetAllAsync();
             
             var matchingPosts = allPosts
-                .Where(p => !p.IsDeleted &&
-                    (p.Content.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                     p.Profile?.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) == true))
+                .Where(p => !p.IsDeleted)
+                .Where(p =>
+                {
+                    bool matches = false;
+
+                    // Match content or author if query provided
+                    if (!string.IsNullOrWhiteSpace(query))
+                    {
+                        matches = p.Content.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                                  p.Profile?.DisplayName?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+                        
+                        // Also check location fields for the query (e.g., "San Salvador" as query)
+                        if (!matches && p.Location != null)
+                        {
+                            matches = p.Location.City?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
+                                      p.Location.Country?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
+                                      p.Location.State?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+                        }
+                    }
+                    else
+                    {
+                        matches = true; // No query filter, will filter by location
+                    }
+
+                    // Apply city filter if provided
+                    if (!string.IsNullOrWhiteSpace(city) && matches)
+                    {
+                        matches = p.Location?.City?.Contains(city, StringComparison.OrdinalIgnoreCase) == true;
+                    }
+
+                    // Apply country filter if provided
+                    if (!string.IsNullOrWhiteSpace(country) && matches)
+                    {
+                        matches = p.Location?.Country?.Contains(country, StringComparison.OrdinalIgnoreCase) == true;
+                    }
+
+                    return matches;
+                })
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(maxResults)
                 .Select(p => new
                 {
                     id = p.Id,
-                    content = p.Content.Length > 150 ? p.Content.Substring(0, 150) + "..." : p.Content,
+                    content = p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
                     authorName = p.Profile?.DisplayName ?? "Unknown",
+                    authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
+                    postType = p.PostType.ToString(),
+                    location = p.Location != null ? new
+                    {
+                        city = p.Location.City,
+                        state = p.Location.State,
+                        country = p.Location.Country,
+                        hasCoordinates = p.Location.Latitude.HasValue && p.Location.Longitude.HasValue
+                    } : null,
                     createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                    postType = p.PostType,
                     link = $"/post/{p.Id}"
                 })
                 .ToList();
@@ -197,28 +267,26 @@ public class ChatFunctionService
 
             if (!matchingPosts.Any())
             {
-                return $"No posts found matching '{query}'";
+                var searchCriteria = new List<string>();
+                if (!string.IsNullOrWhiteSpace(query)) searchCriteria.Add($"'{query}'");
+                if (!string.IsNullOrWhiteSpace(city)) searchCriteria.Add($"city '{city}'");
+                if (!string.IsNullOrWhiteSpace(country)) searchCriteria.Add($"country '{country}'");
+                
+                return $"No posts found matching {string.Join(" in ", searchCriteria)}. Try broader search terms or check if locations are registered on the platform.";
             }
 
             return JsonSerializer.Serialize(new
             {
-                query,
+                searchCriteria = new { query, city, country },
                 count = matchingPosts.Count,
                 posts = matchingPosts
             }, new JsonSerializerOptions { WriteIndented = true });
         }
-        catch (ArgumentException ex)
-        {
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogError(ex, "[ChatFunctionService.SearchPosts] VALIDATION ERROR - RequestId={RequestId}, Query={Query}, Duration={Duration}ms",
-                requestId, query, elapsed);
-            return $"Validation error searching posts: {ex.Message}";
-        }
         catch (Exception ex)
         {
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogError(ex, "[ChatFunctionService.SearchPosts] EXCEPTION - RequestId={RequestId}, Query={Query}, ExceptionType={ExceptionType}, Duration={Duration}ms",
-                requestId, query, ex.GetType().Name, elapsed);
+            _logger.LogError(ex, "[ChatFunctionService.SearchPosts] EXCEPTION - RequestId={RequestId}, Query={Query}, Duration={Duration}ms",
+                requestId, query, elapsed);
             return $"Error searching posts: {ex.Message}";
         }
     }
@@ -510,6 +578,505 @@ public class ChatFunctionService
             _logger.LogError(ex, "[ChatFunctionService.GetMyProfile] EXCEPTION - RequestId={RequestId}, ProfileId={ProfileId}, ExceptionType={ExceptionType}, Duration={Duration}ms",
                 requestId, _currentProfileId, ex.GetType().Name, elapsed);
             return $"Error getting profile: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Search for business locations by type and city.
+    /// Specifically designed for queries like "pizzerias in San Salvador" or "restaurants near me".
+    /// </summary>
+    [Description("Find businesses and locations by type and city. Best for queries like 'pizzerias in San Salvador', 'restaurants in the city', or 'cafes near downtown'. Searches both content and location data.")]
+    public async Task<string> FindBusinesses(
+        [Description("Type of business or place to find (e.g., 'pizzeria', 'restaurant', 'cafe', 'hotel')")]
+        string businessType,
+        [Description("City name to search in (e.g., 'San Salvador', 'Santa Ana')")]
+        string? city = null,
+        [Description("Country to search in (default: El Salvador)")]
+        string? country = null,
+        [Description("Maximum results (default 10)")]
+        int maxResults = 10)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.FindBusinesses] START - RequestId={RequestId}, Type={Type}, City={City}, Country={Country}",
+            requestId, businessType, city, country);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(businessType))
+            {
+                return "Please specify what type of business you're looking for (e.g., 'pizzeria', 'restaurant', 'cafe').";
+            }
+
+            maxResults = Math.Min(maxResults, 20);
+
+            // Get all posts
+            var allPosts = await _postRepository.GetAllAsync();
+
+            // Search for matching businesses
+            var matchingPosts = allPosts
+                .Where(p => !p.IsDeleted)
+                .Where(p =>
+                {
+                    // Check content for business type
+                    bool contentMatch = p.Content.Contains(businessType, StringComparison.OrdinalIgnoreCase);
+                    
+                    // Also check if it's a BusinessLocation post type
+                    bool isBusinessLocation = p.PostType == Sivar.Os.Shared.Enums.PostType.BusinessLocation;
+
+                    if (!contentMatch && !isBusinessLocation)
+                        return false;
+
+                    // Apply city filter if provided
+                    if (!string.IsNullOrWhiteSpace(city))
+                    {
+                        if (p.Location?.City?.Contains(city, StringComparison.OrdinalIgnoreCase) != true)
+                            return false;
+                    }
+
+                    // Apply country filter if provided
+                    if (!string.IsNullOrWhiteSpace(country))
+                    {
+                        if (p.Location?.Country?.Contains(country, StringComparison.OrdinalIgnoreCase) != true)
+                            return false;
+                    }
+
+                    return true;
+                })
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(maxResults)
+                .Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                    businessType = p.PostType.ToString(),
+                    owner = p.Profile?.DisplayName ?? "Unknown",
+                    location = p.Location != null ? new
+                    {
+                        city = p.Location.City,
+                        state = p.Location.State,
+                        country = p.Location.Country,
+                        coordinates = p.Location.Latitude.HasValue && p.Location.Longitude.HasValue
+                            ? new { lat = p.Location.Latitude, lng = p.Location.Longitude }
+                            : null
+                    } : null,
+                    link = $"/post/{p.Id}"
+                })
+                .ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.FindBusinesses] SUCCESS - RequestId={RequestId}, Found={Count}, Duration={Duration}ms",
+                requestId, matchingPosts.Count, elapsed);
+
+            if (!matchingPosts.Any())
+            {
+                var locationInfo = string.Join(", ", new[] { city, country }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                return $"No {businessType}s found{(string.IsNullOrEmpty(locationInfo) ? "" : $" in {locationInfo}")}. This could mean:\n" +
+                       $"1. No {businessType}s have been registered on the platform yet\n" +
+                       $"2. Try different keywords or check the spelling\n" +
+                       $"3. Try a broader location search";
+            }
+
+            return JsonSerializer.Serialize(new
+            {
+                searchCriteria = new { businessType, city, country },
+                count = matchingPosts.Count,
+                businesses = matchingPosts,
+                tip = matchingPosts.Any(p => p.location?.coordinates != null) 
+                    ? "Some results have GPS coordinates - you can view them on a map!" 
+                    : null
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.FindBusinesses] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error finding businesses: {ex.Message}";
+        }
+    }
+
+    // ==================== POSTGIS-POWERED SPATIAL SEARCH ====================
+
+    /// <summary>
+    /// Search for profiles/businesses near a specific location using PostGIS.
+    /// Returns profiles ordered by distance with distance information.
+    /// </summary>
+    [Description("Find profiles and businesses near a geographic location. Uses GPS coordinates to find nearby users, businesses, or organizations. Perfect for 'Find pizza near me' or 'Who's nearby?' queries.")]
+    public async Task<string> SearchNearbyProfiles(
+        [Description("Latitude coordinate of the center point (e.g., 13.6969 for San Salvador)")]
+        double latitude,
+        [Description("Longitude coordinate of the center point (e.g., -89.2182 for San Salvador)")]
+        double longitude,
+        [Description("Search radius in kilometers (default 10km, max 100km)")]
+        double radiusKm = 10,
+        [Description("Optional: filter by profile type (Business, Personal, Organization)")]
+        string? profileType = null,
+        [Description("Maximum number of results (default 10, max 20)")]
+        int maxResults = 10)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.SearchNearbyProfiles] START - RequestId={RequestId}, Lat={Lat}, Lng={Lng}, Radius={Radius}km, Type={Type}, MaxResults={MaxResults}",
+            requestId, latitude, longitude, radiusKm, profileType, maxResults);
+
+        try
+        {
+            // Validate inputs
+            if (latitude < -90 || latitude > 90)
+                return "Invalid latitude. Must be between -90 and 90.";
+            if (longitude < -180 || longitude > 180)
+                return "Invalid longitude. Must be between -180 and 180.";
+
+            // Limit radius and results
+            radiusKm = Math.Min(radiusKm, 100);
+            maxResults = Math.Min(maxResults, 20);
+
+            // Use PostGIS to find nearby profiles
+            var nearbyProfiles = await _locationService.FindNearbyProfilesAsync(
+                latitude, longitude, radiusKm, maxResults);
+
+            // Filter by type if specified
+            if (!string.IsNullOrWhiteSpace(profileType))
+            {
+                nearbyProfiles = nearbyProfiles
+                    .Where(p => p.ProfileType?.Name?.Contains(profileType, StringComparison.OrdinalIgnoreCase) == true)
+                    .ToList();
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchNearbyProfiles] SUCCESS - RequestId={RequestId}, FoundCount={Count}, Duration={Duration}ms",
+                requestId, nearbyProfiles.Count, elapsed);
+
+            if (!nearbyProfiles.Any())
+            {
+                return $"No profiles found within {radiusKm}km of the specified location.";
+            }
+
+            var results = nearbyProfiles.Select(p => new
+            {
+                id = p.Id,
+                displayName = p.DisplayName,
+                profileType = p.ProfileType?.Name ?? "Unknown",
+                bio = p.Bio?.Length > 100 ? p.Bio.Substring(0, 100) + "..." : p.Bio,
+                distanceKm = p.DistanceKm.HasValue ? Math.Round(p.DistanceKm.Value, 2) : (double?)null,
+                distanceText = p.DistanceKm.HasValue ? $"{p.DistanceKm.Value:F1} km away" : null,
+                location = p.LocationDisplay,
+                isFollowing = _followerRepository.IsFollowingAsync(_currentProfileId, p.Id).Result
+            }).ToList();
+
+            return JsonSerializer.Serialize(new
+            {
+                query = new { latitude, longitude, radiusKm, profileType },
+                count = results.Count,
+                profiles = results
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchNearbyProfiles] EXCEPTION - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            return $"Error searching nearby profiles: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Search for posts near a specific location using PostGIS.
+    /// Returns posts ordered by distance with distance information.
+    /// </summary>
+    [Description("Find posts near a geographic location. Uses GPS coordinates to find nearby content, events, or updates. Perfect for 'What's happening around me?' or 'Events near downtown' queries.")]
+    public async Task<string> SearchNearbyPosts(
+        [Description("Latitude coordinate of the center point")]
+        double latitude,
+        [Description("Longitude coordinate of the center point")]
+        double longitude,
+        [Description("Search radius in kilometers (default 10km, max 100km)")]
+        double radiusKm = 10,
+        [Description("Maximum number of results (default 10, max 20)")]
+        int maxResults = 10)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.SearchNearbyPosts] START - RequestId={RequestId}, Lat={Lat}, Lng={Lng}, Radius={Radius}km, MaxResults={MaxResults}",
+            requestId, latitude, longitude, radiusKm, maxResults);
+
+        try
+        {
+            // Validate inputs
+            if (latitude < -90 || latitude > 90)
+                return "Invalid latitude. Must be between -90 and 90.";
+            if (longitude < -180 || longitude > 180)
+                return "Invalid longitude. Must be between -180 and 180.";
+
+            // Limit radius and results
+            radiusKm = Math.Min(radiusKm, 100);
+            maxResults = Math.Min(maxResults, 20);
+
+            // Use PostGIS to find nearby posts
+            var nearbyPosts = await _locationService.FindNearbyPostsAsync(
+                latitude, longitude, radiusKm, page: 1, pageSize: maxResults);
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchNearbyPosts] SUCCESS - RequestId={RequestId}, FoundCount={Count}, Duration={Duration}ms",
+                requestId, nearbyPosts.Count, elapsed);
+
+            if (!nearbyPosts.Any())
+            {
+                return $"No posts found within {radiusKm}km of the specified location.";
+            }
+
+            var results = nearbyPosts.Select(p => new
+            {
+                id = p.Id,
+                content = p.Content?.Length > 150 ? p.Content.Substring(0, 150) + "..." : p.Content,
+                authorName = p.Profile?.DisplayName ?? "Unknown",
+                authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
+                createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                postType = p.PostType.ToString(),
+                distanceKm = p.DistanceKm.HasValue ? Math.Round(p.DistanceKm.Value, 2) : (double?)null,
+                distanceText = p.DistanceKm.HasValue ? $"{p.DistanceKm.Value:F1} km away" : null,
+                hasAttachments = p.Attachments?.Any() == true,
+                link = $"/post/{p.Id}"
+            }).ToList();
+
+            return JsonSerializer.Serialize(new
+            {
+                query = new { latitude, longitude, radiusKm },
+                count = results.Count,
+                posts = results
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[ChatFunctionService.SearchNearbyPosts] EXCEPTION - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            return $"Error searching nearby posts: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Calculate distance between two locations using PostGIS.
+    /// </summary>
+    [Description("Calculate the distance in kilometers between two geographic points. Useful for 'How far is X from Y?' queries.")]
+    public async Task<string> CalculateDistance(
+        [Description("First location latitude")]
+        double lat1,
+        [Description("First location longitude")]
+        double lng1,
+        [Description("Second location latitude")]
+        double lat2,
+        [Description("Second location longitude")]
+        double lng2)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ChatFunctionService.CalculateDistance] START - RequestId={RequestId}, From=({Lat1},{Lng1}), To=({Lat2},{Lng2})",
+            requestId, lat1, lng1, lat2, lng2);
+
+        try
+        {
+            var distanceKm = await _locationService.CalculateDistanceAsync(lat1, lng1, lat2, lng2);
+            
+            _logger.LogInformation("[ChatFunctionService.CalculateDistance] SUCCESS - RequestId={RequestId}, Distance={Distance}km",
+                requestId, distanceKm);
+
+            return JsonSerializer.Serialize(new
+            {
+                from = new { latitude = lat1, longitude = lng1 },
+                to = new { latitude = lat2, longitude = lng2 },
+                distanceKm = Math.Round(distanceKm, 2),
+                distanceText = distanceKm < 1 
+                    ? $"{Math.Round(distanceKm * 1000)} meters" 
+                    : $"{distanceKm:F1} km"
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.CalculateDistance] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error calculating distance: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get address information from coordinates (reverse geocoding).
+    /// </summary>
+    [Description("Convert GPS coordinates to a human-readable address. Useful for 'What place is at these coordinates?' queries.")]
+    public async Task<string> GetAddressFromCoordinates(
+        [Description("Latitude coordinate")]
+        double latitude,
+        [Description("Longitude coordinate")]
+        double longitude)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ChatFunctionService.GetAddressFromCoordinates] START - RequestId={RequestId}, Lat={Lat}, Lng={Lng}",
+            requestId, latitude, longitude);
+
+        try
+        {
+            var location = await _locationService.ReverseGeocodeAsync(latitude, longitude);
+            
+            if (location == null)
+            {
+                return "Could not find address for the specified coordinates.";
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetAddressFromCoordinates] SUCCESS - RequestId={RequestId}, City={City}, Country={Country}",
+                requestId, location.City, location.Country);
+
+            return JsonSerializer.Serialize(new
+            {
+                coordinates = new { latitude, longitude },
+                address = new
+                {
+                    city = location.City,
+                    state = location.State,
+                    country = location.Country,
+                    displayName = $"{location.City}, {location.State}, {location.Country}".Trim(',', ' ')
+                }
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetAddressFromCoordinates] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error getting address: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get coordinates from an address (geocoding).
+    /// </summary>
+    [Description("Convert an address or city name to GPS coordinates. Useful for 'Where is San Salvador?' or getting coordinates before searching nearby.")]
+    public async Task<string> GetCoordinatesFromAddress(
+        [Description("City name")]
+        string city,
+        [Description("State or province (optional)")]
+        string? state = null,
+        [Description("Country (optional)")]
+        string? country = null)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ChatFunctionService.GetCoordinatesFromAddress] START - RequestId={RequestId}, City={City}, State={State}, Country={Country}",
+            requestId, city, state, country);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(city))
+                return "City name is required.";
+
+            var coords = await _locationService.GeocodeAsync(city, state, country);
+            
+            if (!coords.HasValue)
+            {
+                return $"Could not find coordinates for '{city}'.";
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetCoordinatesFromAddress] SUCCESS - RequestId={RequestId}, Lat={Lat}, Lng={Lng}",
+                requestId, coords.Value.Latitude, coords.Value.Longitude);
+
+            return JsonSerializer.Serialize(new
+            {
+                query = new { city, state, country },
+                coordinates = new 
+                { 
+                    latitude = coords.Value.Latitude, 
+                    longitude = coords.Value.Longitude 
+                },
+                hint = "You can use these coordinates with SearchNearbyProfiles or SearchNearbyPosts"
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetCoordinatesFromAddress] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error getting coordinates: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Search for profiles or posts near the user's current location (if set).
+    /// Uses the location previously set via SetCurrentLocation().
+    /// </summary>
+    [Description("Find profiles or posts near your current location. Perfect for 'What's near me?' or 'Who's around?' queries. Requires location to be set first.")]
+    public async Task<string> SearchNearMe(
+        [Description("What to search for: 'profiles', 'posts', or 'all' (default)")]
+        string searchType = "all",
+        [Description("Search radius in kilometers (default 5km, max 50km)")]
+        double radiusKm = 5,
+        [Description("Filter by profile type (e.g., 'Business', 'Personal') - only for profile searches")]
+        string? profileType = null)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ChatFunctionService.SearchNearMe] START - RequestId={RequestId}, Type={SearchType}, Radius={Radius}km",
+            requestId, searchType, radiusKm);
+
+        try
+        {
+            // Check if we have the user's location
+            if (!_currentLocation.HasValue)
+            {
+                return "I don't know your current location. Please share your location first, or use SearchNearbyProfiles/SearchNearbyPosts with specific coordinates.";
+            }
+
+            var lat = _currentLocation.Value.Latitude;
+            var lng = _currentLocation.Value.Longitude;
+            radiusKm = Math.Min(radiusKm, 50);
+            searchType = searchType.ToLowerInvariant();
+
+            var results = new Dictionary<string, object>
+            {
+                ["yourLocation"] = new { latitude = lat, longitude = lng },
+                ["searchRadius"] = $"{radiusKm} km"
+            };
+
+            // Search for profiles if requested
+            if (searchType == "profiles" || searchType == "all")
+            {
+                var profilesJson = await SearchNearbyProfiles(lat, lng, radiusKm, profileType, 5);
+                results["nearbyProfiles"] = profilesJson;
+            }
+
+            // Search for posts if requested
+            if (searchType == "posts" || searchType == "all")
+            {
+                var postsJson = await SearchNearbyPosts(lat, lng, radiusKm, 5);
+                results["nearbyPosts"] = postsJson;
+            }
+
+            _logger.LogInformation("[ChatFunctionService.SearchNearMe] SUCCESS - RequestId={RequestId}", requestId);
+
+            return JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.SearchNearMe] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error searching near your location: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get the user's current location status.
+    /// </summary>
+    [Description("Check if the user's location is set and show their current coordinates if available.")]
+    public string GetCurrentLocationStatus()
+    {
+        if (_currentLocation.HasValue)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                hasLocation = true,
+                latitude = _currentLocation.Value.Latitude,
+                longitude = _currentLocation.Value.Longitude,
+                message = "Location is set. You can use SearchNearMe or location-based functions."
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        else
+        {
+            return JsonSerializer.Serialize(new
+            {
+                hasLocation = false,
+                message = "No location set. The user needs to share their location first, or you can search using specific coordinates."
+            }, new JsonSerializerOptions { WriteIndented = true });
         }
     }
 }
