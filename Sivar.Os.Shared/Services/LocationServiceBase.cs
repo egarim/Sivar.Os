@@ -133,7 +133,7 @@ public abstract class LocationServiceBase : ILocationService
     }
 
     /// <summary>
-    /// Find nearby posts using PostGIS find_nearby_posts() function
+    /// Find nearby posts using PostGIS via PostRepository.GetNearbyWithDistanceAsync()
     /// </summary>
     public virtual async Task<List<PostDto>> FindNearbyPostsAsync(
         double latitude, 
@@ -157,43 +157,15 @@ public abstract class LocationServiceBase : ILocationService
 
         try
         {
-            var offset = (page - 1) * pageSize;
+            // Use the repository method that handles PostGIS queries
+            var (postsWithDistance, totalCount) = await _postRepository.GetNearbyWithDistanceAsync(
+                latitude, longitude, radiusKm, page, pageSize, includeRelated: true);
 
-            // Use PostGIS function for spatial query
-            var sql = $"SELECT \"PostId\", \"DistanceKm\" FROM find_nearby_posts({latitude}, {longitude}, {radiusKm}, {pageSize}) OFFSET {offset}";
-            
-            var dbContext = _postRepository.GetDbContext();
-            var connection = dbContext.Database.GetDbConnection();
-            await using var command = connection.CreateCommand();
-            command.CommandText = sql;
-            
-            if (connection.State != System.Data.ConnectionState.Open)
-                await connection.OpenAsync(cancellationToken);
-            
-            var results = new List<PostLocationResult>();
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                results.Add(new PostLocationResult
-                {
-                    PostId = reader.GetGuid(0),
-                    DistanceKm = reader.GetDouble(1)
-                });
-            }
-
-            if (!results.Any())
+            if (!postsWithDistance.Any())
                 return new List<PostDto>();
 
-            // Fetch full post data with distance
-            var postIds = results.Select(r => r.PostId).ToList();
-            var posts = await _postRepository.GetByIdsAsync(postIds, cancellationToken);
-
             // Map to DTOs with distance
-            return posts.Select(p =>
-            {
-                var distance = results.First(r => r.PostId == p.Id).DistanceKm;
-                return MapPostToDto(p, distance);
-            }).ToList();
+            return postsWithDistance.Select(x => MapPostToDto(x.Post, x.DistanceKm)).ToList();
         }
         catch (Exception ex)
         {
