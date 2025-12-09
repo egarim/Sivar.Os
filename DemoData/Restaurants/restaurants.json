@@ -1,0 +1,2505 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "generatedAt": "2024-12-09",
+    "category": "restaurants",
+    "totalProfiles": 50,
+    "totalPosts": 50
+  },
+  "profiles": [
+    {
+      "id": "a0000001-0000-0000-0000-000000000001",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pupusería El Comalito",
+      "handle": "pupuseria-el-comalito",
+      "bio": "Auténticas pupusas salvadoreñas desde 1985. Especialidad en pupusas de chicharrón, queso y loroco.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6989,
+        "longitude": -89.1914
+      },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget"],
+      "contactPhone": "+503 2222-0001",
+      "contactEmail": "info@elcomalito.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e63946/white?text=El+Comalito"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000002",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Típicos Doña Maria",
+      "handle": "tipicos-dona-maria",
+      "bio": "Comida típica salvadoreña con el sazón de la abuela. Pupusas, tamales, yuca frita y más.",
+      "location": {
+        "city": "Santa Tecla",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6714,
+        "longitude": -89.2897
+      },
+      "tags": ["restaurant", "salvadoran", "tipico", "price-budget"],
+      "contactPhone": "+503 2222-0002",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e63946/white?text=Dona+Maria"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000003",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "La Casita del Maíz",
+      "handle": "la-casita-del-maiz",
+      "bio": "Tradición santaneca en cada bocado. Las mejores pupusas de Santa Ana con ingredientes frescos.",
+      "location": {
+        "city": "Santa Ana",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9940,
+        "longitude": -89.5590
+      },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget", "santa-ana"],
+      "contactPhone": "+503 2441-0003",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e63946/white?text=Casita+Maiz"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000004",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pupusería La Bendición",
+      "handle": "pupuseria-la-bendicion",
+      "bio": "Pupusas frente al mar en La Libertad. Disfruta de la brisa marina con nuestras especialidades.",
+      "location": {
+        "city": "La Libertad",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4883,
+        "longitude": -89.3228
+      },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget", "la-libertad", "beach"],
+      "contactPhone": "+503 2335-0004",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e63946/white?text=La+Bendicion"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000005",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Restaurante El Volcán",
+      "handle": "restaurante-el-volcan",
+      "bio": "Cocina salvadoreña gourmet en Escalón. Platillos tradicionales con un toque moderno.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7052,
+        "longitude": -89.2456
+      },
+      "tags": ["restaurant", "salvadoran", "tipico", "price-moderate", "escalon", "gourmet"],
+      "contactPhone": "+503 2263-0005",
+      "contactEmail": "reservas@elvolcan.sv",
+      "website": "https://elvolcan.sv",
+      "avatar": "https://placehold.co/400x400/e63946/white?text=El+Volcan"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000006",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Tacos El Charro",
+      "handle": "tacos-el-charro",
+      "bio": "Auténticos tacos mexicanos en Zona Rosa. Tacos al pastor, carnitas, y las mejores margaritas.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6834,
+        "longitude": -89.2234
+      },
+      "tags": ["restaurant", "mexican", "tacos", "price-moderate", "zona-rosa"],
+      "contactPhone": "+503 2223-0006",
+      "contactEmail": "info@tacoselcharro.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/f4a261/white?text=El+Charro"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000007",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "La Cantina Mexicana",
+      "handle": "la-cantina-mexicana",
+      "bio": "El sabor de México en El Salvador. Enchiladas, burritos, quesadillas y tequila premium.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7023,
+        "longitude": -89.2412
+      },
+      "tags": ["restaurant", "mexican", "price-moderate", "escalon"],
+      "contactPhone": "+503 2263-0007",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/f4a261/white?text=La+Cantina"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000008",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Burritos & Más",
+      "handle": "burritos-y-mas",
+      "bio": "Burritos gigantes y comida Tex-Mex en Multiplaza. Rápido, fresco y delicioso.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6823,
+        "longitude": -89.2367
+      },
+      "tags": ["restaurant", "mexican", "burritos", "price-moderate", "multiplaza", "fast-casual"],
+      "contactPhone": "+503 2243-0008",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/f4a261/white?text=Burritos"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000009",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "El Mariachi Loco",
+      "handle": "el-mariachi-loco",
+      "bio": "Fiesta mexicana en Santa Ana. Música en vivo los fines de semana y la mejor comida mexicana.",
+      "location": {
+        "city": "Santa Ana",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9920,
+        "longitude": -89.5610
+      },
+      "tags": ["restaurant", "mexican", "price-moderate", "santa-ana", "live-music"],
+      "contactPhone": "+503 2441-0009",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/f4a261/white?text=Mariachi"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000010",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Taquería Don Pancho",
+      "handle": "taqueria-don-pancho",
+      "bio": "Tacos de carne asada y al pastor hasta tarde. El mejor after-hours de San Benito.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6856,
+        "longitude": -89.2298
+      },
+      "tags": ["restaurant", "mexican", "tacos", "price-moderate", "san-benito", "late-night"],
+      "contactPhone": "+503 2223-0010",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/f4a261/white?text=Don+Pancho"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000011",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "The Burger Joint",
+      "handle": "the-burger-joint",
+      "bio": "Hamburguesas artesanales con carne Angus. Papas fritas caseras y malteadas clásicas.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6819,
+        "longitude": -89.2371
+      },
+      "tags": ["restaurant", "american", "burgers", "price-moderate", "multiplaza"],
+      "contactPhone": "+503 2243-0011",
+      "contactEmail": "info@burgerjoint.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/2a9d8f/white?text=Burger+Joint"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000012",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Wings & Things",
+      "handle": "wings-and-things",
+      "bio": "Alitas de pollo en 20 sabores diferentes. El lugar perfecto para ver deportes.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7034,
+        "longitude": -89.2234
+      },
+      "tags": ["restaurant", "american", "wings", "price-moderate", "galerias", "sports-bar"],
+      "contactPhone": "+503 2243-0012",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/2a9d8f/white?text=Wings"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000013",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "BBQ Smokehouse",
+      "handle": "bbq-smokehouse",
+      "bio": "Carnes ahumadas estilo Texas. Brisket, ribs, pulled pork y todos los sides clásicos.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6712,
+        "longitude": -89.2534
+      },
+      "tags": ["restaurant", "american", "bbq", "price-upscale", "gran-via"],
+      "contactPhone": "+503 2243-0013",
+      "contactEmail": "reservas@bbqsmokehouse.sv",
+      "website": "https://bbqsmokehouse.sv",
+      "avatar": "https://placehold.co/400x400/2a9d8f/white?text=BBQ"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000014",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Diner Americano",
+      "handle": "diner-americano",
+      "bio": "Desayunos americanos todo el día. Pancakes, huevos, bacon y el mejor café.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7045,
+        "longitude": -89.2445
+      },
+      "tags": ["restaurant", "american", "breakfast", "price-moderate", "escalon", "all-day"],
+      "contactPhone": "+503 2263-0014",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/2a9d8f/white?text=Diner"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000015",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Steak & Shake",
+      "handle": "steak-and-shake",
+      "bio": "Steakburgers premium y malteadas artesanales. Ambiente retro americano.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6745,
+        "longitude": -89.2556
+      },
+      "tags": ["restaurant", "american", "burgers", "price-moderate", "santa-elena"],
+      "contactPhone": "+503 2243-0015",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/2a9d8f/white?text=Steak+Shake"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000016",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Trattoria Bella Italia",
+      "handle": "trattoria-bella-italia",
+      "bio": "Auténtica cocina italiana en San Benito. Pastas frescas, pizzas al horno de leña.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6845,
+        "longitude": -89.2310
+      },
+      "tags": ["restaurant", "italian", "pasta", "pizza", "price-upscale", "san-benito"],
+      "contactPhone": "+503 2223-0016",
+      "contactEmail": "reservas@bellaitalia.sv",
+      "website": "https://bellaitalia.sv",
+      "avatar": "https://placehold.co/400x400/e9c46a/white?text=Bella+Italia"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000017",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pizzería Napoli",
+      "handle": "pizzeria-napoli",
+      "bio": "Pizza napolitana con masa fermentada 48 horas. Ingredientes importados de Italia.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7030,
+        "longitude": -89.2420
+      },
+      "tags": ["restaurant", "italian", "pizza", "price-moderate", "escalon"],
+      "contactPhone": "+503 2263-0017",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e9c46a/white?text=Napoli"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000018",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pasta Fresca",
+      "handle": "pasta-fresca",
+      "bio": "Pastas hechas en casa diariamente. Salsas tradicionales y vinos italianos selectos.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6750,
+        "longitude": -89.2550
+      },
+      "tags": ["restaurant", "italian", "pasta", "price-upscale", "santa-elena"],
+      "contactPhone": "+503 2243-0018",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/e9c46a/white?text=Pasta+Fresca"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000019",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Il Forno",
+      "handle": "il-forno",
+      "bio": "Cenas románticas con vista a la ciudad. Cocina italiana refinada y carta de vinos premium.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6798,
+        "longitude": -89.2345
+      },
+      "tags": ["restaurant", "italian", "price-upscale", "zona-rosa", "romantic", "dinner"],
+      "contactPhone": "+503 2223-0019",
+      "contactEmail": "reservas@ilforno.sv",
+      "website": "https://ilforno.sv",
+      "avatar": "https://placehold.co/400x400/e9c46a/white?text=Il+Forno"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000020",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Ristorante Milano",
+      "handle": "ristorante-milano",
+      "bio": "Fine dining italiano en Antiguo Cuscatlán. Experiencia gastronómica de primer nivel.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6720,
+        "longitude": -89.2540
+      },
+      "tags": ["restaurant", "italian", "price-fine-dining", "antiguo-cuscatlan", "fine-dining"],
+      "contactPhone": "+503 2243-0020",
+      "contactEmail": "reservas@milano.sv",
+      "website": "https://milano.sv",
+      "avatar": "https://placehold.co/400x400/e9c46a/white?text=Milano"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000021",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Sushi House",
+      "handle": "sushi-house",
+      "bio": "Sushi fresco preparado por chefs japoneses. Rolls especiales y menú omakase disponible.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6825,
+        "longitude": -89.2370
+      },
+      "tags": ["restaurant", "asian", "sushi", "japanese", "price-upscale", "multiplaza"],
+      "contactPhone": "+503 2243-0021",
+      "contactEmail": "reservas@sushihouse.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/9b2226/white?text=Sushi+House"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000022",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Dragon Palace",
+      "handle": "dragon-palace",
+      "bio": "Cocina china tradicional y dim sum los domingos. Ambiente familiar y porciones generosas.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6790,
+        "longitude": -89.2350
+      },
+      "tags": ["restaurant", "asian", "chinese", "price-moderate", "zona-rosa", "family-friendly"],
+      "contactPhone": "+503 2223-0022",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/9b2226/white?text=Dragon+Palace"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000023",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Thai Garden",
+      "handle": "thai-garden",
+      "bio": "Sabores de Tailandia en El Salvador. Curry, pad thai, y platos picantes auténticos.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6715,
+        "longitude": -89.2530
+      },
+      "tags": ["restaurant", "asian", "thai", "price-upscale", "gran-via"],
+      "contactPhone": "+503 2243-0023",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/9b2226/white?text=Thai+Garden"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000024",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Noodle Bar",
+      "handle": "noodle-bar",
+      "bio": "Ramen, pho y noodles de toda Asia. Caldos preparados por horas, fideos hechos en casa.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6860,
+        "longitude": -89.2295
+      },
+      "tags": ["restaurant", "asian", "ramen", "noodles", "price-moderate", "san-benito"],
+      "contactPhone": "+503 2223-0024",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/9b2226/white?text=Noodle+Bar"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000025",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Ramen House",
+      "handle": "ramen-house",
+      "bio": "Especialistas en ramen tonkotsu. Gyozas, takoyaki y cervezas japonesas.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7040,
+        "longitude": -89.2430
+      },
+      "tags": ["restaurant", "asian", "ramen", "japanese", "price-moderate", "escalon"],
+      "contactPhone": "+503 2263-0025",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/9b2226/white?text=Ramen+House"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000026",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Mariscos El Puerto",
+      "handle": "mariscos-el-puerto",
+      "bio": "Mariscos frescos del día en La Libertad. Ceviche, cocteles de camarón y pescado frito.",
+      "location": {
+        "city": "La Libertad",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4890,
+        "longitude": -89.3220
+      },
+      "tags": ["restaurant", "seafood", "mariscos", "price-moderate", "la-libertad", "beach"],
+      "contactPhone": "+503 2335-0026",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/0077b6/white?text=El+Puerto"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000027",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Cevichería La Ola",
+      "handle": "cevicheria-la-ola",
+      "bio": "El mejor ceviche de El Tunco. Vista al mar y atardeceres inolvidables.",
+      "location": {
+        "city": "La Libertad",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4950,
+        "longitude": -89.3890
+      },
+      "tags": ["restaurant", "seafood", "ceviche", "price-moderate", "la-libertad", "el-tunco", "ocean-view"],
+      "contactPhone": "+503 2335-0027",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/0077b6/white?text=La+Ola"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000028",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "El Pescador",
+      "handle": "el-pescador",
+      "bio": "Mariscos gourmet en Zona Rosa. Langosta, camarones al ajillo y paella marinera.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6795,
+        "longitude": -89.2340
+      },
+      "tags": ["restaurant", "seafood", "mariscos", "price-upscale", "zona-rosa"],
+      "contactPhone": "+503 2223-0028",
+      "contactEmail": "reservas@elpescador.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/0077b6/white?text=El+Pescador"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000029",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Marisquería Costanera",
+      "handle": "marisqueria-costanera",
+      "bio": "Tradición playera desde 1990. Sopas de mariscos, pescado a la plancha y cervezas heladas.",
+      "location": {
+        "city": "La Libertad",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4870,
+        "longitude": -89.3210
+      },
+      "tags": ["restaurant", "seafood", "mariscos", "price-moderate", "la-libertad", "traditional"],
+      "contactPhone": "+503 2335-0029",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/0077b6/white?text=Costanera"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000030",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Lobster House",
+      "handle": "lobster-house",
+      "bio": "Fine dining de mariscos. Langosta Maine, ostras frescas y champagne.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6840,
+        "longitude": -89.2305
+      },
+      "tags": ["restaurant", "seafood", "lobster", "price-fine-dining", "san-benito", "fine-dining"],
+      "contactPhone": "+503 2223-0030",
+      "contactEmail": "reservas@lobsterhouse.sv",
+      "website": "https://lobsterhouse.sv",
+      "avatar": "https://placehold.co/400x400/0077b6/white?text=Lobster+House"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000031",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "La Parrilla Argentina",
+      "handle": "la-parrilla-argentina",
+      "bio": "Cortes argentinos a la parrilla. Bife de chorizo, entraña, y los mejores vinos Malbec.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6787,
+        "longitude": -89.2365
+      },
+      "tags": ["restaurant", "steakhouse", "argentine", "price-upscale", "zona-rosa"],
+      "contactPhone": "+503 2223-0031",
+      "contactEmail": "reservas@parrillaargentina.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/6d4c41/white?text=La+Parrilla"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000032",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "El Gaucho",
+      "handle": "el-gaucho",
+      "bio": "Steakhouse premium en Escalón. Carnes añejadas, parrilla de leña y servicio de primera.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7050,
+        "longitude": -89.2450
+      },
+      "tags": ["restaurant", "steakhouse", "price-fine-dining", "escalon", "fine-dining"],
+      "contactPhone": "+503 2263-0032",
+      "contactEmail": "reservas@elgaucho.sv",
+      "website": "https://elgaucho.sv",
+      "avatar": "https://placehold.co/400x400/6d4c41/white?text=El+Gaucho"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000033",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Rancho Grande",
+      "handle": "rancho-grande",
+      "bio": "Parrillada santaneca con ambiente ranchero. Carnes a la leña y música en vivo.",
+      "location": {
+        "city": "Santa Ana",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9935,
+        "longitude": -89.5605
+      },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "santa-ana", "live-music"],
+      "contactPhone": "+503 2441-0033",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/6d4c41/white?text=Rancho+Grande"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000034",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Carnes y Brasas",
+      "handle": "carnes-y-brasas",
+      "bio": "Cortes selectos y churrascos en San Benito. Ambiente elegante para ocasiones especiales.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6850,
+        "longitude": -89.2300
+      },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "san-benito", "special-occasions"],
+      "contactPhone": "+503 2223-0034",
+      "contactEmail": "reservas@carnesybrasas.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/6d4c41/white?text=Carnes+Brasas"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000035",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Asador El Toro",
+      "handle": "asador-el-toro",
+      "bio": "Parrilla tradicional en Santa Tecla. Churrasco, chorizo argentino y empanadas.",
+      "location": {
+        "city": "Santa Tecla",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6720,
+        "longitude": -89.2890
+      },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "santa-tecla"],
+      "contactPhone": "+503 2228-0035",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/6d4c41/white?text=El+Toro"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000036",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pollo Campestre Centro",
+      "handle": "pollo-campestre-centro",
+      "bio": "Pollo rostizado y frito con tortillas calientes. Comida rápida salvadoreña.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6976,
+        "longitude": -89.1923
+      },
+      "tags": ["restaurant", "fast-food", "chicken", "price-budget", "centro"],
+      "contactPhone": "+503 2222-0036",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/ff6b6b/white?text=Campestre"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000037",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Burger Palace",
+      "handle": "burger-palace",
+      "bio": "Hamburguesas rápidas y económicas. Combos familiares y promociones diarias.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6820,
+        "longitude": -89.2368
+      },
+      "tags": ["restaurant", "fast-food", "burgers", "price-budget", "multiplaza"],
+      "contactPhone": "+503 2243-0037",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/ff6b6b/white?text=Burger+Palace"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000038",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Pizza Rápida",
+      "handle": "pizza-rapida",
+      "bio": "Pizza por rebanada y pizzas completas. Servicio rápido para llevar.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7032,
+        "longitude": -89.2230
+      },
+      "tags": ["restaurant", "fast-food", "pizza", "price-budget", "galerias"],
+      "contactPhone": "+503 2243-0038",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/ff6b6b/white?text=Pizza+Rapida"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000039",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Hot Dogs Express",
+      "handle": "hot-dogs-express",
+      "bio": "Hot dogs estilo americano con todos los toppings. Rápido y delicioso.",
+      "location": {
+        "city": "Santa Tecla",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6710,
+        "longitude": -89.2895
+      },
+      "tags": ["restaurant", "fast-food", "hot-dogs", "price-budget", "santa-tecla"],
+      "contactPhone": "+503 2228-0039",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/ff6b6b/white?text=Hot+Dogs"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000040",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Tacos Express",
+      "handle": "tacos-express",
+      "bio": "Tacos rápidos y económicos en Santa Ana. Perfectos para el almuerzo.",
+      "location": {
+        "city": "Santa Ana",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9945,
+        "longitude": -89.5595
+      },
+      "tags": ["restaurant", "fast-food", "tacos", "price-budget", "santa-ana"],
+      "contactPhone": "+503 2441-0040",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/ff6b6b/white?text=Tacos+Express"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000041",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Café del Centro",
+      "handle": "cafe-del-centro",
+      "bio": "Café salvadoreño de altura y pan dulce tradicional. Desayunos desde las 6am.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6985,
+        "longitude": -89.1910
+      },
+      "tags": ["restaurant", "cafe", "coffee", "bakery", "price-budget", "centro", "breakfast"],
+      "contactPhone": "+503 2222-0041",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/8d6e63/white?text=Cafe+Centro"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000042",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "La Panadería Francesa",
+      "handle": "la-panaderia-francesa",
+      "bio": "Croissants, baguettes y pasteles estilo francés. Café de especialidad.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7048,
+        "longitude": -89.2448
+      },
+      "tags": ["restaurant", "cafe", "bakery", "french", "price-moderate", "escalon"],
+      "contactPhone": "+503 2263-0042",
+      "contactEmail": "info@panaderiafrancesa.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/8d6e63/white?text=Panaderia"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000043",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Coffee & Art",
+      "handle": "coffee-and-art",
+      "bio": "Café de especialidad y galería de arte local. Espacio para trabajar y crear.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6858,
+        "longitude": -89.2300
+      },
+      "tags": ["restaurant", "cafe", "coffee", "price-moderate", "san-benito", "wifi", "coworking"],
+      "contactPhone": "+503 2223-0043",
+      "contactEmail": "info@coffeeandart.sv",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/8d6e63/white?text=Coffee+Art"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000044",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Dulce Tentación",
+      "handle": "dulce-tentacion",
+      "bio": "Panadería y repostería tradicional santaneca. Pasteles para toda ocasión.",
+      "location": {
+        "city": "Santa Ana",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9938,
+        "longitude": -89.5602
+      },
+      "tags": ["restaurant", "cafe", "bakery", "desserts", "price-budget", "santa-ana"],
+      "contactPhone": "+503 2441-0044",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/8d6e63/white?text=Dulce"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000045",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Café Vista al Mar",
+      "handle": "cafe-vista-al-mar",
+      "bio": "Café con vista al océano en La Libertad. Desayunos, smoothies y snacks saludables.",
+      "location": {
+        "city": "La Libertad",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4885,
+        "longitude": -89.3225
+      },
+      "tags": ["restaurant", "cafe", "coffee", "price-moderate", "la-libertad", "ocean-view", "healthy"],
+      "contactPhone": "+503 2335-0045",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/8d6e63/white?text=Vista+Mar"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000046",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Green Garden",
+      "handle": "green-garden",
+      "bio": "Restaurante 100% vegetariano y vegano. Bowls, ensaladas, jugos naturales.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6855,
+        "longitude": -89.2295
+      },
+      "tags": ["restaurant", "vegetarian", "vegan", "healthy", "price-moderate", "san-benito"],
+      "contactPhone": "+503 2223-0046",
+      "contactEmail": "info@greengarden.sv",
+      "website": "https://greengarden.sv",
+      "avatar": "https://placehold.co/400x400/52b788/white?text=Green+Garden"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000047",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Vida Natural",
+      "handle": "vida-natural",
+      "bio": "Comida orgánica y natural. Menú del día vegetariano, jugos prensados en frío.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7042,
+        "longitude": -89.2438
+      },
+      "tags": ["restaurant", "vegetarian", "organic", "healthy", "price-moderate", "escalon"],
+      "contactPhone": "+503 2263-0047",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/52b788/white?text=Vida+Natural"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000048",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "El Jardín Vegano",
+      "handle": "el-jardin-vegano",
+      "bio": "Cocina vegana creativa en Santa Tecla. Hamburguesas de plantas, postres sin lácteos.",
+      "location": {
+        "city": "Santa Tecla",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6718,
+        "longitude": -89.2892
+      },
+      "tags": ["restaurant", "vegan", "plant-based", "price-moderate", "santa-tecla"],
+      "contactPhone": "+503 2228-0048",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/52b788/white?text=Jardin+Vegano"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000049",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Roots & Leaves",
+      "handle": "roots-and-leaves",
+      "bio": "Fine dining vegetariano en Zona Rosa. Menú degustación y maridaje con vinos orgánicos.",
+      "location": {
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6792,
+        "longitude": -89.2348
+      },
+      "tags": ["restaurant", "vegetarian", "vegan", "price-upscale", "zona-rosa", "fine-dining"],
+      "contactPhone": "+503 2223-0049",
+      "contactEmail": "reservas@rootsleaves.sv",
+      "website": "https://rootsleaves.sv",
+      "avatar": "https://placehold.co/400x400/52b788/white?text=Roots+Leaves"
+    },
+    {
+      "id": "a0000001-0000-0000-0000-000000000050",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Semillas Café",
+      "handle": "semillas-cafe",
+      "bio": "Café vegano y desayunos saludables. Leches vegetales, granola casera, tostadas de aguacate.",
+      "location": {
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6708,
+        "longitude": -89.2538
+      },
+      "tags": ["restaurant", "vegan", "cafe", "healthy", "price-moderate", "antiguo-cuscatlan", "breakfast"],
+      "contactPhone": "+503 2243-0050",
+      "contactEmail": "",
+      "website": "",
+      "avatar": "https://placehold.co/400x400/52b788/white?text=Semillas"
+    }
+  ],
+  "posts": [
+    {
+      "id": "b0000001-0000-0000-0000-000000000001",
+      "profileId": "a0000001-0000-0000-0000-000000000001",
+      "postType": 2,
+      "title": "Pupusería El Comalito",
+      "content": "Auténticas pupusas salvadoreñas desde 1985. Nuestra especialidad son las pupusas de chicharrón, queso con loroco, y revueltas. Ambiente familiar en el corazón del Centro Histórico. Servimos desde las 6am con curtido y salsa de tomate casera. ¡Venga a probar las mejores pupusas del centro!",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6989, "longitude": -89.1914 },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget", "centro", "family-friendly", "breakfast", "lunch", "dinner"],
+      "imageUrl": "https://placehold.co/800x600/e63946/white?text=Pupuseria+El+Comalito",
+      "pricingInfo": { "amount": 3.50, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pupusería tradicional salvadoreña",
+        "contactPhone": "+503 2222-0001",
+        "contactEmail": "info@elcomalito.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Estacionamiento en calle. Servicio para llevar disponible."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000002",
+      "profileId": "a0000001-0000-0000-0000-000000000002",
+      "postType": 2,
+      "title": "Típicos Doña Maria",
+      "content": "Comida típica salvadoreña con el sazón de la abuela desde hace 30 años. Pupusas, tamales de elote y pisques, yuca frita con chicharrón, pastelitos y nuégados. Todo hecho en casa con recetas tradicionales. Ubicados en el centro de Santa Tecla.",
+      "location": { "city": "Santa Tecla", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6714, "longitude": -89.2897 },
+      "tags": ["restaurant", "salvadoran", "tipico", "price-budget", "santa-tecla", "traditional", "family-friendly"],
+      "imageUrl": "https://placehold.co/800x600/e63946/white?text=Tipicos+Dona+Maria",
+      "pricingInfo": { "amount": 4.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Comida típica salvadoreña tradicional",
+        "contactPhone": "+503 2222-0002",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Pedidos grandes con anticipación."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000003",
+      "profileId": "a0000001-0000-0000-0000-000000000003",
+      "postType": 2,
+      "title": "La Casita del Maíz",
+      "content": "Tradición santaneca en cada bocado. Las mejores pupusas de Santa Ana con ingredientes frescos del mercado local. Especialidades: pupusas de ayote, de mora, y las clásicas de chicharrón y queso. Ambiente acogedor con vistas a la ciudad.",
+      "location": { "city": "Santa Ana", "state": "Santa Ana", "country": "El Salvador", "latitude": 13.9940, "longitude": -89.5590 },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget", "santa-ana", "local"],
+      "imageUrl": "https://placehold.co/800x600/e63946/white?text=Casita+del+Maiz",
+      "pricingInfo": { "amount": 3.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pupusería tradicional santaneca",
+        "contactPhone": "+503 2441-0003",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "06:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Parqueo disponible."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000004",
+      "profileId": "a0000001-0000-0000-0000-000000000004",
+      "postType": 2,
+      "title": "Pupusería La Bendición",
+      "content": "Pupusas frente al mar en el puerto de La Libertad. Disfruta de la brisa marina mientras saboreas nuestras especialidades. Pupusas de mariscos, camarón, y las tradicionales. Abierto todos los días para surfistas y visitantes.",
+      "location": { "city": "La Libertad", "state": "La Libertad", "country": "El Salvador", "latitude": 13.4883, "longitude": -89.3228 },
+      "tags": ["restaurant", "salvadoran", "pupusas", "tipico", "price-budget", "la-libertad", "beach", "seafood"],
+      "imageUrl": "https://placehold.co/800x600/e63946/white?text=La+Bendicion",
+      "pricingInfo": { "amount": 4.50, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pupusería con vista al mar",
+        "contactPhone": "+503 2335-0004",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Estacionamiento frente al local."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000005",
+      "profileId": "a0000001-0000-0000-0000-000000000005",
+      "postType": 2,
+      "title": "Restaurante El Volcán",
+      "content": "Cocina salvadoreña gourmet en la exclusiva Colonia Escalón. Platillos tradicionales con un toque moderno y presentación elegante. Prueba nuestro sopa de pata reinventada, casamiento gourmet, y postres de temporada. Ideal para almuerzos de negocios.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7052, "longitude": -89.2456 },
+      "tags": ["restaurant", "salvadoran", "tipico", "price-moderate", "escalon", "gourmet", "business-lunch"],
+      "imageUrl": "https://placehold.co/800x600/e63946/white?text=El+Volcan",
+      "pricingInfo": { "amount": 12.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Cocina salvadoreña gourmet",
+        "contactPhone": "+503 2263-0005",
+        "contactEmail": "reservas@elvolcan.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Reservaciones recomendadas para grupos. Estacionamiento propio."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000006",
+      "profileId": "a0000001-0000-0000-0000-000000000006",
+      "postType": 2,
+      "title": "Tacos El Charro",
+      "content": "Auténticos tacos mexicanos en el corazón de Zona Rosa. Tacos al pastor preparados en trompo, carnitas estilo Michoacán, y las mejores margaritas de la ciudad. Ambiente festivo con música mexicana. ¡Celebra como en México!",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6834, "longitude": -89.2234 },
+      "tags": ["restaurant", "mexican", "tacos", "price-moderate", "zona-rosa", "nightlife", "margaritas"],
+      "imageUrl": "https://placehold.co/800x600/f4a261/white?text=Tacos+El+Charro",
+      "pricingInfo": { "amount": 10.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Tacos mexicanos auténticos",
+        "contactPhone": "+503 2223-0006",
+        "contactEmail": "info@tacoselcharro.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "01:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "01:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Valet parking disponible los fines de semana."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000007",
+      "profileId": "a0000001-0000-0000-0000-000000000007",
+      "postType": 2,
+      "title": "La Cantina Mexicana",
+      "content": "El sabor de México en El Salvador. Enchiladas suizas, burritos jumbo, quesadillas de flor de calabaza y tequila premium. Decoración colorida estilo cantina mexicana. Perfecto para reuniones familiares y celebraciones.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7023, "longitude": -89.2412 },
+      "tags": ["restaurant", "mexican", "price-moderate", "escalon", "family-friendly", "celebrations"],
+      "imageUrl": "https://placehold.co/800x600/f4a261/white?text=La+Cantina+Mexicana",
+      "pricingInfo": { "amount": 12.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Restaurante mexicano familiar",
+        "contactPhone": "+503 2263-0007",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Salón privado disponible para eventos."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000008",
+      "profileId": "a0000001-0000-0000-0000-000000000008",
+      "postType": 2,
+      "title": "Burritos & Más",
+      "content": "Burritos gigantes estilo California y comida Tex-Mex en Multiplaza. Rápido, fresco y delicioso. Bowls de arroz, nachos cargados, y quesadillas de todos los sabores. Perfecto para un almuerzo rápido de compras.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6823, "longitude": -89.2367 },
+      "tags": ["restaurant", "mexican", "burritos", "price-moderate", "multiplaza", "fast-casual", "mall"],
+      "imageUrl": "https://placehold.co/800x600/f4a261/white?text=Burritos+y+Mas",
+      "pricingInfo": { "amount": 9.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Comida Tex-Mex rápida",
+        "contactPhone": "+503 2243-0008",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Ubicado en food court de Multiplaza."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000009",
+      "profileId": "a0000001-0000-0000-0000-000000000009",
+      "postType": 2,
+      "title": "El Mariachi Loco",
+      "content": "¡Fiesta mexicana en Santa Ana! Música de mariachi en vivo los viernes y sábados. La mejor comida mexicana del occidente: mole poblano, chiles rellenos, pozole y aguas frescas. Ambiente alegre para toda la familia.",
+      "location": { "city": "Santa Ana", "state": "Santa Ana", "country": "El Salvador", "latitude": 13.9920, "longitude": -89.5610 },
+      "tags": ["restaurant", "mexican", "price-moderate", "santa-ana", "live-music", "mariachi", "family-friendly"],
+      "imageUrl": "https://placehold.co/800x600/f4a261/white?text=El+Mariachi+Loco",
+      "pricingInfo": { "amount": 11.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Restaurante mexicano con música en vivo",
+        "contactPhone": "+503 2441-0009",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Mariachi en vivo viernes y sábados desde las 8pm."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000010",
+      "profileId": "a0000001-0000-0000-0000-000000000010",
+      "postType": 2,
+      "title": "Taquería Don Pancho",
+      "content": "Tacos de carne asada, al pastor y suadero hasta tarde en San Benito. El mejor after-hours después de una noche en Zona Rosa. Salsas caseras, cebollas asadas y limones frescos. Abierto hasta las 3am los fines de semana.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6856, "longitude": -89.2298 },
+      "tags": ["restaurant", "mexican", "tacos", "price-moderate", "san-benito", "late-night", "after-hours"],
+      "imageUrl": "https://placehold.co/800x600/f4a261/white?text=Taqueria+Don+Pancho",
+      "pricingInfo": { "amount": 8.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Taquería nocturna",
+        "contactPhone": "+503 2223-0010",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "18:00", "closeTime": "01:00" },
+          "tuesday": { "isClosed": false, "openTime": "18:00", "closeTime": "01:00" },
+          "wednesday": { "isClosed": false, "openTime": "18:00", "closeTime": "01:00" },
+          "thursday": { "isClosed": false, "openTime": "18:00", "closeTime": "02:00" },
+          "friday": { "isClosed": false, "openTime": "18:00", "closeTime": "03:00" },
+          "saturday": { "isClosed": false, "openTime": "18:00", "closeTime": "03:00" },
+          "sunday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" }
+        },
+        "specialInstructions": "Solo efectivo. Estacionamiento en calle."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000011",
+      "profileId": "a0000001-0000-0000-0000-000000000011",
+      "postType": 2,
+      "title": "The Burger Joint",
+      "content": "Hamburguesas artesanales con carne Angus 100% en Multiplaza. Papas fritas cortadas a mano, malteadas clásicas de vainilla, chocolate y fresa. Ambiente casual americano perfecto para familias y amigos.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6819, "longitude": -89.2371 },
+      "tags": ["restaurant", "american", "burgers", "price-moderate", "multiplaza", "family-friendly"],
+      "imageUrl": "https://placehold.co/800x600/2a9d8f/white?text=The+Burger+Joint",
+      "pricingInfo": { "amount": 12.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Hamburguesas artesanales",
+        "contactPhone": "+503 2243-0011",
+        "contactEmail": "info@burgerjoint.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Ubicado en Multiplaza nivel 2."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000012",
+      "profileId": "a0000001-0000-0000-0000-000000000012",
+      "postType": 2,
+      "title": "Wings & Things",
+      "content": "Alitas de pollo en 20 sabores diferentes: buffalo, BBQ, honey mustard, teriyaki y más. El lugar perfecto para ver deportes con pantallas gigantes. Cervezas nacionales e importadas en promoción.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7034, "longitude": -89.2234 },
+      "tags": ["restaurant", "american", "wings", "price-moderate", "galerias", "sports-bar", "beer"],
+      "imageUrl": "https://placehold.co/800x600/2a9d8f/white?text=Wings+and+Things",
+      "pricingInfo": { "amount": 14.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Sports bar con alitas",
+        "contactPhone": "+503 2243-0012",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Happy hour de 4-7pm. Pantallas para eventos deportivos."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000013",
+      "profileId": "a0000001-0000-0000-0000-000000000013",
+      "postType": 2,
+      "title": "BBQ Smokehouse",
+      "content": "Carnes ahumadas estilo Texas en Gran Vía. Brisket ahumado 14 horas, baby back ribs, pulled pork y todos los sides clásicos: coleslaw, mac & cheese, baked beans. Salsas BBQ caseras.",
+      "location": { "city": "Antiguo Cuscatlán", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6712, "longitude": -89.2534 },
+      "tags": ["restaurant", "american", "bbq", "price-upscale", "gran-via", "smoked-meats"],
+      "imageUrl": "https://placehold.co/800x600/2a9d8f/white?text=BBQ+Smokehouse",
+      "pricingInfo": { "amount": 22.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "BBQ texano auténtico",
+        "contactPhone": "+503 2243-0013",
+        "contactEmail": "reservas@bbqsmokehouse.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Reservaciones recomendadas fines de semana. Carnes sujetas a disponibilidad."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000014",
+      "profileId": "a0000001-0000-0000-0000-000000000014",
+      "postType": 2,
+      "title": "Diner Americano",
+      "content": "Desayunos americanos todo el día en Escalón. Pancakes esponjosos, huevos benedict, bacon crujiente y el mejor café de la mañana. Decoración retro estilo diner de los 50s.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7045, "longitude": -89.2445 },
+      "tags": ["restaurant", "american", "breakfast", "price-moderate", "escalon", "all-day-breakfast", "retro"],
+      "imageUrl": "https://placehold.co/800x600/2a9d8f/white?text=Diner+Americano",
+      "pricingInfo": { "amount": 10.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Diner americano clásico",
+        "contactPhone": "+503 2263-0014",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Desayunos servidos todo el día."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000015",
+      "profileId": "a0000001-0000-0000-0000-000000000015",
+      "postType": 2,
+      "title": "Steak & Shake",
+      "content": "Steakburgers premium y malteadas artesanales en Santa Elena. Ambiente retro americano con jukeboxes y decoración vintage. Combos familiares y promociones para niños.",
+      "location": { "city": "Antiguo Cuscatlán", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6745, "longitude": -89.2556 },
+      "tags": ["restaurant", "american", "burgers", "milkshakes", "price-moderate", "santa-elena", "family-friendly"],
+      "imageUrl": "https://placehold.co/800x600/2a9d8f/white?text=Steak+and+Shake",
+      "pricingInfo": { "amount": 11.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Hamburguesas y malteadas",
+        "contactPhone": "+503 2243-0015",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Drive-thru disponible."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000016",
+      "profileId": "a0000001-0000-0000-0000-000000000016",
+      "postType": 2,
+      "title": "Trattoria Bella Italia",
+      "content": "Auténtica cocina italiana en San Benito. Pastas frescas hechas en casa diariamente, pizzas al horno de leña, ossobuco, risottos y tiramisú casero. Carta de vinos italianos selectos.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6845, "longitude": -89.2310 },
+      "tags": ["restaurant", "italian", "pasta", "pizza", "price-upscale", "san-benito", "wine"],
+      "imageUrl": "https://placehold.co/800x600/e9c46a/white?text=Trattoria+Bella+Italia",
+      "pricingInfo": { "amount": 20.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Trattoria italiana auténtica",
+        "contactPhone": "+503 2223-0016",
+        "contactEmail": "reservas@bellaitalia.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Reservaciones recomendadas. Estacionamiento propio."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000017",
+      "profileId": "a0000001-0000-0000-0000-000000000017",
+      "postType": 2,
+      "title": "Pizzería Napoli",
+      "content": "Pizza napolitana con masa fermentada 48 horas. Ingredientes importados de Italia: mozzarella di bufala, tomates San Marzano, aceite de oliva extra virgen. Certificación de pizza napolitana auténtica.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7030, "longitude": -89.2420 },
+      "tags": ["restaurant", "italian", "pizza", "price-moderate", "escalon", "authentic"],
+      "imageUrl": "https://placehold.co/800x600/e9c46a/white?text=Pizzeria+Napoli",
+      "pricingInfo": { "amount": 14.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pizza napolitana auténtica",
+        "contactPhone": "+503 2263-0017",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Delivery disponible. Horno de leña importado de Nápoles."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000018",
+      "profileId": "a0000001-0000-0000-0000-000000000018",
+      "postType": 2,
+      "title": "Pasta Fresca",
+      "content": "Pastas hechas en casa diariamente en Santa Elena. Tagliatelle, pappardelle, ravioli rellenos de ricotta. Salsas tradicionales: carbonara, amatriciana, pesto genovés. Vinos italianos selectos.",
+      "location": { "city": "Antiguo Cuscatlán", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6750, "longitude": -89.2550 },
+      "tags": ["restaurant", "italian", "pasta", "price-upscale", "santa-elena", "fresh-pasta", "wine"],
+      "imageUrl": "https://placehold.co/800x600/e9c46a/white?text=Pasta+Fresca",
+      "pricingInfo": { "amount": 18.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pastas frescas artesanales",
+        "contactPhone": "+503 2243-0018",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Pastas del día según disponibilidad."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000019",
+      "profileId": "a0000001-0000-0000-0000-000000000019",
+      "postType": 2,
+      "title": "Il Forno",
+      "content": "Cenas románticas con vista a la ciudad en Zona Rosa. Cocina italiana refinada: carpaccio de res, linguine alle vongole, ossobuco alla milanese. Carta de vinos premium y servicio impecable.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6798, "longitude": -89.2345 },
+      "tags": ["restaurant", "italian", "price-upscale", "zona-rosa", "romantic", "dinner", "date-night"],
+      "imageUrl": "https://placehold.co/800x600/e9c46a/white?text=Il+Forno",
+      "pricingInfo": { "amount": 28.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Cocina italiana romántica",
+        "contactPhone": "+503 2223-0019",
+        "contactEmail": "reservas@ilforno.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Reservaciones obligatorias. Código de vestimenta: smart casual."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000020",
+      "profileId": "a0000001-0000-0000-0000-000000000020",
+      "postType": 2,
+      "title": "Ristorante Milano",
+      "content": "Fine dining italiano en Antiguo Cuscatlán. Experiencia gastronómica de primer nivel con menú degustación de 7 tiempos. Chef italiano, ingredientes importados, maridaje con vinos de la Toscana y Piamonte.",
+      "location": { "city": "Antiguo Cuscatlán", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6720, "longitude": -89.2540 },
+      "tags": ["restaurant", "italian", "price-fine-dining", "antiguo-cuscatlan", "fine-dining", "tasting-menu"],
+      "imageUrl": "https://placehold.co/800x600/e9c46a/white?text=Ristorante+Milano",
+      "pricingInfo": { "amount": 55.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Fine dining italiano",
+        "contactPhone": "+503 2243-0020",
+        "contactEmail": "reservas@milano.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": true },
+          "wednesday": { "isClosed": false, "openTime": "19:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "19:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "19:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "19:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Reservaciones con mínimo 48 horas. Código de vestimenta formal."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000021",
+      "profileId": "a0000001-0000-0000-0000-000000000021",
+      "postType": 2,
+      "title": "Sushi House",
+      "content": "Sushi fresco preparado por chefs japoneses en Multiplaza. Rolls especiales de la casa, sashimi grade AAA, menú omakase disponible. Ambiente zen con decoración japonesa auténtica.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6825, "longitude": -89.2370 },
+      "tags": ["restaurant", "asian", "sushi", "japanese", "price-upscale", "multiplaza", "omakase"],
+      "imageUrl": "https://placehold.co/800x600/9b2226/white?text=Sushi+House",
+      "pricingInfo": { "amount": 25.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Sushi japonés premium",
+        "contactPhone": "+503 2243-0021",
+        "contactEmail": "reservas@sushihouse.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Omakase requiere reservación. Barra de sushi disponible."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000022",
+      "profileId": "a0000001-0000-0000-0000-000000000022",
+      "postType": 2,
+      "title": "Dragon Palace",
+      "content": "Cocina china tradicional en Zona Rosa. Dim sum los domingos, pato pekinés, chow mein, arroz frito especial. Ambiente familiar con salones privados disponibles para grupos.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6790, "longitude": -89.2350 },
+      "tags": ["restaurant", "asian", "chinese", "price-moderate", "zona-rosa", "family-friendly", "dim-sum"],
+      "imageUrl": "https://placehold.co/800x600/9b2226/white?text=Dragon+Palace",
+      "pricingInfo": { "amount": 14.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Restaurante chino tradicional",
+        "contactPhone": "+503 2223-0022",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Dim sum solo domingos 10am-2pm. Salones privados con reservación."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000023",
+      "profileId": "a0000001-0000-0000-0000-000000000023",
+      "postType": 2,
+      "title": "Thai Garden",
+      "content": "Sabores de Tailandia en Gran Vía. Curry verde, curry massaman, pad thai auténtico, tom yum soup. Especias importadas de Bangkok. Niveles de picante personalizables.",
+      "location": { "city": "Antiguo Cuscatlán", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6715, "longitude": -89.2530 },
+      "tags": ["restaurant", "asian", "thai", "price-upscale", "gran-via", "spicy", "curry"],
+      "imageUrl": "https://placehold.co/800x600/9b2226/white?text=Thai+Garden",
+      "pricingInfo": { "amount": 18.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Cocina tailandesa auténtica",
+        "contactPhone": "+503 2243-0023",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Indique nivel de picante al ordenar: mild, medium, hot, thai hot."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000024",
+      "profileId": "a0000001-0000-0000-0000-000000000024",
+      "postType": 2,
+      "title": "Noodle Bar",
+      "content": "Ramen, pho y noodles de toda Asia en San Benito. Caldos preparados por horas con huesos de cerdo y pollo. Fideos hechos en casa. Gyozas, baos y edamame como acompañantes.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6860, "longitude": -89.2295 },
+      "tags": ["restaurant", "asian", "ramen", "noodles", "pho", "price-moderate", "san-benito"],
+      "imageUrl": "https://placehold.co/800x600/9b2226/white?text=Noodle+Bar",
+      "pricingInfo": { "amount": 13.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Bar de noodles asiáticos",
+        "contactPhone": "+503 2223-0024",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Ambiente casual. Ideal para almuerzo rápido."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000025",
+      "profileId": "a0000001-0000-0000-0000-000000000025",
+      "postType": 2,
+      "title": "Ramen House",
+      "content": "Especialistas en ramen tonkotsu en Escalón. Caldo cremoso de hueso de cerdo cocinado 18 horas. Gyozas crujientes, takoyaki, cervezas japonesas Asahi y Sapporo.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7040, "longitude": -89.2430 },
+      "tags": ["restaurant", "asian", "ramen", "japanese", "price-moderate", "escalon", "tonkotsu"],
+      "imageUrl": "https://placehold.co/800x600/9b2226/white?text=Ramen+House",
+      "pricingInfo": { "amount": 14.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Ramen japonés especializado",
+        "contactPhone": "+503 2263-0025",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Ramen se sirve muy caliente. Cuidado con niños."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000026",
+      "profileId": "a0000001-0000-0000-0000-000000000026",
+      "postType": 2,
+      "title": "Mariscos El Puerto",
+      "content": "Mariscos frescos del día en el muelle de La Libertad. Ceviche de corvina, cocteles de camarón y conchas, pescado frito entero, sopa marinera. Vista directa al océano Pacífico.",
+      "location": { "city": "La Libertad", "state": "La Libertad", "country": "El Salvador", "latitude": 13.4890, "longitude": -89.3220 },
+      "tags": ["restaurant", "seafood", "mariscos", "price-moderate", "la-libertad", "beach", "ocean-view", "fresh"],
+      "imageUrl": "https://placehold.co/800x600/0077b6/white?text=Mariscos+El+Puerto",
+      "pricingInfo": { "amount": 15.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Marisquería frente al mar",
+        "contactPhone": "+503 2335-0026",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Mariscos del día según pesca. Llegar temprano fines de semana."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000027",
+      "profileId": "a0000001-0000-0000-0000-000000000027",
+      "postType": 2,
+      "title": "Cevichería La Ola",
+      "content": "El mejor ceviche de El Tunco con vista al mar. Ceviche mixto, ceviche negro, tostadas de atún, aguachile. Atardeceres inolvidables con cervezas heladas y música chill.",
+      "location": { "city": "La Libertad", "state": "La Libertad", "country": "El Salvador", "latitude": 13.4950, "longitude": -89.3890 },
+      "tags": ["restaurant", "seafood", "ceviche", "price-moderate", "la-libertad", "el-tunco", "ocean-view", "sunset"],
+      "imageUrl": "https://placehold.co/800x600/0077b6/white?text=Cevicheria+La+Ola",
+      "pricingInfo": { "amount": 14.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Cevichería con vista al mar",
+        "contactPhone": "+503 2335-0027",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "20:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Popular con surfistas. Llegar antes del atardecer."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000028",
+      "profileId": "a0000001-0000-0000-0000-000000000028",
+      "postType": 2,
+      "title": "El Pescador",
+      "content": "Mariscos gourmet en Zona Rosa. Langosta termidor, camarones al ajillo flameados, paella marinera para dos. Ambiente elegante para cenas especiales.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6795, "longitude": -89.2340 },
+      "tags": ["restaurant", "seafood", "mariscos", "price-upscale", "zona-rosa", "lobster", "special-occasions"],
+      "imageUrl": "https://placehold.co/800x600/0077b6/white?text=El+Pescador",
+      "pricingInfo": { "amount": 30.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Mariscos gourmet",
+        "contactPhone": "+503 2223-0028",
+        "contactEmail": "reservas@elpescador.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Reservaciones recomendadas. Tanque de langostas vivas."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000029",
+      "profileId": "a0000001-0000-0000-0000-000000000029",
+      "postType": 2,
+      "title": "Marisquería Costanera",
+      "content": "Tradición playera desde 1990 en La Libertad. Sopas de mariscos estilo salvadoreño, pescado a la plancha, camarones empanizados. Ambiente familiar con mesas frente al mar.",
+      "location": { "city": "La Libertad", "state": "La Libertad", "country": "El Salvador", "latitude": 13.4870, "longitude": -89.3210 },
+      "tags": ["restaurant", "seafood", "mariscos", "price-moderate", "la-libertad", "traditional", "family-friendly"],
+      "imageUrl": "https://placehold.co/800x600/0077b6/white?text=Marisqueria+Costanera",
+      "pricingInfo": { "amount": 12.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Marisquería tradicional",
+        "contactPhone": "+503 2335-0029",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "20:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "20:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "19:00" }
+        },
+        "specialInstructions": "Porciones generosas. Ideal para familias."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000030",
+      "profileId": "a0000001-0000-0000-0000-000000000030",
+      "postType": 2,
+      "title": "Lobster House",
+      "content": "Fine dining de mariscos en San Benito. Langosta Maine importada, ostras frescas de la costa del Pacífico, torre de mariscos, champagne y vinos blancos premium.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6840, "longitude": -89.2305 },
+      "tags": ["restaurant", "seafood", "lobster", "oysters", "price-fine-dining", "san-benito", "fine-dining", "champagne"],
+      "imageUrl": "https://placehold.co/800x600/0077b6/white?text=Lobster+House",
+      "pricingInfo": { "amount": 60.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Fine dining de mariscos",
+        "contactPhone": "+503 2223-0030",
+        "contactEmail": "reservas@lobsterhouse.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": true },
+          "wednesday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Reservaciones obligatorias. Código de vestimenta elegante."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000031",
+      "profileId": "a0000001-0000-0000-0000-000000000031",
+      "postType": 2,
+      "title": "La Parrilla Argentina",
+      "content": "Cortes argentinos a la parrilla en Zona Rosa. Bife de chorizo, entraña, ojo de bife, vacío. Acompañados de chimichurri casero, papas provenzal y ensaladas frescas. Carta de vinos Malbec y Cabernet.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6787, "longitude": -89.2365 },
+      "tags": ["restaurant", "steakhouse", "argentine", "price-upscale", "zona-rosa", "wine", "grilled"],
+      "imageUrl": "https://placehold.co/800x600/6d4c41/white?text=La+Parrilla+Argentina",
+      "pricingInfo": { "amount": 28.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Parrilla argentina auténtica",
+        "contactPhone": "+503 2223-0031",
+        "contactEmail": "reservas@parrillaargentina.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Parrilla a la vista. Cortes pueden tardar 20-30 min."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000032",
+      "profileId": "a0000001-0000-0000-0000-000000000032",
+      "postType": 2,
+      "title": "El Gaucho",
+      "content": "Steakhouse premium en Escalón. Carnes añejadas en seco 28 días, parrilla de leña de encino. Servicio de primera clase en ambiente elegante. Ideal para celebraciones y cenas de negocios.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7050, "longitude": -89.2450 },
+      "tags": ["restaurant", "steakhouse", "price-fine-dining", "escalon", "fine-dining", "dry-aged", "business-dinner"],
+      "imageUrl": "https://placehold.co/800x600/6d4c41/white?text=El+Gaucho",
+      "pricingInfo": { "amount": 50.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Steakhouse de lujo",
+        "contactPhone": "+503 2263-0032",
+        "contactEmail": "reservas@elgaucho.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "18:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "18:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Reservaciones requeridas. Smart casual requerido."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000033",
+      "profileId": "a0000001-0000-0000-0000-000000000033",
+      "postType": 2,
+      "title": "Rancho Grande",
+      "content": "Parrillada santaneca con ambiente ranchero en Santa Ana. Carnes a la leña, chorizo criollo, morcilla. Música en vivo de guitarra los fines de semana. Terraza con vista a la ciudad.",
+      "location": { "city": "Santa Ana", "state": "Santa Ana", "country": "El Salvador", "latitude": 13.9935, "longitude": -89.5605 },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "santa-ana", "live-music", "rustic", "terrace"],
+      "imageUrl": "https://placehold.co/800x600/6d4c41/white?text=Rancho+Grande",
+      "pricingInfo": { "amount": 22.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Parrillada ranchera",
+        "contactPhone": "+503 2441-0033",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Música en vivo viernes y sábados 8pm. Reservar para terraza."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000034",
+      "profileId": "a0000001-0000-0000-0000-000000000034",
+      "postType": 2,
+      "title": "Carnes y Brasas",
+      "content": "Cortes selectos y churrascos en San Benito. Ambiente elegante para ocasiones especiales: aniversarios, graduaciones, promociones. Carta de vinos sudamericanos y whisky premium.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6850, "longitude": -89.2300 },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "san-benito", "special-occasions", "wine", "whisky"],
+      "imageUrl": "https://placehold.co/800x600/6d4c41/white?text=Carnes+y+Brasas",
+      "pricingInfo": { "amount": 32.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Steakhouse para ocasiones especiales",
+        "contactPhone": "+503 2223-0034",
+        "contactEmail": "reservas@carnesybrasas.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Salón privado disponible para eventos."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000035",
+      "profileId": "a0000001-0000-0000-0000-000000000035",
+      "postType": 2,
+      "title": "Asador El Toro",
+      "content": "Parrilla tradicional en Santa Tecla. Churrasco jugoso, chorizo argentino criollo, empanadas de carne. Ambiente casual con mesas al aire libre. Perfecto para almuerzos familiares de domingo.",
+      "location": { "city": "Santa Tecla", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6720, "longitude": -89.2890 },
+      "tags": ["restaurant", "steakhouse", "price-upscale", "santa-tecla", "outdoor", "family-friendly", "sunday-lunch"],
+      "imageUrl": "https://placehold.co/800x600/6d4c41/white?text=Asador+El+Toro",
+      "pricingInfo": { "amount": 20.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Asador tradicional",
+        "contactPhone": "+503 2228-0035",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Parrilladas familiares con descuento los domingos."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000036",
+      "profileId": "a0000001-0000-0000-0000-000000000036",
+      "postType": 2,
+      "title": "Pollo Campestre Centro",
+      "content": "Pollo rostizado y frito crujiente en el Centro Histórico. Acompañado de tortillas calientes, ensalada de repollo y frijoles. Combos económicos para familias. Servicio rápido.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6976, "longitude": -89.1923 },
+      "tags": ["restaurant", "fast-food", "chicken", "price-budget", "centro", "family-meals", "quick"],
+      "imageUrl": "https://placehold.co/800x600/ff6b6b/white?text=Pollo+Campestre",
+      "pricingInfo": { "amount": 6.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pollo rostizado salvadoreño",
+        "contactPhone": "+503 2222-0036",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Para llevar o comer en local. Combos familiares disponibles."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000037",
+      "profileId": "a0000001-0000-0000-0000-000000000037",
+      "postType": 2,
+      "title": "Burger Palace",
+      "content": "Hamburguesas rápidas y económicas en Multiplaza. Combos con papas y refresco. Promociones diarias y menú infantil. Servicio rápido para compradores ocupados.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.6820, "longitude": -89.2368 },
+      "tags": ["restaurant", "fast-food", "burgers", "price-budget", "multiplaza", "quick", "kids-menu"],
+      "imageUrl": "https://placehold.co/800x600/ff6b6b/white?text=Burger+Palace",
+      "pricingInfo": { "amount": 7.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Hamburguesas rápidas",
+        "contactPhone": "+503 2243-0037",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Ubicado en food court. Combo del día con descuento."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000038",
+      "profileId": "a0000001-0000-0000-0000-000000000038",
+      "postType": 2,
+      "title": "Pizza Rápida",
+      "content": "Pizza por rebanada y pizzas completas en Galerías. Pepperoni, hawaiana, supreme, vegetariana. Servicio rápido para llevar. Perfecta para un snack de compras.",
+      "location": { "city": "San Salvador", "state": "San Salvador", "country": "El Salvador", "latitude": 13.7032, "longitude": -89.2230 },
+      "tags": ["restaurant", "fast-food", "pizza", "price-budget", "galerias", "by-the-slice", "takeout"],
+      "imageUrl": "https://placehold.co/800x600/ff6b6b/white?text=Pizza+Rapida",
+      "pricingInfo": { "amount": 5.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Pizza rápida por rebanada",
+        "contactPhone": "+503 2243-0038",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Rebanada + refresco $3.99 promoción del día."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000039",
+      "profileId": "a0000001-0000-0000-0000-000000000039",
+      "postType": 2,
+      "title": "Hot Dogs Express",
+      "content": "Hot dogs estilo americano en Santa Tecla. Todos los toppings: chili, queso, jalapeños, sauerkraut. Papas fritas y aros de cebolla. Rápido y delicioso.",
+      "location": { "city": "Santa Tecla", "state": "La Libertad", "country": "El Salvador", "latitude": 13.6710, "longitude": -89.2895 },
+      "tags": ["restaurant", "fast-food", "hot-dogs", "price-budget", "santa-tecla", "american"],
+      "imageUrl": "https://placehold.co/800x600/ff6b6b/white?text=Hot+Dogs+Express",
+      "pricingInfo": { "amount": 4.50, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Hot dogs americanos",
+        "contactPhone": "+503 2228-0039",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Combo 2 hot dogs + papas + refresco $6.99"
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000040",
+      "profileId": "a0000001-0000-0000-0000-000000000040",
+      "postType": 2,
+      "title": "Tacos Express",
+      "content": "Tacos rápidos y económicos en Santa Ana. Tacos de carne, pollo, chorizo. Perfectos para el almuerzo. Salsa verde y roja caseras. Servicio en 5 minutos.",
+      "location": { "city": "Santa Ana", "state": "Santa Ana", "country": "El Salvador", "latitude": 13.9945, "longitude": -89.5595 },
+      "tags": ["restaurant", "fast-food", "tacos", "price-budget", "santa-ana", "lunch", "quick"],
+      "imageUrl": "https://placehold.co/800x600/ff6b6b/white?text=Tacos+Express",
+      "pricingInfo": { "amount": 5.00, "currency": "USD", "isNegotiable": false, "description": "Precio promedio por comida" },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "description": "Tacos rápidos",
+        "contactPhone": "+503 2441-0040",
+        "contactEmail": "",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "3 tacos + refresco $4.99 promoción de almuerzo."
+      }
+    },
+
+    {
+      "id": "b0000001-0000-0000-0000-000000000041",
+      "profileId": "a0000001-0000-0000-0000-000000000041",
+      "postType": 2,
+      "title": "La Cafeteca",
+      "content": "Café de especialidad salvadoreño de la Ruta de las Flores. Tostamos nuestro propio café de fincas de Apaneca y Ataco. Desayunos completos, pasteles artesanales, y el mejor espresso de San Salvador. WiFi gratis y ambiente perfecto para trabajar.",
+      "imageUrls": ["https://placehold.co/800x600/8B4513/white?text=La+Cafeteca"],
+      "location": {
+        "address": "Calle La Mascota #425",
+        "city": "San Salvador",
+        "latitude": 13.7010,
+        "longitude": -89.2250
+      },
+      "tags": ["restaurant", "cafe", "coffee", "bakery", "breakfast", "price-budget", "zona-rosa"],
+      "pricingInfo": {
+        "amount": 8,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2263-8800",
+        "contactEmail": "info@lacafeteca.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "06:30", "closeTime": "20:00" },
+          "tuesday": { "isClosed": false, "openTime": "06:30", "closeTime": "20:00" },
+          "wednesday": { "isClosed": false, "openTime": "06:30", "closeTime": "20:00" },
+          "thursday": { "isClosed": false, "openTime": "06:30", "closeTime": "20:00" },
+          "friday": { "isClosed": false, "openTime": "06:30", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Café + pastry combo $4.50. Lealtad: 10mo café gratis."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000042",
+      "profileId": "a0000001-0000-0000-0000-000000000042",
+      "postType": 2,
+      "title": "Viva Espresso",
+      "content": "Cadena de café 100% salvadoreño con granos de altura de Chalatenango y Santa Ana. Más de 15 sucursales. Conocidos por nuestro café helado signature y pasteles de tres leches. Ideales para reuniones de trabajo o estudio.",
+      "imageUrls": ["https://placehold.co/800x600/D2691E/white?text=Viva+Espresso"],
+      "location": {
+        "address": "Centro Comercial Multiplaza Local 215",
+        "city": "Antiguo Cuscatlán",
+        "latitude": 13.6695,
+        "longitude": -89.2451
+      },
+      "tags": ["restaurant", "cafe", "coffee", "desserts", "price-moderate", "multiplaza"],
+      "pricingInfo": {
+        "amount": 10,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2510-7700",
+        "contactEmail": "contacto@vivaespresso.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Pedidos por app con 10% descuento."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000043",
+      "profileId": "a0000001-0000-0000-0000-000000000043",
+      "postType": 2,
+      "title": "Panadería Ban Ban",
+      "content": "Tradición panadera salvadoreña desde 1962. Famosos por nuestro pan francés, semitas, quesadillas de arroz, y marquesotes. Panadería completa con café y área de desayunos. Pan fresco cada hora.",
+      "imageUrls": ["https://placehold.co/800x600/F4A460/white?text=Panaderia+Ban+Ban"],
+      "location": {
+        "address": "Blvd Los Próceres #45",
+        "city": "San Salvador",
+        "latitude": 13.7015,
+        "longitude": -89.2185
+      },
+      "tags": ["restaurant", "bakery", "cafe", "salvadoran", "breakfast", "price-budget", "proceres"],
+      "pricingInfo": {
+        "amount": 5,
+        "currency": "USD",
+        "description": "$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2260-1962",
+        "contactEmail": "pedidos@banban.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "05:30", "closeTime": "19:00" },
+          "tuesday": { "isClosed": false, "openTime": "05:30", "closeTime": "19:00" },
+          "wednesday": { "isClosed": false, "openTime": "05:30", "closeTime": "19:00" },
+          "thursday": { "isClosed": false, "openTime": "05:30", "closeTime": "19:00" },
+          "friday": { "isClosed": false, "openTime": "05:30", "closeTime": "19:00" },
+          "saturday": { "isClosed": false, "openTime": "05:30", "closeTime": "18:00" },
+          "sunday": { "isClosed": false, "openTime": "06:00", "closeTime": "14:00" }
+        },
+        "specialInstructions": "Pedidos de pan para eventos con 48hrs anticipación."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000044",
+      "profileId": "a0000001-0000-0000-0000-000000000044",
+      "postType": 2,
+      "title": "Tipicos Coffee Shop",
+      "content": "Fusión de café salvadoreño con desayunos típicos. Prueba nuestro café de Jayaque con plato típico completo: frijoles, crema, plátano, huevos y queso. Ambiente acogedor estilo rústico salvadoreño.",
+      "imageUrls": ["https://placehold.co/800x600/A0522D/white?text=Tipicos+Coffee"],
+      "location": {
+        "address": "Paseo General Escalón #3845",
+        "city": "San Salvador",
+        "latitude": 13.7058,
+        "longitude": -89.2380
+      },
+      "tags": ["restaurant", "cafe", "salvadoran", "breakfast", "coffee", "price-budget", "escalon"],
+      "pricingInfo": {
+        "amount": 8,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2264-5500",
+        "contactEmail": "hola@tipicoscoffee.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "06:00", "closeTime": "15:00" },
+          "tuesday": { "isClosed": false, "openTime": "06:00", "closeTime": "15:00" },
+          "wednesday": { "isClosed": false, "openTime": "06:00", "closeTime": "15:00" },
+          "thursday": { "isClosed": false, "openTime": "06:00", "closeTime": "15:00" },
+          "friday": { "isClosed": false, "openTime": "06:00", "closeTime": "15:00" },
+          "saturday": { "isClosed": false, "openTime": "06:30", "closeTime": "16:00" },
+          "sunday": { "isClosed": false, "openTime": "07:00", "closeTime": "14:00" }
+        },
+        "specialInstructions": "Desayuno completo + café $5.99. Solo efectivo."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000045",
+      "profileId": "a0000001-0000-0000-0000-000000000045",
+      "postType": 2,
+      "title": "Dulce Tentación",
+      "content": "Pastelería artesanal especializada en pasteles personalizados, cupcakes y postres franceses. Hacemos pasteles para bodas, quinceaños y eventos corporativos. Cafetería con ambiente elegante para disfrutar nuestras creaciones.",
+      "imageUrls": ["https://placehold.co/800x600/FFB6C1/white?text=Dulce+Tentacion"],
+      "location": {
+        "address": "Calle El Mirador #210, Colonia Escalón",
+        "city": "San Salvador",
+        "latitude": 13.7045,
+        "longitude": -89.2410
+      },
+      "tags": ["restaurant", "bakery", "cafe", "desserts", "cakes", "price-moderate", "escalon"],
+      "pricingInfo": {
+        "amount": 15,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2263-4455",
+        "contactEmail": "pedidos@dulcetentacion.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "19:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "20:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Pasteles personalizados requieren 3 días anticipación."
+      }
+    },
+
+    {
+      "id": "b0000001-0000-0000-0000-000000000046",
+      "profileId": "a0000001-0000-0000-0000-000000000046",
+      "postType": 2,
+      "title": "Green Garden Bistro",
+      "content": "Primer restaurante 100% vegano de El Salvador. Menú creativo con ingredientes locales y orgánicos. Nuestros bowls, hamburguesas de plantas y postres sin azúcar demuestran que comer sano es delicioso. Opciones sin gluten disponibles.",
+      "imageUrls": ["https://placehold.co/800x600/228B22/white?text=Green+Garden"],
+      "location": {
+        "address": "Calle La Reforma #255",
+        "city": "San Salvador",
+        "latitude": 13.7025,
+        "longitude": -89.2290
+      },
+      "tags": ["restaurant", "vegetarian", "vegan", "healthy", "organic", "price-moderate", "colonia-san-benito"],
+      "pricingInfo": {
+        "amount": 15,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2243-9900",
+        "contactEmail": "hola@greengarden.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "20:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "20:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "20:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "20:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Menú 100% vegano. Opciones sin gluten marcadas en carta."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000047",
+      "profileId": "a0000001-0000-0000-0000-000000000047",
+      "postType": 2,
+      "title": "Vida Sana Restaurant",
+      "content": "Restaurante vegetariano con 20 años de tradición. Buffet de almuerzo con más de 30 opciones vegetarianas y veganas. Jugos naturales, smoothies y opciones macrobióticas. Ideal para quienes buscan alimentación consciente.",
+      "imageUrls": ["https://placehold.co/800x600/32CD32/white?text=Vida+Sana"],
+      "location": {
+        "address": "Ave Las Magnolias #320",
+        "city": "San Salvador",
+        "latitude": 13.7080,
+        "longitude": -89.2195
+      },
+      "tags": ["restaurant", "vegetarian", "healthy", "buffet", "price-budget", "san-benito"],
+      "pricingInfo": {
+        "amount": 8,
+        "currency": "USD",
+        "description": "$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2257-3300",
+        "contactEmail": "info@vidasana.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "15:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Buffet almuerzo $6.50. Desayuno típico vegetariano $4."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000048",
+      "profileId": "a0000001-0000-0000-0000-000000000048",
+      "postType": 2,
+      "title": "Roots & Bowls",
+      "content": "Concepto moderno de comida saludable. Especialistas en açaí bowls, poke bowls vegetarianos, wraps integrales y smoothies energizantes. Ingredientes frescos, superfoods y opciones keto/paleo. WiFi gratis.",
+      "imageUrls": ["https://placehold.co/800x600/9ACD32/white?text=Roots+Bowls"],
+      "location": {
+        "address": "Food Court La Gran Vía, Local 28",
+        "city": "Antiguo Cuscatlán",
+        "latitude": 13.6758,
+        "longitude": -89.2531
+      },
+      "tags": ["restaurant", "vegetarian", "healthy", "bowls", "smoothies", "price-moderate", "gran-via"],
+      "pricingInfo": {
+        "amount": 12,
+        "currency": "USD",
+        "description": "$$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2248-7700",
+        "contactEmail": "info@rootsandbowls.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Bowl personalizado disponible. Proteína extra +$2."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000049",
+      "profileId": "a0000001-0000-0000-0000-000000000049",
+      "postType": 2,
+      "title": "Govindas Vegetariano",
+      "content": "Restaurante vegetariano inspirado en la cocina védica de la India. Curries vegetarianos, dhal, chapatis y dulces tradicionales. Almuerzo buffet con menú diferente cada día. Ambiente tranquilo y espiritual.",
+      "imageUrls": ["https://placehold.co/800x600/FFD700/white?text=Govindas"],
+      "location": {
+        "address": "Calle Los Sisimiles #45, Colonia Miramonte",
+        "city": "San Salvador",
+        "latitude": 13.7120,
+        "longitude": -89.2055
+      },
+      "tags": ["restaurant", "vegetarian", "indian", "healthy", "buffet", "price-budget", "miramonte"],
+      "pricingInfo": {
+        "amount": 6,
+        "currency": "USD",
+        "description": "$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2274-8500",
+        "contactEmail": "govindas.sv@gmail.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" },
+          "thursday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" },
+          "friday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": false, "openTime": "11:30", "closeTime": "15:00" }
+        },
+        "specialInstructions": "Buffet completo $5.50. Solo almuerzo, cerrado sábados."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000050",
+      "profileId": "a0000001-0000-0000-0000-000000000050",
+      "postType": 2,
+      "title": "El Árbol de Vida",
+      "content": "Restaurante y tienda naturista con más de 30 años de experiencia. Comida vegetariana tradicional salvadoreña adaptada: pupusas de loroco sin queso, tamales veganos, y refrescos naturales. Venta de productos orgánicos y suplementos.",
+      "imageUrls": ["https://placehold.co/800x600/008000/white?text=Arbol+de+Vida"],
+      "location": {
+        "address": "Blvd Universitario #2215",
+        "city": "San Salvador",
+        "latitude": 13.7195,
+        "longitude": -89.2010
+      },
+      "tags": ["restaurant", "vegetarian", "salvadoran", "organic", "healthy", "price-budget", "universitaria"],
+      "pricingInfo": {
+        "amount": 7,
+        "currency": "USD",
+        "description": "$",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2225-1800",
+        "contactEmail": "contacto@arboldevida.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" },
+          "tuesday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "07:00", "closeTime": "18:00" },
+          "saturday": { "isClosed": false, "openTime": "07:00", "closeTime": "16:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Tienda naturista abierta mismo horario. Pupusas veganas viernes."
+      }
+    }
+  ]
+}

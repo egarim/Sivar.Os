@@ -35,6 +35,10 @@ namespace Xaf.Sivar.Os.Blazor.Server
 #if EASYTEST
             e.Updater.Update();
             e.Handled = true;
+#elif DEBUG
+            // Always update database in DEBUG mode (for development and seeding)
+            e.Updater.Update();
+            e.Handled = true;
 #else
             if (System.Diagnostics.Debugger.IsAttached)
             {

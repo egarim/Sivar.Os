@@ -14,6 +14,7 @@ using Sivar.Os.Shared.DTOs.ValueObjects;
 using Sivar.Os.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Xaf.Sivar.Os.Module.DatabaseUpdate
 {
@@ -109,6 +110,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             SeedDefaultProfiles();
 
             ObjectSpace.CommitChanges(); //This line persists created object(s);
+            
+            // Seed demo data from DemoData folder (runs in both DEBUG and RELEASE)
+            await SeedDemoDataAsync();
+            
+            ObjectSpace.CommitChanges(); //This line persists demo data
         }
         
         /// <summary>
@@ -844,5 +850,397 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
             
             System.Diagnostics.Debug.WriteLine("[Updater] Finished SeedDefaultProfiles.");
         }
+        
+        /// <summary>
+        /// Seeds demo data from the DemoData folder JSON files
+        /// </summary>
+        private async Task SeedDemoDataAsync()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedDemoDataAsync...");
+            
+            try
+            {
+                // Find the DemoData folder - go up from XAF module to solution root
+                var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+                var assemblyDir = Path.GetDirectoryName(assemblyLocation) ?? "";
+                
+                // Navigate up to find the solution root (where DemoData folder should be)
+                var solutionRoot = FindSolutionRoot(assemblyDir);
+                if (string.IsNullOrEmpty(solutionRoot))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Updater] Could not find solution root. Skipping demo data seeding.");
+                    return;
+                }
+                
+                var demoDataPath = Path.Combine(solutionRoot, "DemoData");
+                if (!Directory.Exists(demoDataPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] DemoData folder not found at: {demoDataPath}. Skipping demo data seeding.");
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[Updater] DemoData folder found at: {demoDataPath}");
+                
+                // Seed restaurants
+                await SeedRestaurantsAsync(demoDataPath);
+                
+                // Future: Add more categories
+                // await SeedEntertainmentAsync(demoDataPath);
+                // await SeedTourismAsync(demoDataPath);
+                // await SeedGovernmentAsync(demoDataPath);
+                // await SeedServicesAsync(demoDataPath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error seeding demo data: {ex.Message}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] Finished SeedDemoDataAsync.");
+        }
+        
+        /// <summary>
+        /// Finds the solution root directory by looking for Sivar.Os.sln
+        /// </summary>
+        private string? FindSolutionRoot(string startDir)
+        {
+            var dir = startDir;
+            while (!string.IsNullOrEmpty(dir))
+            {
+                if (File.Exists(Path.Combine(dir, "Sivar.Os.sln")))
+                {
+                    return dir;
+                }
+                var parent = Directory.GetParent(dir);
+                dir = parent?.FullName;
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// Seeds restaurant demo data from DemoData/Restaurants/restaurants.json
+        /// </summary>
+        private async Task SeedRestaurantsAsync(string demoDataPath)
+        {
+            var restaurantsJsonPath = Path.Combine(demoDataPath, "Restaurants", "restaurants.json");
+            if (!File.Exists(restaurantsJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Restaurants JSON not found at: {restaurantsJsonPath}. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading restaurants from: {restaurantsJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(restaurantsJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse restaurants JSON.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get the business profile type
+            var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileTypeId);
+            if (businessProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Business profile type not found. Skipping restaurant seeding.");
+                return;
+            }
+            
+            // Create a system user for demo data if not exists
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
+            if (systemUser == null)
+            {
+                systemUser = ObjectSpace.CreateObject<User>();
+                systemUser.Id = systemUserId;
+                systemUser.KeycloakId = "demo-system-user";
+                systemUser.Email = "demo@sivar.os";
+                systemUser.FirstName = "Demo";
+                systemUser.LastName = "System";
+                systemUser.Role = UserRole.RegisteredUser;
+                systemUser.IsActive = true;
+                systemUser.PreferredLanguage = "es";
+                systemUser.TimeZone = "America/El_Salvador";
+                systemUser.CreatedAt = now;
+                systemUser.UpdatedAt = now;
+                ObjectSpace.CommitChanges();
+                System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created demo system user.");
+            }
+            
+            // Seed profiles
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = systemUserId;
+                    profile.ProfileTypeId = businessProfileTypeId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.IsActive = false; // Demo profiles are not active user profiles
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName} ({profileData.Handle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} restaurant profiles.");
+            
+            // Seed posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = (PostType)(postData.PostType ?? 2); // Default to BusinessLocation
+                    post.Title = postData.Title ?? "";
+                    post.Content = postData.Content ?? "";
+                    post.Visibility = VisibilityLevel.Public;
+                    post.Language = "es";
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CreatedAt = now;
+                    post.UpdatedAt = now;
+                    
+                    // Set location if available
+                    if (postData.Location != null)
+                    {
+                        post.Location = new Location(
+                            postData.Location.City ?? "",
+                            postData.Location.State ?? "",
+                            postData.Location.Country ?? "El Salvador",
+                            postData.Location.Latitude,
+                            postData.Location.Longitude
+                        );
+                    }
+                    
+                    // Set pricing info
+                    if (postData.PricingInfo != null)
+                    {
+                        var pricing = new PricingInformation
+                        {
+                            Amount = postData.PricingInfo.Amount ?? 0,
+                            Currency = Currency.USD,
+                            IsNegotiable = postData.PricingInfo.IsNegotiable ?? false,
+                            Description = postData.PricingInfo.Description
+                        };
+                        post.PricingInfo = JsonSerializer.Serialize(pricing);
+                    }
+                    
+                    // Set business metadata
+                    if (postData.BusinessMetadata != null)
+                    {
+                        var metadata = new BusinessLocationMetadata
+                        {
+                            LocationType = Enum.TryParse<BusinessLocationType>(postData.BusinessMetadata.LocationType, out var locType) 
+                                ? locType 
+                                : BusinessLocationType.RetailStore,
+                            ContactPhone = postData.BusinessMetadata.ContactPhone,
+                            ContactEmail = postData.BusinessMetadata.ContactEmail,
+                            AcceptsWalkIns = postData.BusinessMetadata.AcceptsWalkIns ?? true,
+                            RequiresAppointment = postData.BusinessMetadata.RequiresAppointment ?? false,
+                            SpecialInstructions = postData.BusinessMetadata.SpecialInstructions
+                        };
+                        
+                        // Set working hours if available
+                        if (postData.BusinessMetadata.WorkingHours != null)
+                        {
+                            metadata.WorkingHours = new BusinessHours
+                            {
+                                Monday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Monday),
+                                Tuesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Tuesday),
+                                Wednesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Wednesday),
+                                Thursday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Thursday),
+                                Friday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Friday),
+                                Saturday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Saturday),
+                                Sunday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Sunday)
+                            };
+                        }
+                        
+                        post.BusinessMetadata = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} restaurant posts.");
+        }
+        
+        /// <summary>
+        /// Parses a day schedule from JSON data
+        /// </summary>
+        private DaySchedule ParseDaySchedule(DemoDaySchedule? data)
+        {
+            if (data == null)
+                return new DaySchedule { IsClosed = true };
+                
+            return new DaySchedule
+            {
+                IsClosed = data.IsClosed ?? false,
+                OpenTime = ParseTimeOnly(data.OpenTime, "09:00"),
+                CloseTime = ParseTimeOnly(data.CloseTime, "18:00")
+            };
+        }
+        
+        /// <summary>
+        /// Parses a string time to TimeOnly
+        /// </summary>
+        private TimeOnly? ParseTimeOnly(string? timeString, string defaultValue)
+        {
+            if (string.IsNullOrEmpty(timeString))
+                timeString = defaultValue;
+                
+            if (TimeOnly.TryParse(timeString, out var time))
+                return time;
+                
+            return null;
+        }
     }
+    
+    #region Demo Data DTOs
+    
+    /// <summary>
+    /// Root structure for demo data JSON files
+    /// </summary>
+    public class DemoDataFile
+    {
+        public DemoMetadata? Metadata { get; set; }
+        public List<DemoProfileData>? Profiles { get; set; }
+        public List<DemoPostData>? Posts { get; set; }
+    }
+    
+    public class DemoMetadata
+    {
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? ProfileTypeId { get; set; }
+        public int? PostType { get; set; }
+    }
+    
+    public class DemoProfileData
+    {
+        public string Id { get; set; } = "";
+        public string? DisplayName { get; set; }
+        public string? Handle { get; set; }
+        public string? Bio { get; set; }
+        public string? Avatar { get; set; }
+    }
+    
+    public class DemoPostData
+    {
+        public string Id { get; set; } = "";
+        public string ProfileId { get; set; } = "";
+        public int? PostType { get; set; }
+        public string? Title { get; set; }
+        public string? Content { get; set; }
+        public List<string>? ImageUrls { get; set; }
+        public DemoLocationData? Location { get; set; }
+        public List<string>? Tags { get; set; }
+        public DemoPricingData? PricingInfo { get; set; }
+        public DemoBusinessMetadata? BusinessMetadata { get; set; }
+    }
+    
+    public class DemoLocationData
+    {
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Country { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+    }
+    
+    public class DemoPricingData
+    {
+        public decimal? Amount { get; set; }
+        public string? Currency { get; set; }
+        public string? Description { get; set; }
+        public bool? IsNegotiable { get; set; }
+    }
+    
+    public class DemoBusinessMetadata
+    {
+        public string? LocationType { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? ContactEmail { get; set; }
+        public bool? AcceptsWalkIns { get; set; }
+        public bool? RequiresAppointment { get; set; }
+        public DemoWorkingHours? WorkingHours { get; set; }
+        public string? SpecialInstructions { get; set; }
+    }
+    
+    public class DemoWorkingHours
+    {
+        public DemoDaySchedule? Monday { get; set; }
+        public DemoDaySchedule? Tuesday { get; set; }
+        public DemoDaySchedule? Wednesday { get; set; }
+        public DemoDaySchedule? Thursday { get; set; }
+        public DemoDaySchedule? Friday { get; set; }
+        public DemoDaySchedule? Saturday { get; set; }
+        public DemoDaySchedule? Sunday { get; set; }
+    }
+    
+    public class DemoDaySchedule
+    {
+        public bool? IsClosed { get; set; }
+        public string? OpenTime { get; set; }
+        public string? CloseTime { get; set; }
+    }
+    
+    #endregion
 }
