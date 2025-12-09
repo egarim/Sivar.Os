@@ -139,7 +139,10 @@ You can help users:
 - Get information about their own profile
 
 Always be friendly and helpful. When users ask about people or content, use your search tools to find relevant information.
-When performing actions like following users, confirm the action was successful.",
+When performing actions like following users, confirm the action was successful.
+
+IMPORTANT: When showing links to users, always use RELATIVE URLs (starting with /) not absolute URLs.
+For example, use '/post/abc-123' not 'https://example.com/post/abc-123'.",
         name: "SivarAgent",
         description: "AI assistant for the Sivar.Os social network",
         tools: tools,

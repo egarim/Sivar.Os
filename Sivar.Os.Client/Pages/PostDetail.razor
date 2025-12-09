@@ -1,0 +1,372 @@
+@page "/post/{PostId:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using MudBlazor
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Client.Components.Feed
+@using Microsoft.Extensions.Logging
+@inject NavigationManager Navigation
+@inject IPostsClient PostsClient
+@inject ILogger<PostDetail> Logger
+
+<PageTitle>@(_post?.Profile?.DisplayName ?? "Post") - Sivar.Os</PageTitle>
+
+<div class="post-detail-page">
+    @if (_isLoading)
+    {
+        <div class="loading-container">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <MudText Typo="Typo.body1" Class="mt-3">Loading post...</MudText>
+        </div>
+    }
+    else if (_error != null)
+    {
+        <div class="error-container">
+            <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Class="mt-3">@_error</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="GoBack">
+                Go Back
+            </MudButton>
+        </div>
+    }
+    else if (_post != null)
+    {
+        <div class="post-detail-container">
+            <!-- Back Button -->
+            <div class="post-detail-header">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                              OnClick="GoBack" 
+                              Color="Color.Default"
+                              Size="Size.Medium" />
+                <MudText Typo="Typo.h6">Post</MudText>
+            </div>
+
+            <!-- Post Card -->
+            <div class="post-detail-content">
+                <!-- Author Info -->
+                <div class="post-author-section" @onclick="NavigateToProfile" style="cursor: pointer;">
+                    <MudAvatar Size="Size.Large" Class="post-author-avatar">
+                        @if (!string.IsNullOrEmpty(_post.Profile?.Avatar))
+                        {
+                            <MudImage Src="@_post.Profile.Avatar" />
+                        }
+                        else
+                        {
+                            <span>@(_post.Profile?.DisplayName?.Substring(0, 1).ToUpper() ?? "?")</span>
+                        }
+                    </MudAvatar>
+                    <div class="post-author-info">
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
+                            @(_post.Profile?.DisplayName ?? "Unknown")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @FormatHandle(_post.Profile?.Handle) · @FormatTimeAgo(_post.CreatedAt)
+                        </MudText>
+                    </div>
+                </div>
+
+                <!-- Post Content -->
+                <div class="post-content-section">
+                    <MudText Typo="Typo.body1" Class="post-text">
+                        @_post.Content
+                    </MudText>
+                </div>
+
+                <!-- Location Info -->
+                @if (_post.Location != null && !string.IsNullOrEmpty(_post.Location.City))
+                {
+                    <div class="post-location-section">
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Secondary" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @FormatLocation(_post.Location)
+                        </MudText>
+                    </div>
+                }
+
+                <!-- Attachments/Images -->
+                @if (_post.Attachments?.Any() == true)
+                {
+                    <div class="post-attachments-section">
+                        @foreach (var attachment in _post.Attachments)
+                        {
+                            <div class="post-attachment">
+                                <img src="@attachment.FilePath" alt="@attachment.AltText" class="post-image" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Post Stats -->
+                <div class="post-stats-section">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @_post.CreatedAt.ToString("MMMM d, yyyy 'at' h:mm tt")
+                    </MudText>
+                </div>
+
+                <MudDivider Class="my-3" />
+
+                <!-- Reactions Summary -->
+                @if (_post.ReactionSummary != null)
+                {
+                    <div class="post-reactions-section">
+                        @if (_post.ReactionSummary.TotalReactions > 0)
+                        {
+                            <MudText Typo="Typo.body2">
+                                <strong>@_post.ReactionSummary.TotalReactions</strong> reactions
+                            </MudText>
+                        }
+                        @if (_post.CommentCount > 0)
+                        {
+                            <MudText Typo="Typo.body2">
+                                <strong>@_post.CommentCount</strong> comments
+                            </MudText>
+                        }
+                    </div>
+                }
+
+                <MudDivider Class="my-3" />
+
+                <!-- Action Buttons -->
+                <div class="post-actions-section">
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ThumbUp" Color="Color.Default">
+                        Like
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Comment" Color="Color.Default">
+                        Comment
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Share" Color="Color.Default">
+                        Share
+                    </MudButton>
+                </div>
+
+                <!-- Comments Section -->
+                @if (_post.Comments?.Any() == true)
+                {
+                    <MudDivider Class="my-3" />
+                    <div class="post-comments-section">
+                        <MudText Typo="Typo.subtitle2" Class="mb-3">Comments</MudText>
+                        @foreach (var comment in _post.Comments.Take(10))
+                        {
+                            <div class="comment-item">
+                                <MudAvatar Size="Size.Small">
+                                    @(comment.Profile?.DisplayName?.Substring(0, 1).ToUpper() ?? "?")
+                                </MudAvatar>
+                                <div class="comment-content">
+                                    <MudText Typo="Typo.caption" Class="font-weight-bold">
+                                        @(comment.Profile?.DisplayName ?? "Unknown")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">@comment.Content</MudText>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .post-detail-page {
+        min-height: 100vh;
+        background: var(--mud-palette-background);
+    }
+
+    .loading-container,
+    .error-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+        padding: 2rem;
+    }
+
+    .post-detail-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    .post-detail-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: var(--mud-palette-surface);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .post-detail-content {
+        background: var(--mud-palette-surface);
+        padding: 1rem;
+    }
+
+    .post-author-section {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .post-author-section:hover .post-author-info {
+        text-decoration: underline;
+    }
+
+    .post-content-section {
+        margin-bottom: 1rem;
+    }
+
+    .post-text {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 1.1rem;
+        line-height: 1.5;
+    }
+
+    .post-location-section {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .post-attachments-section {
+        margin-bottom: 1rem;
+    }
+
+    .post-image {
+        width: 100%;
+        border-radius: 8px;
+        max-height: 500px;
+        object-fit: cover;
+    }
+
+    .post-stats-section {
+        margin-bottom: 0.5rem;
+    }
+
+    .post-reactions-section {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .post-actions-section {
+        display: flex;
+        justify-content: space-around;
+    }
+
+    .post-comments-section {
+        padding-top: 0.5rem;
+    }
+
+    .comment-item {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+        background: var(--mud-palette-background);
+        border-radius: 8px;
+    }
+
+    .comment-content {
+        flex: 1;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid PostId { get; set; }
+
+    private PostDto? _post;
+    private bool _isLoading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPost();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadPost();
+    }
+
+    private async Task LoadPost()
+    {
+        _isLoading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("[PostDetail] Loading post {PostId}", PostId);
+            _post = await PostsClient.GetPostAsync(PostId);
+            
+            if (_post == null)
+            {
+                _error = "Post not found";
+                Logger.LogWarning("[PostDetail] Post not found: {PostId}", PostId);
+            }
+            else
+            {
+                Logger.LogInformation("[PostDetail] Post loaded successfully: {PostId}", PostId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[PostDetail] Error loading post {PostId}", PostId);
+            _error = "Failed to load post. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("javascript:history.back()");
+    }
+
+    private void NavigateToProfile()
+    {
+        if (_post?.Profile != null)
+        {
+            var handle = _post.Profile.Handle ?? _post.Profile.DisplayName ?? "unknown";
+            Navigation.NavigateTo($"/{handle}");
+        }
+    }
+
+    private string FormatHandle(string? handle)
+    {
+        if (string.IsNullOrEmpty(handle)) return "";
+        return $"@{handle}";
+    }
+
+    private string FormatLocation(LocationDto? location)
+    {
+        if (location == null) return "";
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(location.City)) parts.Add(location.City);
+        if (!string.IsNullOrEmpty(location.Country)) parts.Add(location.Country);
+        return string.Join(", ", parts);
+    }
+
+    private string FormatTimeAgo(DateTime dateTime)
+    {
+        var span = DateTime.UtcNow - dateTime;
+        
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d";
+        
+        return dateTime.ToString("MMM d");
+    }
+}

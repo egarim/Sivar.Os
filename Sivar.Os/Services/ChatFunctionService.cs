@@ -247,6 +247,7 @@ public class ChatFunctionService
                     id = p.Id,
                     content = p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
                     authorName = p.Profile?.DisplayName ?? "Unknown",
+                    authorHandle = p.Profile?.Handle,
                     authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
                     postType = p.PostType.ToString(),
                     location = p.Location != null ? new
@@ -652,6 +653,7 @@ public class ChatFunctionService
                     name = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
                     businessType = p.PostType.ToString(),
                     owner = p.Profile?.DisplayName ?? "Unknown",
+                    ownerHandle = p.Profile?.Handle,
                     location = p.Location != null ? new
                     {
                         city = p.Location.City,
@@ -832,6 +834,7 @@ public class ChatFunctionService
                 id = p.Id,
                 content = p.Content?.Length > 150 ? p.Content.Substring(0, 150) + "..." : p.Content,
                 authorName = p.Profile?.DisplayName ?? "Unknown",
+                authorHandle = p.Profile?.Handle,
                 authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
                 createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
                 postType = p.PostType.ToString(),

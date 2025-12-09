@@ -332,7 +332,9 @@ public class ChatService : IChatService
         history.Add(new AiChatMessage(ChatRole.System, 
             "You are a helpful AI assistant for the Sivar social network platform. " +
             "You can help users find profiles, search posts, and perform social actions. " +
-            "Respond in a friendly and concise manner."));
+            "Respond in a friendly and concise manner. " +
+            "IMPORTANT: When showing links, always use RELATIVE URLs (starting with /) not absolute URLs. " +
+            "For example, use '/post/abc-123' not 'https://example.com/post/abc-123'."));
 
         // Add conversation messages
         var messages = conversation.Messages.OrderBy(m => m.MessageOrder).ToList();
