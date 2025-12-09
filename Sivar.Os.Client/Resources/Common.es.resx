@@ -172,4 +172,12 @@
   <data name="Loading" xml:space="preserve">
     <value>Cargando...</value>
   </data>
+  
+  <!-- Distance/Location -->
+  <data name="DistanceAway" xml:space="preserve">
+    <value>a {0} km</value>
+  </data>
+  <data name="DistanceTooltip" xml:space="preserve">
+    <value>Distancia desde tu ubicación</value>
+  </data>
 </root>

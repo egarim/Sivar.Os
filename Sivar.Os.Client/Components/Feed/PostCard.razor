@@ -18,6 +18,7 @@
         Visibility="@Post.Visibility.ToString()"
         Type="@Post.PostType.ToString()"
         TypeLabel="@Post.PostType.ToString()"
+        DistanceKm="@Post.DistanceKm"
         OnAuthorClick="@(async () => await HandleAuthorClick())" />
 
     <div class="post-content">@Post.Content</div>

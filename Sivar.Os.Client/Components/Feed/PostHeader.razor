@@ -13,6 +13,13 @@
         <div class="post-time">@Time.ToString(Localizer["DateTimeFormat"])</div>
     </div>
     <div class="post-header-tags">
+        @if (DistanceKm.HasValue)
+        {
+            <span class="post-distance-badge" title="@Localizer["DistanceFromYou"]">
+                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
+                @FormatDistance(DistanceKm.Value)
+            </span>
+        }
         <span class="post-visibility">@Visibility</span>
         <span class="post-type-badge @Type">@TypeLabel</span>
     </div>
@@ -56,10 +63,29 @@
     public string TypeLabel { get; set; } = "General";
 
     /// <summary>
+    /// Distance in kilometers from user's location (for proximity search results)
+    /// </summary>
+    [Parameter]
+    public double? DistanceKm { get; set; }
+
+    /// <summary>
     /// Callback when author is clicked
     /// </summary>
     [Parameter]
     public EventCallback OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Format distance for display
+    /// </summary>
+    private string FormatDistance(double km)
+    {
+        if (km < 1)
+            return $"{(int)(km * 1000)} m";
+        else if (km < 10)
+            return $"{km:F1} km";
+        else
+            return $"{(int)km} km";
+    }
 
     /// <summary>
     /// Handle author click and invoke callback with debugging

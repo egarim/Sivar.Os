@@ -38,4 +38,14 @@
     <value>MMM dd, yyyy h:mm tt</value>
     <comment>Format for displaying post timestamp (e.g., "Nov 02, 2025 3:45 PM")</comment>
   </data>
+  
+  <!-- Distance -->
+  <data name="DistanceFromYou" xml:space="preserve">
+    <value>Distance from your location</value>
+    <comment>Tooltip for the distance badge</comment>
+  </data>
+  <data name="KilometersAway" xml:space="preserve">
+    <value>{0} km</value>
+    <comment>Format for displaying distance (e.g., "2.5 km")</comment>
+  </data>
 </root>

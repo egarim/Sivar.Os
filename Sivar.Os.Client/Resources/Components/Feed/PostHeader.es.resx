@@ -38,4 +38,14 @@
     <value>dd 'de' MMM 'de' yyyy h:mm tt</value>
     <comment>Formato para mostrar la marca de tiempo de la publicación (ej., "02 de nov de 2025 3:45 PM")</comment>
   </data>
+  
+  <!-- Distance -->
+  <data name="DistanceFromYou" xml:space="preserve">
+    <value>Distancia desde tu ubicación</value>
+    <comment>Tooltip para la insignia de distancia</comment>
+  </data>
+  <data name="KilometersAway" xml:space="preserve">
+    <value>{0} km</value>
+    <comment>Formato para mostrar distancia (ej., "2.5 km")</comment>
+  </data>
 </root>
