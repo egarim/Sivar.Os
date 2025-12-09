@@ -59,6 +59,24 @@ public interface IPostRepository : IBaseRepository<Post>
         bool includeRelated = true);
 
     /// <summary>
+    /// Gets posts within a geographic radius with distance information using PostGIS
+    /// </summary>
+    /// <param name="latitude">Center point latitude</param>
+    /// <param name="longitude">Center point longitude</param>
+    /// <param name="radiusKm">Radius in kilometers</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="includeRelated">Include related entities</param>
+    /// <returns>Paginated list of posts with their distances in km, ordered by proximity</returns>
+    Task<(IEnumerable<(Post Post, double DistanceKm)> Posts, int TotalCount)> GetNearbyWithDistanceAsync(
+        double latitude,
+        double longitude,
+        double radiusKm = 10,
+        int page = 1,
+        int pageSize = 10,
+        bool includeRelated = true);
+
+    /// <summary>
     /// Gets posts that have location information (non-null Location property)
     /// </summary>
     /// <param name="page">Page number (1-based)</param>

@@ -75,6 +75,7 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
     /// <summary>
     /// Gets posts within a geographic area with optional radius filtering
+    /// Uses PostGIS for accurate spatial queries when available, falls back to Haversine approximation
     /// </summary>
     public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByLocationAsync(
         double latitude, 
@@ -84,12 +85,24 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         int pageSize = 10, 
         bool includeRelated = true)
     {
+        // Try PostGIS-based query first (accurate, uses spatial index)
+        if (radiusKm.HasValue)
+        {
+            try
+            {
+                return await GetByLocationPostGISAsync(latitude, longitude, radiusKm.Value, page, pageSize, includeRelated);
+            }
+            catch
+            {
+                // PostGIS not available, fall back to Haversine approximation
+            }
+        }
+
+        // Fallback: Haversine formula approximation (less accurate, no spatial index)
         var query = GetQueryable().Where(p => p.Location != null);
 
         if (radiusKm.HasValue)
         {
-            // Using Haversine formula approximation for distance calculation
-            // Note: For production, consider using spatial extensions like PostGIS
             var radiusLat = radiusKm.Value / 111.0; // Rough conversion: 1 degree ≈ 111 km
             var radiusLng = radiusKm.Value / (111.0 * Math.Cos(latitude * Math.PI / 180.0));
 
@@ -112,6 +125,152 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             .ToListAsync();
 
         return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts within a geographic radius using PostGIS spatial queries
+    /// Returns posts ordered by distance (closest first)
+    /// </summary>
+    private async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByLocationPostGISAsync(
+        double latitude,
+        double longitude,
+        double radiusKm,
+        int page,
+        int pageSize,
+        bool includeRelated)
+    {
+        // Step 1: Use PostGIS to get post IDs ordered by distance
+        // Using raw SQL because EF Core 9.0 doesn't support PostGIS types
+        var countSql = @"
+            SELECT COUNT(*)
+            FROM ""Sivar_Posts""
+            WHERE ""GeoLocation"" IS NOT NULL
+              AND ""IsDeleted"" = FALSE
+              AND ST_DWithin(
+                  ""GeoLocation"",
+                  ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography,
+                  {2} * 1000
+              )";
+
+        var totalCount = await _context.Database
+            .SqlQueryRaw<int>(countSql, longitude, latitude, radiusKm)
+            .FirstOrDefaultAsync();
+
+        // Step 2: Get post IDs with distances, ordered by distance
+        var idsSql = @"
+            SELECT ""Id""
+            FROM ""Sivar_Posts""
+            WHERE ""GeoLocation"" IS NOT NULL
+              AND ""IsDeleted"" = FALSE
+              AND ST_DWithin(
+                  ""GeoLocation"",
+                  ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography,
+                  {2} * 1000
+              )
+            ORDER BY ST_Distance(
+                ""GeoLocation"",
+                ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography
+            )
+            OFFSET {3} LIMIT {4}";
+
+        var postIds = await _context.Database
+            .SqlQueryRaw<Guid>(idsSql, longitude, latitude, radiusKm, (page - 1) * pageSize, pageSize)
+            .ToListAsync();
+
+        if (!postIds.Any())
+            return (Enumerable.Empty<Post>(), totalCount);
+
+        // Step 3: Load full Post entities with related data
+        var query = GetQueryable().Where(p => postIds.Contains(p.Id));
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        var posts = await query.ToListAsync();
+
+        // Step 4: Preserve the distance-based order from PostGIS
+        var orderedPosts = postIds
+            .Select(id => posts.FirstOrDefault(p => p.Id == id))
+            .Where(p => p != null)
+            .Cast<Post>()
+            .ToList();
+
+        return (orderedPosts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets posts within a geographic radius with distance information using PostGIS
+    /// Returns posts ordered by distance (closest first)
+    /// </summary>
+    public async Task<(IEnumerable<(Post Post, double DistanceKm)> Posts, int TotalCount)> GetNearbyWithDistanceAsync(
+        double latitude,
+        double longitude,
+        double radiusKm = 10,
+        int page = 1,
+        int pageSize = 10,
+        bool includeRelated = true)
+    {
+        // Step 1: Get total count using PostGIS
+        var countSql = @"
+            SELECT COUNT(*)
+            FROM ""Sivar_Posts""
+            WHERE ""GeoLocation"" IS NOT NULL
+              AND ""IsDeleted"" = FALSE
+              AND ST_DWithin(
+                  ""GeoLocation"",
+                  ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography,
+                  {2} * 1000
+              )";
+
+        var totalCount = await _context.Database
+            .SqlQueryRaw<int>(countSql, longitude, latitude, radiusKm)
+            .FirstOrDefaultAsync();
+
+        // Step 2: Get post IDs with distances, ordered by distance
+        var sql = @"
+            SELECT ""Id"" as id, 
+                   ST_Distance(
+                       ""GeoLocation"",
+                       ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography
+                   ) / 1000.0 AS distance_km
+            FROM ""Sivar_Posts""
+            WHERE ""GeoLocation"" IS NOT NULL
+              AND ""IsDeleted"" = FALSE
+              AND ST_DWithin(
+                  ""GeoLocation"",
+                  ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography,
+                  {2} * 1000
+              )
+            ORDER BY distance_km
+            OFFSET {3} LIMIT {4}";
+
+        var nearbyResults = await _context.Database
+            .SqlQueryRaw<PostDistanceResult>(sql, longitude, latitude, radiusKm, (page - 1) * pageSize, pageSize)
+            .ToListAsync();
+
+        if (!nearbyResults.Any())
+            return (Enumerable.Empty<(Post, double)>(), totalCount);
+
+        // Step 3: Load full Post entities
+        var postIds = nearbyResults.Select(r => r.Id).ToList();
+        var query = GetQueryable().Where(p => postIds.Contains(p.Id));
+
+        if (includeRelated)
+            query = IncludeRelatedEntities(query);
+
+        var posts = await query.ToListAsync();
+
+        // Step 4: Combine posts with distances, preserving order
+        var postsWithDistance = nearbyResults
+            .Select(r => (
+                Post: posts.FirstOrDefault(p => p.Id == r.Id),
+                DistanceKm: r.DistanceKm
+            ))
+            .Where(x => x.Post != null)
+            .Select(x => (x.Post!, x.DistanceKm))
+            .ToList();
+
+        return (postsWithDistance, totalCount);
     }
 
     /// <summary>
@@ -901,4 +1060,14 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             return false;
         }
     }
+}
+
+/// <summary>
+/// Helper record for PostGIS distance query results
+/// Used with SqlQueryRaw to map raw SQL results
+/// </summary>
+internal record PostDistanceResult(Guid Id, double DistanceKm)
+{
+    // Parameterless constructor required for EF Core materialization
+    public PostDistanceResult() : this(Guid.Empty, 0) { }
 }
