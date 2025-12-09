@@ -211,17 +211,19 @@ IS 'Extracts latitude and longitude from a PostGIS geography point';
 
 -- ============ PART 5: Migrate Existing Location Data ============
 
--- Migrate Profile locations (EF Core uses underscored column names for complex types)
+-- Migrate Profile locations
+-- NOTE: Profiles uses LocationLatitude/LocationLongitude (no underscore!)
+-- This differs from Posts which uses Location_Latitude/Location_Longitude
 UPDATE "Sivar_Profiles"
 SET 
     "GeoLocation" = ST_SetSRID(
-        ST_MakePoint("Location_Longitude", "Location_Latitude"), 
+        ST_MakePoint("LocationLongitude", "LocationLatitude"), 
         4326
     )::geography,
     "GeoLocationUpdatedAt" = NOW(),
     "GeoLocationSource" = 'Migrated'
-WHERE "Location_Latitude" IS NOT NULL 
-  AND "Location_Longitude" IS NOT NULL
+WHERE "LocationLatitude" IS NOT NULL 
+  AND "LocationLongitude" IS NOT NULL
   AND "GeoLocation" IS NULL;
 
 -- Migrate Post locations (EF Core uses underscored column names for complex types)
@@ -257,49 +259,70 @@ IS 'Timestamp when GeoLocation was last updated';
 COMMENT ON COLUMN "Sivar_Posts"."GeoLocationSource" 
 IS 'How location was obtained: Manual, Geocoded, GPS, IP, Migrated';
 
--- ============ PART 7: Create Trigger for Auto-Update (Optional) ============
+-- ============ PART 7: Create Triggers for Auto-Update ============
 
--- Trigger function to auto-update GeoLocation when Latitude/Longitude changes
--- EF Core uses underscored column names for complex types (Location_Latitude, Location_Longitude)
-CREATE OR REPLACE FUNCTION trigger_update_geolocation()
+-- IMPORTANT: Posts and Profiles have DIFFERENT column naming conventions!
+-- Posts: Location_Latitude, Location_Longitude (with underscore)
+-- Profiles: LocationLatitude, LocationLongitude (no underscore)
+-- Therefore we need TWO separate trigger functions.
+
+-- Trigger function for POSTS (uses Location_Latitude with underscore)
+CREATE OR REPLACE FUNCTION trigger_update_geolocation_posts()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Only update if both latitude and longitude are present
     IF NEW."Location_Latitude" IS NOT NULL AND NEW."Location_Longitude" IS NOT NULL THEN
         NEW."GeoLocation" := ST_SetSRID(
             ST_MakePoint(NEW."Location_Longitude", NEW."Location_Latitude"),
             4326
         )::geography;
         NEW."GeoLocationUpdatedAt" := NOW();
-        
-        -- Set source to Auto if not explicitly set
         IF NEW."GeoLocationSource" IS NULL THEN
             NEW."GeoLocationSource" := 'Auto';
         END IF;
     END IF;
-    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply trigger to Profiles (EF Core column names)
-DROP TRIGGER IF EXISTS trg_profiles_update_geolocation ON "Sivar_Profiles";
-CREATE TRIGGER trg_profiles_update_geolocation
-    BEFORE INSERT OR UPDATE OF "Location_Latitude", "Location_Longitude"
-    ON "Sivar_Profiles"
-    FOR EACH ROW
-    EXECUTE FUNCTION trigger_update_geolocation();
+-- Trigger function for PROFILES (uses LocationLatitude without underscore)
+CREATE OR REPLACE FUNCTION trigger_update_geolocation_profiles()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW."LocationLatitude" IS NOT NULL AND NEW."LocationLongitude" IS NOT NULL THEN
+        NEW."GeoLocation" := ST_SetSRID(
+            ST_MakePoint(NEW."LocationLongitude", NEW."LocationLatitude"),
+            4326
+        )::geography;
+        NEW."GeoLocationUpdatedAt" := NOW();
+        IF NEW."GeoLocationSource" IS NULL THEN
+            NEW."GeoLocationSource" := 'Auto';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Apply trigger to Posts (EF Core column names)
+-- Apply trigger to Posts (uses Location_Latitude with underscore)
 DROP TRIGGER IF EXISTS trg_posts_update_geolocation ON "Sivar_Posts";
 CREATE TRIGGER trg_posts_update_geolocation
     BEFORE INSERT OR UPDATE OF "Location_Latitude", "Location_Longitude"
     ON "Sivar_Posts"
     FOR EACH ROW
-    EXECUTE FUNCTION trigger_update_geolocation();
+    EXECUTE FUNCTION trigger_update_geolocation_posts();
 
-COMMENT ON FUNCTION trigger_update_geolocation()
-IS 'Automatically updates GeoLocation when LocationLatitude or LocationLongitude changes';
+-- Apply trigger to Profiles (uses LocationLatitude without underscore)
+DROP TRIGGER IF EXISTS trg_profiles_update_geolocation ON "Sivar_Profiles";
+CREATE TRIGGER trg_profiles_update_geolocation
+    BEFORE INSERT OR UPDATE OF "LocationLatitude", "LocationLongitude"
+    ON "Sivar_Profiles"
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_update_geolocation_profiles();
+
+COMMENT ON FUNCTION trigger_update_geolocation_posts()
+IS 'Automatically updates GeoLocation for Posts when Location_Latitude or Location_Longitude changes';
+
+COMMENT ON FUNCTION trigger_update_geolocation_profiles()
+IS 'Automatically updates GeoLocation for Profiles when LocationLatitude or LocationLongitude changes';
 
 -- ============ PART 8: Verification Queries ============
 
