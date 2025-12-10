@@ -1,0 +1,575 @@
+{
+  "metadata": {
+    "category": "Government",
+    "description": "Government offices, public services, and administrative procedures in El Salvador",
+    "createdAt": "2024-12-10",
+    "profileTypeId": "22222222-2222-2222-2222-222222222222",
+    "postTypes": [2, 4],
+    "totalProfiles": 10,
+    "totalPosts": 20
+  },
+  "profiles": [
+    {
+      "id": "g0000001-0000-0000-0000-000000000001",
+      "displayName": "Centro de Gobierno - DUI",
+      "handle": "dui-centro-gobierno",
+      "bio": "Oficina principal del Documento Único de Identidad (DUI) en Centro de Gobierno. Emisión, renovación y reposición de DUI para ciudadanos salvadoreños.",
+      "avatar": "https://placehold.co/400x400/1565C0/white?text=DUI"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000002",
+      "displayName": "Migración y Extranjería",
+      "handle": "migracion-extranjeria",
+      "bio": "Dirección General de Migración y Extranjería. Pasaportes, visas, permisos de residencia y trámites migratorios para nacionales y extranjeros.",
+      "avatar": "https://placehold.co/400x400/0D47A1/white?text=Migracion"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000003",
+      "displayName": "Alcaldía de San Salvador",
+      "handle": "alcaldia-san-salvador",
+      "bio": "Gobierno municipal de San Salvador. Servicios ciudadanos, permisos, impuestos municipales, partidas de nacimiento y trámites locales.",
+      "avatar": "https://placehold.co/400x400/1976D2/white?text=Alcaldia+SS"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000004",
+      "displayName": "CNR - Centro Nacional de Registros",
+      "handle": "cnr-registros",
+      "bio": "Centro Nacional de Registros. Registro de propiedad, hipotecas, vehículos, marcas, patentes y certificaciones de inmuebles.",
+      "avatar": "https://placehold.co/400x400/1E88E5/white?text=CNR"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000005",
+      "displayName": "Ministerio de Hacienda",
+      "handle": "ministerio-hacienda",
+      "bio": "Ministerio de Hacienda de El Salvador. Declaración de impuestos, NIT, solvencias fiscales, aduanas y trámites tributarios.",
+      "avatar": "https://placehold.co/400x400/2196F3/white?text=Hacienda"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000006",
+      "displayName": "DGT - Dirección General de Tránsito",
+      "handle": "dgt-transito",
+      "bio": "Dirección General de Tránsito. Licencias de conducir, tarjetas de circulación, placas, multas y permisos de vehículos.",
+      "avatar": "https://placehold.co/400x400/42A5F5/white?text=DGT"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000007",
+      "displayName": "ISSS - Instituto Salvadoreño del Seguro Social",
+      "handle": "isss-seguro-social",
+      "bio": "Instituto Salvadoreño del Seguro Social. Atención médica, incapacidades, pensiones y servicios de salud para cotizantes.",
+      "avatar": "https://placehold.co/400x400/64B5F6/white?text=ISSS"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000008",
+      "displayName": "Defensoría del Consumidor",
+      "handle": "defensoria-consumidor",
+      "bio": "Defensoría del Consumidor. Protección de derechos del consumidor, denuncias, mediación y resolución de conflictos comerciales.",
+      "avatar": "https://placehold.co/400x400/90CAF9/white?text=Consumidor"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000009",
+      "displayName": "Registro Civil - Alcaldía SS",
+      "handle": "registro-civil-ss",
+      "bio": "Registro del Estado Familiar. Partidas de nacimiento, matrimonio, defunción, divorcios y rectificaciones de actas.",
+      "avatar": "https://placehold.co/400x400/BBDEFB/white?text=Registro"
+    },
+    {
+      "id": "g0000001-0000-0000-0000-000000000010",
+      "displayName": "PNC - Policía Nacional Civil",
+      "handle": "pnc-policia",
+      "bio": "Policía Nacional Civil de El Salvador. Denuncias, antecedentes penales, permisos para armas y servicios de seguridad ciudadana.",
+      "avatar": "https://placehold.co/400x400/283593/white?text=PNC"
+    }
+  ],
+  "posts": [
+    {
+      "id": "h0000001-0000-0000-0000-000000000001",
+      "profileId": "g0000001-0000-0000-0000-000000000001",
+      "postType": 2,
+      "title": "Centro de Gobierno - Oficina DUI",
+      "content": "Oficina principal del Documento Único de Identidad en el Centro de Gobierno de San Salvador. Atención de lunes a viernes para emisión, renovación y reposición de DUI. Sistema de turnos electrónicos. Estacionamiento disponible. Ubicado en el edificio principal del Centro de Gobierno.",
+      "imageUrls": ["https://placehold.co/800x600/1565C0/white?text=Oficina+DUI"],
+      "location": {
+        "address": "Centro de Gobierno, Alameda Juan Pablo II",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7069,
+        "longitude": -89.2030
+      },
+      "tags": ["government", "dui", "identity", "documents", "centro-gobierno"],
+      "pricingInfo": {
+        "amount": 10.00,
+        "currency": "USD",
+        "description": "DUI nuevo o renovación $10",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2527-7000",
+        "contactEmail": "info@rnpn.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Llegar temprano, alta demanda. Traer partida de nacimiento original y DUI anterior si es renovación."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000002",
+      "profileId": "g0000001-0000-0000-0000-000000000001",
+      "postType": 4,
+      "title": "Cómo obtener el DUI (Documento Único de Identidad)",
+      "content": "El DUI es el documento de identificación oficial de El Salvador, obligatorio para mayores de 18 años.\n\n**REQUISITOS:**\n- Partida de nacimiento original (no mayor a 6 meses)\n- DUI anterior (si es renovación)\n- Comprobante de domicilio reciente\n\n**PROCESO:**\n1. Presentarse a cualquier oficina DUI\n2. Tomar turno electrónico\n3. Entregar documentos al oficial\n4. Toma de fotografía y huellas dactilares\n5. Pagar $10 en caja\n6. Recibir comprobante con fecha de entrega\n7. Regresar en 7-15 días hábiles a recoger\n\n**COSTO:** $10 USD\n**TIEMPO:** 7-15 días hábiles\n**VIGENCIA:** 10 años",
+      "imageUrls": ["https://placehold.co/800x600/1565C0/white?text=Tramite+DUI"],
+      "tags": ["government", "dui", "identity", "procedure", "tramite", "documents"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000003",
+      "profileId": "g0000001-0000-0000-0000-000000000002",
+      "postType": 2,
+      "title": "Dirección General de Migración y Extranjería",
+      "content": "Oficina central de Migración y Extranjería de El Salvador. Emisión de pasaportes, visas, permisos de residencia, naturalizaciones y todos los trámites migratorios. Citas en línea disponibles para pasaportes. Ubicada en Centro de Gobierno con amplio estacionamiento.",
+      "imageUrls": ["https://placehold.co/800x600/0D47A1/white?text=Migracion"],
+      "location": {
+        "address": "Centro de Gobierno, 15 Calle Poniente",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7065,
+        "longitude": -89.2025
+      },
+      "tags": ["government", "passport", "migration", "visa", "centro-gobierno"],
+      "pricingInfo": {
+        "amount": 25.00,
+        "currency": "USD",
+        "description": "Pasaporte regular $25, express $35",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2213-7700",
+        "contactEmail": "info@migracion.gob.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Cita previa obligatoria para pasaportes en migracion.gob.sv. Pago solo con tarjeta o en banco."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000004",
+      "profileId": "g0000001-0000-0000-0000-000000000002",
+      "postType": 4,
+      "title": "Cómo obtener el Pasaporte Salvadoreño",
+      "content": "El pasaporte es el documento de viaje oficial de El Salvador.\n\n**REQUISITOS:**\n- DUI vigente (original)\n- Partida de nacimiento original (no mayor a 6 meses)\n- Pasaporte anterior (si es renovación)\n- Cita previa en línea\n\n**PROCESO:**\n1. Agendar cita en migracion.gob.sv\n2. Presentarse el día de la cita con documentos\n3. Verificación de identidad y datos\n4. Toma de fotografía y huellas\n5. Pagar en banco o con tarjeta ($25 regular, $35 express)\n6. Recoger en 5-10 días (regular) o 3 días (express)\n\n**COSTOS:**\n- Regular: $25 USD (5-10 días)\n- Express: $35 USD (3 días)\n\n**VIGENCIA:** 5 años",
+      "imageUrls": ["https://placehold.co/800x600/0D47A1/white?text=Tramite+Pasaporte"],
+      "tags": ["government", "passport", "travel", "procedure", "tramite", "migration"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000005",
+      "profileId": "g0000001-0000-0000-0000-000000000003",
+      "postType": 2,
+      "title": "Alcaldía Municipal de San Salvador",
+      "content": "Sede principal del gobierno municipal de San Salvador. Servicios de partidas de nacimiento, matrimonio, defunción, permisos de construcción, pago de impuestos municipales, licencias comerciales y atención ciudadana. Edificio histórico en el centro de la ciudad.",
+      "imageUrls": ["https://placehold.co/800x600/1976D2/white?text=Alcaldia+SS"],
+      "location": {
+        "address": "Calle Delgado y 2a Avenida Sur, Centro Histórico",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6989,
+        "longitude": -89.1914
+      },
+      "tags": ["government", "municipality", "permits", "taxes", "centro-historico"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Varía según trámite",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2231-9100",
+        "contactEmail": "info@sansalvador.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Varios servicios disponibles en línea en sansalvador.gob.sv. Estacionamiento limitado."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000006",
+      "profileId": "g0000001-0000-0000-0000-000000000003",
+      "postType": 4,
+      "title": "Cómo obtener Partida de Nacimiento",
+      "content": "La partida de nacimiento es necesaria para casi todos los trámites oficiales.\n\n**REQUISITOS:**\n- DUI del solicitante\n- Nombre completo de la persona\n- Fecha y lugar de nacimiento\n- Nombres de los padres\n\n**PROCESO:**\n1. Ir a la alcaldía donde se registró el nacimiento\n2. Solicitar en ventanilla de Registro Civil\n3. Proporcionar datos del registrado\n4. Pagar la tasa ($2-5 según alcaldía)\n5. Recibir partida de nacimiento\n\n**COSTO:** $2-5 USD\n**TIEMPO:** Inmediato o mismo día\n**NOTA:** También disponible en línea en algunas alcaldías",
+      "imageUrls": ["https://placehold.co/800x600/1976D2/white?text=Partida+Nacimiento"],
+      "tags": ["government", "birth-certificate", "civil-registry", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000007",
+      "profileId": "g0000001-0000-0000-0000-000000000004",
+      "postType": 2,
+      "title": "CNR - Centro Nacional de Registros",
+      "content": "Centro Nacional de Registros de El Salvador. Registro de propiedad inmueble, hipotecas, comercio, propiedad intelectual (marcas, patentes), vehículos y servicios de cartografía. Múltiples sedes en el país. Sede principal en Centro de Gobierno.",
+      "imageUrls": ["https://placehold.co/800x600/1E88E5/white?text=CNR"],
+      "location": {
+        "address": "1a Calle Poniente y 43 Avenida Norte, Centro de Gobierno",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7072,
+        "longitude": -89.2035
+      },
+      "tags": ["government", "property", "registry", "vehicles", "centro-gobierno"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Varía según trámite",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2593-5000",
+        "contactEmail": "info@cnr.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Consultas de propiedades disponibles en línea. Traer documentos originales para registros."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000008",
+      "profileId": "g0000001-0000-0000-0000-000000000004",
+      "postType": 4,
+      "title": "Cómo registrar una Propiedad Inmueble",
+      "content": "Registro de compraventa de propiedad en el CNR.\n\n**REQUISITOS:**\n- Escritura de compraventa otorgada ante notario\n- DUI de comprador y vendedor\n- Solvencia municipal del inmueble\n- Pago de derechos de registro\n\n**PROCESO:**\n1. Otorgar escritura ante notario\n2. Notario presenta documento al CNR\n3. CNR revisa y califica el documento\n4. Pagar derechos de registro (0.5% del valor)\n5. CNR inscribe la propiedad\n6. Retirar escritura inscrita\n\n**COSTO:** 0.5% del valor de la propiedad\n**TIEMPO:** 15-30 días hábiles",
+      "imageUrls": ["https://placehold.co/800x600/1E88E5/white?text=Registro+Propiedad"],
+      "tags": ["government", "property", "real-estate", "registry", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000009",
+      "profileId": "g0000001-0000-0000-0000-000000000005",
+      "postType": 2,
+      "title": "Ministerio de Hacienda - Sede Central",
+      "content": "Ministerio de Hacienda de El Salvador. Declaración y pago de impuestos (IVA, Renta), obtención de NIT, solvencias fiscales, trámites aduaneros y servicios tributarios. Portal en línea para declaraciones. Sede principal con atención al contribuyente.",
+      "imageUrls": ["https://placehold.co/800x600/2196F3/white?text=Hacienda"],
+      "location": {
+        "address": "Boulevard Los Héroes, Edificio Ministerio de Hacienda",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7120,
+        "longitude": -89.2080
+      },
+      "tags": ["government", "taxes", "nit", "fiscal", "hacienda"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "NIT gratuito, impuestos según declaración",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2244-3000",
+        "contactEmail": "info@mh.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Declaraciones de impuestos en línea en portaldgii.mh.gob.sv. Citas para atención personalizada."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000010",
+      "profileId": "g0000001-0000-0000-0000-000000000005",
+      "postType": 4,
+      "title": "Cómo obtener el NIT (Número de Identificación Tributaria)",
+      "content": "El NIT es obligatorio para realizar actividades económicas en El Salvador.\n\n**REQUISITOS PERSONA NATURAL:**\n- DUI original\n- Recibo de agua o luz reciente\n\n**REQUISITOS PERSONA JURÍDICA:**\n- Escritura de constitución\n- DUI del representante legal\n- Credencial de elección\n\n**PROCESO:**\n1. Ir a oficina del Ministerio de Hacienda o Centro Express\n2. Llenar formulario F-210\n3. Presentar documentos\n4. Esperar asignación de NIT\n5. Recibir tarjeta NIT\n\n**COSTO:** Gratuito\n**TIEMPO:** Mismo día\n**NOTA:** También disponible en línea para personas naturales",
+      "imageUrls": ["https://placehold.co/800x600/2196F3/white?text=Tramite+NIT"],
+      "tags": ["government", "nit", "taxes", "business", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000011",
+      "profileId": "g0000001-0000-0000-0000-000000000006",
+      "postType": 2,
+      "title": "DGT - Dirección General de Tránsito",
+      "content": "Dirección General de Tránsito del Viceministerio de Transporte. Emisión de licencias de conducir, tarjetas de circulación, placas vehiculares, traspasos, solvencias de multas y todos los trámites vehiculares. Sede principal en San Salvador.",
+      "imageUrls": ["https://placehold.co/800x600/42A5F5/white?text=DGT"],
+      "location": {
+        "address": "Alameda Juan Pablo II y 17 Avenida Norte",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7085,
+        "longitude": -89.2040
+      },
+      "tags": ["government", "license", "vehicles", "transit", "dgt"],
+      "pricingInfo": {
+        "amount": 20.00,
+        "currency": "USD",
+        "description": "Licencia liviana $20, pesada $25",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2527-7100",
+        "contactEmail": "info@vmt.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Llegar muy temprano, alta demanda. Consulta de multas en línea en vmt.gob.sv."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000012",
+      "profileId": "g0000001-0000-0000-0000-000000000006",
+      "postType": 4,
+      "title": "Cómo obtener Licencia de Conducir",
+      "content": "La licencia de conducir es obligatoria para manejar vehículos en El Salvador.\n\n**REQUISITOS PRIMERA VEZ:**\n- DUI original\n- Examen de la vista (óptica autorizada)\n- Examen de sangre (tipo de sangre)\n- Aprobar examen teórico\n- Aprobar examen práctico\n\n**PROCESO:**\n1. Realizar exámenes médicos\n2. Ir a DGT con documentos\n3. Tomar examen teórico (computadora)\n4. Si aprueba, programar examen práctico\n5. Aprobar examen práctico\n6. Pagar $20 y recibir licencia\n\n**COSTO:** $20 USD (liviana), $25 USD (pesada)\n**VIGENCIA:** 5 años\n**RENOVACIÓN:** Solo examen de vista y pago",
+      "imageUrls": ["https://placehold.co/800x600/42A5F5/white?text=Licencia+Conducir"],
+      "tags": ["government", "license", "driving", "dgt", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000013",
+      "profileId": "g0000001-0000-0000-0000-000000000007",
+      "postType": 2,
+      "title": "ISSS - Hospital General",
+      "content": "Hospital General del Instituto Salvadoreño del Seguro Social. Atención médica, emergencias, especialidades, cirugías y servicios de salud para cotizantes y beneficiarios del ISSS. Uno de los hospitales más grandes del país.",
+      "imageUrls": ["https://placehold.co/800x600/64B5F6/white?text=ISSS"],
+      "location": {
+        "address": "Alameda Juan Pablo II, entre 25 y 27 Avenida Norte",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7095,
+        "longitude": -89.2015
+      },
+      "tags": ["government", "health", "hospital", "isss", "medical"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Gratuito para cotizantes y beneficiarios",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "ServiceCenter",
+        "contactPhone": "+503 2591-6000",
+        "contactEmail": "info@isss.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Emergencias 24/7. Consultas con cita previa. Traer carnet de cotizante vigente."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000014",
+      "profileId": "g0000001-0000-0000-0000-000000000007",
+      "postType": 4,
+      "title": "Cómo obtener cita médica en el ISSS",
+      "content": "Proceso para agendar cita médica en el ISSS.\n\n**REQUISITOS:**\n- Ser cotizante activo o beneficiario\n- Carnet de afiliación vigente\n- DUI\n\n**OPCIONES PARA CITA:**\n1. **Teléfono:** Llamar al 2591-6000\n2. **En línea:** isss.gob.sv (crear cuenta)\n3. **Presencial:** Ir a clínica empresarial o unidad médica\n4. **App ISSS Móvil:** Descargar y agendar\n\n**ESPECIALIDADES DISPONIBLES:**\n- Medicina general\n- Pediatría\n- Ginecología\n- Cardiología\n- Traumatología\n- Y más...\n\n**NOTA:** Emergencias no requieren cita",
+      "imageUrls": ["https://placehold.co/800x600/64B5F6/white?text=Cita+ISSS"],
+      "tags": ["government", "health", "isss", "appointment", "procedure", "medical"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000015",
+      "profileId": "g0000001-0000-0000-0000-000000000008",
+      "postType": 2,
+      "title": "Defensoría del Consumidor - Sede Central",
+      "content": "Defensoría del Consumidor de El Salvador. Recepción de denuncias, mediación entre consumidores y proveedores, información sobre derechos del consumidor y resolución de conflictos comerciales. Atención gratuita a la ciudadanía.",
+      "imageUrls": ["https://placehold.co/800x600/90CAF9/white?text=Consumidor"],
+      "location": {
+        "address": "Paseo General Escalón #5432, Colonia Escalón",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7015,
+        "longitude": -89.2380
+      },
+      "tags": ["government", "consumer", "complaints", "rights", "escalon"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Servicio gratuito",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "MainOffice",
+        "contactPhone": "+503 2526-9300",
+        "contactEmail": "info@defensoria.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Denuncias también por teléfono al 910. Llevar facturas y comprobantes del caso."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000016",
+      "profileId": "g0000001-0000-0000-0000-000000000008",
+      "postType": 4,
+      "title": "Cómo presentar una denuncia en Defensoría del Consumidor",
+      "content": "Proceso para denunciar a un proveedor ante la Defensoría del Consumidor.\n\n**CASOS QUE ATIENDE:**\n- Productos defectuosos\n- Publicidad engañosa\n- Cobros indebidos\n- Garantías no cumplidas\n- Servicios no prestados\n\n**REQUISITOS:**\n- DUI\n- Factura o comprobante de compra\n- Evidencia del problema (fotos, documentos)\n- Datos del proveedor\n\n**PROCESO:**\n1. Llamar al 910 o ir a oficina\n2. Presentar denuncia con documentos\n3. Defensoría contacta al proveedor\n4. Audiencia de conciliación\n5. Si no hay acuerdo, proceso sancionatorio\n\n**COSTO:** Gratuito\n**TIEMPO:** Variable según caso",
+      "imageUrls": ["https://placehold.co/800x600/90CAF9/white?text=Denuncia+Consumidor"],
+      "tags": ["government", "consumer", "complaint", "rights", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000017",
+      "profileId": "g0000001-0000-0000-0000-000000000009",
+      "postType": 2,
+      "title": "Registro Civil - Alcaldía San Salvador",
+      "content": "Oficina de Registro del Estado Familiar de la Alcaldía de San Salvador. Emisión de partidas de nacimiento, matrimonio, defunción, divorcios, adopciones, rectificaciones de actas y todos los trámites de registro civil.",
+      "imageUrls": ["https://placehold.co/800x600/BBDEFB/white?text=Registro+Civil"],
+      "location": {
+        "address": "Calle Delgado y 2a Avenida Sur, Centro Histórico",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6991,
+        "longitude": -89.1912
+      },
+      "tags": ["government", "civil-registry", "birth-certificate", "marriage", "centro-historico"],
+      "pricingInfo": {
+        "amount": 3.00,
+        "currency": "USD",
+        "description": "Partidas $3, matrimonio civil $10",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "CustomerBranch",
+        "contactPhone": "+503 2231-9100",
+        "contactEmail": "registrocivil@sansalvador.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": true },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Partidas también disponibles en línea. Para matrimonios, agendar cita con anticipación."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000018",
+      "profileId": "g0000001-0000-0000-0000-000000000009",
+      "postType": 4,
+      "title": "Cómo realizar Matrimonio Civil",
+      "content": "Proceso para contraer matrimonio civil en El Salvador.\n\n**REQUISITOS:**\n- DUI de ambos contrayentes\n- Partidas de nacimiento recientes\n- Constancia de soltería (si aplica)\n- Dos testigos mayores de edad con DUI\n- Sentencia de divorcio (si hubo matrimonio previo)\n\n**PROCESO:**\n1. Ir a alcaldía a solicitar fecha\n2. Presentar documentos\n3. Pagar derechos ($10-25 según alcaldía)\n4. Asistir a ceremonia con testigos\n5. Firmar acta de matrimonio\n6. Recibir certificación de matrimonio\n\n**COSTO:** $10-25 USD\n**TIEMPO:** 1-2 semanas para la ceremonia\n**NOTA:** Ceremonia en alcaldía o a domicilio (costo extra)",
+      "imageUrls": ["https://placehold.co/800x600/BBDEFB/white?text=Matrimonio+Civil"],
+      "tags": ["government", "marriage", "civil-registry", "wedding", "procedure", "tramite"]
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000019",
+      "profileId": "g0000001-0000-0000-0000-000000000010",
+      "postType": 2,
+      "title": "PNC - Delegación Centro Histórico",
+      "content": "Delegación de la Policía Nacional Civil en el Centro Histórico de San Salvador. Denuncias de delitos, solicitud de antecedentes penales, permisos para armas de fuego y servicios de seguridad ciudadana.",
+      "imageUrls": ["https://placehold.co/800x600/283593/white?text=PNC"],
+      "location": {
+        "address": "6a Calle Oriente y Avenida Cuscatlán",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6995,
+        "longitude": -89.1900
+      },
+      "tags": ["government", "police", "security", "pnc", "centro-historico"],
+      "pricingInfo": {
+        "amount": 5.00,
+        "currency": "USD",
+        "description": "Antecedentes penales $5",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "CustomerBranch",
+        "contactPhone": "+503 2527-4422",
+        "contactEmail": "info@pnc.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Emergencias llamar al 911. Antecedentes penales también en línea en pnc.gob.sv."
+      }
+    },
+    {
+      "id": "h0000001-0000-0000-0000-000000000020",
+      "profileId": "g0000001-0000-0000-0000-000000000010",
+      "postType": 4,
+      "title": "Cómo obtener Antecedentes Penales",
+      "content": "Los antecedentes penales son requeridos para empleos, viajes y trámites oficiales.\n\n**REQUISITOS:**\n- DUI original\n- Fotografía reciente tamaño cédula\n\n**OPCIONES:**\n\n**EN LÍNEA (recomendado):**\n1. Ingresar a pnc.gob.sv\n2. Crear cuenta o iniciar sesión\n3. Solicitar antecedentes penales\n4. Pagar $5 con tarjeta\n5. Descargar PDF inmediatamente\n\n**PRESENCIAL:**\n1. Ir a delegación PNC o Centro Express\n2. Presentar DUI y fotografía\n3. Pagar $5 en caja\n4. Esperar 10-15 minutos\n5. Recibir documento\n\n**COSTO:** $5 USD\n**VIGENCIA:** 3 meses",
+      "imageUrls": ["https://placehold.co/800x600/283593/white?text=Antecedentes"],
+      "tags": ["government", "police", "background-check", "pnc", "procedure", "tramite"]
+    }
+  ]
+}

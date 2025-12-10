@@ -1,0 +1,1135 @@
+{
+  "metadata": {
+    "category": "Entertainment & Activities",
+    "description": "Entertainment venues including malls, museums, theaters, cinemas, parks, bars, and sports venues",
+    "createdAt": "2025-12-10",
+    "profileTypeId": "22222222-2222-2222-2222-222222222222",
+    "postType": 2,
+    "totalProfiles": 20,
+    "totalPosts": 20
+  },
+  "profiles": [
+    {
+      "id": "c0000001-0000-0000-0000-000000000001",
+      "displayName": "Multiplaza San Salvador",
+      "handle": "multiplaza-san-salvador",
+      "bio": "El centro comercial más grande y exclusivo de El Salvador. Más de 200 tiendas, restaurantes, cines Cinemark, y entretenimiento para toda la familia.",
+      "avatar": "https://placehold.co/400x400/4A90D9/white?text=Multiplaza"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000002",
+      "displayName": "La Gran Vía",
+      "handle": "la-gran-via",
+      "bio": "Centro comercial y de entretenimiento en Antiguo Cuscatlán. Tiendas, restaurantes, cines Cinépolis, bolera y área de juegos.",
+      "avatar": "https://placehold.co/400x400/5C6BC0/white?text=Gran+Via"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000003",
+      "displayName": "Galerías Escalón",
+      "handle": "galerias-escalon",
+      "bio": "Centro comercial en Colonia Escalón con tiendas de moda, restaurantes, supermercado y servicios bancarios.",
+      "avatar": "https://placehold.co/400x400/7E57C2/white?text=Galerias"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000004",
+      "displayName": "Metrocentro San Salvador",
+      "handle": "metrocentro-san-salvador",
+      "bio": "Centro comercial tradicional de San Salvador. Amplia variedad de tiendas, food court, cines y entretenimiento familiar.",
+      "avatar": "https://placehold.co/400x400/26A69A/white?text=Metrocentro"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000005",
+      "displayName": "Museo de Arte de El Salvador (MARTE)",
+      "handle": "museo-marte",
+      "bio": "Principal museo de arte de El Salvador. Exhibiciones permanentes y temporales de arte salvadoreño y latinoamericano.",
+      "avatar": "https://placehold.co/400x400/8D6E63/white?text=MARTE"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000006",
+      "displayName": "Museo Nacional de Antropología",
+      "handle": "museo-nacional-antropologia",
+      "bio": "Museo dedicado a la historia y arqueología de El Salvador. Exhibiciones sobre culturas precolombinas y patrimonio cultural.",
+      "avatar": "https://placehold.co/400x400/A1887F/white?text=MUNA"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000007",
+      "displayName": "Museo de Arte Popular",
+      "handle": "museo-arte-popular",
+      "bio": "Museo que preserva y exhibe el arte popular y artesanías tradicionales de El Salvador.",
+      "avatar": "https://placehold.co/400x400/BCAAA4/white?text=Arte+Popular"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000008",
+      "displayName": "Teatro Nacional de El Salvador",
+      "handle": "teatro-nacional",
+      "bio": "Patrimonio histórico y cultural. Teatro construido en 1917, sede de ópera, ballet, conciertos y obras teatrales.",
+      "avatar": "https://placehold.co/400x400/E53935/white?text=Teatro+Nacional"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000009",
+      "displayName": "Teatro Presidente",
+      "handle": "teatro-presidente",
+      "bio": "Teatro moderno en San Benito. Obras de teatro, conciertos, conferencias y eventos culturales.",
+      "avatar": "https://placehold.co/400x400/D32F2F/white?text=Teatro+Presidente"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000010",
+      "displayName": "Centro Cultural de España",
+      "handle": "centro-cultural-espana",
+      "bio": "Centro cultural con exposiciones, talleres, cine y eventos artísticos. Entrada gratuita a la mayoría de actividades.",
+      "avatar": "https://placehold.co/400x400/C62828/white?text=CCE"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000011",
+      "displayName": "Cinemark Multiplaza",
+      "handle": "cinemark-multiplaza",
+      "bio": "Cines Cinemark con tecnología XD, salas VIP y tradicionales. Estrenos de Hollywood y cine latinoamericano.",
+      "avatar": "https://placehold.co/400x400/1565C0/white?text=Cinemark"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000012",
+      "displayName": "Cinépolis La Gran Vía",
+      "handle": "cinepolis-gran-via",
+      "bio": "Complejo de cines Cinépolis con salas VIP, 4DX y tradicionales. La mejor experiencia cinematográfica.",
+      "avatar": "https://placehold.co/400x400/0D47A1/white?text=Cinepolis"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000013",
+      "displayName": "Cinemark Metrocentro",
+      "handle": "cinemark-metrocentro",
+      "bio": "Cines en Metrocentro San Salvador. Múltiples salas con los últimos estrenos.",
+      "avatar": "https://placehold.co/400x400/1976D2/white?text=Cinemark+Metro"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000014",
+      "displayName": "Parque Cuscatlán",
+      "handle": "parque-cuscatlan",
+      "bio": "El parque urbano más grande de San Salvador. Áreas verdes, monumentos, anfiteatro y espacios para ejercicio.",
+      "avatar": "https://placehold.co/400x400/43A047/white?text=Parque+Cuscatlan"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000015",
+      "displayName": "Jardín Botánico La Laguna",
+      "handle": "jardin-botanico",
+      "bio": "Jardín botánico en Antiguo Cuscatlán. Flora nativa, senderos naturales y actividades educativas.",
+      "avatar": "https://placehold.co/400x400/2E7D32/white?text=Jardin+Botanico"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000016",
+      "displayName": "Parque Bicentenario",
+      "handle": "parque-bicentenario",
+      "bio": "Parque moderno en San Salvador. Canchas deportivas, áreas de juegos, senderos y espacios para eventos.",
+      "avatar": "https://placehold.co/400x400/388E3C/white?text=Bicentenario"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000017",
+      "displayName": "Cascadas Beer House",
+      "handle": "cascadas-beer-house",
+      "bio": "Bar y restaurante en Zona Rosa. Cerveza artesanal, música en vivo los fines de semana, ambiente juvenil.",
+      "avatar": "https://placehold.co/400x400/FF8F00/white?text=Cascadas"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000018",
+      "displayName": "La Luna Casa y Arte",
+      "handle": "la-luna-casa-arte",
+      "bio": "Centro cultural y bar alternativo. Música en vivo, exposiciones de arte, teatro independiente y eventos culturales.",
+      "avatar": "https://placehold.co/400x400/F57C00/white?text=La+Luna"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000019",
+      "displayName": "Estadio Cuscatlán",
+      "handle": "estadio-cuscatlan",
+      "bio": "El estadio más grande de Centroamérica. Sede de la Selección Nacional, conciertos internacionales y eventos masivos.",
+      "avatar": "https://placehold.co/400x400/1B5E20/white?text=Cuscatlan"
+    },
+    {
+      "id": "c0000001-0000-0000-0000-000000000020",
+      "displayName": "Estadio Jorge 'Mágico' González",
+      "handle": "estadio-magico-gonzalez",
+      "bio": "Estadio en San Salvador sede de equipos locales de fútbol. Partidos de liga y eventos deportivos.",
+      "avatar": "https://placehold.co/400x400/4CAF50/white?text=Magico"
+    }
+  ],
+  "posts": [
+    {
+      "id": "d0000001-0000-0000-0000-000000000001",
+      "profileId": "c0000001-0000-0000-0000-000000000001",
+      "postType": 2,
+      "title": "Multiplaza San Salvador",
+      "content": "El centro comercial más grande y exclusivo de El Salvador. Más de 200 tiendas internacionales y locales, amplia oferta gastronómica con restaurantes de primera, cines Cinemark con tecnología XD y VIP, y entretenimiento para toda la familia. Estacionamiento techado para más de 3,000 vehículos.",
+      "imageUrls": ["https://placehold.co/800x600/4A90D9/white?text=Multiplaza"],
+      "location": {
+        "address": "Calle El Pedregal y Calle Loma Linda",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6695,
+        "longitude": -89.2451
+      },
+      "tags": ["entertainment", "mall", "shopping", "movies", "food-court", "family-friendly", "parking", "antiguo-cuscatlan"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2248-5000",
+        "contactEmail": "info@multiplaza.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Estacionamiento techado. Food court en nivel 3. Cines en nivel 4."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000002",
+      "profileId": "c0000001-0000-0000-0000-000000000002",
+      "postType": 2,
+      "title": "La Gran Vía",
+      "content": "Centro comercial y de entretenimiento en Antiguo Cuscatlán. Tiendas de moda, electrónica y hogar. Restaurantes, cines Cinépolis con salas 4DX y VIP, bolera Bol, área de juegos para niños y amplio food court. Arquitectura al aire libre con áreas verdes.",
+      "imageUrls": ["https://placehold.co/800x600/5C6BC0/white?text=La+Gran+Via"],
+      "location": {
+        "address": "Carretera Panamericana, Antiguo Cuscatlán",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6758,
+        "longitude": -89.2531
+      },
+      "tags": ["entertainment", "mall", "shopping", "movies", "bowling", "food-court", "family-friendly", "outdoor", "antiguo-cuscatlan"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2212-7000",
+        "contactEmail": "info@lagranvia.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Bolera Bol abierta hasta las 11pm viernes y sábados. Estacionamiento gratuito."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000003",
+      "profileId": "c0000001-0000-0000-0000-000000000003",
+      "postType": 2,
+      "title": "Galerías Escalón",
+      "content": "Centro comercial en Colonia Escalón con tiendas de moda nacionales e internacionales, restaurantes, cafeterías, supermercado Super Selectos, bancos y servicios. Ambiente familiar y ubicación céntrica en la zona comercial de Escalón.",
+      "imageUrls": ["https://placehold.co/800x600/7E57C2/white?text=Galerias+Escalon"],
+      "location": {
+        "address": "Paseo General Escalón #3700",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7034,
+        "longitude": -89.2234
+      },
+      "tags": ["entertainment", "mall", "shopping", "restaurants", "supermarket", "escalon"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2264-0000",
+        "contactEmail": "info@galeriasescalon.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "20:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "19:00" }
+        },
+        "specialInstructions": "Supermercado abre desde las 7am. Estacionamiento subterráneo."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000004",
+      "profileId": "c0000001-0000-0000-0000-000000000004",
+      "postType": 2,
+      "title": "Metrocentro San Salvador",
+      "content": "Centro comercial tradicional de San Salvador con más de 40 años de historia. Amplia variedad de tiendas, food court, cines Cinemark, área de juegos y servicios. Ubicación estratégica con fácil acceso desde toda la ciudad.",
+      "imageUrls": ["https://placehold.co/800x600/26A69A/white?text=Metrocentro"],
+      "location": {
+        "address": "Boulevard de los Héroes",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7156,
+        "longitude": -89.2024
+      },
+      "tags": ["entertainment", "mall", "shopping", "movies", "food-court", "family-friendly", "centro"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2261-2266",
+        "contactEmail": "info@metrocentro.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "21:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Estacionamiento con tarifa. Cerca de la UCA."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000005",
+      "profileId": "c0000001-0000-0000-0000-000000000005",
+      "postType": 2,
+      "title": "Museo de Arte de El Salvador (MARTE)",
+      "content": "Principal museo de arte de El Salvador ubicado en San Benito. Exhibiciones permanentes de arte salvadoreño desde la época precolombina hasta el arte contemporáneo. Exposiciones temporales internacionales, tienda de arte y cafetería. Edificio arquitectónicamente impresionante.",
+      "imageUrls": ["https://placehold.co/800x600/8D6E63/white?text=MARTE"],
+      "location": {
+        "address": "Final Avenida La Revolución, Colonia San Benito",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6845,
+        "longitude": -89.2310
+      },
+      "tags": ["entertainment", "museum", "art", "culture", "education", "san-benito", "family-friendly"],
+      "pricingInfo": {
+        "amount": 1.50,
+        "currency": "USD",
+        "description": "Adultos $1.50, niños $1, domingos gratis",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2243-6099",
+        "contactEmail": "info@marte.org.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Cerrado los lunes. Domingos entrada gratuita. Tours guiados disponibles."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000006",
+      "profileId": "c0000001-0000-0000-0000-000000000006",
+      "postType": 2,
+      "title": "Museo Nacional de Antropología Dr. David J. Guzmán",
+      "content": "Museo dedicado a la historia, arqueología y antropología de El Salvador. Exhibiciones sobre culturas precolombinas Maya y Pipil, artefactos de Joya de Cerén, y patrimonio cultural salvadoreño. Centro de investigación y conservación.",
+      "imageUrls": ["https://placehold.co/800x600/A1887F/white?text=MUNA"],
+      "location": {
+        "address": "Avenida La Revolución, Colonia San Benito",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6855,
+        "longitude": -89.2325
+      },
+      "tags": ["entertainment", "museum", "history", "archaeology", "culture", "education", "san-benito"],
+      "pricingInfo": {
+        "amount": 1.00,
+        "currency": "USD",
+        "description": "Adultos $1, estudiantes $0.25",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2243-3927",
+        "contactEmail": "muna@cultura.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "16:00" }
+        },
+        "specialInstructions": "Cerrado los lunes. Tours escolares con reservación previa."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000007",
+      "profileId": "c0000001-0000-0000-0000-000000000007",
+      "postType": 2,
+      "title": "Museo de Arte Popular",
+      "content": "Museo que preserva y exhibe el arte popular y artesanías tradicionales de El Salvador. Colección de textiles, cerámica, máscaras, instrumentos musicales y arte religioso popular. Talleres de artesanías y tienda de souvenirs.",
+      "imageUrls": ["https://placehold.co/800x600/BCAAA4/white?text=Arte+Popular"],
+      "location": {
+        "address": "Calle Delgado #228, Centro Histórico",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6989,
+        "longitude": -89.1920
+      },
+      "tags": ["entertainment", "museum", "art", "crafts", "culture", "traditional", "centro-historico"],
+      "pricingInfo": {
+        "amount": 0.50,
+        "currency": "USD",
+        "description": "Entrada general $0.50",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2221-2345",
+        "contactEmail": "artepopular@cultura.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "12:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Cerrado lunes y domingos. Talleres de artesanías los sábados."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000008",
+      "profileId": "c0000001-0000-0000-0000-000000000008",
+      "postType": 2,
+      "title": "Teatro Nacional de El Salvador",
+      "content": "Patrimonio histórico y cultural de El Salvador, construido en 1917 con arquitectura neoclásica francesa. Sede principal de ópera, ballet, orquesta sinfónica, conciertos y obras teatrales de alto nivel. Visitas guiadas disponibles.",
+      "imageUrls": ["https://placehold.co/800x600/E53935/white?text=Teatro+Nacional"],
+      "location": {
+        "address": "2a Calle Poniente y Avenida Sur, Centro Histórico",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6985,
+        "longitude": -89.1915
+      },
+      "tags": ["entertainment", "theater", "culture", "music", "opera", "ballet", "historic", "centro-historico"],
+      "pricingInfo": {
+        "amount": 5.00,
+        "currency": "USD",
+        "description": "Tours $5, eventos varían según programación",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2222-5689",
+        "contactEmail": "info@teatronacional.gob.sv",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "14:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Eventos nocturnos según programación. Compra de boletos en taquilla o en línea."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000009",
+      "profileId": "c0000001-0000-0000-0000-000000000009",
+      "postType": 2,
+      "title": "Teatro Presidente",
+      "content": "Teatro moderno en San Benito con capacidad para 600 personas. Sede de obras de teatro nacionales e internacionales, stand-up comedy, conciertos íntimos y conferencias. Excelente acústica e instalaciones modernas.",
+      "imageUrls": ["https://placehold.co/800x600/D32F2F/white?text=Teatro+Presidente"],
+      "location": {
+        "address": "Final Avenida La Revolución, Colonia San Benito",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6840,
+        "longitude": -89.2305
+      },
+      "tags": ["entertainment", "theater", "culture", "comedy", "concerts", "san-benito"],
+      "pricingInfo": {
+        "amount": 15.00,
+        "currency": "USD",
+        "description": "Precios varían según evento, desde $15",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2243-3407",
+        "contactEmail": "info@teatropresidente.com",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "10:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "22:00" },
+          "sunday": { "isClosed": false, "openTime": "14:00", "closeTime": "20:00" }
+        },
+        "specialInstructions": "Taquilla abierta en horarios de oficina. Funciones viernes a domingo generalmente."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000010",
+      "profileId": "c0000001-0000-0000-0000-000000000010",
+      "postType": 2,
+      "title": "Centro Cultural de España",
+      "content": "Centro cultural con exposiciones de arte contemporáneo, talleres creativos, proyecciones de cine, presentaciones de libros y eventos artísticos. Biblioteca especializada en arte y cultura. Entrada gratuita a la mayoría de actividades.",
+      "imageUrls": ["https://placehold.co/800x600/C62828/white?text=CCE"],
+      "location": {
+        "address": "Calle La Reforma #166, Colonia San Benito",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6860,
+        "longitude": -89.2290
+      },
+      "tags": ["entertainment", "cultural-center", "art", "culture", "free", "workshops", "san-benito"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2211-0400",
+        "contactEmail": "cceelsalvador@aecid.es",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "18:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "13:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Programación mensual en redes sociales. Talleres requieren inscripción previa."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000011",
+      "profileId": "c0000001-0000-0000-0000-000000000011",
+      "postType": 2,
+      "title": "Cinemark Multiplaza",
+      "content": "Complejo de cines Cinemark en Multiplaza con 12 salas incluyendo XD (pantalla gigante) y VIP (asientos reclinables, servicio de mesero). Últimos estrenos de Hollywood, cine latinoamericano y funciones especiales. Candy bar completo.",
+      "imageUrls": ["https://placehold.co/800x600/1565C0/white?text=Cinemark"],
+      "location": {
+        "address": "Centro Comercial Multiplaza, Nivel 4",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6697,
+        "longitude": -89.2453
+      },
+      "tags": ["entertainment", "cinema", "movies", "xd", "vip", "family-friendly", "multiplaza"],
+      "pricingInfo": {
+        "amount": 5.50,
+        "currency": "USD",
+        "description": "General $5.50, XD $7.50, VIP $12",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2248-5100",
+        "contactEmail": "info@cinemark.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" }
+        },
+        "specialInstructions": "Compra en línea en cinemark.com.sv. Martes 2x1. Funciones matinée los fines de semana."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000012",
+      "profileId": "c0000001-0000-0000-0000-000000000012",
+      "postType": 2,
+      "title": "Cinépolis La Gran Vía",
+      "content": "Cines Cinépolis en La Gran Vía con salas 4DX (efectos sensoriales), VIP y tradicionales. Tecnología de punta en proyección y sonido. Estrenos internacionales, preventa en línea y programa de lealtad Club Cinépolis.",
+      "imageUrls": ["https://placehold.co/800x600/0D47A1/white?text=Cinepolis"],
+      "location": {
+        "address": "Centro Comercial La Gran Vía",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6760,
+        "longitude": -89.2533
+      },
+      "tags": ["entertainment", "cinema", "movies", "4dx", "vip", "family-friendly", "gran-via"],
+      "pricingInfo": {
+        "amount": 5.00,
+        "currency": "USD",
+        "description": "General $5, 4DX $10, VIP $12",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2212-7100",
+        "contactEmail": "info@cinepolis.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "tuesday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "friday": { "isClosed": false, "openTime": "11:00", "closeTime": "00:00" },
+          "saturday": { "isClosed": false, "openTime": "10:00", "closeTime": "00:00" },
+          "sunday": { "isClosed": false, "openTime": "10:00", "closeTime": "23:00" }
+        },
+        "specialInstructions": "Sala 4DX única en el país. Miércoles de promoción. App Cinépolis para compras."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000013",
+      "profileId": "c0000001-0000-0000-0000-000000000013",
+      "postType": 2,
+      "title": "Cinemark Metrocentro",
+      "content": "Cines Cinemark en Metrocentro San Salvador con 8 salas de cine. Precios accesibles, ubicación céntrica y amplia cartelera. Candy bar tradicional y promociones entre semana.",
+      "imageUrls": ["https://placehold.co/800x600/1976D2/white?text=Cinemark+Metrocentro"],
+      "location": {
+        "address": "Centro Comercial Metrocentro, Nivel 3",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7158,
+        "longitude": -89.2026
+      },
+      "tags": ["entertainment", "cinema", "movies", "family-friendly", "budget", "metrocentro"],
+      "pricingInfo": {
+        "amount": 4.50,
+        "currency": "USD",
+        "description": "General $4.50, niños $3.50",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2261-2300",
+        "contactEmail": "metrocentro@cinemark.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "tuesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "wednesday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "thursday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" },
+          "friday": { "isClosed": false, "openTime": "12:00", "closeTime": "23:00" },
+          "saturday": { "isClosed": false, "openTime": "11:00", "closeTime": "23:00" },
+          "sunday": { "isClosed": false, "openTime": "11:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Martes y miércoles promociones especiales. Estacionamiento del mall."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000014",
+      "profileId": "c0000001-0000-0000-0000-000000000014",
+      "postType": 2,
+      "title": "Parque Cuscatlán",
+      "content": "El parque urbano más grande de San Salvador con 80,000 m². Áreas verdes, monumentos históricos, anfiteatro para eventos, canchas deportivas, áreas de ejercicio, playground y senderos para caminar. Monumento a la Memoria y la Verdad.",
+      "imageUrls": ["https://placehold.co/800x600/43A047/white?text=Parque+Cuscatlan"],
+      "location": {
+        "address": "25 Avenida Norte y Alameda Roosevelt",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7020,
+        "longitude": -89.2050
+      },
+      "tags": ["entertainment", "park", "nature", "exercise", "family-friendly", "free", "outdoor", "centro"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2222-8000",
+        "contactEmail": "parques@sansalvador.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "tuesday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "saturday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "sunday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Abre temprano para ejercicio matutino. Vigilancia policial. Eventos en anfiteatro."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000015",
+      "profileId": "c0000001-0000-0000-0000-000000000015",
+      "postType": 2,
+      "title": "Jardín Botánico La Laguna",
+      "content": "Reserva natural y jardín botánico en el cráter de un antiguo volcán. Flora nativa salvadoreña, orquídeas, bromelias y árboles centenarios. Senderos naturales, laguna, mariposario y actividades educativas para niños.",
+      "imageUrls": ["https://placehold.co/800x600/2E7D32/white?text=Jardin+Botanico"],
+      "location": {
+        "address": "Urbanización Industrial Plan de La Laguna",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.6620,
+        "longitude": -89.2380
+      },
+      "tags": ["entertainment", "park", "nature", "botanical", "education", "family-friendly", "outdoor", "antiguo-cuscatlan"],
+      "pricingInfo": {
+        "amount": 1.00,
+        "currency": "USD",
+        "description": "Adultos $1, niños $0.50, estudiantes $0.25",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2243-2012",
+        "contactEmail": "jardinbotanico@marn.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "09:00", "closeTime": "17:00" }
+        },
+        "specialInstructions": "Cerrado los lunes. Tours escolares con reservación. Llevar repelente."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000016",
+      "profileId": "c0000001-0000-0000-0000-000000000016",
+      "postType": 2,
+      "title": "Parque Bicentenario",
+      "content": "Parque moderno inaugurado en 2011 en el antiguo aeropuerto de Ilopango. Canchas de fútbol, basketball y tenis, pista de patinaje, ciclovía, áreas de juegos infantiles, anfiteatro y espacios para eventos al aire libre.",
+      "imageUrls": ["https://placehold.co/800x600/388E3C/white?text=Bicentenario"],
+      "location": {
+        "address": "Final Boulevard del Ejército",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7100,
+        "longitude": -89.1180
+      },
+      "tags": ["entertainment", "park", "sports", "cycling", "skating", "family-friendly", "free", "outdoor"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Entrada gratuita",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2527-7400",
+        "contactEmail": "bicentenario@cultura.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "tuesday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "wednesday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "thursday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "friday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "saturday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" },
+          "sunday": { "isClosed": false, "openTime": "05:00", "closeTime": "18:00" }
+        },
+        "specialInstructions": "Ideal para ciclismo y patinaje. Eventos culturales los fines de semana."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000017",
+      "profileId": "c0000001-0000-0000-0000-000000000017",
+      "postType": 2,
+      "title": "Cascadas Beer House",
+      "content": "Bar y restaurante en Zona Rosa con amplia selección de cervezas artesanales nacionales e importadas. Música en vivo los viernes y sábados, pantallas para deportes, menú de comida americana y ambiente juvenil.",
+      "imageUrls": ["https://placehold.co/800x600/FF8F00/white?text=Cascadas"],
+      "location": {
+        "address": "Boulevard del Hipódromo, Zona Rosa",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6798,
+        "longitude": -89.2345
+      },
+      "tags": ["entertainment", "bar", "nightlife", "live-music", "sports-bar", "craft-beer", "zona-rosa"],
+      "pricingInfo": {
+        "amount": 15.00,
+        "currency": "USD",
+        "description": "Consumo promedio $15-25 por persona",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2263-5555",
+        "contactEmail": "reservas@cascadasbeer.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "17:00", "closeTime": "23:00" },
+          "wednesday": { "isClosed": false, "openTime": "17:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "17:00", "closeTime": "00:00" },
+          "friday": { "isClosed": false, "openTime": "17:00", "closeTime": "02:00" },
+          "saturday": { "isClosed": false, "openTime": "15:00", "closeTime": "02:00" },
+          "sunday": { "isClosed": false, "openTime": "12:00", "closeTime": "22:00" }
+        },
+        "specialInstructions": "Música en vivo viernes y sábados desde las 9pm. Reservaciones recomendadas fines de semana."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000018",
+      "profileId": "c0000001-0000-0000-0000-000000000018",
+      "postType": 2,
+      "title": "La Luna Casa y Arte",
+      "content": "Centro cultural alternativo y bar en San Salvador. Música en vivo de bandas locales e internacionales, exposiciones de arte, teatro independiente, noches de poesía y eventos culturales. Espacio icónico de la escena alternativa.",
+      "imageUrls": ["https://placehold.co/800x600/F57C00/white?text=La+Luna"],
+      "location": {
+        "address": "Calle Berlín #228, Urbanización Buenos Aires",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6925,
+        "longitude": -89.2180
+      },
+      "tags": ["entertainment", "bar", "nightlife", "live-music", "art", "culture", "alternative", "indie"],
+      "pricingInfo": {
+        "amount": 5.00,
+        "currency": "USD",
+        "description": "Cover $5-15 según evento, consumo aparte",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "EntertainmentVenue",
+        "contactPhone": "+503 2260-2921",
+        "contactEmail": "info@lalunacasayarte.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": true },
+          "wednesday": { "isClosed": false, "openTime": "19:00", "closeTime": "23:00" },
+          "thursday": { "isClosed": false, "openTime": "19:00", "closeTime": "00:00" },
+          "friday": { "isClosed": false, "openTime": "19:00", "closeTime": "02:00" },
+          "saturday": { "isClosed": false, "openTime": "19:00", "closeTime": "02:00" },
+          "sunday": { "isClosed": true }
+        },
+        "specialInstructions": "Programación en redes sociales. Espacio cultural desde 1991."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000019",
+      "profileId": "c0000001-0000-0000-0000-000000000019",
+      "postType": 2,
+      "title": "Estadio Cuscatlán",
+      "content": "El estadio más grande de Centroamérica con capacidad para 53,400 espectadores. Sede de la Selección Nacional de Fútbol, partidos internacionales, conciertos de artistas mundiales y eventos masivos. Construido en 1976.",
+      "imageUrls": ["https://placehold.co/800x600/1B5E20/white?text=Estadio+Cuscatlan"],
+      "location": {
+        "address": "Boulevard de los Héroes, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7110,
+        "longitude": -89.2045
+      },
+      "tags": ["entertainment", "sports-venue", "soccer", "football", "concerts", "events", "national"],
+      "pricingInfo": {
+        "amount": 10.00,
+        "currency": "USD",
+        "description": "Partidos desde $10, conciertos varían",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "SportsVenue",
+        "contactPhone": "+503 2260-0200",
+        "contactEmail": "info@estadiocuscatlan.com",
+        "acceptsWalkIns": false,
+        "requiresAppointment": true,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" }
+        },
+        "specialInstructions": "Eventos según calendario. Compra de boletos en puntos autorizados y en línea."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000020",
+      "profileId": "c0000001-0000-0000-0000-000000000020",
+      "postType": 2,
+      "title": "Estadio Jorge 'Mágico' González",
+      "content": "Estadio histórico en San Salvador, antes conocido como Estadio Flor Blanca. Sede de equipos locales de fútbol de primera división. Capacidad para 20,000 espectadores. Nombrado en honor al legendario futbolista salvadoreño.",
+      "imageUrls": ["https://placehold.co/800x600/4CAF50/white?text=Estadio+Magico"],
+      "location": {
+        "address": "43 Avenida Sur, Colonia Flor Blanca",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6950,
+        "longitude": -89.2120
+      },
+      "tags": ["entertainment", "sports-venue", "soccer", "football", "local-teams"],
+      "pricingInfo": {
+        "amount": 5.00,
+        "currency": "USD",
+        "description": "Partidos de liga desde $5",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "SportsVenue",
+        "contactPhone": "+503 2298-1234",
+        "contactEmail": "info@indes.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "21:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "21:00" }
+        },
+        "specialInstructions": "Partidos fines de semana. Boletos en taquilla el día del evento."
+      }
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000021",
+      "profileId": "c0000001-0000-0000-0000-000000000001",
+      "postType": 5,
+      "title": "Black Friday Week - Metrocentro San Salvador",
+      "content": "¡La semana de ofertas más esperada del año! Del 22 al 28 de noviembre, descuentos de hasta 70% en todas las tiendas participantes. Horario extendido hasta las 11pm. Rifas, premios y sorpresas cada día.",
+      "imageUrls": ["https://placehold.co/800x600/D32F2F/white?text=Black+Friday"],
+      "tags": ["event", "shopping", "sales", "black-friday", "deals", "metrocentro"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000022",
+      "profileId": "c0000001-0000-0000-0000-000000000002",
+      "postType": 5,
+      "title": "Festival Navideño Multiplaza 2024",
+      "content": "Celebra la navidad en Multiplaza con árbol gigante de 15 metros, villa navideña, fotos con Santa, shows de luces cada hora desde las 6pm, y coro navideño los fines de semana. Del 1 al 31 de diciembre.",
+      "imageUrls": ["https://placehold.co/800x600/C62828/white?text=Navidad+Multiplaza"],
+      "tags": ["event", "shopping", "christmas", "navidad", "family", "photos", "santa"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000023",
+      "profileId": "c0000001-0000-0000-0000-000000000003",
+      "postType": 5,
+      "title": "Car Show La Gran Vía",
+      "content": "Exhibición de autos clásicos, deportivos y modificados en el estacionamiento de La Gran Vía. Más de 100 vehículos participantes, premios por categorías, música en vivo, food trucks y actividades para toda la familia. Entrada libre.",
+      "imageUrls": ["https://placehold.co/800x600/FF5722/white?text=Car+Show"],
+      "tags": ["event", "cars", "exhibition", "free", "family", "la-gran-via"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000024",
+      "profileId": "c0000001-0000-0000-0000-000000000004",
+      "postType": 5,
+      "title": "Feria de Artesanías - Plaza Mundo",
+      "content": "Feria de artesanías salvadoreñas del 15 al 22 de agosto. Más de 50 artesanos locales con productos en barro, añil, madera, textiles y joyería tradicional. Demostraciones en vivo de técnicas ancestrales.",
+      "imageUrls": ["https://placehold.co/800x600/795548/white?text=Artesanias"],
+      "tags": ["event", "crafts", "artisan", "culture", "salvadoran", "plaza-mundo"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000025",
+      "profileId": "c0000001-0000-0000-0000-000000000005",
+      "postType": 5,
+      "title": "Noche de Museos - MARTE",
+      "content": "Entrada gratuita el último viernes de cada mes de 6pm a 10pm. Visitas guiadas especiales, música en vivo en el jardín de esculturas, cóctel de inauguración de nueva exposición. Ideal para cita cultural.",
+      "imageUrls": ["https://placehold.co/800x600/5D4037/white?text=Noche+MARTE"],
+      "tags": ["event", "museum", "culture", "free", "night", "art", "guided-tour"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000026",
+      "profileId": "c0000001-0000-0000-0000-000000000006",
+      "postType": 5,
+      "title": "Exposición: Joyas Arqueológicas Mayas",
+      "content": "Nueva exposición temporal en el MUNA mostrando piezas únicas del período clásico maya encontradas en sitios salvadoreños. 200 artefactos incluyendo cerámica policromada, jade y obsidiana. Hasta el 30 de marzo 2025.",
+      "imageUrls": ["https://placehold.co/800x600/8D6E63/white?text=Mayas+MUNA"],
+      "tags": ["event", "museum", "archaeology", "maya", "history", "exhibition"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000027",
+      "profileId": "c0000001-0000-0000-0000-000000000007",
+      "postType": 5,
+      "title": "Tour Nocturno: San Salvador de Leyendas",
+      "content": "Recorrido a pie por el Centro Histórico cada sábado a las 7pm. Historias de fantasmas, leyendas coloniales y misterios de la capital. Incluye visita a la Catedral Metropolitana y edificios emblemáticos. Reservación requerida.",
+      "imageUrls": ["https://placehold.co/800x600/4E342E/white?text=Tour+Leyendas"],
+      "tags": ["event", "tour", "night", "legends", "history", "walking-tour", "centro-historico"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000028",
+      "profileId": "c0000001-0000-0000-0000-000000000008",
+      "postType": 5,
+      "title": "Conmemoración Erupción Volcán Ilopango",
+      "content": "Exposición especial y charlas sobre la erupción del volcán Ilopango hace 1,500 años que cambió Mesoamérica. Arqueólogos internacionales presentan nuevos hallazgos. Del 1 al 15 de octubre en Joya de Cerén.",
+      "imageUrls": ["https://placehold.co/800x600/6D4C41/white?text=Erupcion+Ilopango"],
+      "tags": ["event", "archaeology", "volcano", "history", "conference", "joya-de-ceren"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000029",
+      "profileId": "c0000001-0000-0000-0000-000000000009",
+      "postType": 5,
+      "title": "Hamlet - Teatro Nacional",
+      "content": "La Compañía Nacional de Teatro presenta Hamlet de Shakespeare. Producción de alto nivel con actores nacionales e internacionales. Funciones viernes y sábados a las 7:30pm, domingos a las 4pm. Temporada de 8 semanas.",
+      "imageUrls": ["https://placehold.co/800x600/880E4F/white?text=Hamlet"],
+      "tags": ["event", "theater", "drama", "shakespeare", "culture", "teatro-nacional"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000030",
+      "profileId": "c0000001-0000-0000-0000-000000000010",
+      "postType": 5,
+      "title": "Festival de Jazz y Blues - Centro Cultural",
+      "content": "Tres noches de jazz y blues con artistas locales e invitados de Guatemala y Costa Rica. 13, 14 y 15 de febrero. Bar con cocktails de autor, gastronomía fusión. Pre-venta $25, día del evento $35.",
+      "imageUrls": ["https://placehold.co/800x600/AD1457/white?text=Jazz+Festival"],
+      "tags": ["event", "music", "jazz", "blues", "live-music", "festival"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000031",
+      "profileId": "c0000001-0000-0000-0000-000000000011",
+      "postType": 5,
+      "title": "Avant Premiere: Película Marvel 2025",
+      "content": "Sé el primero en ver el nuevo estreno de Marvel un día antes en Cinemark Multiplaza. Función especial a la medianoche con regalos exclusivos para los primeros 200 asistentes. Solo sala XD.",
+      "imageUrls": ["https://placehold.co/800x600/1565C0/white?text=Avant+Premiere"],
+      "tags": ["event", "cinema", "premiere", "marvel", "midnight", "exclusive"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000032",
+      "profileId": "c0000001-0000-0000-0000-000000000012",
+      "postType": 5,
+      "title": "Maratón Harry Potter - Cinépolis VIP",
+      "content": "Maratón de las 8 películas de Harry Potter en sala VIP con asientos reclinables y servicio a la butaca. 24 horas de magia incluyendo almuerzo, cena y desayuno temáticos. Precio especial $45 todo incluido.",
+      "imageUrls": ["https://placehold.co/800x600/0D47A1/white?text=Harry+Potter"],
+      "tags": ["event", "cinema", "marathon", "harry-potter", "vip", "special-event"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000033",
+      "profileId": "c0000001-0000-0000-0000-000000000013",
+      "postType": 5,
+      "title": "Cine al Aire Libre - Películas Clásicas",
+      "content": "Ciclo de cine clásico al aire libre en el área exterior de Metrocentro. Proyecciones gratuitas de películas icónicas de los 80s y 90s. Todos los miércoles de enero a las 7pm. Trae tu silla o manta.",
+      "imageUrls": ["https://placehold.co/800x600/1976D2/white?text=Cine+Aire+Libre"],
+      "tags": ["event", "cinema", "outdoor", "free", "classic-movies", "family"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000034",
+      "profileId": "c0000001-0000-0000-0000-000000000014",
+      "postType": 5,
+      "title": "Yoga al Amanecer - Parque Cuscatlán",
+      "content": "Clases gratuitas de yoga todos los sábados a las 6am en el anfiteatro del Parque Cuscatlán. Para todos los niveles. Trae tu mat. Instructores certificados. Meditación guiada al finalizar.",
+      "imageUrls": ["https://placehold.co/800x600/43A047/white?text=Yoga+Cuscatlan"],
+      "tags": ["event", "yoga", "fitness", "free", "outdoor", "morning", "wellness"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000035",
+      "profileId": "c0000001-0000-0000-0000-000000000015",
+      "postType": 5,
+      "title": "Festival de Orquídeas - Jardín Botánico",
+      "content": "Exposición anual de orquídeas con más de 500 especies. Venta de plantas, talleres de cultivo, charlas de expertos y concurso de la orquídea más bella. Del 20 al 28 de marzo. Entrada especial $3.",
+      "imageUrls": ["https://placehold.co/800x600/2E7D32/white?text=Orquideas"],
+      "tags": ["event", "nature", "orchids", "exhibition", "plants", "botanical", "workshop"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000036",
+      "profileId": "c0000001-0000-0000-0000-000000000016",
+      "postType": 5,
+      "title": "5K Nocturno - Parque Bicentenario",
+      "content": "Carrera nocturna 5K con efectos de luz neón. Inscripción $15 incluye camiseta, número y medalla. Premiación por categorías de edad. DJ en vivo en la meta. Sábado 15 de marzo, arranca a las 7pm.",
+      "imageUrls": ["https://placehold.co/800x600/388E3C/white?text=5K+Nocturno"],
+      "tags": ["event", "running", "5k", "night-run", "fitness", "neon", "sports"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000037",
+      "profileId": "c0000001-0000-0000-0000-000000000017",
+      "postType": 5,
+      "title": "Oktoberfest Salvadoreño - Cascadas",
+      "content": "Celebración de la Oktoberfest con cervezas alemanas importadas y artesanales locales. Comida bávara, música en vivo, concursos de bebedores y premios. Del 5 al 7 de octubre. Cover $10 incluye primer litro.",
+      "imageUrls": ["https://placehold.co/800x600/FF8F00/white?text=Oktoberfest"],
+      "tags": ["event", "beer", "oktoberfest", "live-music", "german", "festival"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000038",
+      "profileId": "c0000001-0000-0000-0000-000000000018",
+      "postType": 5,
+      "title": "Noche de Rock Nacional - La Luna",
+      "content": "Las mejores bandas de rock salvadoreño en una noche épica. Tres bandas en vivo desde las 8pm. Tributo al rock salvadoreño de los 90s. Cover $8. Cervezas a precio especial antes de las 10pm.",
+      "imageUrls": ["https://placehold.co/800x600/F57C00/white?text=Rock+La+Luna"],
+      "tags": ["event", "rock", "live-music", "local-bands", "concert", "alternative"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000039",
+      "profileId": "c0000001-0000-0000-0000-000000000019",
+      "postType": 5,
+      "title": "El Salvador vs Honduras - Eliminatorias",
+      "content": "¡La Selecta enfrenta a Honduras en partido eliminatorio! Jueves 10 de octubre a las 8pm. Boletos desde $15 en palco general hasta $75 en preferencia. Venta en línea y puntos autorizados. ¡Llena el Cuscatlán!",
+      "imageUrls": ["https://placehold.co/800x600/1B5E20/white?text=El+Salvador+vs+Honduras"],
+      "tags": ["event", "soccer", "seleccion", "eliminatorias", "honduras", "national-team"]
+    },
+    {
+      "id": "d0000001-0000-0000-0000-000000000040",
+      "profileId": "c0000001-0000-0000-0000-000000000020",
+      "postType": 5,
+      "title": "Final Liga Mayor - FAS vs Alianza",
+      "content": "¡La gran final de la Liga Mayor! FAS vs Alianza, el clásico salvadoreño. Domingo 15 de diciembre a las 4pm. Ambiente de fiesta, barras organizadas, food trucks. Boletos desde $5.",
+      "imageUrls": ["https://placehold.co/800x600/4CAF50/white?text=FAS+vs+Alianza"],
+      "tags": ["event", "soccer", "final", "liga-mayor", "fas", "alianza", "clasico"]
+    }
+  ]
+}

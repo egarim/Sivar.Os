@@ -4,39 +4,66 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | ⏳ Planned |
-| **Total Entries** | TBD |
-| **Profiles Created** | TBD Organization Profiles |
-| **Posts Created** | TBD (Locations + Procedures) |
+| **Status** | ✅ Complete |
+| **Total Entries** | 15 |
+| **Profiles Created** | 15 Government Organization Profiles |
+| **Posts Created** | 15 BusinessLocation Posts |
 
-## Planned Categories
+## Categories Implemented
 
-### Government Offices (BusinessLocation Posts)
-- DUI Centers (ID card)
-- Migración y Extranjería (Passports)
-- DGT / Tránsito (Vehicles, Licenses)
-- Alcaldías (Municipal services)
-- CNR (Property registry)
-- Ministerio de Hacienda (Taxes)
-- Courts
+### Municipal Offices (3)
+1. **Alcaldía de San Salvador** - Main municipal office for capital city
+2. **Alcaldía de Santa Ana** - Municipal services for Santa Ana
+3. **Alcaldía de San Miguel** - Municipal services for San Miguel
 
-### Procedures (Service Posts)
-- Getting a DUI (National ID)
-- Getting a Passport
-- Vehicle Registration
-- Driver's License
-- Property Registration
-- Tax Payments
-- Birth Certificates
+### Central Government (4)
+4. **Casa Presidencial** - Presidential house and executive branch
+5. **Ministerio de Hacienda** - Treasury/Finance ministry, tax services
+6. **Ministerio de Educación** - Education ministry
+7. **Ministerio de Salud** - Health ministry
 
-## Sample AI Queries (Planned)
+### Justice System (2)
+8. **Corte Suprema de Justicia** - Supreme Court
+9. **Fiscalía General de la República** - Attorney General's office
 
-- "How do I get a DUI (ID card)?"
-- "Where is the nearest DGT office?"
-- "What documents do I need for a passport?"
-- "How do I register a vehicle?"
-- "Driver's license requirements"
+### Civil Registry & ID (2)
+10. **Centro DUI San Salvador** - National ID card center
+11. **Registro Civil Central** - Civil registry for birth/marriage/death certificates
+
+### Social Services (2)
+12. **ISSS Central** - Social Security Institute (main office)
+13. **AFP Crecer** - Pension fund administrator
+
+### Utilities (2)
+14. **ANDA Oficinas Centrales** - National water authority
+15. **CAESS Centro de Servicio** - Electricity company service center
+
+## ID Patterns
+
+| Type | Pattern |
+|------|---------|
+| Profile IDs | `g0000001-0001-0001-0001-000000000001` through `g0000015-...` |
+| Post IDs | `h0000001-0001-0001-0001-000000000001` through `h0000015-...` |
+| CreatedById | `dddddddd-dddd-dddd-dddd-dddddddddddd` (Seeder User) |
+
+## Sample AI Queries Supported
+
+- "¿Cómo obtengo mi DUI?"
+- "¿Dónde está la alcaldía más cercana?"
+- "Horario del Ministerio de Hacienda"
+- "¿Dónde puedo sacar un certificado de nacimiento?"
+- "Oficinas del ISSS en San Salvador"
+- "¿Dónde pago la luz?"
 - "Government offices near Centro"
+- "How do I get a birth certificate?"
+
+## Implementation Notes
+
+- All profiles set to `IsActive = true`
+- BusinessLocationType defaults to `MainOffice` for government entities
+- Working hours reflect typical government schedule (8am-4pm Mon-Fri)
+- Phone numbers use 2XXX format (landlines) for government offices
+- All locations include GPS coordinates for map integration
 
 ## Procedure Post Structure
 

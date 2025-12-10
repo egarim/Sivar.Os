@@ -884,11 +884,17 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 // Seed restaurants
                 await SeedRestaurantsAsync(demoDataPath);
                 
-                // Future: Add more categories
-                // await SeedEntertainmentAsync(demoDataPath);
-                // await SeedTourismAsync(demoDataPath);
-                // await SeedGovernmentAsync(demoDataPath);
-                // await SeedServicesAsync(demoDataPath);
+                // Seed entertainment
+                await SeedEntertainmentAsync(demoDataPath);
+                
+                // Seed tourism
+                await SeedTourismAsync(demoDataPath);
+                
+                // Seed government
+                await SeedGovernmentAsync(demoDataPath);
+                
+                // Seed services
+                await SeedServicesAsync(demoDataPath);
             }
             catch (Exception ex)
             {
@@ -1000,7 +1006,7 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
-                    profile.IsActive = false; // Demo profiles are not active user profiles
+                    profile.IsActive = true; // Demo profiles are active for directory listings
                     profile.VisibilityLevel = VisibilityLevel.Public;
                     profile.CreatedAt = now;
                     profile.UpdatedAt = now;
@@ -1149,6 +1155,739 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 
             return null;
         }
+        
+        /// <summary>
+        /// Seeds entertainment demo data from DemoData/Entertainment/entertainment.json
+        /// </summary>
+        private async Task SeedEntertainmentAsync(string demoDataPath)
+        {
+            var entertainmentJsonPath = Path.Combine(demoDataPath, "Entertainment", "entertainment.json");
+            if (!File.Exists(entertainmentJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Entertainment JSON not found at: {entertainmentJsonPath}. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading entertainment from: {entertainmentJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(entertainmentJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse entertainment JSON.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get the business profile type
+            var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileTypeId);
+            if (businessProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Business profile type not found. Skipping entertainment seeding.");
+                return;
+            }
+            
+            // Ensure system user exists (should already be created by restaurants seeding)
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
+            if (systemUser == null)
+            {
+                systemUser = ObjectSpace.CreateObject<User>();
+                systemUser.Id = systemUserId;
+                systemUser.KeycloakId = "demo-system-user";
+                systemUser.Email = "demo@sivar.os";
+                systemUser.FirstName = "Demo";
+                systemUser.LastName = "System";
+                systemUser.Role = UserRole.RegisteredUser;
+                systemUser.IsActive = true;
+                systemUser.PreferredLanguage = "es";
+                systemUser.TimeZone = "America/El_Salvador";
+                systemUser.CreatedAt = now;
+                systemUser.UpdatedAt = now;
+                ObjectSpace.CommitChanges();
+                System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created demo system user.");
+            }
+            
+            // Seed profiles
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = systemUserId;
+                    profile.ProfileTypeId = businessProfileTypeId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.IsActive = true; // Demo profiles are active for directory listings
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName} ({profileData.Handle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} entertainment profiles.");
+            
+            // Seed posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = (PostType)(postData.PostType ?? 2); // Default to BusinessLocation
+                    post.Title = postData.Title ?? "";
+                    post.Content = postData.Content ?? "";
+                    post.Visibility = VisibilityLevel.Public;
+                    post.Language = "es";
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CreatedAt = now;
+                    post.UpdatedAt = now;
+                    
+                    // Set location if available (for BusinessLocation posts)
+                    if (postData.Location != null)
+                    {
+                        post.Location = new Location(
+                            postData.Location.City ?? "",
+                            postData.Location.State ?? "",
+                            postData.Location.Country ?? "El Salvador",
+                            postData.Location.Latitude,
+                            postData.Location.Longitude
+                        );
+                    }
+                    
+                    // Set pricing info
+                    if (postData.PricingInfo != null)
+                    {
+                        var pricing = new PricingInformation
+                        {
+                            Amount = postData.PricingInfo.Amount ?? 0,
+                            Currency = Currency.USD,
+                            IsNegotiable = postData.PricingInfo.IsNegotiable ?? false,
+                            Description = postData.PricingInfo.Description
+                        };
+                        post.PricingInfo = JsonSerializer.Serialize(pricing);
+                    }
+                    
+                    // Set business metadata (for BusinessLocation posts)
+                    if (postData.BusinessMetadata != null)
+                    {
+                        var metadata = new BusinessLocationMetadata
+                        {
+                            LocationType = Enum.TryParse<BusinessLocationType>(postData.BusinessMetadata.LocationType, out var locType) 
+                                ? locType 
+                                : BusinessLocationType.RetailStore,
+                            ContactPhone = postData.BusinessMetadata.ContactPhone,
+                            ContactEmail = postData.BusinessMetadata.ContactEmail,
+                            AcceptsWalkIns = postData.BusinessMetadata.AcceptsWalkIns ?? true,
+                            RequiresAppointment = postData.BusinessMetadata.RequiresAppointment ?? false,
+                            SpecialInstructions = postData.BusinessMetadata.SpecialInstructions
+                        };
+                        
+                        // Set working hours if available
+                        if (postData.BusinessMetadata.WorkingHours != null)
+                        {
+                            metadata.WorkingHours = new BusinessHours
+                            {
+                                Monday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Monday),
+                                Tuesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Tuesday),
+                                Wednesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Wednesday),
+                                Thursday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Thursday),
+                                Friday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Friday),
+                                Saturday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Saturday),
+                                Sunday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Sunday)
+                            };
+                        }
+                        
+                        post.BusinessMetadata = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} entertainment posts.");
+        }
+        
+        /// <summary>
+        /// Seeds tourism demo data from DemoData/Tourism/tourism.json
+        /// </summary>
+        private async Task SeedTourismAsync(string demoDataPath)
+        {
+            var tourismJsonPath = Path.Combine(demoDataPath, "Tourism", "tourism.json");
+            if (!File.Exists(tourismJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Tourism JSON not found at: {tourismJsonPath}. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading tourism from: {tourismJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(tourismJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse tourism JSON.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get the business profile type
+            var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileTypeId);
+            if (businessProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Business profile type not found. Skipping tourism seeding.");
+                return;
+            }
+            
+            // Ensure system user exists
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
+            if (systemUser == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] System user not found. Skipping tourism seeding.");
+                return;
+            }
+            
+            // Seed profiles
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = systemUserId;
+                    profile.ProfileTypeId = businessProfileTypeId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.IsActive = true; // Demo profiles are active for directory listings
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName} ({profileData.Handle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} tourism profiles.");
+            
+            // Seed posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = (PostType)(postData.PostType ?? 2); // Default to BusinessLocation
+                    post.Title = postData.Title ?? "";
+                    post.Content = postData.Content ?? "";
+                    post.Visibility = VisibilityLevel.Public;
+                    post.Language = "es";
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CreatedAt = now;
+                    post.UpdatedAt = now;
+                    
+                    // Set location if available
+                    if (postData.Location != null)
+                    {
+                        post.Location = new Location(
+                            postData.Location.City ?? "",
+                            postData.Location.State ?? "",
+                            postData.Location.Country ?? "El Salvador",
+                            postData.Location.Latitude,
+                            postData.Location.Longitude
+                        );
+                    }
+                    
+                    // Set pricing info
+                    if (postData.PricingInfo != null)
+                    {
+                        var pricing = new PricingInformation
+                        {
+                            Amount = postData.PricingInfo.Amount ?? 0,
+                            Currency = Currency.USD,
+                            IsNegotiable = postData.PricingInfo.IsNegotiable ?? false,
+                            Description = postData.PricingInfo.Description
+                        };
+                        post.PricingInfo = JsonSerializer.Serialize(pricing);
+                    }
+                    
+                    // Set business metadata
+                    if (postData.BusinessMetadata != null)
+                    {
+                        var metadata = new BusinessLocationMetadata
+                        {
+                            LocationType = Enum.TryParse<BusinessLocationType>(postData.BusinessMetadata.LocationType, out var locType) 
+                                ? locType 
+                                : BusinessLocationType.RetailStore,
+                            ContactPhone = postData.BusinessMetadata.ContactPhone,
+                            ContactEmail = postData.BusinessMetadata.ContactEmail,
+                            AcceptsWalkIns = postData.BusinessMetadata.AcceptsWalkIns ?? true,
+                            RequiresAppointment = postData.BusinessMetadata.RequiresAppointment ?? false,
+                            SpecialInstructions = postData.BusinessMetadata.SpecialInstructions
+                        };
+                        
+                        // Set working hours if available
+                        if (postData.BusinessMetadata.WorkingHours != null)
+                        {
+                            metadata.WorkingHours = new BusinessHours
+                            {
+                                Monday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Monday),
+                                Tuesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Tuesday),
+                                Wednesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Wednesday),
+                                Thursday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Thursday),
+                                Friday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Friday),
+                                Saturday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Saturday),
+                                Sunday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Sunday)
+                            };
+                        }
+                        
+                        post.BusinessMetadata = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} tourism posts.");
+        }
+        
+        /// <summary>
+        /// Seeds government demo data from DemoData/Government/government.json
+        /// </summary>
+        private async Task SeedGovernmentAsync(string demoDataPath)
+        {
+            var governmentJsonPath = Path.Combine(demoDataPath, "Government", "government.json");
+            if (!File.Exists(governmentJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Government JSON not found at: {governmentJsonPath}. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading government from: {governmentJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(governmentJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse government JSON.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get the business profile type
+            var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileTypeId);
+            if (businessProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Business profile type not found. Skipping government seeding.");
+                return;
+            }
+            
+            // Ensure system user exists
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
+            if (systemUser == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] System user not found. Skipping government seeding.");
+                return;
+            }
+            
+            // Seed profiles
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = systemUserId;
+                    profile.ProfileTypeId = businessProfileTypeId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.IsActive = true; // Demo profiles are active for directory listings
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName} ({profileData.Handle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} government profiles.");
+            
+            // Seed posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = (PostType)(postData.PostType ?? 2); // Default to BusinessLocation
+                    post.Title = postData.Title ?? "";
+                    post.Content = postData.Content ?? "";
+                    post.Visibility = VisibilityLevel.Public;
+                    post.Language = "es";
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CreatedAt = now;
+                    post.UpdatedAt = now;
+                    
+                    // Set location if available (for BusinessLocation posts)
+                    if (postData.Location != null)
+                    {
+                        post.Location = new Location(
+                            postData.Location.City ?? "",
+                            postData.Location.State ?? "",
+                            postData.Location.Country ?? "El Salvador",
+                            postData.Location.Latitude,
+                            postData.Location.Longitude
+                        );
+                    }
+                    
+                    // Set pricing info
+                    if (postData.PricingInfo != null)
+                    {
+                        var pricing = new PricingInformation
+                        {
+                            Amount = postData.PricingInfo.Amount ?? 0,
+                            Currency = Currency.USD,
+                            IsNegotiable = postData.PricingInfo.IsNegotiable ?? false,
+                            Description = postData.PricingInfo.Description
+                        };
+                        post.PricingInfo = JsonSerializer.Serialize(pricing);
+                    }
+                    
+                    // Set business metadata (for BusinessLocation posts)
+                    if (postData.BusinessMetadata != null)
+                    {
+                        var metadata = new BusinessLocationMetadata
+                        {
+                            LocationType = Enum.TryParse<BusinessLocationType>(postData.BusinessMetadata.LocationType, out var locType) 
+                                ? locType 
+                                : BusinessLocationType.MainOffice,
+                            ContactPhone = postData.BusinessMetadata.ContactPhone,
+                            ContactEmail = postData.BusinessMetadata.ContactEmail,
+                            AcceptsWalkIns = postData.BusinessMetadata.AcceptsWalkIns ?? true,
+                            RequiresAppointment = postData.BusinessMetadata.RequiresAppointment ?? false,
+                            SpecialInstructions = postData.BusinessMetadata.SpecialInstructions
+                        };
+                        
+                        // Set working hours if available
+                        if (postData.BusinessMetadata.WorkingHours != null)
+                        {
+                            metadata.WorkingHours = new BusinessHours
+                            {
+                                Monday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Monday),
+                                Tuesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Tuesday),
+                                Wednesday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Wednesday),
+                                Thursday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Thursday),
+                                Friday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Friday),
+                                Saturday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Saturday),
+                                Sunday = ParseDaySchedule(postData.BusinessMetadata.WorkingHours.Sunday)
+                            };
+                        }
+                        
+                        post.BusinessMetadata = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} government posts.");
+        }
+        
+        /// <summary>
+        /// Seeds Services category data - banks, utilities, healthcare, professional services, retail
+        /// </summary>
+        private async Task SeedServicesAsync(string demoDataPath)
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedServicesAsync...");
+            
+            var servicesFile = Path.Combine(demoDataPath, "Services", "services.json");
+            if (!File.Exists(servicesFile))
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] services.json not found. Skipping.");
+                return;
+            }
+            
+            var json = await File.ReadAllTextAsync(servicesFile);
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to deserialize services.json");
+                return;
+            }
+            
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            var seederUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var now = DateTime.UtcNow;
+            
+            // Seed profiles
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = seederUserId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.ProfileTypeId = businessProfileTypeId;
+                    profile.IsActive = true;
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} service profiles.");
+            
+            // Seed posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = (PostType)(postData.PostType ?? 2); // Default to BusinessLocation
+                    post.Title = postData.Title ?? "";
+                    post.Content = postData.Content ?? "";
+                    post.Visibility = VisibilityLevel.Public;
+                    post.Language = "es";
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CreatedAt = now;
+                    post.UpdatedAt = now;
+                    
+                    // Handle business location details
+                    if (postData.BusinessLocationDetails != null)
+                    {
+                        var details = postData.BusinessLocationDetails;
+                        
+                        // Set location from business details
+                        post.Location = new Location(
+                            details.City ?? "",
+                            details.State ?? "",
+                            details.Country ?? "El Salvador",
+                            details.Latitude ?? 0,
+                            details.Longitude ?? 0
+                        );
+                        
+                        // Set business metadata
+                        var locationType = (BusinessLocationType)(details.BusinessLocationType ?? 4);
+                        var metadata = new BusinessLocationMetadata
+                        {
+                            LocationType = locationType,
+                            ContactPhone = details.PhoneNumber,
+                            ContactEmail = details.Email,
+                            AcceptsWalkIns = true,
+                            RequiresAppointment = false,
+                            SpecialInstructions = details.WorkingHours
+                        };
+                        
+                        post.BusinessMetadata = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} service posts.");
+        }
     }
     
     #region Demo Data DTOs
@@ -1193,6 +1932,23 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
         public List<string>? Tags { get; set; }
         public DemoPricingData? PricingInfo { get; set; }
         public DemoBusinessMetadata? BusinessMetadata { get; set; }
+        public DemoBusinessLocationDetails? BusinessLocationDetails { get; set; }
+    }
+    
+    public class DemoBusinessLocationDetails
+    {
+        public int? BusinessLocationType { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Country { get; set; }
+        public string? PostalCode { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public string? Website { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string? WorkingHours { get; set; }
     }
     
     public class DemoLocationData

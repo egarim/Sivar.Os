@@ -1,0 +1,485 @@
+{
+  "metadata": {
+    "category": "Tourism",
+    "description": "Tourist attractions, natural landmarks, beaches, archaeological sites, and viewpoints in El Salvador",
+    "createdAt": "2024-12-10",
+    "profileTypeId": "22222222-2222-2222-2222-222222222222",
+    "postType": 2,
+    "totalProfiles": 10,
+    "totalPosts": 10
+  },
+  "profiles": [
+    {
+      "id": "e0000001-0000-0000-0000-000000000001",
+      "displayName": "Volcán de San Salvador",
+      "handle": "volcan-san-salvador",
+      "bio": "El icónico volcán que domina el paisaje de la capital salvadoreña. Con su cráter El Boquerón y vistas espectaculares, es uno de los destinos naturales más visitados del país.",
+      "avatar": "https://placehold.co/400x400/2E7D32/white?text=Volcan+SS"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000002",
+      "displayName": "Parque Nacional El Boquerón",
+      "handle": "parque-el-boqueron",
+      "bio": "Parque nacional en el cráter del Volcán de San Salvador. Senderos naturales, mirador al cráter, área de picnic y restaurantes con vistas panorámicas de la ciudad.",
+      "avatar": "https://placehold.co/400x400/1B5E20/white?text=El+Boqueron"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000003",
+      "displayName": "Playa El Tunco",
+      "handle": "playa-el-tunco",
+      "bio": "La playa más famosa de El Salvador para surfistas y turistas. Vida nocturna vibrante, restaurantes frente al mar, hoteles boutique y las mejores olas de Centroamérica.",
+      "avatar": "https://placehold.co/400x400/0277BD/white?text=El+Tunco"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000004",
+      "displayName": "Playa El Sunzal",
+      "handle": "playa-el-sunzal",
+      "bio": "Destino de surf de clase mundial con olas consistentes todo el año. Ambiente más tranquilo que El Tunco, ideal para surfistas serios y amantes de la naturaleza.",
+      "avatar": "https://placehold.co/400x400/01579B/white?text=El+Sunzal"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000005",
+      "displayName": "Playa El Zonte",
+      "handle": "playa-el-zonte",
+      "bio": "Playa bohemia conocida por ser la cuna de Bitcoin Beach. Comunidad de surf relajada, yoga, hostales ecológicos y atardeceres espectaculares.",
+      "avatar": "https://placehold.co/400x400/0288D1/white?text=El+Zonte"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000006",
+      "displayName": "Joya de Cerén",
+      "handle": "joya-de-ceren",
+      "bio": "Patrimonio de la Humanidad UNESCO. Sitio arqueológico maya preservado por ceniza volcánica, conocido como la 'Pompeya de América'. Museo y recorridos guiados.",
+      "avatar": "https://placehold.co/400x400/795548/white?text=Joya+Ceren"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000007",
+      "displayName": "Ruinas de Tazumal",
+      "handle": "ruinas-tazumal",
+      "bio": "El sitio arqueológico más importante de El Salvador. Pirámides mayas de 1,400 años de antigüedad, museo con artefactos y la famosa escultura de Xipe Tótec.",
+      "avatar": "https://placehold.co/400x400/6D4C41/white?text=Tazumal"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000008",
+      "displayName": "Lago de Coatepeque",
+      "handle": "lago-coatepeque",
+      "bio": "Uno de los lagos de cráter más hermosos del mundo. Aguas cristalinas de color turquesa, hoteles de lujo, restaurantes con vista y actividades acuáticas.",
+      "avatar": "https://placehold.co/400x400/00ACC1/white?text=Coatepeque"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000009",
+      "displayName": "Puerta del Diablo",
+      "handle": "puerta-del-diablo",
+      "bio": "Formación rocosa icónica con vistas panorámicas del valle de San Salvador. Senderismo, escalada, miradores y pupuserías tradicionales en la cima.",
+      "avatar": "https://placehold.co/400x400/455A64/white?text=Puerta+Diablo"
+    },
+    {
+      "id": "e0000001-0000-0000-0000-000000000010",
+      "displayName": "Ruta de las Flores",
+      "handle": "ruta-de-las-flores",
+      "bio": "Pintoresca ruta turística que conecta pueblos coloniales en las montañas. Café de altura, artesanías, gastronomía típica y festivales de flores los fines de semana.",
+      "avatar": "https://placehold.co/400x400/E91E63/white?text=Ruta+Flores"
+    }
+  ],
+  "posts": [
+    {
+      "id": "f0000001-0000-0000-0000-000000000001",
+      "profileId": "e0000001-0000-0000-0000-000000000001",
+      "postType": 2,
+      "title": "Volcán de San Salvador",
+      "content": "El majestuoso Volcán de San Salvador (también conocido como Quezaltepec) se eleva a 1,893 metros sobre el nivel del mar. Su cráter principal, El Boquerón, tiene 1.5 km de diámetro y 558 metros de profundidad. Dentro del cráter principal hay un cono secundario llamado El Boqueroncito formado en la erupción de 1917. Es el símbolo natural de la capital y ofrece las mejores vistas panorámicas de San Salvador y sus alrededores.",
+      "imageUrls": ["https://placehold.co/800x600/2E7D32/white?text=Volcan+San+Salvador"],
+      "location": {
+        "address": "Volcán de San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7340,
+        "longitude": -89.2860
+      },
+      "tags": ["tourism", "volcano", "nature", "hiking", "viewpoint", "landmark", "san-salvador"],
+      "pricingInfo": {
+        "amount": 1.00,
+        "currency": "USD",
+        "description": "Entrada al parque $1, estacionamiento $1",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2222-8000",
+        "contactEmail": "turismo@marn.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" }
+        },
+        "specialInstructions": "Llevar ropa abrigada, la temperatura baja en la cima. Mejor visitar temprano para evitar neblina."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000002",
+      "profileId": "e0000001-0000-0000-0000-000000000002",
+      "postType": 2,
+      "title": "Parque Nacional El Boquerón",
+      "content": "El Parque Nacional El Boquerón protege el cráter del Volcán de San Salvador. Cuenta con senderos bien mantenidos que rodean el cráter (4.5 km), miradores espectaculares, área de picnic, cafetería y restaurantes con vistas panorámicas de la ciudad. El sendero al fondo del cráter requiere guía. Flora y fauna endémica, orquídeas y aves. Centro de visitantes con información geológica e histórica del volcán.",
+      "imageUrls": ["https://placehold.co/800x600/1B5E20/white?text=Parque+El+Boqueron"],
+      "location": {
+        "address": "Cráter del Volcán de San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.7360,
+        "longitude": -89.2870
+      },
+      "tags": ["tourism", "national-park", "hiking", "nature", "crater", "viewpoint", "family-friendly"],
+      "pricingInfo": {
+        "amount": 1.00,
+        "currency": "USD",
+        "description": "Nacionales $1, extranjeros $3, estacionamiento $1",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2132-0692",
+        "contactEmail": "boqueron@marn.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" }
+        },
+        "specialInstructions": "Sendero al fondo del cráter requiere reservación previa. Restaurantes abiertos hasta las 6pm."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000003",
+      "profileId": "e0000001-0000-0000-0000-000000000003",
+      "postType": 2,
+      "title": "Playa El Tunco",
+      "content": "El Tunco es la playa más popular de El Salvador, famosa por su icónica roca en forma de cerdo (tunco). Destino principal de surf con olas consistentes, especialmente el point break de La Bocana. Vida nocturna vibrante con bares, restaurantes y música en vivo. Hoteles boutique, hostales económicos y casas de alquiler. A solo 45 minutos de San Salvador. Ideal para surfistas, mochileros y turistas que buscan ambiente playero.",
+      "imageUrls": ["https://placehold.co/800x600/0277BD/white?text=Playa+El+Tunco"],
+      "location": {
+        "address": "Playa El Tunco, Km 42 Carretera del Litoral",
+        "city": "Tamanique",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4930,
+        "longitude": -89.3830
+      },
+      "tags": ["tourism", "beach", "surf", "nightlife", "restaurants", "hotels", "la-libertad"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Acceso libre, estacionamiento $2-5",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 7777-8888",
+        "contactEmail": "info@eltunco.com.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Mejor época para surf: marzo a octubre. Fines de semana muy concurridos. Llevar efectivo, pocos lugares aceptan tarjeta."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000004",
+      "profileId": "e0000001-0000-0000-0000-000000000004",
+      "postType": 2,
+      "title": "Playa El Sunzal",
+      "content": "El Sunzal es considerada una de las mejores playas de surf de Centroamérica. Olas consistentes de clase mundial, especialmente el famoso right point break. Ambiente más tranquilo y natural que El Tunco, ideal para surfistas experimentados. Escuelas de surf, alquiler de tablas, restaurantes con vista al mar y alojamiento. Sede de competencias internacionales de surf.",
+      "imageUrls": ["https://placehold.co/800x600/01579B/white?text=Playa+El+Sunzal"],
+      "location": {
+        "address": "Playa El Sunzal, Km 44 Carretera del Litoral",
+        "city": "Tamanique",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.4970,
+        "longitude": -89.3950
+      },
+      "tags": ["tourism", "beach", "surf", "nature", "sports", "waves", "la-libertad"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Acceso libre, clases de surf desde $25",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 7888-9999",
+        "contactEmail": "surf@elsunzal.com",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Mejores olas temprano en la mañana. Corrientes fuertes, recomendado para surfistas intermedios y avanzados."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000005",
+      "profileId": "e0000001-0000-0000-0000-000000000005",
+      "postType": 2,
+      "title": "Playa El Zonte",
+      "content": "El Zonte es una playa bohemia conocida mundialmente como Bitcoin Beach, donde se implementó el uso de Bitcoin antes de ser moneda legal en El Salvador. Ambiente relajado y alternativo, comunidad de surf, yoga retreats, hostales ecológicos y restaurantes saludables. Atardeceres espectaculares, menos turístico que El Tunco. Ideal para viajeros que buscan experiencia auténtica.",
+      "imageUrls": ["https://placehold.co/800x600/0288D1/white?text=Playa+El+Zonte"],
+      "location": {
+        "address": "Playa El Zonte, Km 53 Carretera del Litoral",
+        "city": "Chiltiupán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.5010,
+        "longitude": -89.4520
+      },
+      "tags": ["tourism", "beach", "surf", "bitcoin", "yoga", "eco-friendly", "la-libertad"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Acceso libre, muchos negocios aceptan Bitcoin",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 7999-0000",
+        "contactEmail": "info@elzonte.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Primer lugar en el mundo en adoptar Bitcoin para comercio local. Comunidad amigable y relajada."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000006",
+      "profileId": "e0000001-0000-0000-0000-000000000006",
+      "postType": 2,
+      "title": "Joya de Cerén - Patrimonio UNESCO",
+      "content": "Joya de Cerén es un sitio arqueológico Patrimonio de la Humanidad desde 1993, conocido como la 'Pompeya de América'. Una aldea maya fue preservada por la ceniza del volcán Loma Caldera hace 1,400 años. Los restos muestran la vida cotidiana de los antiguos habitantes: casas, cocinas, cultivos y objetos personales. Museo con artefactos, maquetas y recorridos guiados incluidos en la entrada.",
+      "imageUrls": ["https://placehold.co/800x600/795548/white?text=Joya+de+Ceren"],
+      "location": {
+        "address": "Km 35 Carretera a San Juan Opico",
+        "city": "San Juan Opico",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "latitude": 13.8240,
+        "longitude": -89.3540
+      },
+      "tags": ["tourism", "archaeology", "unesco", "maya", "museum", "history", "la-libertad"],
+      "pricingInfo": {
+        "amount": 3.00,
+        "currency": "USD",
+        "description": "Nacionales $1, extranjeros $3, incluye guía",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Museum",
+        "contactPhone": "+503 2401-5782",
+        "contactEmail": "joyadeceren@cultura.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "sunday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" }
+        },
+        "specialInstructions": "Cerrado los lunes. Última entrada 3:30pm. Tours escolares con reservación. Llevar protector solar."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000007",
+      "profileId": "e0000001-0000-0000-0000-000000000007",
+      "postType": 2,
+      "title": "Ruinas de Tazumal",
+      "content": "Tazumal es el sitio arqueológico más importante y mejor restaurado de El Salvador. La pirámide principal tiene 24 metros de altura y data del año 100-1200 d.C. El nombre significa 'pirámide donde se quemaban las víctimas' en náhuatl. Museo Stanley H. Boggs con la famosa escultura de Xipe Tótec, cerámica y artefactos mayas. El sitio muestra influencia de Copán y Teotihuacán.",
+      "imageUrls": ["https://placehold.co/800x600/6D4C41/white?text=Ruinas+Tazumal"],
+      "location": {
+        "address": "Calle Tazumal, Chalchuapa",
+        "city": "Chalchuapa",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.9800,
+        "longitude": -89.6810
+      },
+      "tags": ["tourism", "archaeology", "maya", "pyramid", "museum", "history", "santa-ana"],
+      "pricingInfo": {
+        "amount": 3.00,
+        "currency": "USD",
+        "description": "Nacionales $1, extranjeros $3, incluye museo",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Museum",
+        "contactPhone": "+503 2444-0010",
+        "contactEmail": "tazumal@cultura.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": true },
+          "tuesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "wednesday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "thursday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "friday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "saturday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" },
+          "sunday": { "isClosed": false, "openTime": "09:00", "closeTime": "16:00" }
+        },
+        "specialInstructions": "Cerrado los lunes. Combinar visita con Lago de Coatepeque (30 min). Área techada del museo para descansar del sol."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000008",
+      "profileId": "e0000001-0000-0000-0000-000000000008",
+      "postType": 2,
+      "title": "Lago de Coatepeque",
+      "content": "El Lago de Coatepeque es un lago de cráter volcánico considerado uno de los más hermosos del mundo. Sus aguas cristalinas cambian de color entre turquesa y verde esmeralda. Rodeado de hoteles de lujo, restaurantes con vista, casas de fin de semana y clubes náuticos. Actividades: natación, kayak, paddleboard, pesca y paseos en lancha. A 1 hora de San Salvador, ideal para día de playa de agua dulce.",
+      "imageUrls": ["https://placehold.co/800x600/00ACC1/white?text=Lago+Coatepeque"],
+      "location": {
+        "address": "Lago de Coatepeque",
+        "city": "El Congo",
+        "state": "Santa Ana",
+        "country": "El Salvador",
+        "latitude": 13.8670,
+        "longitude": -89.5450
+      },
+      "tags": ["tourism", "lake", "nature", "swimming", "water-sports", "restaurants", "santa-ana"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Acceso público gratuito, clubes privados con tarifas",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2441-0000",
+        "contactEmail": "turismo@santaana.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Fines de semana muy concurridos. Restaurantes en la orilla con acceso al agua. Agua segura para nadar."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000009",
+      "profileId": "e0000001-0000-0000-0000-000000000009",
+      "postType": 2,
+      "title": "Puerta del Diablo",
+      "content": "La Puerta del Diablo es una formación rocosa natural que ofrece vistas panorámicas espectaculares del valle de San Salvador, el Lago de Ilopango y los volcanes. Dos rocas gigantes forman una 'puerta' con 12 metros de altura. Senderismo fácil desde el estacionamiento, escalada en roca para aventureros. Pupuserías tradicionales en la cima. A solo 30 minutos de San Salvador.",
+      "imageUrls": ["https://placehold.co/800x600/455A64/white?text=Puerta+del+Diablo"],
+      "location": {
+        "address": "Parque Balboa, Los Planes de Renderos",
+        "city": "Panchimalco",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "latitude": 13.6540,
+        "longitude": -89.1930
+      },
+      "tags": ["tourism", "viewpoint", "hiking", "rock-climbing", "nature", "landmark", "san-salvador"],
+      "pricingInfo": {
+        "amount": 1.00,
+        "currency": "USD",
+        "description": "Entrada $1, estacionamiento $1",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "Park",
+        "contactPhone": "+503 2293-0000",
+        "contactEmail": "parquebalboa@sansalvador.gob.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "tuesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "wednesday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "thursday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "friday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "saturday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" },
+          "sunday": { "isClosed": false, "openTime": "08:00", "closeTime": "17:00" }
+        },
+        "specialInstructions": "Mejor visitar temprano para mejores vistas. Probar las pupusas de Los Planes de Renderos. Vigilancia policial permanente."
+      }
+    },
+    {
+      "id": "f0000001-0000-0000-0000-000000000010",
+      "profileId": "e0000001-0000-0000-0000-000000000010",
+      "postType": 2,
+      "title": "Ruta de las Flores",
+      "content": "La Ruta de las Flores es un corredor turístico de 36 km en las montañas occidentales de El Salvador. Conecta los pintorescos pueblos de Nahuizalco, Salcoatitán, Juayúa, Apaneca y Ataco. Famosa por sus festivales gastronómicos, café de altura, artesanías, murales coloridos y arquitectura colonial. Los fines de semana hay ferias de comida en Juayúa con platos típicos. Clima fresco todo el año.",
+      "imageUrls": ["https://placehold.co/800x600/E91E63/white?text=Ruta+de+las+Flores"],
+      "location": {
+        "address": "Carretera CA-8, Ruta de las Flores",
+        "city": "Juayúa",
+        "state": "Sonsonate",
+        "country": "El Salvador",
+        "latitude": 13.8410,
+        "longitude": -89.7560
+      },
+      "tags": ["tourism", "route", "coffee", "crafts", "gastronomy", "colonial", "sonsonate"],
+      "pricingInfo": {
+        "amount": 0,
+        "currency": "USD",
+        "description": "Acceso libre, tours guiados desde $50",
+        "isNegotiable": false
+      },
+      "businessMetadata": {
+        "locationType": "RetailStore",
+        "contactPhone": "+503 2453-0000",
+        "contactEmail": "turismo@rutadelasflores.sv",
+        "acceptsWalkIns": true,
+        "requiresAppointment": false,
+        "workingHours": {
+          "monday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "tuesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "wednesday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "thursday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "friday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "saturday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" },
+          "sunday": { "isClosed": false, "openTime": "00:00", "closeTime": "23:59" }
+        },
+        "specialInstructions": "Feria gastronómica en Juayúa sábados y domingos. Llevar suéter, clima fresco. Visitar fincas de café en Apaneca."
+      }
+    }
+  ]
+}

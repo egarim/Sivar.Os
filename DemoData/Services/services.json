@@ -1,0 +1,606 @@
+{
+  "profiles": [
+    {
+      "id": "i0000001-0001-0001-0001-000000000001",
+      "displayName": "Banco Agrícola Centro",
+      "handle": "bancoagricolacentro",
+      "bio": "El banco más grande de El Salvador. Servicios bancarios completos: cuentas, préstamos, tarjetas de crédito y banca digital.",
+      "category": "Bank",
+      "avatarUrl": "/images/profiles/bancoagricola.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000002-0001-0001-0001-000000000002",
+      "displayName": "BAC Credomatic Escalón",
+      "handle": "bacescalon",
+      "bio": "Banco de América Central. Banca personal, empresarial y servicios de tarjetas de crédito. Parte del Grupo AVAL.",
+      "category": "Bank",
+      "avatarUrl": "/images/profiles/bac.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000003-0001-0001-0001-000000000003",
+      "displayName": "Davivienda Paseo General Escalón",
+      "handle": "daviviendaescalon",
+      "bio": "Banco Davivienda El Salvador. Cuentas de ahorro, préstamos personales, hipotecas y servicios empresariales.",
+      "category": "Bank",
+      "avatarUrl": "/images/profiles/davivienda.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000004-0001-0001-0001-000000000004",
+      "displayName": "Western Union Centro",
+      "handle": "westernunioncentro",
+      "bio": "Envío y recepción de remesas internacionales. Transferencias de dinero rápidas y seguras desde cualquier parte del mundo.",
+      "category": "Money Transfer",
+      "avatarUrl": "/images/profiles/westernunion.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000005-0001-0001-0001-000000000005",
+      "displayName": "Claro El Salvador Centro",
+      "handle": "clarocentro",
+      "bio": "Servicios de telefonía móvil, internet residencial y empresarial, televisión por cable. La red más grande de El Salvador.",
+      "category": "Telecom",
+      "avatarUrl": "/images/profiles/claro.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000006-0001-0001-0001-000000000006",
+      "displayName": "Tigo Money Escalón",
+      "handle": "tigoescalon",
+      "bio": "Telefonía móvil Tigo, internet de fibra óptica y Tigo Money para pagos y transferencias desde tu celular.",
+      "category": "Telecom",
+      "avatarUrl": "/images/profiles/tigo.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000007-0001-0001-0001-000000000007",
+      "displayName": "Farmacia San Nicolás 24 Horas",
+      "handle": "farmaciasannicolas",
+      "bio": "Farmacia abierta las 24 horas del día, los 7 días de la semana. Medicamentos, productos de salud y servicio a domicilio.",
+      "category": "Pharmacy",
+      "avatarUrl": "/images/profiles/farmaciasannicolas.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000008-0001-0001-0001-000000000008",
+      "displayName": "Farmacias Económicas Centro",
+      "handle": "farmaciaseconomicascentro",
+      "bio": "Cadena de farmacias con los mejores precios en medicamentos. Amplio surtido de genéricos y productos de salud.",
+      "category": "Pharmacy",
+      "avatarUrl": "/images/profiles/farmaciaseconomicas.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000009-0001-0001-0001-000000000009",
+      "displayName": "Hospital de Diagnóstico Escalón",
+      "handle": "hospitaldiagnostico",
+      "bio": "Hospital privado con servicios de emergencia 24/7, especialidades médicas, laboratorio clínico e imágenes diagnósticas.",
+      "category": "Hospital",
+      "avatarUrl": "/images/profiles/hospitaldiagnostico.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000010-0001-0001-0001-000000000010",
+      "displayName": "Laboratorio Clínico Max Bloch",
+      "handle": "labmaxbloch",
+      "bio": "Laboratorio clínico de referencia. Análisis de sangre, orina, COVID-19, pruebas especializadas. Resultados en línea.",
+      "category": "Medical Lab",
+      "avatarUrl": "/images/profiles/maxbloch.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000011-0001-0001-0001-000000000011",
+      "displayName": "Notaría Lic. Roberto García",
+      "handle": "notariagarcia",
+      "bio": "Servicios notariales completos: escrituras, poderes, autenticaciones, testamentos, constitución de sociedades.",
+      "category": "Notary",
+      "avatarUrl": "/images/profiles/notariagarcia.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000012-0001-0001-0001-000000000012",
+      "displayName": "Bufete Jurídico Martínez & Asociados",
+      "handle": "bufetemartinez",
+      "bio": "Abogados especialistas en derecho civil, mercantil, laboral y penal. Asesoría legal empresarial y personal.",
+      "category": "Law Firm",
+      "avatarUrl": "/images/profiles/bufetemartinez.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000013-0001-0001-0001-000000000013",
+      "displayName": "Super Selectos Escalón",
+      "handle": "superselectosescalon",
+      "bio": "Supermercado con productos frescos, carnes, frutas, verduras y productos importados. Club Selectos para descuentos.",
+      "category": "Supermarket",
+      "avatarUrl": "/images/profiles/superselectos.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000014-0001-0001-0001-000000000014",
+      "displayName": "Walmart Soyapango",
+      "handle": "walmartsoyapango",
+      "bio": "Hipermercado con todo lo que necesitas: abarrotes, electrónicos, ropa, hogar. Precios bajos todos los días.",
+      "category": "Supermarket",
+      "avatarUrl": "/images/profiles/walmart.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000015-0001-0001-0001-000000000015",
+      "displayName": "Freund Centro",
+      "handle": "freundcentro",
+      "bio": "Ferretería y materiales de construcción. Herramientas, pinturas, plomería, electricidad y asesoría para tu proyecto.",
+      "category": "Hardware Store",
+      "avatarUrl": "/images/profiles/freund.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000016-0001-0001-0001-000000000016",
+      "displayName": "Gasolinera Puma Escalón",
+      "handle": "pumascalon",
+      "bio": "Combustibles de calidad, tienda de conveniencia, lavado de autos y servicio de aire y agua gratis.",
+      "category": "Gas Station",
+      "avatarUrl": "/images/profiles/puma.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000017-0001-0001-0001-000000000017",
+      "displayName": "Shell Santa Elena",
+      "handle": "shellsantaelena",
+      "bio": "Estación de servicio Shell con combustibles V-Power. Tienda Select, café y servicios para tu vehículo.",
+      "category": "Gas Station",
+      "avatarUrl": "/images/profiles/shell.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000018-0001-0001-0001-000000000018",
+      "displayName": "Contadores Públicos Hernández",
+      "handle": "cpahernandez",
+      "bio": "Servicios contables y de auditoría. Declaraciones de impuestos, contabilidad empresarial, asesoría financiera.",
+      "category": "Accounting",
+      "avatarUrl": "/images/profiles/cpahernandez.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000019-0001-0001-0001-000000000019",
+      "displayName": "Ópticas La Curacao",
+      "handle": "opticascuracao",
+      "bio": "Exámenes de la vista, lentes de contacto, lentes graduados y de sol. Promociones especiales y financiamiento.",
+      "category": "Optical",
+      "avatarUrl": "/images/profiles/opticascuracao.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "id": "i0000020-0001-0001-0001-000000000020",
+      "displayName": "Seguros del Pacífico",
+      "handle": "segurospacifico",
+      "bio": "Seguros de vida, auto, hogar y salud. Protege a tu familia con las mejores coberturas del mercado.",
+      "category": "Insurance",
+      "avatarUrl": "/images/profiles/segurospacifico.png",
+      "profileTypeId": "22222222-2222-2222-2222-222222222222"
+    }
+  ],
+  "posts": [
+    {
+      "id": "j0000001-0001-0001-0001-000000000001",
+      "profileId": "i0000001-0001-0001-0001-000000000001",
+      "postType": 2,
+      "title": "Banco Agrícola - Sucursal Centro",
+      "content": "Sucursal principal del Banco Agrícola en el centro histórico de San Salvador. Servicios completos de banca personal y empresarial.",
+      "businessLocationDetails": {
+        "businessLocationType": 2,
+        "address": "2a Calle Poniente #234, Centro Histórico, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2267-5000",
+        "email": "centrohistorico@bancoagricola.com.sv",
+        "website": "https://www.bancoagricola.com",
+        "latitude": 13.6989,
+        "longitude": -89.1914,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM, Sábados: 8:00 AM - 12:00 PM"
+      }
+    },
+    {
+      "id": "j0000002-0001-0001-0001-000000000002",
+      "profileId": "i0000002-0001-0001-0001-000000000002",
+      "postType": 2,
+      "title": "BAC Credomatic - Sucursal Escalón",
+      "content": "BAC Credomatic en Paseo General Escalón. Banca personal, empresarial, cajeros automáticos y servicios de tarjetas.",
+      "businessLocationDetails": {
+        "businessLocationType": 2,
+        "address": "Paseo General Escalón #3456, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2212-2000",
+        "email": "escalon@baccredomatic.com",
+        "website": "https://www.baccredomatic.com/es-sv",
+        "latitude": 13.6998,
+        "longitude": -89.2356,
+        "workingHours": "Lunes a Viernes: 8:30 AM - 5:00 PM, Sábados: 8:30 AM - 12:30 PM"
+      }
+    },
+    {
+      "id": "j0000003-0001-0001-0001-000000000003",
+      "profileId": "i0000003-0001-0001-0001-000000000003",
+      "postType": 2,
+      "title": "Davivienda - Paseo General Escalón",
+      "content": "Banco Davivienda con todos los servicios bancarios. Cuentas de ahorro, préstamos personales, hipotecas y banca en línea.",
+      "businessLocationDetails": {
+        "businessLocationType": 2,
+        "address": "Paseo General Escalón #4567, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2250-5555",
+        "email": "escalon@davivienda.com.sv",
+        "website": "https://www.davivienda.com.sv",
+        "latitude": 13.7001,
+        "longitude": -89.2412,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM, Sábados: 8:00 AM - 12:00 PM"
+      }
+    },
+    {
+      "id": "j0000004-0001-0001-0001-000000000004",
+      "profileId": "i0000004-0001-0001-0001-000000000004",
+      "postType": 2,
+      "title": "Western Union - Centro San Salvador",
+      "content": "Punto de servicio Western Union para envío y recepción de remesas internacionales. Transferencias rápidas y seguras.",
+      "businessLocationDetails": {
+        "businessLocationType": 6,
+        "address": "4a Avenida Sur #123, Centro Histórico, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2222-3333",
+        "email": "info@westernunion.com",
+        "website": "https://www.westernunion.com",
+        "latitude": 13.6985,
+        "longitude": -89.1920,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM, Sábados: 8:00 AM - 1:00 PM"
+      }
+    },
+    {
+      "id": "j0000005-0001-0001-0001-000000000005",
+      "profileId": "i0000005-0001-0001-0001-000000000005",
+      "postType": 2,
+      "title": "Claro - Centro de Atención Centro",
+      "content": "Centro de atención Claro para telefonía móvil, internet residencial, planes empresariales y soporte técnico.",
+      "businessLocationDetails": {
+        "businessLocationType": 6,
+        "address": "Centro Comercial MetroCentro, Local 234, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2250-0000",
+        "email": "atencion@claro.com.sv",
+        "website": "https://www.claro.com.sv",
+        "latitude": 13.7145,
+        "longitude": -89.1956,
+        "workingHours": "Lunes a Domingo: 10:00 AM - 8:00 PM"
+      }
+    },
+    {
+      "id": "j0000006-0001-0001-0001-000000000006",
+      "profileId": "i0000006-0001-0001-0001-000000000006",
+      "postType": 2,
+      "title": "Tigo - Centro de Servicio Escalón",
+      "content": "Tienda Tigo con servicios móviles, internet de fibra óptica y Tigo Money. Atención personalizada y soporte técnico.",
+      "businessLocationDetails": {
+        "businessLocationType": 6,
+        "address": "Paseo General Escalón #5678, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2121-1111",
+        "email": "servicio@tigo.com.sv",
+        "website": "https://www.tigo.com.sv",
+        "latitude": 13.7005,
+        "longitude": -89.2378,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 6:00 PM, Sábados: 9:00 AM - 2:00 PM"
+      }
+    },
+    {
+      "id": "j0000007-0001-0001-0001-000000000007",
+      "profileId": "i0000007-0001-0001-0001-000000000007",
+      "postType": 2,
+      "title": "Farmacia San Nicolás - 24 Horas Centro",
+      "content": "Farmacia abierta las 24 horas. Medicamentos, productos de salud, belleza y servicio a domicilio disponible.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "Alameda Juan Pablo II #567, Centro, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2225-2525",
+        "email": "info@farmaciasannicolas.com.sv",
+        "website": "https://www.farmaciasannicolas.com.sv",
+        "latitude": 13.7056,
+        "longitude": -89.1889,
+        "workingHours": "Abierto 24 horas, 7 días a la semana"
+      }
+    },
+    {
+      "id": "j0000008-0001-0001-0001-000000000008",
+      "profileId": "i0000008-0001-0001-0001-000000000008",
+      "postType": 2,
+      "title": "Farmacias Económicas - Centro",
+      "content": "Los mejores precios en medicamentos genéricos y de marca. Amplio surtido de productos de salud y cuidado personal.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "6a Avenida Norte #890, Centro Histórico, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2222-8888",
+        "email": "info@farmaciaseconomicas.com.sv",
+        "website": "https://www.farmaciaseconomicas.com.sv",
+        "latitude": 13.6992,
+        "longitude": -89.1905,
+        "workingHours": "Lunes a Sábado: 7:00 AM - 8:00 PM, Domingos: 8:00 AM - 6:00 PM"
+      }
+    },
+    {
+      "id": "j0000009-0001-0001-0001-000000000009",
+      "profileId": "i0000009-0001-0001-0001-000000000009",
+      "postType": 2,
+      "title": "Hospital de Diagnóstico - Escalón",
+      "content": "Hospital privado de alta calidad. Emergencias 24/7, especialidades médicas, cirugías, laboratorio e imágenes.",
+      "businessLocationDetails": {
+        "businessLocationType": 1,
+        "address": "21 Calle Poniente #1234, Colonia Médica, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2226-5111",
+        "email": "info@hospitaldiagnostico.com",
+        "website": "https://www.hospitaldiagnostico.com",
+        "latitude": 13.7023,
+        "longitude": -89.2234,
+        "workingHours": "Emergencias: 24 horas. Consultas: Lunes a Viernes 7:00 AM - 7:00 PM"
+      }
+    },
+    {
+      "id": "j0000010-0001-0001-0001-000000000010",
+      "profileId": "i0000010-0001-0001-0001-000000000010",
+      "postType": 2,
+      "title": "Laboratorio Clínico Max Bloch - Principal",
+      "content": "Laboratorio clínico de referencia con más de 50 años. Análisis clínicos, COVID-19, pruebas especializadas y resultados en línea.",
+      "businessLocationDetails": {
+        "businessLocationType": 1,
+        "address": "25 Avenida Norte #1034, Colonia Médica, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2226-2266",
+        "email": "info@maxbloch.com",
+        "website": "https://www.maxbloch.com",
+        "latitude": 13.7028,
+        "longitude": -89.2245,
+        "workingHours": "Lunes a Viernes: 6:00 AM - 5:00 PM, Sábados: 6:00 AM - 12:00 PM"
+      }
+    },
+    {
+      "id": "j0000011-0001-0001-0001-000000000011",
+      "profileId": "i0000011-0001-0001-0001-000000000011",
+      "postType": 2,
+      "title": "Notaría Lic. Roberto García - Oficina Principal",
+      "content": "Servicios notariales: escrituras públicas, poderes, autenticaciones, testamentos, constitución de empresas.",
+      "businessLocationDetails": {
+        "businessLocationType": 3,
+        "address": "Calle El Mirador #456, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2263-4567",
+        "email": "notaria@licgarcia.com",
+        "website": null,
+        "latitude": 13.6978,
+        "longitude": -89.2312,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM"
+      }
+    },
+    {
+      "id": "j0000012-0001-0001-0001-000000000012",
+      "profileId": "i0000012-0001-0001-0001-000000000012",
+      "postType": 2,
+      "title": "Bufete Jurídico Martínez & Asociados",
+      "content": "Abogados especialistas en derecho civil, mercantil, laboral, penal y administrativo. Consultas y representación legal.",
+      "businessLocationDetails": {
+        "businessLocationType": 3,
+        "address": "World Trade Center, Torre II, Nivel 5, Local 503, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2263-9999",
+        "email": "info@bufetemartinez.com.sv",
+        "website": "https://www.bufetemartinez.com.sv",
+        "latitude": 13.6956,
+        "longitude": -89.2387,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM. Citas previas requeridas."
+      }
+    },
+    {
+      "id": "j0000013-0001-0001-0001-000000000013",
+      "profileId": "i0000013-0001-0001-0001-000000000013",
+      "postType": 2,
+      "title": "Super Selectos - Escalón",
+      "content": "Supermercado completo con productos frescos, carnes, frutas, verduras, panadería y productos importados.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "79 Avenida Sur #567, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2263-1234",
+        "email": "escalon@superselectos.com.sv",
+        "website": "https://www.superselectos.com",
+        "latitude": 13.6987,
+        "longitude": -89.2367,
+        "workingHours": "Lunes a Domingo: 7:00 AM - 9:00 PM"
+      }
+    },
+    {
+      "id": "j0000014-0001-0001-0001-000000000014",
+      "profileId": "i0000014-0001-0001-0001-000000000014",
+      "postType": 2,
+      "title": "Walmart - Soyapango",
+      "content": "Hipermercado con todo lo que necesitas: abarrotes, electrónicos, ropa, hogar, juguetes y farmacia.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "Boulevard del Ejército Nacional Km 4.5, Soyapango",
+        "city": "Soyapango",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2277-8888",
+        "email": "soyapango@walmart.com.sv",
+        "website": "https://www.walmart.com.sv",
+        "latitude": 13.7123,
+        "longitude": -89.1456,
+        "workingHours": "Lunes a Domingo: 7:00 AM - 10:00 PM"
+      }
+    },
+    {
+      "id": "j0000015-0001-0001-0001-000000000015",
+      "profileId": "i0000015-0001-0001-0001-000000000015",
+      "postType": 2,
+      "title": "Freund - Centro Ferretero",
+      "content": "Ferretería y materiales de construcción. Herramientas, pinturas, plomería, electricidad, madera y asesoría técnica.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "10a Avenida Sur #234, Centro, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2271-0000",
+        "email": "centro@freund.com.sv",
+        "website": "https://www.freund.com.sv",
+        "latitude": 13.6978,
+        "longitude": -89.1934,
+        "workingHours": "Lunes a Viernes: 7:30 AM - 5:30 PM, Sábados: 7:30 AM - 4:00 PM"
+      }
+    },
+    {
+      "id": "j0000016-0001-0001-0001-000000000016",
+      "profileId": "i0000016-0001-0001-0001-000000000016",
+      "postType": 2,
+      "title": "Gasolinera Puma - Escalón",
+      "content": "Estación de servicio con combustibles de calidad. Tienda de conveniencia, lavado de autos, aire y agua gratis.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "Paseo General Escalón #7890, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2263-5678",
+        "email": null,
+        "website": "https://www.paboraenergy.com",
+        "latitude": 13.7015,
+        "longitude": -89.2456,
+        "workingHours": "24 horas, 7 días a la semana"
+      }
+    },
+    {
+      "id": "j0000017-0001-0001-0001-000000000017",
+      "profileId": "i0000017-0001-0001-0001-000000000017",
+      "postType": 2,
+      "title": "Shell - Santa Elena",
+      "content": "Estación Shell con combustibles V-Power de alto rendimiento. Tienda Select con café de especialidad.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "Boulevard Santa Elena, Antiguo Cuscatlán, La Libertad",
+        "city": "Antiguo Cuscatlán",
+        "state": "La Libertad",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2243-1234",
+        "email": null,
+        "website": "https://www.shell.com.sv",
+        "latitude": 13.6789,
+        "longitude": -89.2567,
+        "workingHours": "24 horas, 7 días a la semana"
+      }
+    },
+    {
+      "id": "j0000018-0001-0001-0001-000000000018",
+      "profileId": "i0000018-0001-0001-0001-000000000018",
+      "postType": 2,
+      "title": "Contadores Públicos Hernández - Oficina",
+      "content": "Servicios contables y de auditoría. Declaraciones de renta, IVA, contabilidad empresarial y asesoría financiera.",
+      "businessLocationDetails": {
+        "businessLocationType": 3,
+        "address": "Edificio Plaza Cristal, Nivel 3, Local 301, Colonia Escalón, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2264-7890",
+        "email": "info@cpahernandez.com",
+        "website": "https://www.cpahernandez.com",
+        "latitude": 13.6998,
+        "longitude": -89.2334,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM"
+      }
+    },
+    {
+      "id": "j0000019-0001-0001-0001-000000000019",
+      "profileId": "i0000019-0001-0001-0001-000000000019",
+      "postType": 2,
+      "title": "Ópticas La Curacao - MetroCentro",
+      "content": "Exámenes de la vista gratis. Lentes de contacto, lentes graduados, gafas de sol y marcas de diseñador.",
+      "businessLocationDetails": {
+        "businessLocationType": 4,
+        "address": "Centro Comercial MetroCentro, Local 156, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2261-3456",
+        "email": "opticas@lacuracao.com",
+        "website": "https://www.lacuracao.com",
+        "latitude": 13.7142,
+        "longitude": -89.1961,
+        "workingHours": "Lunes a Domingo: 10:00 AM - 8:00 PM"
+      }
+    },
+    {
+      "id": "j0000020-0001-0001-0001-000000000020",
+      "profileId": "i0000020-0001-0001-0001-000000000020",
+      "postType": 2,
+      "title": "Seguros del Pacífico - Oficina Central",
+      "content": "Seguros de vida, automóvil, hogar, salud y empresariales. Asesoría personalizada para proteger a tu familia.",
+      "businessLocationDetails": {
+        "businessLocationType": 1,
+        "address": "Alameda Dr. Manuel Enrique Araujo #567, San Salvador",
+        "city": "San Salvador",
+        "state": "San Salvador",
+        "country": "El Salvador",
+        "postalCode": "1101",
+        "phoneNumber": "2224-8000",
+        "email": "info@segurospacifico.com.sv",
+        "website": "https://www.segurospacifico.com.sv",
+        "latitude": 13.6934,
+        "longitude": -89.2256,
+        "workingHours": "Lunes a Viernes: 8:00 AM - 5:00 PM"
+      }
+    }
+  ]
+}
