@@ -1,8 +1,8 @@
 .post-card {
     background: var(--mud-palette-surface, #ffffff);
     border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 14px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -14,15 +14,20 @@
 }
 
 .post-content {
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.4;
     color: var(--mud-palette-text-primary, #14171a);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    /* Limit text to 3 lines with ellipsis for compactness */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .post-image {
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border-radius: 8px;
     overflow: hidden;
 }
@@ -32,29 +37,57 @@
     height: auto;
     display: block;
     object-fit: cover;
-    max-height: 500px;
+    max-height: 220px;
+}
+
+/* Attachments styling for compact cards */
+.post-attachments {
+    margin: 10px 0;
+}
+
+.single-image {
+    max-height: 200px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.single-image img,
+.attachment-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    max-height: 200px;
 }
 
 /* Mobile styles */
 @media (max-width: 768px) {
     .post-card {
-        padding: 12px;
+        padding: 10px;
         border-radius: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
     
     .post-content {
-        font-size: 14px;
-        line-height: 1.5;
-        margin-bottom: 10px;
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 8px;
     }
     
     .post-image {
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         border-radius: 6px;
     }
     
     .post-image img {
-        max-height: 300px;
+        max-height: 160px;
+    }
+    
+    .single-image {
+        max-height: 160px;
+    }
+    
+    .single-image img,
+    .attachment-image {
+        max-height: 160px;
     }
 }

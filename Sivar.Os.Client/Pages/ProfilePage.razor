@@ -171,16 +171,16 @@
         margin-bottom: 12px;
     }
 
-    .profile-page .posts-list {
-        display: flex;
-        flex-direction: column;
+    .profile-page .posts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
 
-    .profile-page .post-wrapper {
-        width: 100%;
-        max-width: 100%;
-        overflow: hidden;
+    @@media (max-width: 900px) {
+        .profile-page .posts-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Action Buttons */
@@ -311,25 +311,23 @@
         else if (posts.Any())
         {
             <div class="profile-posts-section">
-                <div class="posts-list">
+                <div class="posts-grid">
                     @foreach (var post in posts)
                     {
-                        <div class="post-wrapper">
-                            <PostCard 
-                                Post="@post"
-                                CurrentUserId="@Guid.Empty"
-                                OnLike="@HandleLike"
-                                OnCommentClick="@HandleComment"
-                                OnShare="@HandleShare"
-                                OnSave="@HandleSave"
-                                OnMore="@HandleMore"
-                                OnAuthorClick="@HandleAuthorClick"
-                                OnEdit="@HandleEdit"
-                                OnDelete="@HandleDelete"
-                                OnViewAnalytics="@HandleViewAnalytics"
-                                OnReport="@HandleReport"
-                                OnCopyLink="@HandleCopyLink" />
-                        </div>
+                        <PostCard 
+                            Post="@post"
+                            CurrentUserId="@Guid.Empty"
+                            OnLike="@HandleLike"
+                            OnCommentClick="@HandleComment"
+                            OnShare="@HandleShare"
+                            OnSave="@HandleSave"
+                            OnMore="@HandleMore"
+                            OnAuthorClick="@HandleAuthorClick"
+                            OnEdit="@HandleEdit"
+                            OnDelete="@HandleDelete"
+                            OnViewAnalytics="@HandleViewAnalytics"
+                            OnReport="@HandleReport"
+                            OnCopyLink="@HandleCopyLink" />
                     }
                 </div>
                 

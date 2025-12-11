@@ -72,31 +72,33 @@
                           @bind-BlogIsDraft="@_blogIsDraft"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
-            @foreach (var activity in _activities)
-            {
-                @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
+            <div class="posts-grid">
+                @foreach (var activity in _activities)
                 {
-                    <PostCard Post="@activity.Post"
-                              CurrentUserId="@_currentUserId"
-                              OnLike="@(() => ToggleLike(activity.Post))"
-                              OnCommentClick="@(() => ToggleComments(activity.Post))"
-                              OnShare="@(() => SharePost(activity.Post))"
-                              OnSave="@(() => SavePost(activity.Post))"
-                              OnEdit="@(() => HandleEditPost(activity.Post))"
-                              OnDelete="@(() => HandleDeletePost(activity.Post))"
-                              OnViewAnalytics="@(() => HandleViewAnalytics(activity.Post))"
-                              OnReport="@(() => HandleReportPost(activity.Post))"
-                              OnCopyLink="@(() => HandleCopyPostLink(activity.Post))"
-                              OnAuthorClick="@((author) => ViewProfile(author))" />
+                    @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
+                    {
+                        <PostCard Post="@activity.Post"
+                                  CurrentUserId="@_currentUserId"
+                                  OnLike="@(() => ToggleLike(activity.Post))"
+                                  OnCommentClick="@(() => ToggleComments(activity.Post))"
+                                  OnShare="@(() => SharePost(activity.Post))"
+                                  OnSave="@(() => SavePost(activity.Post))"
+                                  OnEdit="@(() => HandleEditPost(activity.Post))"
+                                  OnDelete="@(() => HandleDeletePost(activity.Post))"
+                                  OnViewAnalytics="@(() => HandleViewAnalytics(activity.Post))"
+                                  OnReport="@(() => HandleReportPost(activity.Post))"
+                                  OnCopyLink="@(() => HandleCopyPostLink(activity.Post))"
+                                  OnAuthorClick="@((author) => ViewProfile(author))" />
+                    }
+                    else
+                    {
+                        <!-- TODO: Render other activity types (Comment, Like, Follow, Share, etc.) -->
+                        <div class="activity-card">
+                            <p>@activity.Summary - @activity.TimeAgo</p>
+                        </div>
+                    }
                 }
-                else
-                {
-                    <!-- TODO: Render other activity types (Comment, Like, Follow, Share, etc.) -->
-                    <div class="activity-card">
-                        <p>@activity.Summary - @activity.TimeAgo</p>
-                    </div>
-                }
-            }
+            </div>
 
             <Pagination CurrentPage="@_currentPage"
                         PageCount="@_totalPages"

@@ -42,11 +42,18 @@
 }
 
 .chat-message-content {
-    max-width: 75%;
+    max-width: 85%;
+    min-width: 0;
+    overflow: visible;
+}
+
+/* When containing a carousel, allow full width */
+.chat-message-content:has(.chat-carousel-container) {
+    max-width: 95%;
 }
 
 .chat-bubble {
-    max-width: 75%;
+    max-width: 100%;
     padding: 10px 14px;
     border-radius: 12px;
     font-size: 14px;
@@ -130,54 +137,127 @@
     border-color: white;
 }
 
+/* ===== Carousel Container ===== */
+.chat-carousel-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    z-index: 10;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.carousel-nav:hover {
+    background: #667eea;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-prev {
+    left: -4px;
+}
+
+.carousel-next {
+    right: -4px;
+}
+
 /* ===== Business Results Cards Grid ===== */
 .chat-results-grid {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     gap: 12px;
-    margin: 8px 0;
-    width: 100%;
+    margin: 0;
+    padding: 8px 16px;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(102, 126, 234, 0.5) transparent;
+}
+
+.chat-results-grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.chat-results-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-results-grid::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 3px;
+}
+
+.chat-results-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
 }
 
 .chat-intro,
 .chat-footer {
     margin-bottom: 8px;
+    flex-shrink: 0;
+    width: 100%;
 }
 
 /* Individual Business Card */
 .chat-business-card {
     background: linear-gradient(145deg, #1e2330 0%, #252b3d 100%);
     border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: 10px;
+    padding: 12px;
     cursor: pointer;
     transition: all 0.25s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+    width: 260px;
+    min-width: 260px;
+    scroll-snap-align: start;
 }
 
 .chat-business-card:hover {
     border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 /* Card Header */
 .card-header {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 
 .card-icon {
-    font-size: 28px;
-    width: 44px;
-    height: 44px;
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-    border-radius: 10px;
+    border-radius: 8px;
     flex-shrink: 0;
 }
 
@@ -187,10 +267,10 @@
 }
 
 .card-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #ffffff;
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
     line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -198,20 +278,20 @@
 }
 
 .card-category {
-    font-size: 11px;
+    font-size: 10px;
     color: #a0aec0;
     background: rgba(102, 126, 234, 0.15);
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
     display: inline-block;
 }
 
 /* Card Description */
 .card-description {
-    font-size: 13px;
+    font-size: 11px;
     color: #9ca3af;
-    line-height: 1.45;
-    margin: 0 0 12px 0;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -221,18 +301,18 @@
 /* Card Action Buttons */
 .card-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
 .card-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 7px 12px;
-    font-size: 12px;
+    gap: 3px;
+    padding: 5px 8px;
+    font-size: 10px;
     font-weight: 500;
-    border-radius: 8px;
+    border-radius: 6px;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -240,7 +320,7 @@
 }
 
 .card-btn .btn-icon {
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .card-btn.primary {
@@ -299,8 +379,12 @@
 
 /* ===== Card Image ===== */
 .card-image {
-    width: 50px;
-    height: 50px;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
     border-radius: 10px;
     object-fit: cover;
     flex-shrink: 0;
@@ -326,20 +410,20 @@
 .card-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 12px;
-    font-size: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 10px;
 }
 
 .meta-item {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     color: #9ca3af;
 }
 
 .meta-item .meta-icon {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .meta-item .distance {

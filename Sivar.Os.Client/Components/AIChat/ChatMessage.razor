@@ -2,6 +2,7 @@
 @using Sivar.Os.Shared.DTOs
 @using System.Text.RegularExpressions
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 @* ChatMessage component *@
 
@@ -18,85 +19,90 @@
         }
         else if (Message.StructuredResults != null && Message.StructuredResults.HasResults)
         {
-            @* Render structured results as graphical cards *@
+            @* Render structured results as graphical cards in a carousel *@
             <div class="chat-bubble chat-intro">
                 @((MarkupString)RenderMarkdown(Message.Text))
             </div>
             
-            <div class="chat-results-grid">
-                @foreach (var business in Message.StructuredResults.Businesses)
-                {
-                    <div class="chat-business-card" @onclick="() => NavigateTo(business.NavigationUrl)">
-                        <div class="card-header">
-                            @if (!string.IsNullOrEmpty(business.ImageUrl))
-                            {
-                                <img class="card-image" src="@business.ImageUrl" alt="@business.Title" />
-                            }
-                            else
-                            {
-                                <div class="card-icon">@GetCategoryIcon(business.Category)</div>
-                            }
-                            <div class="card-title-section">
-                                <h4 class="card-name">@business.Title</h4>
-                                @if (!string.IsNullOrEmpty(business.Category))
+            <div class="chat-carousel-container" style="position: relative; width: 100%; max-width: 600px;">
+                <button class="carousel-nav carousel-prev" @onclick="() => ScrollCarousel(-1)" @onclick:stopPropagation="true">
+                    <span>‹</span>
+                </button>
+                
+                <div class="chat-results-grid" @ref="_carouselRef" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 12px; overflow-x: auto; padding: 8px 24px; scroll-snap-type: x mandatory;">
+                    @foreach (var business in Message.StructuredResults.Businesses)
+                    {
+                        <div class="chat-business-card" @onclick="() => NavigateTo(business.NavigationUrl)" style="flex-shrink: 0; min-width: 220px; max-width: 220px;">
+                            <div class="card-header">
+                                @if (!string.IsNullOrEmpty(business.ImageUrl))
                                 {
-                                    <span class="card-category">@business.Category</span>
+                                    <img class="card-image" src="@business.ImageUrl" alt="@business.Title" 
+                                         style="width: 48px; height: 48px; min-width: 48px; max-width: 48px; object-fit: cover; border-radius: 10px;" />
+                                }
+                                else
+                                {
+                                    <div class="card-icon">@GetCategoryIcon(business.Category)</div>
+                                }
+                                <div class="card-title-section">
+                                    <h4 class="card-name">@business.Title</h4>
+                                    @if (!string.IsNullOrEmpty(business.Category))
+                                    {
+                                        <span class="card-category">@business.Category</span>
+                                    }
+                                </div>
+                                @if (business.RelevanceScore > 0.7)
+                                {
+                                    <span class="relevance-badge high">⭐</span>
                                 }
                             </div>
-                            @if (business.RelevanceScore > 0.7)
+                            
+                            @if (!string.IsNullOrEmpty(business.Description))
                             {
-                                <span class="relevance-badge high">⭐ Alta coincidencia</span>
+                                <p class="card-description">@TruncateText(business.Description, 80)</p>
                             }
+                            
+                            <div class="card-meta">
+                                @if (!string.IsNullOrEmpty(business.City))
+                                {
+                                    <span class="meta-item">
+                                        <span class="meta-icon">📍</span>
+                                        @business.City
+                                        @if (business.DistanceKm.HasValue)
+                                        {
+                                            <span class="distance">(@business.DistanceKm.Value.ToString("F1") km)</span>
+                                        }
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(business.PriceRange))
+                                {
+                                    <span class="meta-item price-range">@business.PriceRange</span>
+                                }
+                                @if (business.Rating.HasValue)
+                                {
+                                    <span class="meta-item rating">⭐ @business.Rating.Value.ToString("F1")</span>
+                                }
+                            </div>
+                            
+                            <div class="card-actions">
+                                @foreach (var action in business.Actions.Take(2))
+                                {
+                                    <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                                            @onclick="() => HandleAction(action)" 
+                                            @onclick:stopPropagation="true">
+                                        @action.Label
+                                    </button>
+                                }
+                            </div>
                         </div>
-                        
-                        @if (!string.IsNullOrEmpty(business.Description))
-                        {
-                            <p class="card-description">@TruncateText(business.Description, 120)</p>
-                        }
-                        
-                        <div class="card-meta">
-                            @if (!string.IsNullOrEmpty(business.City))
-                            {
-                                <span class="meta-item">
-                                    <span class="meta-icon">📍</span>
-                                    @business.City
-                                    @if (business.DistanceKm.HasValue)
-                                    {
-                                        <span class="distance">(@business.DistanceKm.Value.ToString("F1") km)</span>
-                                    }
-                                </span>
-                            }
-                            @if (!string.IsNullOrEmpty(business.PriceRange))
-                            {
-                                <span class="meta-item price-range">@business.PriceRange</span>
-                            }
-                            @if (business.Rating.HasValue)
-                            {
-                                <span class="meta-item rating">⭐ @business.Rating.Value.ToString("F1")</span>
-                            }
-                        </div>
-                        
-                        <div class="card-actions">
-                            @foreach (var action in business.Actions.Take(3))
-                            {
-                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
-                                        @onclick="() => HandleAction(action)" 
-                                        @onclick:stopPropagation="true">
-                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
-                                    @action.Label
-                                </button>
-                            }
-                        </div>
-                    </div>
-                }
-                
-                @foreach (var evt in Message.StructuredResults.Events)
-                {
-                    <div class="chat-business-card event-card" @onclick="() => NavigateTo(evt.NavigationUrl)">
-                        <div class="card-header">
-                            <div class="card-icon event">📅</div>
-                            <div class="card-title-section">
-                                <h4 class="card-name">@evt.Title</h4>
+                    }
+                    
+                    @foreach (var evt in Message.StructuredResults.Events)
+                    {
+                        <div class="chat-business-card event-card" @onclick="() => NavigateTo(evt.NavigationUrl)">
+                            <div class="card-header">
+                                <div class="card-icon event">📅</div>
+                                <div class="card-title-section">
+                                    <h4 class="card-name">@evt.Title</h4>
                                 <span class="card-category">Evento</span>
                             </div>
                             @if (evt.IsUpcoming)
@@ -238,6 +244,11 @@
                         </div>
                     </div>
                 }
+                </div>
+                
+                <button class="carousel-nav carousel-next" @onclick="() => ScrollCarousel(1)" @onclick:stopPropagation="true">
+                    <span>›</span>
+                </button>
             </div>
             
             @if (Message.StructuredResults.TotalCount > 5)
@@ -328,6 +339,20 @@
     /// Whether this is a user message
     /// </summary>
     private bool IsUser => Message.Sender == "user";
+
+    /// <summary>
+    /// Reference to the carousel element for scrolling
+    /// </summary>
+    private ElementReference _carouselRef;
+
+    /// <summary>
+    /// Scroll the carousel left or right
+    /// </summary>
+    private async Task ScrollCarousel(int direction)
+    {
+        var scrollAmount = 280 * direction; // Card width + gap
+        await JS.InvokeVoidAsync("eval", $"document.querySelector('.chat-results-grid')?.scrollBy({{ left: {scrollAmount}, behavior: 'smooth' }})");
+    }
 
     /// <summary>
     /// Callback when quick action is clicked

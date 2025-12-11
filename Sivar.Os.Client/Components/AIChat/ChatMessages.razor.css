@@ -30,7 +30,9 @@
 }
 
 .chat-message.ai .chat-message-content {
-    max-width: 75%;
+    flex: 1;
+    max-width: 95%;
+    min-width: 0;
 }
 
 .chat-message.ai .typing-bubble {
