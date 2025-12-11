@@ -29,6 +29,7 @@ public class PostService : IPostService
     private readonly IActivityService _activityService;
     private readonly ISentimentAnalysisService _sentimentService;
     private readonly ILocationService _locationService;
+    private readonly IContentExtractionService _contentExtractionService;
     private readonly ILogger<PostService> _logger;
 
     public PostService(
@@ -44,6 +45,7 @@ public class PostService : IPostService
         IVectorEmbeddingService vectorEmbeddingService,
         ISentimentAnalysisService sentimentService,
         ILocationService locationService,
+        IContentExtractionService contentExtractionService,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -58,6 +60,7 @@ public class PostService : IPostService
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _sentimentService = sentimentService ?? throw new ArgumentNullException(nameof(sentimentService));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _contentExtractionService = contentExtractionService ?? throw new ArgumentNullException(nameof(contentExtractionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -120,17 +123,54 @@ public class PostService : IPostService
 
         _logger.LogInformation("[CreatePostAsync] Content validated: Length={length}", createPostDto.Content.Length);
 
+        // ==================== AI CONTENT EXTRACTION ====================
+        // Automatically extract structured metadata from plain text content
+        // This allows users to create simple text posts while the AI enriches them
+        ExtractedContentMetadata? extractedMetadata = null;
+        try
+        {
+            _logger.LogInformation("[CreatePostAsync] Starting AI content extraction for enhanced metadata");
+            extractedMetadata = await _contentExtractionService.ExtractMetadataAsync(
+                createPostDto.Content, 
+                createPostDto.Language ?? "es");
+            
+            if (extractedMetadata != null && extractedMetadata.Success)
+            {
+                _logger.LogInformation("[CreatePostAsync] ✓ AI extraction successful: PostType={PostType}, Tags={TagCount}, HasLocation={HasLocation}, HasBusinessData={HasBusiness}",
+                    extractedMetadata.SuggestedPostType,
+                    extractedMetadata.Tags?.Count ?? 0,
+                    extractedMetadata.Location != null,
+                    extractedMetadata.BusinessMetadata != null);
+            }
+            else
+            {
+                _logger.LogInformation("[CreatePostAsync] AI extraction returned no metadata, proceeding with user-provided data");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CreatePostAsync] AI content extraction failed, continuing with user-provided data");
+        }
+
         // Create post entity
+        // Use AI-extracted metadata to enrich the post when user didn't provide specific data
         var post = new Post
         {
             Id = Guid.NewGuid(),
             ProfileId = activeProfile.Id,
             Content = createPostDto.Content.Trim(),
-            PostType = createPostDto.PostType,
+            // Use AI-detected PostType if user selected General and AI detected something more specific
+            PostType = (createPostDto.PostType == PostType.General && extractedMetadata?.Success == true && extractedMetadata.PostTypeConfidence > 0.6) 
+                ? extractedMetadata.SuggestedPostType 
+                : createPostDto.PostType,
             Visibility = createPostDto.Visibility,
             Language = createPostDto.Language ?? "en",
-            Tags = createPostDto.Tags?.ToArray() ?? Array.Empty<string>(),
-            BusinessMetadata = createPostDto.BusinessMetadata,
+            // Merge user tags with AI-extracted tags (user tags take priority)
+            Tags = MergeTagsWithAiExtracted(createPostDto.Tags?.ToArray(), extractedMetadata?.Tags?.ToArray()),
+            // Use AI-extracted business metadata if user didn't provide any
+            BusinessMetadata = !string.IsNullOrEmpty(createPostDto.BusinessMetadata) 
+                ? createPostDto.BusinessMetadata 
+                : BuildBusinessMetadataFromExtraction(extractedMetadata),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -151,7 +191,7 @@ public class PostService : IPostService
                 post.IsDraft, post.ReadTimeMinutes);
         }
 
-        // Set location if provided
+        // Set location: prioritize user-provided, fallback to AI-extracted
         if (createPostDto.Location != null)
         {
             post.Location = new Location
@@ -162,6 +202,20 @@ public class PostService : IPostService
                 Latitude = createPostDto.Location.Latitude,
                 Longitude = createPostDto.Location.Longitude
             };
+        }
+        else if (extractedMetadata?.Location != null)
+        {
+            // Use AI-extracted location when user didn't provide one
+            post.Location = new Location
+            {
+                City = extractedMetadata.Location.City,
+                State = extractedMetadata.Location.State,
+                Country = extractedMetadata.Location.Country ?? "El Salvador",
+                Latitude = extractedMetadata.Location.Latitude,
+                Longitude = extractedMetadata.Location.Longitude
+            };
+            _logger.LogInformation("[CreatePostAsync] Applied AI-extracted location: {City}, {Country}", 
+                post.Location.City, post.Location.Country);
         }
 
         try
@@ -383,13 +437,21 @@ public class PostService : IPostService
             _logger.LogInformation("[PostService.UpdatePostAsync] User authorized for update - RequestId={RequestId}, KeycloakId={KeycloakId}",
                 requestId, keycloakId);
 
+            // Track if content changed significantly (for re-extraction and embedding regeneration)
+            bool contentChanged = false;
+            string? oldContent = post.Content;
+
             // Update post properties
             if (!string.IsNullOrWhiteSpace(updatePostDto.Content))
             {
                 _logger.LogInformation("[PostService.UpdatePostAsync] Updating content - RequestId={RequestId}, OldLength={OldLength}, NewLength={NewLength}",
                     requestId, post.Content.Length, updatePostDto.Content.Length);
 
-                post.Content = updatePostDto.Content.Trim();
+                // Check if content changed significantly (more than 20% different or >50 chars changed)
+                var newContent = updatePostDto.Content.Trim();
+                contentChanged = IsContentSignificantlyDifferent(oldContent, newContent);
+
+                post.Content = newContent;
                 post.IsEdited = true;
                 post.EditedAt = DateTime.UtcNow;
             }
@@ -401,16 +463,50 @@ public class PostService : IPostService
                 post.Visibility = updatePostDto.Visibility.Value;
             }
 
+            // ==================== AI CONTENT RE-EXTRACTION ====================
+            // If content changed significantly and user didn't provide explicit metadata updates,
+            // re-run AI extraction to update tags, location, and business metadata
+            ExtractedContentMetadata? extractedMetadata = null;
+            if (contentChanged)
+            {
+                try
+                {
+                    _logger.LogInformation("[PostService.UpdatePostAsync] Content changed significantly, running AI re-extraction - RequestId={RequestId}", requestId);
+                    extractedMetadata = await _contentExtractionService.ExtractMetadataAsync(
+                        post.Content, 
+                        post.Language ?? "es");
+                    
+                    if (extractedMetadata?.Success == true)
+                    {
+                        _logger.LogInformation("[PostService.UpdatePostAsync] ✓ AI re-extraction successful - RequestId={RequestId}, Tags={TagCount}, HasLocation={HasLocation}",
+                            requestId, extractedMetadata.Tags?.Count ?? 0, extractedMetadata.Location != null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[PostService.UpdatePostAsync] AI re-extraction failed, continuing with user updates - RequestId={RequestId}", requestId);
+                }
+            }
+
+            // Update tags: user-provided takes priority, otherwise merge with AI-extracted
             if (updatePostDto.Tags != null)
             {
-                _logger.LogInformation("[PostService.UpdatePostAsync] Updating tags - RequestId={RequestId}, TagCount={TagCount}",
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating tags (user-provided) - RequestId={RequestId}, TagCount={TagCount}",
                     requestId, updatePostDto.Tags.Count);
                 post.Tags = updatePostDto.Tags.ToArray();
             }
+            else if (contentChanged && extractedMetadata?.Tags != null && extractedMetadata.Tags.Count > 0)
+            {
+                // Content changed but user didn't provide new tags - merge AI tags with existing
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating tags (AI-extracted) - RequestId={RequestId}, TagCount={TagCount}",
+                    requestId, extractedMetadata.Tags.Count);
+                post.Tags = MergeTagsWithAiExtracted(post.Tags, extractedMetadata.Tags.ToArray());
+            }
 
+            // Update location: user-provided takes priority, otherwise use AI-extracted
             if (updatePostDto.Location != null)
             {
-                _logger.LogInformation("[PostService.UpdatePostAsync] Updating location - RequestId={RequestId}, City={City}, Country={Country}",
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating location (user-provided) - RequestId={RequestId}, City={City}, Country={Country}",
                     requestId, updatePostDto.Location.City ?? "NULL", updatePostDto.Location.Country ?? "NULL");
 
                 post.Location = new Location
@@ -422,18 +518,83 @@ public class PostService : IPostService
                     Longitude = updatePostDto.Location.Longitude
                 };
             }
+            else if (contentChanged && extractedMetadata?.Location != null && post.Location == null)
+            {
+                // Content changed, AI found location, and post didn't have one before
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating location (AI-extracted) - RequestId={RequestId}, City={City}",
+                    requestId, extractedMetadata.Location.City ?? "NULL");
+                
+                post.Location = new Location
+                {
+                    City = extractedMetadata.Location.City,
+                    State = extractedMetadata.Location.State,
+                    Country = extractedMetadata.Location.Country ?? "El Salvador",
+                    Latitude = extractedMetadata.Location.Latitude,
+                    Longitude = extractedMetadata.Location.Longitude
+                };
+            }
 
+            // Update business metadata: user-provided takes priority
             if (updatePostDto.BusinessMetadata != null)
             {
-                _logger.LogInformation("[PostService.UpdatePostAsync] Updating business metadata - RequestId={RequestId}",
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating business metadata (user-provided) - RequestId={RequestId}",
                     requestId);
                 post.BusinessMetadata = updatePostDto.BusinessMetadata;
+            }
+            else if (contentChanged && string.IsNullOrEmpty(post.BusinessMetadata))
+            {
+                // Content changed and post didn't have business metadata - try AI extraction
+                var aiBusinessMetadata = BuildBusinessMetadataFromExtraction(extractedMetadata);
+                if (!string.IsNullOrEmpty(aiBusinessMetadata))
+                {
+                    _logger.LogInformation("[PostService.UpdatePostAsync] Updating business metadata (AI-extracted) - RequestId={RequestId}",
+                        requestId);
+                    post.BusinessMetadata = aiBusinessMetadata;
+                }
             }
 
             post.UpdatedAt = DateTime.UtcNow;
 
-            // Vector embedding regeneration disabled until service is properly configured
-            // TODO: Enable when vector embedding service is available
+            // ==================== EMBEDDING REGENERATION ====================
+            // Regenerate vector embedding if content changed
+            if (contentChanged)
+            {
+                try
+                {
+                    _logger.LogInformation("[PostService.UpdatePostAsync] Regenerating embedding for updated content - RequestId={RequestId}", requestId);
+                    
+                    float[]? embedding = null;
+                    string? vectorString = null;
+
+                    // Try client-side first, fallback to server
+                    embedding = await _clientEmbeddingService.TryGenerateEmbeddingAsync(post.Content);
+                    if (embedding != null)
+                    {
+                        vectorString = _vectorEmbeddingService.ToPostgresVector(embedding);
+                        _logger.LogInformation("[PostService.UpdatePostAsync] ✓ Client-side embedding regenerated - RequestId={RequestId}", requestId);
+                    }
+                    else
+                    {
+                        var serverEmbedding = await _vectorEmbeddingService.GenerateEmbeddingAsync(post.Content);
+                        vectorString = _vectorEmbeddingService.ToPostgresVector(serverEmbedding);
+                        _logger.LogInformation("[PostService.UpdatePostAsync] ✓ Server-side embedding regenerated - RequestId={RequestId}", requestId);
+                    }
+
+                    // Save embedding to database
+                    if (!string.IsNullOrEmpty(vectorString))
+                    {
+                        var embeddingUpdated = await _postRepository.UpdateContentEmbeddingAsync(post.Id, vectorString);
+                        if (embeddingUpdated)
+                        {
+                            _logger.LogInformation("[PostService.UpdatePostAsync] ✓ Embedding saved to database - RequestId={RequestId}", requestId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[PostService.UpdatePostAsync] Embedding regeneration failed, keeping existing - RequestId={RequestId}", requestId);
+                }
+            }
 
             _logger.LogInformation("[PostService.UpdatePostAsync] Saving post - RequestId={RequestId}, PostId={PostId}",
                 requestId, postId);
@@ -442,8 +603,8 @@ public class PostService : IPostService
             var result = await MapToPostDtoAsync(post, keycloakId);
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogInformation("[PostService.UpdatePostAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
-                requestId, postId, elapsed);
+            _logger.LogInformation("[PostService.UpdatePostAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms, ContentChanged={ContentChanged}",
+                requestId, postId, elapsed, contentChanged);
 
             return result;
         }
@@ -454,6 +615,38 @@ public class PostService : IPostService
                 requestId, postId, elapsed);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Determines if content changed significantly enough to warrant re-extraction and embedding regeneration
+    /// </summary>
+    private static bool IsContentSignificantlyDifferent(string? oldContent, string? newContent)
+    {
+        if (string.IsNullOrEmpty(oldContent) || string.IsNullOrEmpty(newContent))
+            return true;
+
+        // If length difference is more than 20%, consider it significant
+        var lengthDiff = Math.Abs(oldContent.Length - newContent.Length);
+        var avgLength = (oldContent.Length + newContent.Length) / 2.0;
+        if (lengthDiff / avgLength > 0.2)
+            return true;
+
+        // If more than 50 characters changed, consider it significant
+        if (lengthDiff > 50)
+            return true;
+
+        // Quick check: if they're the same, no change
+        if (oldContent == newContent)
+            return false;
+
+        // Count word-level differences
+        var oldWords = oldContent.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var newWords = newContent.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var commonWords = oldWords.Intersect(newWords, StringComparer.OrdinalIgnoreCase).Count();
+        var totalWords = Math.Max(oldWords.Length, newWords.Length);
+
+        // If less than 80% words in common, consider it significant
+        return totalWords > 0 && (double)commonWords / totalWords < 0.8;
     }
 
     /// <summary>
@@ -1452,6 +1645,129 @@ public class PostService : IPostService
 
         // Minimum 1 minute
         return Math.Max(1, readTime);
+    }
+
+    #endregion
+
+    #region AI Content Extraction Helpers
+
+    /// <summary>
+    /// Merges user-provided tags with AI-extracted tags, giving priority to user tags
+    /// </summary>
+    /// <param name="userTags">Tags provided by the user (priority)</param>
+    /// <param name="aiTags">Tags extracted by AI</param>
+    /// <returns>Combined unique tags array</returns>
+    private static string[] MergeTagsWithAiExtracted(string[]? userTags, string[]? aiTags)
+    {
+        var resultTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Add user tags first (they take priority)
+        if (userTags != null && userTags.Length > 0)
+        {
+            foreach (var tag in userTags.Where(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                resultTags.Add(tag.Trim().ToLowerInvariant());
+            }
+        }
+        
+        // Add AI tags only if we don't have too many already (max 10 total)
+        if (aiTags != null && resultTags.Count < 10)
+        {
+            foreach (var tag in aiTags.Where(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                if (resultTags.Count >= 10) break;
+                resultTags.Add(tag.Trim().ToLowerInvariant());
+            }
+        }
+        
+        return resultTags.ToArray();
+    }
+
+    /// <summary>
+    /// Builds business metadata JSON from AI-extracted content data
+    /// </summary>
+    /// <param name="extracted">The AI-extracted content metadata</param>
+    /// <returns>JSON string with business metadata, or null if no relevant data</returns>
+    private static string? BuildBusinessMetadataFromExtraction(ExtractedContentMetadata? extracted)
+    {
+        if (extracted == null || !extracted.Success)
+            return null;
+
+        var biz = extracted.BusinessMetadata;
+        var pricing = extracted.PricingInfo;
+
+        // Check if there's any business-relevant data
+        var hasBusinessData = biz != null || pricing != null;
+
+        if (!hasBusinessData)
+            return null;
+
+        var metadata = new Dictionary<string, object?>();
+        
+        if (biz != null)
+        {
+            if (!string.IsNullOrEmpty(biz.BusinessName))
+                metadata["businessName"] = biz.BusinessName;
+            
+            if (!string.IsNullOrEmpty(biz.BusinessType))
+                metadata["businessType"] = biz.BusinessType;
+            
+            if (!string.IsNullOrEmpty(biz.Phone))
+                metadata["phone"] = biz.Phone;
+            
+            if (!string.IsNullOrEmpty(biz.Email))
+                metadata["email"] = biz.Email;
+            
+            if (!string.IsNullOrEmpty(biz.Website))
+                metadata["website"] = biz.Website;
+            
+            if (!string.IsNullOrEmpty(biz.WorkingHours))
+                metadata["businessHours"] = biz.WorkingHours;
+            
+            if (biz.Specialties != null && biz.Specialties.Count > 0)
+                metadata["specialties"] = biz.Specialties;
+
+            if (biz.AcceptsWalkIns.HasValue)
+                metadata["acceptsWalkIns"] = biz.AcceptsWalkIns.Value;
+
+            if (biz.RequiresAppointment.HasValue)
+                metadata["requiresAppointment"] = biz.RequiresAppointment.Value;
+        }
+        
+        if (pricing != null)
+        {
+            if (!string.IsNullOrEmpty(pricing.PriceRange))
+                metadata["priceRange"] = pricing.PriceRange;
+            
+            if (!string.IsNullOrEmpty(pricing.Currency))
+                metadata["currency"] = pricing.Currency;
+        }
+
+        // Add event metadata if present
+        var evt = extracted.EventMetadata;
+        if (evt != null)
+        {
+            if (!string.IsNullOrEmpty(evt.EventName))
+                metadata["eventName"] = evt.EventName;
+            
+            if (evt.EventDate.HasValue)
+                metadata["eventDate"] = evt.EventDate.Value.ToString("o");
+            
+            if (!string.IsNullOrEmpty(evt.Venue))
+                metadata["venue"] = evt.Venue;
+            
+            if (!string.IsNullOrEmpty(evt.TicketPrice))
+                metadata["ticketPrice"] = evt.TicketPrice;
+        }
+
+        if (metadata.Count == 0)
+            return null;
+
+        return JsonSerializer.Serialize(metadata, new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
     }
 
     #endregion

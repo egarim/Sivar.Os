@@ -81,6 +81,11 @@ public class SivarDbContext : DbContext
     public DbSet<SavedResult> SavedResults { get; set; } = null!;
 
     /// <summary>
+    /// Structured search results from AI chat
+    /// </summary>
+    public DbSet<SearchResult> SearchResults { get; set; } = null!;
+
+    /// <summary>
     /// Activity stream events (Actor-Verb-Object pattern)
     /// </summary>
     public DbSet<Activity> Activities { get; set; } = null!;
@@ -110,6 +115,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ConversationConfiguration());
         modelBuilder.ApplyConfiguration(new ChatMessageConfiguration());
         modelBuilder.ApplyConfiguration(new SavedResultConfiguration());
+        modelBuilder.ApplyConfiguration(new SearchResultConfiguration());
         modelBuilder.ApplyConfiguration(new ActivityConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileEmotionSummaryConfiguration());
 

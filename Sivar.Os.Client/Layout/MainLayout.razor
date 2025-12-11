@@ -1097,10 +1097,19 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             
             // Map the response to UI ChatMessage
             var aiMessage = new ChatMessage("ai", response.AssistantMessage.Content);
+            
+            // Attach structured results if available
+            if (response.HasStructuredResults && response.SearchResults != null)
+            {
+                aiMessage.StructuredResults = response.SearchResults;
+                Logger.LogInformation("[MainLayout.SendChat] Attached {Count} structured results - ChatId={ChatId}", 
+                    response.SearchResults.TotalCount, chatId);
+            }
+            
             AddMessage(_currentConversationId, aiMessage);
             
-            Logger.LogInformation("[MainLayout.SendChat] SUCCESS - ChatId={ChatId}, ResponsePreview={Preview}", 
-                chatId, response.AssistantMessage.Content.Length > 100 ? response.AssistantMessage.Content[..100] + "..." : response.AssistantMessage.Content);
+            Logger.LogInformation("[MainLayout.SendChat] SUCCESS - ChatId={ChatId}, HasStructuredResults={HasResults}, ResponsePreview={Preview}", 
+                chatId, response.HasStructuredResults, response.AssistantMessage.Content.Length > 100 ? response.AssistantMessage.Content[..100] + "..." : response.AssistantMessage.Content);
         }
         catch (Exception ex)
         {

@@ -21,6 +21,10 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.Updating.ModuleUpdater
     public class Updater : ModuleUpdater
     {
+        // Collection to store post embeddings for raw SQL update after EF Core commit
+        // Key: Post ID, Value: Embedding string in PostgreSQL vector format "[0.1,0.2,...]"
+        private readonly Dictionary<Guid, string> _pendingEmbeddings = new();
+        
         public Updater(IObjectSpace objectSpace, Version currentDBVersion) :
             base(objectSpace, currentDBVersion)
         {
@@ -115,6 +119,10 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             await SeedDemoDataAsync();
             
             ObjectSpace.CommitChanges(); //This line persists demo data
+            
+            // Apply content embeddings via raw SQL (EF Core ignores ContentEmbedding property)
+            // This must be called AFTER CommitChanges so posts exist in the database
+            ApplyPendingEmbeddingsViaSql();
         }
         
         /// <summary>
@@ -480,6 +488,66 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
 
             // Save execution tracking changes
             ObjectSpace.CommitChanges();
+        }
+        
+        /// <summary>
+        /// Applies pending content embeddings via raw SQL.
+        /// Required because EF Core ignores the ContentEmbedding property (see PostConfiguration.cs).
+        /// This method must be called AFTER ObjectSpace.CommitChanges() to ensure posts exist in database.
+        /// </summary>
+        private void ApplyPendingEmbeddingsViaSql()
+        {
+            if (_pendingEmbeddings.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] No pending embeddings to apply.");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Applying {_pendingEmbeddings.Count} embeddings via raw SQL...");
+            System.Diagnostics.Debug.WriteLine($"[Updater] 📊 EXPECTED: 140 embeddings (50 restaurants + 40 entertainment + 10 tourism + 20 government + 20 services)");
+            System.Diagnostics.Debug.WriteLine($"[Updater] 📊 ACTUAL: {_pendingEmbeddings.Count} embeddings queued");
+
+            // Get the DbContext from ObjectSpace
+            var efObjectSpace = ObjectSpace as DevExpress.ExpressApp.EFCore.EFCoreObjectSpace;
+            if (efObjectSpace == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] ❌ ObjectSpace is not EFCoreObjectSpace. Cannot apply embeddings.");
+                return;
+            }
+
+            var dbContext = efObjectSpace.DbContext;
+            int successCount = 0;
+            int errorCount = 0;
+
+            foreach (var kvp in _pendingEmbeddings)
+            {
+                try
+                {
+                    var postId = kvp.Key;
+                    var embedding = kvp.Value;
+                    
+                    // Escape single quotes in embedding string (though vectors shouldn't have them)
+                    var safeEmbedding = embedding.Replace("'", "''");
+                    
+                    // Update the embedding via raw SQL with vector cast
+                    var sql = $@"UPDATE ""Sivar_Posts"" 
+                                 SET ""ContentEmbedding"" = '{safeEmbedding}'::vector 
+                                 WHERE ""Id"" = '{postId}'";
+                    
+                    dbContext.Database.ExecuteSqlRaw(sql);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error applying embedding for {kvp.Key}: {ex.Message}");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Applied {successCount} embeddings, {errorCount} errors.");
+            
+            // Clear the pending embeddings
+            _pendingEmbeddings.Clear();
         }
         
         /// <summary>
@@ -883,18 +951,23 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 
                 // Seed restaurants
                 await SeedRestaurantsAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Restaurants: {_pendingEmbeddings.Count}");
                 
                 // Seed entertainment
                 await SeedEntertainmentAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Entertainment: {_pendingEmbeddings.Count}");
                 
                 // Seed tourism
                 await SeedTourismAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Tourism: {_pendingEmbeddings.Count}");
                 
                 // Seed government
                 await SeedGovernmentAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Government: {_pendingEmbeddings.Count}");
                 
                 // Seed services
                 await SeedServicesAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Services: {_pendingEmbeddings.Count}");
             }
             catch (Exception ex)
             {
@@ -1111,6 +1184,14 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                         {
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         });
+                    }
+                    
+                    // Queue pre-computed content embedding for raw SQL update
+                    // (EF Core ignores ContentEmbedding property - see PostConfiguration.cs)
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for: {postData.Title}");
                     }
                     
                     postCount++;
@@ -1347,6 +1428,14 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                         });
                     }
                     
+                    // Queue pre-computed content embedding for raw SQL update
+                    // (EF Core ignores ContentEmbedding property - see PostConfiguration.cs)
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for: {postData.Title}");
+                    }
+                    
                     postCount++;
                     System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
                 }
@@ -1537,6 +1626,14 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                         {
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         });
+                    }
+                    
+                    // Queue pre-computed content embedding for raw SQL update
+                    // (EF Core ignores ContentEmbedding property - see PostConfiguration.cs)
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for: {postData.Title}");
                     }
                     
                     postCount++;
@@ -1731,6 +1828,14 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                         });
                     }
                     
+                    // Queue pre-computed content embedding for raw SQL update
+                    // (EF Core ignores ContentEmbedding property - see PostConfiguration.cs)
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for: {postData.Title}");
+                    }
+                    
                     postCount++;
                     System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
                 }
@@ -1876,6 +1981,14 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                         });
                     }
                     
+                    // Queue pre-computed content embedding for raw SQL update
+                    // (EF Core ignores ContentEmbedding property - see PostConfiguration.cs)
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for: {postData.Title}");
+                    }
+                    
                     postCount++;
                     System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
                 }
@@ -1933,6 +2046,12 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
         public DemoPricingData? PricingInfo { get; set; }
         public DemoBusinessMetadata? BusinessMetadata { get; set; }
         public DemoBusinessLocationDetails? BusinessLocationDetails { get; set; }
+        
+        /// <summary>
+        /// Pre-computed content embedding as PostgreSQL vector format string.
+        /// Format: "[0.123,0.456,0.789,...]" - 384 dimensions for all-MiniLM-L6-v2
+        /// </summary>
+        public string? ContentEmbedding { get; set; }
     }
     
     public class DemoBusinessLocationDetails

@@ -258,7 +258,8 @@ public class VectorEmbeddingService : IVectorEmbeddingService
         try
         {
             // Convert to PostgreSQL vector format: "[val1,val2,val3,...]"
-            var vectorString = "[" + string.Join(",", embedding.Vector.ToArray()) + "]";
+            // IMPORTANT: Use InvariantCulture to ensure periods are used as decimal separators
+            var vectorString = "[" + string.Join(",", embedding.Vector.ToArray().Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[VectorEmbeddingService.ToPostgresVector] SUCCESS - RequestId={RequestId}, VectorDimensions={VectorDimensions}, Duration={Duration}ms",
@@ -300,7 +301,8 @@ public class VectorEmbeddingService : IVectorEmbeddingService
             }
 
             // Convert to PostgreSQL vector format: "[val1,val2,val3,...]"
-            var vectorString = "[" + string.Join(",", embedding) + "]";
+            // IMPORTANT: Use InvariantCulture to ensure periods are used as decimal separators
+            var vectorString = "[" + string.Join(",", embedding.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[VectorEmbeddingService.ToPostgresVector] SUCCESS (float[]) - RequestId={RequestId}, VectorDimensions={VectorDimensions}, Duration={Duration}ms, Source=ClientSide",

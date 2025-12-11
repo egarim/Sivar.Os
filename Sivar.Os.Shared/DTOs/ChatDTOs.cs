@@ -105,6 +105,17 @@ public record ChatResponseDto
     /// Conversation ID
     /// </summary>
     public Guid ConversationId { get; init; }
+
+    /// <summary>
+    /// Structured search results from the AI response
+    /// When present, the UI should render these as graphical cards
+    /// </summary>
+    public SearchResultsCollectionDto? SearchResults { get; init; }
+
+    /// <summary>
+    /// Whether this response contains structured search results
+    /// </summary>
+    public bool HasStructuredResults => SearchResults?.HasResults == true;
 }
 
 /// <summary>

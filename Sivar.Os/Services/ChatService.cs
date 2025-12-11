@@ -22,6 +22,7 @@ public class ChatService : IChatService
     private readonly AIAgent _agent;
     private readonly ChatFunctionService _functionService;
     private readonly ChatServiceOptions _options;
+    private readonly ISearchResultService _searchResultService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
@@ -31,6 +32,7 @@ public class ChatService : IChatService
         AIAgent agent,
         ChatFunctionService functionService,
         IOptions<ChatServiceOptions> options,
+        ISearchResultService searchResultService,
         ILogger<ChatService> logger)
     {
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
@@ -39,6 +41,7 @@ public class ChatService : IChatService
         _agent = agent ?? throw new ArgumentNullException(nameof(agent));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _searchResultService = searchResultService ?? throw new ArgumentNullException(nameof(searchResultService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -233,15 +236,45 @@ public class ChatService : IChatService
             // Update conversation last message time
             await _conversationRepository.UpdateLastMessageTimeAsync(dto.ConversationId);
 
+            // Check if this is a search-type query and perform structured search
+            SearchResultsCollectionDto? structuredResults = null;
+            if (IsSearchQuery(dto.Content))
+            {
+                try
+                {
+                    _logger.LogInformation("[ChatService.SendMessageAsync] Performing structured search for query - RequestId={RequestId}", requestId);
+                    structuredResults = await _searchResultService.HybridSearchAsync(new HybridSearchRequestDto
+                    {
+                        Query = dto.Content,
+                        Limit = 10,
+                        SemanticWeight = 0.5f,
+                        FullTextWeight = 0.3f,
+                        GeoWeight = 0.2f
+                    });
+
+                    if (structuredResults?.HasResults == true)
+                    {
+                        _logger.LogInformation("[ChatService.SendMessageAsync] Structured search returned {Count} results - RequestId={RequestId}", 
+                            structuredResults.TotalCount, requestId);
+                    }
+                }
+                catch (Exception searchEx)
+                {
+                    _logger.LogWarning(searchEx, "[ChatService.SendMessageAsync] Structured search failed, continuing with text response - RequestId={RequestId}", requestId);
+                    // Don't fail the whole request, just don't include structured results
+                }
+            }
+
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogInformation("[ChatService.SendMessageAsync] SUCCESS - ConversationId={ConversationId}, UserMessageId={UserMsgId}, AIMessageId={AIMsgId}, RequestId={RequestId}, TotalDuration={Duration}ms, AIDuration={AIDuration}ms", 
-                dto.ConversationId, savedUserMessage.Id, savedAssistantMessage.Id, requestId, elapsed, aiElapsed);
+            _logger.LogInformation("[ChatService.SendMessageAsync] SUCCESS - ConversationId={ConversationId}, UserMessageId={UserMsgId}, AIMessageId={AIMsgId}, HasStructuredResults={HasResults}, RequestId={RequestId}, TotalDuration={Duration}ms, AIDuration={AIDuration}ms", 
+                dto.ConversationId, savedUserMessage.Id, savedAssistantMessage.Id, structuredResults?.HasResults == true, requestId, elapsed, aiElapsed);
 
             return new ChatResponseDto
             {
                 UserMessage = MapMessageToDto(savedUserMessage),
                 AssistantMessage = MapMessageToDto(savedAssistantMessage),
-                ConversationId = dto.ConversationId
+                ConversationId = dto.ConversationId,
+                SearchResults = structuredResults
             };
         }
         catch (Exception ex)
@@ -373,5 +406,50 @@ public class ChatService : IChatService
             MessageOrder = message.MessageOrder,
             CreatedAt = message.CreatedAt
         };
+    }
+
+    /// <summary>
+    /// Determines if a user query is a search-type query that should return structured results
+    /// </summary>
+    private bool IsSearchQuery(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return false;
+
+        var lowerQuery = query.ToLowerInvariant();
+
+        // Spanish search keywords
+        var spanishKeywords = new[]
+        {
+            "buscar", "busca", "encuentra", "encontrar", "dónde", "donde",
+            "cerca", "cercano", "cercanos", "cercana", "cercanas",
+            "recomienda", "recomendaciones", "sugerir", "sugiere",
+            "mejor", "mejores", "top", "popular", "populares",
+            "restaurante", "restaurantes", "comida", "comer",
+            "tienda", "tiendas", "negocio", "negocios",
+            "hotel", "hoteles", "hospedaje",
+            "banco", "bancos", "farmacia", "farmacias",
+            "trámite", "tramite", "trámites", "tramites",
+            "servicio", "servicios", "evento", "eventos",
+            "playa", "playas", "turismo", "turistico", "turístico",
+            "pupusa", "pupusas", "típico", "tipico", "salvadoreño",
+            "café", "cafetería", "cafeteria",
+            "gobierno", "alcaldía", "ministerio"
+        };
+
+        // English search keywords
+        var englishKeywords = new[]
+        {
+            "find", "search", "looking for", "where", "nearby", "near me",
+            "recommend", "recommendations", "suggest", "best", "top",
+            "restaurant", "restaurants", "food", "eat",
+            "store", "stores", "business", "businesses",
+            "hotel", "hotels", "lodging",
+            "bank", "banks", "pharmacy", "pharmacies",
+            "procedure", "procedures", "service", "services",
+            "event", "events", "beach", "beaches", "tourism"
+        };
+
+        return spanishKeywords.Any(k => lowerQuery.Contains(k)) ||
+               englishKeywords.Any(k => lowerQuery.Contains(k));
     }
 }

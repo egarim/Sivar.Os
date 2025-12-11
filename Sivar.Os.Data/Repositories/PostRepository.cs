@@ -1060,6 +1060,164 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             return false;
         }
     }
+
+    // ========== Phase 6: Hybrid Search for Structured RAG ==========
+
+    /// <summary>
+    /// Hybrid search combining pgvector semantic similarity, PostgreSQL full-text search, and PostGIS geo proximity.
+    /// Returns structured results with combined relevance scoring for AI chat card rendering.
+    /// </summary>
+    public async Task<List<HybridSearchResult>> HybridSearchAsync(
+        string queryVector,
+        string searchQuery,
+        double? userLatitude = null,
+        double? userLongitude = null,
+        double? maxDistanceKm = null,
+        PostType[]? postTypes = null,
+        string? category = null,
+        double semanticWeight = 0.5,
+        double fullTextWeight = 0.3,
+        double geoWeight = 0.2,
+        int limit = 10)
+    {
+        // Normalize weights to sum to 1.0
+        var totalWeight = semanticWeight + fullTextWeight + geoWeight;
+        if (totalWeight > 0)
+        {
+            semanticWeight /= totalWeight;
+            fullTextWeight /= totalWeight;
+            geoWeight /= totalWeight;
+        }
+
+        // Escape search query for full-text search
+        var escapedQuery = searchQuery.Replace("'", "''");
+        var tsQuery = string.Join(" & ", escapedQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+        // Build post type filter
+        var postTypeFilter = "";
+        if (postTypes != null && postTypes.Length > 0)
+        {
+            var typeValues = string.Join(", ", postTypes.Select(pt => ((int)pt).ToString()));
+            postTypeFilter = $@"AND p.""PostType"" IN ({typeValues})";
+        }
+
+        // Build category filter (check Tags array)
+        var categoryFilter = "";
+        if (!string.IsNullOrEmpty(category))
+        {
+            var escapedCategory = category.Replace("'", "''");
+            categoryFilter = $@"AND '{escapedCategory}' = ANY(p.""Tags"")";
+        }
+
+        // Build geographic components
+        // IMPORTANT: Use InvariantCulture for all numeric values to ensure periods as decimal separators
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var geoSelect = userLatitude.HasValue && userLongitude.HasValue
+            ? $@"ST_Distance(p.""GeoLocation""::geography, ST_SetSRID(ST_MakePoint({userLongitude.Value.ToString(inv)}, {userLatitude.Value.ToString(inv)}), 4326)::geography) / 1000.0 as distance_km,"
+            : "NULL::double precision as distance_km,";
+
+        var geoFilter = "";
+        if (userLatitude.HasValue && userLongitude.HasValue && maxDistanceKm.HasValue)
+        {
+            geoFilter = $@"AND ST_DWithin(
+                p.""GeoLocation""::geography, 
+                ST_SetSRID(ST_MakePoint({userLongitude.Value.ToString(inv)}, {userLatitude.Value.ToString(inv)}), 4326)::geography, 
+                {(maxDistanceKm.Value * 1000).ToString(inv)})";
+        }
+
+        // Geo score: normalize distance to 0-1 (closer = higher score)
+        // Max distance of 100km for normalization
+        var geoScoreExpr = userLatitude.HasValue && userLongitude.HasValue
+            ? $@"GREATEST(0, 1 - (ST_Distance(p.""GeoLocation""::geography, ST_SetSRID(ST_MakePoint({userLongitude.Value.ToString(inv)}, {userLatitude.Value.ToString(inv)}), 4326)::geography) / 1000.0) / 100.0)"
+            : "0";
+
+        // NOTE: SearchVector column not available in XAF-managed database
+        // Using semantic-only search with vector similarity
+        // Full-text search can be re-enabled when SearchVector column is added
+        var sql = $@"
+            WITH hybrid_search AS (
+                SELECT 
+                    p.""Id"",
+                    -- Semantic similarity (1 - cosine distance)
+                    COALESCE(1.0 - (p.""ContentEmbedding"" <=> '{queryVector}'::vector), 0) as semantic_score,
+                    -- Full-text rank placeholder (SearchVector not available)
+                    0.0 as fulltext_score,
+                    -- Geographic score (normalized 0-1, closer = higher)
+                    COALESCE({geoScoreExpr}, 0) as geo_score,
+                    -- Distance in km
+                    {geoSelect}
+                    -- Combined weighted score (semantic + geo only)
+                    (
+                        COALESCE(1.0 - (p.""ContentEmbedding"" <=> '{queryVector}'::vector), 0) * {(semanticWeight + fullTextWeight).ToString(System.Globalization.CultureInfo.InvariantCulture)} +
+                        COALESCE({geoScoreExpr}, 0) * {geoWeight.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                    ) as combined_score
+                FROM ""Sivar_Posts"" p
+                WHERE p.""IsDeleted"" = false
+                  AND p.""ContentEmbedding"" IS NOT NULL
+                  {postTypeFilter}
+                  {categoryFilter}
+                  {geoFilter}
+            )
+            SELECT 
+                ""Id"",
+                semantic_score,
+                fulltext_score,
+                geo_score,
+                distance_km,
+                combined_score
+            FROM hybrid_search
+            WHERE combined_score > 0
+            ORDER BY combined_score DESC
+            LIMIT {limit}";
+
+        try
+        {
+            // Execute raw SQL to get scored results
+            var scoredResults = await _context.Database
+                .SqlQueryRaw<HybridSearchRawResult>(sql)
+                .ToListAsync();
+
+            var results = new List<HybridSearchResult>();
+
+            foreach (var scored in scoredResults)
+            {
+                var post = await _context.Posts
+                    .Include(p => p.Profile)
+                    .Include(p => p.Attachments)
+                    .FirstOrDefaultAsync(p => p.Id == scored.Id);
+
+                if (post != null)
+                {
+                    // Determine primary match source
+                    var matchSource = "Hybrid";
+                    if (scored.semantic_score > scored.fulltext_score && scored.semantic_score > scored.geo_score)
+                        matchSource = "Semantic";
+                    else if (scored.fulltext_score > scored.semantic_score && scored.fulltext_score > scored.geo_score)
+                        matchSource = "FullText";
+                    else if (scored.geo_score > scored.semantic_score && scored.geo_score > scored.fulltext_score)
+                        matchSource = "Geographic";
+
+                    results.Add(new HybridSearchResult
+                    {
+                        Post = post,
+                        CombinedScore = scored.combined_score,
+                        SemanticSimilarity = scored.semantic_score,
+                        FullTextRank = scored.fulltext_score,
+                        DistanceKm = scored.distance_km,
+                        MatchSource = matchSource
+                    });
+                }
+            }
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            // Log and return empty results if hybrid search fails
+            System.Diagnostics.Debug.WriteLine($"HybridSearchAsync failed: {ex.Message}");
+            return new List<HybridSearchResult>();
+        }
+    }
 }
 
 /// <summary>
@@ -1070,4 +1228,17 @@ internal record PostDistanceResult(Guid Id, double DistanceKm)
 {
     // Parameterless constructor required for EF Core materialization
     public PostDistanceResult() : this(Guid.Empty, 0) { }
+}
+
+/// <summary>
+/// Raw result from hybrid search SQL query
+/// </summary>
+internal class HybridSearchRawResult
+{
+    public Guid Id { get; set; }
+    public double semantic_score { get; set; }
+    public double fulltext_score { get; set; }
+    public double geo_score { get; set; }
+    public double? distance_km { get; set; }
+    public double combined_score { get; set; }
 }

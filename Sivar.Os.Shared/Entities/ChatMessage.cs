@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Sivar.Os.Shared.Entities;
@@ -36,4 +37,10 @@ public class ChatMessage : BaseEntity
     /// Order/sequence of this message in the conversation (0-based)
     /// </summary>
     public virtual int MessageOrder { get; set; }
+
+    /// <summary>
+    /// Structured search results associated with this message
+    /// Enables rendering as graphical cards with call-to-actions
+    /// </summary>
+    public virtual ICollection<SearchResult> SearchResults { get; set; } = new ObservableCollection<SearchResult>();
 }

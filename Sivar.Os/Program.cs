@@ -180,6 +180,8 @@ builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>(
 builder.Services.AddScoped<ChatFunctionService>();
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
 builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
+builder.Services.AddScoped<ISearchResultService, SearchResultService>();
+builder.Services.AddScoped<IContentExtractionService, ContentExtractionService>();
 
 // --- Sentiment Analysis Services Registration ---
 builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();

@@ -349,4 +349,71 @@ public interface IPostRepository : IBaseRepository<Post>
     /// <param name="embeddingVector">Embedding vector as string (PostgreSQL vector format: "[0.1,0.2,...]")</param>
     /// <returns>True if update succeeded, false otherwise</returns>
     Task<bool> UpdateContentEmbeddingAsync(Guid postId, string embeddingVector);
+
+    // ========== Phase 6: Hybrid Search for Structured RAG ==========
+
+    /// <summary>
+    /// Hybrid search combining pgvector semantic similarity, PostgreSQL full-text search, and PostGIS geo proximity.
+    /// Returns structured results with combined relevance scoring for AI chat card rendering.
+    /// </summary>
+    /// <param name="queryVector">Query embedding vector as string (PostgreSQL vector format: "[0.1,0.2,...]")</param>
+    /// <param name="searchQuery">Natural language search query for full-text matching</param>
+    /// <param name="userLatitude">Optional user latitude for geographic ranking</param>
+    /// <param name="userLongitude">Optional user longitude for geographic ranking</param>
+    /// <param name="maxDistanceKm">Maximum distance in kilometers for geo filtering</param>
+    /// <param name="postTypes">Optional filter by post types</param>
+    /// <param name="category">Optional filter by category tag</param>
+    /// <param name="semanticWeight">Weight for semantic similarity (0.0-1.0)</param>
+    /// <param name="fullTextWeight">Weight for full-text rank (0.0-1.0)</param>
+    /// <param name="geoWeight">Weight for geographic proximity (0.0-1.0)</param>
+    /// <param name="limit">Maximum number of results</param>
+    /// <returns>List of posts with combined relevance scores, similarity, rank, and distance</returns>
+    Task<List<HybridSearchResult>> HybridSearchAsync(
+        string queryVector,
+        string searchQuery,
+        double? userLatitude = null,
+        double? userLongitude = null,
+        double? maxDistanceKm = null,
+        PostType[]? postTypes = null,
+        string? category = null,
+        double semanticWeight = 0.5,
+        double fullTextWeight = 0.3,
+        double geoWeight = 0.2,
+        int limit = 10);
+}
+
+/// <summary>
+/// Result from hybrid search combining semantic, full-text, and geo scoring
+/// </summary>
+public class HybridSearchResult
+{
+    /// <summary>
+    /// The matched post
+    /// </summary>
+    public Post Post { get; set; } = null!;
+
+    /// <summary>
+    /// Combined relevance score (0.0 to 1.0, higher is better)
+    /// </summary>
+    public double CombinedScore { get; set; }
+
+    /// <summary>
+    /// Semantic similarity component (0.0 to 1.0)
+    /// </summary>
+    public double SemanticSimilarity { get; set; }
+
+    /// <summary>
+    /// Full-text search rank component
+    /// </summary>
+    public double FullTextRank { get; set; }
+
+    /// <summary>
+    /// Distance in kilometers from user location (null if no geo search)
+    /// </summary>
+    public double? DistanceKm { get; set; }
+
+    /// <summary>
+    /// Primary match source for this result
+    /// </summary>
+    public string MatchSource { get; set; } = "Hybrid";
 }

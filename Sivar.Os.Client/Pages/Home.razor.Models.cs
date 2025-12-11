@@ -148,11 +148,17 @@ public class ChatMessage
 
     public string Sender { get; }
     public string Text { get; }
-    public string MessageType { get; } // "text", "result-card", "welcome"
+    public string MessageType { get; } // "text", "result-card", "welcome", "structured-results"
     public DateTime Time { get; set; } = DateTime.Now;
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public ChatResultCard? ResultCard { get; set; }
     public List<string>? QuickActions { get; set; }
+    
+    /// <summary>
+    /// Structured search results for card-based rendering
+    /// When set, the message will render results as graphical cards with CTAs
+    /// </summary>
+    public Sivar.Os.Shared.DTOs.SearchResultsCollectionDto? StructuredResults { get; set; }
 }
 
 public class ChatResultCard

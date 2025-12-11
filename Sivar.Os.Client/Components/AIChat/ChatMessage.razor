@@ -1,5 +1,7 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.DTOs
 @using System.Text.RegularExpressions
+@inject NavigationManager NavigationManager
 
 @* ChatMessage component *@
 
@@ -14,9 +16,293 @@
                 OnSave="@OnResultSave"
                 OnFollow="@OnResultFollow" />
         }
+        else if (Message.StructuredResults != null && Message.StructuredResults.HasResults)
+        {
+            @* Render structured results as graphical cards *@
+            <div class="chat-bubble chat-intro">
+                @((MarkupString)RenderMarkdown(Message.Text))
+            </div>
+            
+            <div class="chat-results-grid">
+                @foreach (var business in Message.StructuredResults.Businesses)
+                {
+                    <div class="chat-business-card" @onclick="() => NavigateTo(business.NavigationUrl)">
+                        <div class="card-header">
+                            @if (!string.IsNullOrEmpty(business.ImageUrl))
+                            {
+                                <img class="card-image" src="@business.ImageUrl" alt="@business.Title" />
+                            }
+                            else
+                            {
+                                <div class="card-icon">@GetCategoryIcon(business.Category)</div>
+                            }
+                            <div class="card-title-section">
+                                <h4 class="card-name">@business.Title</h4>
+                                @if (!string.IsNullOrEmpty(business.Category))
+                                {
+                                    <span class="card-category">@business.Category</span>
+                                }
+                            </div>
+                            @if (business.RelevanceScore > 0.7)
+                            {
+                                <span class="relevance-badge high">⭐ Alta coincidencia</span>
+                            }
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(business.Description))
+                        {
+                            <p class="card-description">@TruncateText(business.Description, 120)</p>
+                        }
+                        
+                        <div class="card-meta">
+                            @if (!string.IsNullOrEmpty(business.City))
+                            {
+                                <span class="meta-item">
+                                    <span class="meta-icon">📍</span>
+                                    @business.City
+                                    @if (business.DistanceKm.HasValue)
+                                    {
+                                        <span class="distance">(@business.DistanceKm.Value.ToString("F1") km)</span>
+                                    }
+                                </span>
+                            }
+                            @if (!string.IsNullOrEmpty(business.PriceRange))
+                            {
+                                <span class="meta-item price-range">@business.PriceRange</span>
+                            }
+                            @if (business.Rating.HasValue)
+                            {
+                                <span class="meta-item rating">⭐ @business.Rating.Value.ToString("F1")</span>
+                            }
+                        </div>
+                        
+                        <div class="card-actions">
+                            @foreach (var action in business.Actions.Take(3))
+                            {
+                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                                        @onclick="() => HandleAction(action)" 
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+                
+                @foreach (var evt in Message.StructuredResults.Events)
+                {
+                    <div class="chat-business-card event-card" @onclick="() => NavigateTo(evt.NavigationUrl)">
+                        <div class="card-header">
+                            <div class="card-icon event">📅</div>
+                            <div class="card-title-section">
+                                <h4 class="card-name">@evt.Title</h4>
+                                <span class="card-category">Evento</span>
+                            </div>
+                            @if (evt.IsUpcoming)
+                            {
+                                <span class="event-badge upcoming">Próximo</span>
+                            }
+                        </div>
+                        
+                        <div class="event-details">
+                            <div class="event-date">
+                                <span class="date-icon">🗓️</span>
+                                @evt.EventDateFormatted
+                            </div>
+                            @if (!string.IsNullOrEmpty(evt.Venue))
+                            {
+                                <div class="event-venue">
+                                    <span class="venue-icon">🏛️</span>
+                                    @evt.Venue
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(evt.TicketPrice))
+                            {
+                                <div class="event-price">
+                                    <span class="price-icon">🎟️</span>
+                                    @evt.TicketPrice
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="card-actions">
+                            @foreach (var action in evt.Actions.Take(2))
+                            {
+                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                                        @onclick="() => HandleAction(action)" 
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+                
+                @foreach (var proc in Message.StructuredResults.Procedures)
+                {
+                    <div class="chat-business-card procedure-card" @onclick="() => NavigateTo(proc.NavigationUrl)">
+                        <div class="card-header">
+                            <div class="card-icon procedure">📋</div>
+                            <div class="card-title-section">
+                                <h4 class="card-name">@proc.Title</h4>
+                                <span class="card-category">Trámite</span>
+                            </div>
+                            @if (proc.IsOnlineAvailable)
+                            {
+                                <span class="online-badge">🌐 En línea</span>
+                            }
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(proc.Description))
+                        {
+                            <p class="card-description">@TruncateText(proc.Description, 100)</p>
+                        }
+                        
+                        <div class="procedure-details">
+                            @if (!string.IsNullOrEmpty(proc.ProcessingTime))
+                            {
+                                <div class="procedure-item">
+                                    <span class="item-label">⏱️ Tiempo:</span>
+                                    @proc.ProcessingTime
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(proc.Cost))
+                            {
+                                <div class="procedure-item">
+                                    <span class="item-label">💰 Costo:</span>
+                                    @proc.Cost
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(proc.WhereToGo))
+                            {
+                                <div class="procedure-item">
+                                    <span class="item-label">📍 Dónde:</span>
+                                    @proc.WhereToGo
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="card-actions">
+                            @foreach (var action in proc.Actions.Take(2))
+                            {
+                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                                        @onclick="() => HandleAction(action)" 
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+                
+                @foreach (var svc in Message.StructuredResults.Services)
+                {
+                    <div class="chat-business-card service-card" @onclick="() => NavigateTo(svc.NavigationUrl)">
+                        <div class="card-header">
+                            <div class="card-icon service">🔧</div>
+                            <div class="card-title-section">
+                                <h4 class="card-name">@svc.Title</h4>
+                                @if (!string.IsNullOrEmpty(svc.Category))
+                                {
+                                    <span class="card-category">@svc.Category</span>
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(svc.Description))
+                        {
+                            <p class="card-description">@TruncateText(svc.Description, 100)</p>
+                        }
+                        
+                        <div class="service-details">
+                            <div class="service-price">@svc.PriceFormatted</div>
+                            @if (!string.IsNullOrEmpty(svc.ProfileName))
+                            {
+                                <div class="service-provider">Por: @svc.ProfileName</div>
+                            }
+                        </div>
+                        
+                        <div class="card-actions">
+                            @foreach (var action in svc.Actions.Take(2))
+                            {
+                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                                        @onclick="() => HandleAction(action)" 
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            @if (Message.StructuredResults.TotalCount > 5)
+            {
+                <div class="chat-bubble chat-footer">
+                    Mostrando los primeros resultados. <a href="#" @onclick="OnShowMore" @onclick:preventDefault>Ver más...</a>
+                </div>
+            }
+        }
         else
         {
-            <div class="chat-bubble" style="white-space: pre-line;">@((MarkupString)RenderMarkdown(Message.Text))</div>
+            @* Fallback to regex-based parsing for legacy responses *@
+            @if (!IsUser && HasBusinessResults())
+            {
+                @* Render intro text *@
+                @if (!string.IsNullOrEmpty(GetIntroText()))
+                {
+                    <div class="chat-bubble chat-intro">@((MarkupString)RenderMarkdown(GetIntroText()))</div>
+                }
+                
+                @* Render results as cards *@
+                <div class="chat-results-grid">
+                    @foreach (var result in ExtractBusinessResults())
+                    {
+                        <div class="chat-business-card" @onclick="() => NavigateToProfile(result.Url)">
+                            <div class="card-header">
+                                <div class="card-icon">@GetCategoryIcon(result.Name)</div>
+                                <div class="card-title-section">
+                                    <h4 class="card-name">@result.Name</h4>
+                                    @if (!string.IsNullOrEmpty(result.Category))
+                                    {
+                                        <span class="card-category">@result.Category</span>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(result.Description))
+                            {
+                                <p class="card-description">@TruncateText(result.Description, 120)</p>
+                            }
+                            <div class="card-actions">
+                                <button class="card-btn primary" @onclick="() => NavigateToProfile(result.Url)" @onclick:stopPropagation="true">
+                                    <span class="btn-icon">👁️</span> Ver Perfil
+                                </button>
+                                <button class="card-btn secondary" @onclick="() => OnSaveResult(result)" @onclick:stopPropagation="true">
+                                    <span class="btn-icon">📍</span> Guardar
+                                </button>
+                                <button class="card-btn secondary" @onclick="() => OnShareResult(result)" @onclick:stopPropagation="true">
+                                    <span class="btn-icon">📤</span> Compartir
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                @* Render any footer text *@
+                @if (!string.IsNullOrEmpty(GetFooterText()))
+                {
+                    <div class="chat-bubble chat-footer">@((MarkupString)RenderMarkdown(GetFooterText()))</div>
+                }
+            }
+            else
+            {
+                <div class="chat-bubble" style="white-space: pre-line;">@((MarkupString)RenderMarkdown(Message.Text))</div>
+            }
+            
             @if (Message.QuickActions != null && Message.QuickActions.Any())
             {
                 <div class="chat-quick-actions">
@@ -66,6 +352,237 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResultFollow { get; set; }
+
+    /// <summary>
+    /// Callback when "show more" is clicked for structured results
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnShowMoreResults { get; set; }
+
+    // Parsed results cache
+    private List<BusinessResult>? _cachedResults;
+    private string? _cachedIntro;
+    private string? _cachedFooter;
+    private bool _parsed = false;
+
+    /// <summary>
+    /// Business result extracted from AI response
+    /// </summary>
+    private class BusinessResult
+    {
+        public string Name { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Category { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Check if the message contains business/profile results
+    /// </summary>
+    private bool HasBusinessResults()
+    {
+        if (string.IsNullOrEmpty(Message.Text)) return false;
+        
+        // Look for patterns like "[Name](/profile/...)" or numbered lists with links
+        var pattern = @"\[([^\]]+)\]\(/[a-z\-]+\)";
+        return Regex.IsMatch(Message.Text, pattern);
+    }
+
+    /// <summary>
+    /// Parse and cache the message content
+    /// </summary>
+    private void ParseMessage()
+    {
+        if (_parsed) return;
+        _parsed = true;
+
+        var text = Message.Text ?? "";
+        _cachedResults = new List<BusinessResult>();
+
+        // Pattern to match: 1. [Name](/handle) or **[Name](/handle)**
+        // Description follows on the next line or after the link
+        var pattern = @"(?:^|\n)\s*(?:\d+\.\s*)?(?:\*\*)?(?:🔗\s*)?\[([^\]]+)\]\((/[a-z0-9\-]+)\)(?:\*\*)?[\s\-:]*([^\n\[]*)?";
+        var matches = Regex.Matches(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+        var resultEndIndex = 0;
+        var firstMatchIndex = text.Length;
+
+        foreach (Match match in matches)
+        {
+            if (match.Index < firstMatchIndex) firstMatchIndex = match.Index;
+            resultEndIndex = Math.Max(resultEndIndex, match.Index + match.Length);
+
+            var name = match.Groups[1].Value.Trim();
+            var url = match.Groups[2].Value.Trim();
+            var description = match.Groups[3].Value.Trim();
+
+            // Try to extract more description from following text
+            var afterMatch = text.Substring(match.Index + match.Length);
+            var nextLineMatch = Regex.Match(afterMatch, @"^\s*([^0-9\[\n][^\n\[]{10,})");
+            if (nextLineMatch.Success && string.IsNullOrEmpty(description))
+            {
+                description = nextLineMatch.Groups[1].Value.Trim();
+            }
+
+            _cachedResults.Add(new BusinessResult
+            {
+                Name = name,
+                Url = url,
+                Description = CleanDescription(description),
+                Category = InferCategory(name, description)
+            });
+        }
+
+        // Extract intro text (everything before first result)
+        if (firstMatchIndex > 0)
+        {
+            _cachedIntro = text.Substring(0, firstMatchIndex).Trim();
+            // Remove trailing colons or empty lines
+            _cachedIntro = Regex.Replace(_cachedIntro, @":\s*$", "").Trim();
+        }
+
+        // Extract footer text (everything after last result, if significant)
+        if (resultEndIndex < text.Length - 10)
+        {
+            var footer = text.Substring(resultEndIndex).Trim();
+            // Only include if it's substantial and not just a continuation of the last result
+            if (footer.Length > 20 && !footer.StartsWith(",") && !footer.StartsWith("."))
+            {
+                _cachedFooter = footer;
+            }
+        }
+    }
+
+    private string CleanDescription(string desc)
+    {
+        if (string.IsNullOrEmpty(desc)) return "";
+        // Remove leading dashes, asterisks, numbers
+        desc = Regex.Replace(desc, @"^[\s\-\*\.]+", "");
+        // Remove trailing punctuation
+        desc = desc.TrimEnd('.', ',', '-');
+        return desc.Trim();
+    }
+
+    private string InferCategory(string name, string description)
+    {
+        var combined = (name + " " + description).ToLower();
+        
+        if (combined.Contains("pupus") || combined.Contains("típic") || combined.Contains("salvadoreñ"))
+            return "🇸🇻 Comida Salvadoreña";
+        if (combined.Contains("restaurante") || combined.Contains("restaurant") || combined.Contains("comida"))
+            return "🍽️ Restaurante";
+        if (combined.Contains("café") || combined.Contains("coffee") || combined.Contains("cafe"))
+            return "☕ Café";
+        if (combined.Contains("hotel") || combined.Contains("hostal"))
+            return "🏨 Hospedaje";
+        if (combined.Contains("banco") || combined.Contains("bank"))
+            return "🏦 Banco";
+        if (combined.Contains("farmacia") || combined.Contains("pharmacy"))
+            return "💊 Farmacia";
+        if (combined.Contains("gobierno") || combined.Contains("government") || combined.Contains("alcaldía") || combined.Contains("ministerio"))
+            return "🏛️ Gobierno";
+        if (combined.Contains("playa") || combined.Contains("beach"))
+            return "🏖️ Playa";
+        if (combined.Contains("museo") || combined.Contains("museum"))
+            return "🏛️ Museo";
+        if (combined.Contains("parque") || combined.Contains("park"))
+            return "🌳 Parque";
+        if (combined.Contains("vegetarian") || combined.Contains("vegano") || combined.Contains("vegan"))
+            return "🥗 Vegetariano";
+        
+        return "📍 Lugar";
+    }
+
+    private string GetCategoryIcon(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "📍";
+        var lower = name.ToLower();
+        if (lower.Contains("pupus")) return "🫓";
+        if (lower.Contains("café") || lower.Contains("coffee")) return "☕";
+        if (lower.Contains("restaurante") || lower.Contains("restaurant")) return "🍽️";
+        if (lower.Contains("banco")) return "🏦";
+        if (lower.Contains("farmacia")) return "💊";
+        if (lower.Contains("playa")) return "🏖️";
+        if (lower.Contains("museo")) return "🏛️";
+        if (lower.Contains("hotel")) return "🏨";
+        if (lower.Contains("alcaldía") || lower.Contains("ministerio")) return "🏢";
+        return "📍";
+    }
+
+    private List<BusinessResult> ExtractBusinessResults()
+    {
+        ParseMessage();
+        return _cachedResults ?? new List<BusinessResult>();
+    }
+
+    private string GetIntroText()
+    {
+        ParseMessage();
+        return _cachedIntro ?? "";
+    }
+
+    private string GetFooterText()
+    {
+        ParseMessage();
+        return _cachedFooter ?? "";
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength) return text;
+        return text.Substring(0, maxLength - 3) + "...";
+    }
+
+    private void NavigateToProfile(string url)
+    {
+        if (!string.IsNullOrEmpty(url))
+        {
+            NavigationManager.NavigateTo(url);
+        }
+    }
+
+    private void NavigateTo(string? url)
+    {
+        if (!string.IsNullOrEmpty(url))
+        {
+            NavigationManager.NavigateTo(url);
+        }
+    }
+
+    private async Task OnShowMore()
+    {
+        if (Message.StructuredResults != null)
+        {
+            await OnShowMoreResults.InvokeAsync(Message.StructuredResults.Query);
+        }
+    }
+
+    private void HandleAction(CallToActionDto action)
+    {
+        if (string.IsNullOrEmpty(action.Url)) return;
+
+        if (action.IsExternal)
+        {
+            // External links - would need JS interop for new tab
+            NavigationManager.NavigateTo(action.Url, forceLoad: true);
+        }
+        else
+        {
+            NavigationManager.NavigateTo(action.Url);
+        }
+    }
+
+    private void OnSaveResult(BusinessResult result)
+    {
+        // TODO: Implement save functionality
+        Console.WriteLine($"Saving: {result.Name}");
+    }
+
+    private void OnShareResult(BusinessResult result)
+    {
+        // TODO: Implement share functionality
+        Console.WriteLine($"Sharing: {result.Name}");
+    }
 
     /// <summary>
     /// Renders basic markdown to HTML (links and bold)
