@@ -302,28 +302,22 @@
         @* Contact Actions for Business Profiles *@
         @if (IsBusinessProfile() && profileContacts.Any())
         {
-            <MudPaper Class="mt-3 pa-3" Elevation="0" Style="background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
-                <div class="d-flex align-center gap-2 mb-2">
-                    <MudIcon Icon="@Icons.Material.Filled.ContactPhone" Size="Size.Small" Color="Color.Primary" />
-                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Contacto</MudText>
-                </div>
+            <div class="profile-contact-section mt-3">
                 <ContactActions 
                     Contacts="@profileContacts"
-                    MaxTotal="6"
+                    MaxTotal="8"
                     GroupByCategory="false"
-                    ButtonSize="Size.Small"
-                    ButtonVariant="Variant.Outlined"
                     IconOnly="false" />
-            </MudPaper>
+            </div>
         }
         else if (isLoadingContacts && IsBusinessProfile())
         {
-            <MudPaper Class="mt-3 pa-3" Elevation="0" Style="background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
-                <div class="d-flex align-center justify-center gap-2">
+            <div class="profile-contact-section mt-3">
+                <div class="d-flex align-center justify-center gap-2 pa-2">
                     <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
-                    <MudText Typo="Typo.body2">Cargando contactos...</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Cargando contactos...</MudText>
                 </div>
-            </MudPaper>
+            </div>
         }
 
         @if (isLoadingPosts)

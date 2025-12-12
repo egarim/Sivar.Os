@@ -2,6 +2,105 @@
 
 @* ContactActions.razor - Reusable contact buttons component *@
 
+<style>
+    .contact-actions-modern {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .contact-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+    }
+    
+    .contact-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .contact-chip svg,
+    .contact-chip .mud-icon-root {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .contact-chip-icon-only {
+        padding: 8px;
+        border-radius: 50%;
+    }
+    
+    .contact-chip-icon-only:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Specific brand colors with subtle backgrounds */
+    .contact-chip-whatsapp { background: rgba(37, 211, 102, 0.15); color: #25D366; }
+    .contact-chip-whatsapp:hover { background: rgba(37, 211, 102, 0.25); }
+    
+    .contact-chip-phone { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+    .contact-chip-phone:hover { background: rgba(76, 175, 80, 0.25); }
+    
+    .contact-chip-email { background: rgba(234, 67, 53, 0.15); color: #EA4335; }
+    .contact-chip-email:hover { background: rgba(234, 67, 53, 0.25); }
+    
+    .contact-chip-facebook { background: rgba(24, 119, 242, 0.15); color: #1877F2; }
+    .contact-chip-facebook:hover { background: rgba(24, 119, 242, 0.25); }
+    
+    .contact-chip-instagram { background: rgba(228, 64, 95, 0.15); color: #E4405F; }
+    .contact-chip-instagram:hover { background: rgba(228, 64, 95, 0.25); }
+    
+    .contact-chip-telegram { background: rgba(0, 136, 204, 0.15); color: #0088CC; }
+    .contact-chip-telegram:hover { background: rgba(0, 136, 204, 0.25); }
+    
+    .contact-chip-messenger { background: rgba(0, 132, 255, 0.15); color: #0084FF; }
+    .contact-chip-messenger:hover { background: rgba(0, 132, 255, 0.25); }
+    
+    .contact-chip-website { background: rgba(96, 125, 139, 0.15); color: #607D8B; }
+    .contact-chip-website:hover { background: rgba(96, 125, 139, 0.25); }
+    
+    .contact-chip-menu { background: rgba(121, 85, 72, 0.15); color: #795548; }
+    .contact-chip-menu:hover { background: rgba(121, 85, 72, 0.25); }
+    
+    .contact-chip-google_maps { background: rgba(66, 133, 244, 0.15); color: #4285F4; }
+    .contact-chip-google_maps:hover { background: rgba(66, 133, 244, 0.25); }
+    
+    .contact-chip-waze { background: rgba(51, 204, 255, 0.15); color: #33CCFF; }
+    .contact-chip-waze:hover { background: rgba(51, 204, 255, 0.25); }
+    
+    .contact-chip-directions { background: rgba(66, 133, 244, 0.15); color: #4285F4; }
+    .contact-chip-directions:hover { background: rgba(66, 133, 244, 0.25); }
+    
+    .contact-chip-uber_eats { background: rgba(6, 193, 103, 0.15); color: #06C167; }
+    .contact-chip-uber_eats:hover { background: rgba(6, 193, 103, 0.25); }
+    
+    .contact-chip-hugo { background: rgba(255, 107, 0, 0.15); color: #FF6B00; }
+    .contact-chip-hugo:hover { background: rgba(255, 107, 0, 0.25); }
+    
+    .contact-chip-pedidosya { background: rgba(250, 0, 80, 0.15); color: #FA0050; }
+    .contact-chip-pedidosya:hover { background: rgba(250, 0, 80, 0.25); }
+    
+    .contact-chip-tiktok { background: rgba(0, 0, 0, 0.1); color: #000000; }
+    .contact-chip-tiktok:hover { background: rgba(0, 0, 0, 0.2); }
+    
+    .contact-chip-default { background: rgba(96, 125, 139, 0.15); color: #607D8B; }
+    .contact-chip-default:hover { background: rgba(96, 125, 139, 0.25); }
+    
+    /* Dark mode adjustments */
+    .mud-theme-dark .contact-chip-tiktok { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+    .mud-theme-dark .contact-chip-tiktok:hover { background: rgba(255, 255, 255, 0.25); }
+</style>
+
 @if (Contacts?.Any() == true)
 {
     <div class="contact-actions @Class">
@@ -16,10 +115,10 @@
                             @group.CategoryDisplayName
                         </MudText>
                     }
-                    <div class="d-flex flex-wrap gap-1">
+                    <div class="contact-actions-modern">
                         @foreach (var contact in group.Contacts.Take(MaxPerCategory))
                         {
-                            @RenderContactButton(contact)
+                            @RenderContactChip(contact)
                         }
                     </div>
                 </div>
@@ -27,10 +126,10 @@
         }
         else
         {
-            <div class="d-flex flex-wrap gap-1">
+            <div class="contact-actions-modern">
                 @foreach (var contact in Contacts.Take(MaxTotal))
                 {
-                    @RenderContactButton(contact)
+                    @RenderContactChip(contact)
                 }
             </div>
         }
@@ -211,6 +310,13 @@
         }
         return string.Empty;
     }
+    
+    private string GetChipClass(ContactDisplayDto contact)
+    {
+        var baseClass = IconOnly ? "contact-chip contact-chip-icon-only" : "contact-chip";
+        var typeClass = $"contact-chip-{contact.TypeKey?.ToLowerInvariant() ?? "default"}";
+        return $"{baseClass} {typeClass}";
+    }
 
     private async Task HandleClick(ContactDisplayDto contact)
     {
@@ -219,6 +325,23 @@
             await OnContactClick.InvokeAsync(contact);
         }
     }
+
+    private RenderFragment RenderContactChip(ContactDisplayDto contact) => __builder =>
+    {
+        <MudTooltip Text="@GetTooltip(contact)" Placement="Placement.Top">
+            <a href="@contact.Url"
+               target="@(contact.OpenInNewTab ? "_blank" : "_self")"
+               class="@GetChipClass(contact)"
+               rel="noopener noreferrer"
+               @onclick="@(() => HandleClick(contact))">
+                <MudIcon Icon="@GetIcon(contact)" Size="Size.Small" />
+                @if (!IconOnly)
+                {
+                    <span>@(string.IsNullOrEmpty(contact.Label) ? contact.DisplayName : contact.Label)</span>
+                }
+            </a>
+        </MudTooltip>
+    };
 
     private RenderFragment RenderContactButton(ContactDisplayDto contact) => __builder =>
     {
