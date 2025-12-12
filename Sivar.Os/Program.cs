@@ -286,6 +286,9 @@ builder.Services.AddScoped<IProfileSwitcherService, ProfileSwitcherClient>();
 // Register browser permissions service for GPS and other browser APIs
 builder.Services.AddScoped<BrowserPermissionsService>();
 
+// Register chat location service for Phase 0: Location-Aware Chat
+builder.Services.AddScoped<ChatLocationService>();
+
 // Register culture service for localization
 builder.Services.AddScoped<ICultureService, CultureService>();
 

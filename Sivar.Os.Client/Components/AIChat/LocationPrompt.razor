@@ -1,0 +1,234 @@
+@using MudBlazor
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Shared.DTOs
+@inject ChatLocationService LocationService
+@inject ILogger<LocationPrompt> Logger
+
+@* 
+    LocationPrompt component for Phase 0: Location-Aware Chat
+    Shows when user needs to set their location for proximity-aware searches.
+*@
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">¿Dónde te encuentras?</MudText>
+        </div>
+    </TitleContent>
+    
+    <DialogContent>
+        <div class="location-prompt-content">
+            <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+                Para darte mejores resultados, necesito saber tu ubicación.
+            </MudText>
+            
+            @* GPS Button *@
+            <div class="location-option-section mb-4">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.MyLocation"
+                           FullWidth="true"
+                           Disabled="@_isRequestingGps"
+                           OnClick="RequestGpsLocation"
+                           Class="mb-2">
+                    @if (_isRequestingGps)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>Obteniendo ubicación...</span>
+                    }
+                    else
+                    {
+                        <span>📍 Usar mi ubicación</span>
+                    }
+                </MudButton>
+                
+                @if (_gpsError != null)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                        @_gpsError
+                    </MudAlert>
+                }
+            </div>
+            
+            <MudDivider Class="my-3" />
+            
+            @* City Selection *@
+            <div class="location-cities-section">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">O selecciona una ciudad:</MudText>
+                
+                <div class="city-grid">
+                    @foreach (var city in ChatLocationService.SalvadoranCities.Take(9))
+                    {
+                        <MudButton Variant="Variant.Outlined" 
+                                   Size="Size.Small"
+                                   Class="city-chip"
+                                   OnClick="() => SelectCity(city)">
+                            @city.Name
+                        </MudButton>
+                    }
+                </div>
+                
+                @* More cities dropdown *@
+                <MudAutocomplete T="CityOption"
+                                 Label="Buscar otra ciudad..."
+                                 Value="_selectedCity"
+                                 ValueChanged="OnCitySelected"
+                                 SearchFunc="SearchCities"
+                                 ToStringFunc="@(c => c?.DisplayName ?? "")"
+                                 Immediate="true"
+                                 Dense="true"
+                                 Variant="Variant.Outlined"
+                                 Class="mt-3" />
+            </div>
+        </div>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancel">Cancelar</MudButton>
+        @if (AllowSkip)
+        {
+            <MudButton Color="Color.Secondary" OnClick="Skip">Omitir</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .location-prompt-content {
+        min-width: 320px;
+        max-width: 400px;
+    }
+    
+    .city-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .city-chip {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        text-transform: none;
+        border-radius: 16px;
+    }
+    
+    .city-chip:hover {
+        background-color: var(--mud-palette-primary-hover);
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>
+    /// Whether to show the skip button
+    /// </summary>
+    [Parameter]
+    public bool AllowSkip { get; set; } = true;
+
+    /// <summary>
+    /// Optional: Pre-selected city for editing
+    /// </summary>
+    [Parameter]
+    public CityOption? InitialCity { get; set; }
+
+    private bool _isRequestingGps;
+    private string? _gpsError;
+    private CityOption? _selectedCity;
+
+    protected override void OnInitialized()
+    {
+        if (InitialCity != null)
+        {
+            _selectedCity = InitialCity;
+        }
+    }
+
+    private async Task RequestGpsLocation()
+    {
+        _isRequestingGps = true;
+        _gpsError = null;
+        StateHasChanged();
+
+        try
+        {
+            var location = await LocationService.RequestGpsLocationAsync();
+            
+            if (location != null)
+            {
+                Logger.LogInformation("[LocationPrompt] GPS location obtained: {DisplayName}", location.DisplayName);
+                MudDialog.Close(DialogResult.Ok(location));
+            }
+            else
+            {
+                _gpsError = "No se pudo obtener tu ubicación. Selecciona una ciudad.";
+                Logger.LogWarning("[LocationPrompt] GPS location request failed or denied");
+            }
+        }
+        catch (Exception ex)
+        {
+            _gpsError = "Error al obtener ubicación. Intenta seleccionar una ciudad.";
+            Logger.LogError(ex, "[LocationPrompt] GPS location error");
+        }
+        finally
+        {
+            _isRequestingGps = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectCity(CityOption city)
+    {
+        var location = await LocationService.SetCityLocationAsync(city);
+        Logger.LogInformation("[LocationPrompt] City selected: {City}", city.Name);
+        MudDialog.Close(DialogResult.Ok(location));
+    }
+
+    private async Task OnCitySelected(CityOption? city)
+    {
+        if (city != null)
+        {
+            await SelectCity(city);
+        }
+    }
+
+    private Task<IEnumerable<CityOption>> SearchCities(string? value, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return Task.FromResult(ChatLocationService.SalvadoranCities.AsEnumerable());
+        }
+
+        var filtered = ChatLocationService.SalvadoranCities
+            .Where(c => c.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                        c.State.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return Task.FromResult(filtered.AsEnumerable());
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Skip()
+    {
+        // Set default location (San Salvador) when skipping
+        var defaultCity = ChatLocationService.SalvadoranCities.First();
+        var location = new ChatLocationContext
+        {
+            Latitude = defaultCity.Latitude,
+            Longitude = defaultCity.Longitude,
+            City = defaultCity.Name,
+            State = defaultCity.State,
+            Country = defaultCity.Country,
+            DisplayName = defaultCity.DisplayName,
+            Source = "default"
+        };
+        
+        Logger.LogInformation("[LocationPrompt] Skipped - using default: {City}", defaultCity.Name);
+        MudDialog.Close(DialogResult.Ok(location));
+    }
+}

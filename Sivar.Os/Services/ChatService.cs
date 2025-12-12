@@ -194,6 +194,19 @@ public class ChatService : IChatService
             // Set current profile for function calls
             _functionService.SetCurrentProfile(profileId);
 
+            // Set location context for proximity-aware searches (Phase 0)
+            if (dto.Location != null && dto.Location.IsValid)
+            {
+                _functionService.SetCurrentLocation(dto.Location.Latitude, dto.Location.Longitude);
+                _logger.LogInformation("[ChatService.SendMessageAsync] Location context set - City={City}, Lat={Lat}, Lng={Lng}, RequestId={RequestId}", 
+                    dto.Location.City, dto.Location.Latitude, dto.Location.Longitude, requestId);
+            }
+            else
+            {
+                _functionService.SetCurrentLocation(null, null);
+                _logger.LogDebug("[ChatService.SendMessageAsync] No location context provided - RequestId={RequestId}", requestId);
+            }
+
             // Build chat history for context
             var chatHistory = BuildChatHistory(conversation);
             chatHistory.Add(new AiChatMessage(ChatRole.User, dto.Content));

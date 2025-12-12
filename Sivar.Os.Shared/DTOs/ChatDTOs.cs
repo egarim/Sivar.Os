@@ -70,6 +70,69 @@ public record SendMessageDto
     [Required]
     [StringLength(5000, MinimumLength = 1)]
     public string Content { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional location context for proximity-aware searches.
+    /// When provided, search results will prioritize nearby results and include distances.
+    /// </summary>
+    public ChatLocationContext? Location { get; init; }
+}
+
+/// <summary>
+/// Location context for chat sessions.
+/// Used for proximity-aware searches and "cerca de mí" queries.
+/// </summary>
+public record ChatLocationContext
+{
+    /// <summary>
+    /// Latitude of user's location
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>
+    /// Longitude of user's location
+    /// </summary>
+    public double? Longitude { get; init; }
+
+    /// <summary>
+    /// City name (detected or selected)
+    /// </summary>
+    [StringLength(100)]
+    public string? City { get; init; }
+
+    /// <summary>
+    /// State/Department name
+    /// </summary>
+    [StringLength(100)]
+    public string? State { get; init; }
+
+    /// <summary>
+    /// Country name
+    /// </summary>
+    [StringLength(100)]
+    public string? Country { get; init; }
+
+    /// <summary>
+    /// Display name for UI (e.g., "San Salvador, El Salvador")
+    /// </summary>
+    [StringLength(200)]
+    public string? DisplayName { get; init; }
+
+    /// <summary>
+    /// How the location was obtained: "gps", "selected", "detected", "default"
+    /// </summary>
+    [StringLength(20)]
+    public string Source { get; init; } = "unknown";
+
+    /// <summary>
+    /// Accuracy of GPS coordinates in meters (if from GPS)
+    /// </summary>
+    public double? AccuracyMeters { get; init; }
+
+    /// <summary>
+    /// Whether this location context is valid and can be used for searches
+    /// </summary>
+    public bool IsValid => Latitude.HasValue && Longitude.HasValue || !string.IsNullOrEmpty(City);
 }
 
 /// <summary>

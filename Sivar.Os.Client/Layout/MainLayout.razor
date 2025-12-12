@@ -1,10 +1,13 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.Extensions.Localization
-@using Sivar.Os.Client.Pages
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Client.Components.AIChat
 @using Microsoft.JSInterop
 @using Sivar.Os.Shared
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
+@using Conversation = Sivar.Os.Client.Pages.Conversation
+@using ChatMessage = Sivar.Os.Client.Pages.ChatMessage
 @inject IStringLocalizer<MainLayout> Localizer
 @inject IJSRuntime JS
 @inject ISivarClient SivarClient
@@ -76,6 +79,15 @@
                                     <MudText Typo="Typo.caption" Style="opacity: 0.7;">Always here to help you explore</MudText>
                                 </div>
                                 <MudSpacer />
+                                @* Phase 0: Location Indicator *@
+                                <MudButton Variant="Variant.Text" 
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.LocationOn"
+                                           Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                                           OnClick="@ShowLocationPromptAsync"
+                                           Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+                                    @(_chatLocation?.City ?? "Ubicación")
+                                </MudButton>
                                 <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
                                     OnClick="@ToggleAIChat" />
                             </MudAppBar>
@@ -623,6 +635,11 @@
     private bool _isTyping;
     private bool _isLoadingConversations;
 
+    // Phase 0: Location-Aware Chat
+    private ChatLocationContext? _chatLocation;
+    [Inject] private ChatLocationService ChatLocationService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
     public bool IsAIChatVisible => _aiChatVisible;
 
     protected override void OnInitialized()
@@ -805,6 +822,12 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
             }
             catch { /* Ignore JS errors */ }
             await InitializeAIChatAsync();
+        }
+        
+        // Phase 0: Initialize location on first chat open
+        if (_aiChatVisible && _chatLocation == null)
+        {
+            await InitializeChatLocationAsync();
         }
         
         StateHasChanged();
@@ -1066,15 +1089,16 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
 
         try
         {
-            // Call the real AI backend
+            // Call the real AI backend with location context (Phase 0)
             var sendMessageDto = new SendMessageDto
             {
                 ConversationId = _currentConversationId,
-                Content = userQuery
+                Content = userQuery,
+                Location = _chatLocation // Include location for proximity-aware searches
             };
 
-            Logger.LogInformation("[MainLayout.SendChat] Calling API - ChatId={ChatId}, ConversationId={ConversationId}, Query={Query}", 
-                chatId, _currentConversationId, userQuery.Length > 50 ? userQuery[..50] + "..." : userQuery);
+            Logger.LogInformation("[MainLayout.SendChat] Calling API - ChatId={ChatId}, ConversationId={ConversationId}, Query={Query}, HasLocation={HasLocation}", 
+                chatId, _currentConversationId, userQuery.Length > 50 ? userQuery[..50] + "..." : userQuery, _chatLocation != null);
             
             var startTime = DateTime.UtcNow;
             
@@ -1210,6 +1234,92 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,
     };
+
+    // Phase 0: Location-Aware Chat Methods
+    private async Task InitializeChatLocationAsync()
+    {
+        try
+        {
+            Logger.LogInformation("[MainLayout] Initializing chat location");
+            
+            // Try to load saved location first
+            await ChatLocationService.LoadFromStorageAsync();
+            
+            if (ChatLocationService.CurrentLocation != null)
+            {
+                _chatLocation = ChatLocationService.CurrentLocation;
+                Logger.LogInformation("[MainLayout] Loaded saved location: {Location}", _chatLocation.DisplayName);
+            }
+            else
+            {
+                // No saved location - show prompt
+                Logger.LogInformation("[MainLayout] No saved location, showing location prompt");
+                await ShowLocationPromptAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout] Error initializing chat location");
+            // Default to San Salvador if there's an error
+            _chatLocation = new ChatLocationContext
+            {
+                Latitude = 13.6929,
+                Longitude = -89.2182,
+                City = "San Salvador",
+                Country = "El Salvador",
+                DisplayName = "San Salvador, El Salvador",
+                Source = "default"
+            };
+        }
+    }
+
+    private async Task ShowLocationPromptAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters<LocationPrompt>();
+            var options = new DialogOptions 
+            { 
+                CloseButton = true, 
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                BackdropClick = false
+            };
+            
+            var dialog = await DialogService.ShowAsync<LocationPrompt>("📍 Set Your Location", parameters, options);
+            var result = await dialog.Result;
+            
+            if (result != null && !result.Canceled && result.Data is ChatLocationContext location)
+            {
+                _chatLocation = location;
+                Logger.LogInformation("[MainLayout] Location set via prompt: {Location}", location.DisplayName);
+                StateHasChanged();
+            }
+            else
+            {
+                // User skipped or cancelled - default to San Salvador
+                _chatLocation = new ChatLocationContext
+                {
+                    Latitude = 13.6929,
+                    Longitude = -89.2182,
+                    City = "San Salvador",
+                    Country = "El Salvador",
+                    DisplayName = "San Salvador, El Salvador",
+                    Source = "default"
+                };
+                Logger.LogInformation("[MainLayout] User skipped location, defaulting to San Salvador");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout] Error showing location prompt");
+        }
+    }
+
+    private async Task OnLocationIndicatorClickAsync()
+    {
+        await ShowLocationPromptAsync();
+    }
 
     public async ValueTask DisposeAsync()
     {

@@ -1,9 +1,10 @@
 @using Sivar.Os.Client.Pages
+@using Sivar.Os.Shared.DTOs
 @using MudBlazor
 @using Microsoft.Extensions.Logging
 @inject ILogger<AIChatPanel> Logger
 
-@* AIChatPanel component - Main chat interface *@
+@* AIChatPanel component - Main chat interface with location awareness (Phase 0) *@
 
 <MudDrawer Anchor="Anchor.Right"
            Open="@IsOpen"
@@ -35,6 +36,16 @@
                     </div>
                 </div>
                 <div class="chat-header-actions">
+                    @* Location indicator - Phase 0 *@
+                    <button class="location-indicator-btn @(CurrentLocation != null ? "" : "no-location")" 
+                            @onclick="OnLocationClick"
+                            title="@(CurrentLocation?.DisplayName ?? "Establecer ubicación")">
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" 
+                                 Color="@(CurrentLocation != null ? Color.Primary : Color.Default)" />
+                        <span class="location-text">
+                            @(CurrentLocation?.City ?? "Ubicación")
+                        </span>
+                    </button>
                     <button class="chat-close-btn" @onclick="OnClose">
                         <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
                     </button>
@@ -56,6 +67,44 @@
         </div>
     </div>
 </MudDrawer>
+
+<style>
+    .location-indicator-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border: none;
+        background: rgba(var(--mud-palette-primary-rgb), 0.1);
+        border-radius: 16px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--mud-palette-text-primary);
+        transition: all 0.2s ease;
+        margin-right: 8px;
+    }
+    
+    .location-indicator-btn:hover {
+        background: rgba(var(--mud-palette-primary-rgb), 0.2);
+    }
+    
+    .location-indicator-btn.no-location {
+        background: rgba(var(--mud-palette-warning-rgb), 0.1);
+        animation: pulse-location 2s infinite;
+    }
+    
+    .location-text {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    @@keyframes pulse-location {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+</style>
 
 @code {
     /// <summary>
@@ -159,6 +208,18 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResultFollow { get; set; }
+
+    /// <summary>
+    /// Current location context for proximity-aware searches (Phase 0)
+    /// </summary>
+    [Parameter]
+    public ChatLocationContext? CurrentLocation { get; set; }
+
+    /// <summary>
+    /// Callback when location indicator is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnLocationClick { get; set; }
 
     protected override void OnParametersSet()
     {

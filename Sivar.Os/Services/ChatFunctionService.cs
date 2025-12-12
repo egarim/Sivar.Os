@@ -168,7 +168,7 @@ public class ChatFunctionService
     /// <summary>
     /// Search for posts by content, author, or location
     /// </summary>
-    [Description("Search for posts on the social network. Searches content, author names, and location (city/country). Use this for queries like 'pizzerias in San Salvador' or 'events near downtown'.")]
+    [Description("Search for posts on the social network. Searches content, author names, and location (city/country). Use this for queries like 'pizzerias in San Salvador' or 'events near downtown'. When user asks for 'near me' or 'cerca de mi', the search will use their current location.")]
     public async Task<string> SearchPosts(
         [Description("Search keywords - can be post content, business name, or type of place")]
         string query,
@@ -182,8 +182,8 @@ public class ChatFunctionService
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
-        _logger.LogInformation("[ChatFunctionService.SearchPosts] START - RequestId={RequestId}, Query={Query}, City={City}, Country={Country}, MaxResults={MaxResults}",
-            requestId, query, city, country, maxResults);
+        _logger.LogInformation("[ChatFunctionService.SearchPosts] START - RequestId={RequestId}, Query={Query}, City={City}, Country={Country}, MaxResults={MaxResults}, HasLocation={HasLocation}",
+            requestId, query, city, country, maxResults, _currentLocation.HasValue);
 
         try
         {
@@ -201,7 +201,7 @@ public class ChatFunctionService
             // Get all posts
             var allPosts = await _postRepository.GetAllAsync();
             
-            var matchingPosts = allPosts
+            var filteredPosts = allPosts
                 .Where(p => !p.IsDeleted)
                 .Where(p =>
                 {
@@ -240,33 +240,85 @@ public class ChatFunctionService
 
                     return matches;
                 })
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(maxResults)
-                .Select(p => new
-                {
-                    id = p.Id,
-                    content = p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
-                    authorName = p.Profile?.DisplayName ?? "Unknown",
-                    authorHandle = p.Profile?.Handle,
-                    authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
-                    postType = p.PostType.ToString(),
-                    location = p.Location != null ? new
-                    {
-                        city = p.Location.City,
-                        state = p.Location.State,
-                        country = p.Location.Country,
-                        hasCoordinates = p.Location.Latitude.HasValue && p.Location.Longitude.HasValue
-                    } : null,
-                    createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                    link = $"/post/{p.Id}"
-                })
                 .ToList();
 
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogInformation("[ChatFunctionService.SearchPosts] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms",
-                requestId, matchingPosts.Count, elapsed);
+            // If user has location, calculate distances and sort by proximity
+            IEnumerable<dynamic> matchingPosts;
+            
+            if (_currentLocation.HasValue)
+            {
+                var (userLat, userLng) = _currentLocation.Value;
+                
+                matchingPosts = filteredPosts
+                    .Select(p => new
+                    {
+                        Post = p,
+                        DistanceKm = p.Location?.Latitude.HasValue == true && p.Location?.Longitude.HasValue == true
+                            ? CalculateDistanceKm(userLat, userLng, p.Location.Latitude.Value, p.Location.Longitude.Value)
+                            : (double?)null
+                    })
+                    .OrderBy(x => x.DistanceKm ?? double.MaxValue) // Sort by distance (nearest first)
+                    .ThenByDescending(x => x.Post.CreatedAt)
+                    .Take(maxResults)
+                    .Select(x => (dynamic)new
+                    {
+                        id = x.Post.Id,
+                        content = x.Post.Content.Length > 200 ? x.Post.Content.Substring(0, 200) + "..." : x.Post.Content,
+                        authorName = x.Post.Profile?.DisplayName ?? "Unknown",
+                        authorHandle = x.Post.Profile?.Handle,
+                        authorType = x.Post.Profile?.ProfileType?.Name ?? "Unknown",
+                        postType = x.Post.PostType.ToString(),
+                        location = x.Post.Location != null ? new
+                        {
+                            city = x.Post.Location.City,
+                            state = x.Post.Location.State,
+                            country = x.Post.Location.Country,
+                            hasCoordinates = x.Post.Location.Latitude.HasValue && x.Post.Location.Longitude.HasValue
+                        } : null,
+                        distanceKm = x.DistanceKm.HasValue ? Math.Round(x.DistanceKm.Value, 1) : (double?)null,
+                        distanceText = x.DistanceKm.HasValue 
+                            ? (x.DistanceKm.Value < 1 ? $"{(int)(x.DistanceKm.Value * 1000)}m" : $"{x.DistanceKm.Value:F1}km")
+                            : null,
+                        createdAt = x.Post.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                        link = $"/post/{x.Post.Id}"
+                    })
+                    .ToList();
+            }
+            else
+            {
+                // No location context - sort by recency
+                matchingPosts = filteredPosts
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Take(maxResults)
+                    .Select(p => (dynamic)new
+                    {
+                        id = p.Id,
+                        content = p.Content.Length > 200 ? p.Content.Substring(0, 200) + "..." : p.Content,
+                        authorName = p.Profile?.DisplayName ?? "Unknown",
+                        authorHandle = p.Profile?.Handle,
+                        authorType = p.Profile?.ProfileType?.Name ?? "Unknown",
+                        postType = p.PostType.ToString(),
+                        location = p.Location != null ? new
+                        {
+                            city = p.Location.City,
+                            state = p.Location.State,
+                            country = p.Location.Country,
+                            hasCoordinates = p.Location.Latitude.HasValue && p.Location.Longitude.HasValue
+                        } : null,
+                        distanceKm = (double?)null,
+                        distanceText = (string?)null,
+                        createdAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                        link = $"/post/{p.Id}"
+                    })
+                    .ToList();
+            }
 
-            if (!matchingPosts.Any())
+            var resultsList = matchingPosts.ToList();
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchPosts] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms, SortedByDistance={SortedByDistance}",
+                requestId, resultsList.Count, elapsed, _currentLocation.HasValue);
+
+            if (!resultsList.Any())
             {
                 var searchCriteria = new List<string>();
                 if (!string.IsNullOrWhiteSpace(query)) searchCriteria.Add($"'{query}'");
@@ -279,8 +331,9 @@ public class ChatFunctionService
             return JsonSerializer.Serialize(new
             {
                 searchCriteria = new { query, city, country },
-                count = matchingPosts.Count,
-                posts = matchingPosts
+                count = resultsList.Count,
+                sortedByDistance = _currentLocation.HasValue,
+                posts = resultsList
             }, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
@@ -291,6 +344,23 @@ public class ChatFunctionService
             return $"Error searching posts: {ex.Message}";
         }
     }
+
+    /// <summary>
+    /// Calculate distance between two points using Haversine formula
+    /// </summary>
+    private static double CalculateDistanceKm(double lat1, double lng1, double lat2, double lng2)
+    {
+        const double R = 6371; // Earth's radius in km
+        var dLat = ToRadians(lat2 - lat1);
+        var dLng = ToRadians(lng2 - lng1);
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                Math.Sin(dLng / 2) * Math.Sin(dLng / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
+    }
+
+    private static double ToRadians(double degrees) => degrees * Math.PI / 180;
 
     /// <summary>
     /// Get detailed information about a specific post
