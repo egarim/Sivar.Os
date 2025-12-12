@@ -22,4 +22,14 @@ public interface ISivarChatClient
     Task<SavedResultDto> SaveResultAsync(Guid profileId, CreateSavedResultDto request, CancellationToken cancellationToken = default);
     Task DeleteSavedResultAsync(Guid profileId, Guid resultId, CancellationToken cancellationToken = default);
     Task DeleteAllSavedResultsAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    // Chat Bot Settings (Phase 0.5)
+    /// <summary>
+    /// Gets chat bot settings for a culture
+    /// </summary>
+    /// <param name="culture">Culture code (e.g., "es", "en")</param>
+    /// <param name="region">Optional region code (e.g., "SV")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Chat bot settings</returns>
+    Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default);
 }

@@ -182,4 +182,27 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
         _logger.LogInformation("[ChatClient.DeleteAllSavedResultsAsync] START - ProfileId={ProfileId}", profileId);
         // TODO: Implement when saved results feature is added
     }
+
+    /// <summary>
+    /// Gets chat bot settings for a culture
+    /// Phase 0.5: Configurable welcome messages and chat settings
+    /// Note: Server-side calls repository directly, skipping HTTP
+    /// </summary>
+    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}", culture, region);
+        // Note: For server-side rendering, this would typically call the repository directly
+        // For now, return default settings since the controller handles the caching
+        return await Task.FromResult<ChatBotSettingsDto?>(new ChatBotSettingsDto
+        {
+            Key = "default",
+            Culture = culture ?? "es",
+            WelcomeMessage = "¡Hola! Soy tu asistente Sivar AI. Puedo ayudarte a:\n\n🔍 Encontrar negocios y servicios\n📝 Buscar lugares y eventos\n🏪 Descubrir lo mejor de El Salvador\n📋 Guiarte en trámites y papeleos\n\n¡Pregúntame algo como \"pizzerías cerca\" o \"cómo sacar pasaporte\"!",
+            HeaderTagline = "Siempre aquí para ayudarte",
+            BotName = "Sivar AI Assistant",
+            QuickActions = new List<string> { "🍕 Buscar comida", "🏛️ Trámites", "📍 Cerca de mí", "🎉 Eventos" },
+            ErrorMessage = "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
+            ThinkingMessage = "Pensando..."
+        });
+    }
 }

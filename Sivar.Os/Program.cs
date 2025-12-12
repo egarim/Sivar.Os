@@ -94,6 +94,8 @@ builder.Services.AddScoped<AnalyticsRepository>(); // Phase 7: Continuous Aggreg
 // Phase 1: Contact Actions - Repository registration
 builder.Services.AddScoped<IContactTypeRepository, ContactTypeRepository>();
 builder.Services.AddScoped<IBusinessContactInfoRepository, BusinessContactInfoRepository>();
+// Phase 0.5: Chat Bot Settings - Repository registration
+builder.Services.AddScoped<IChatBotSettingsRepository, ChatBotSettingsRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -288,6 +290,9 @@ builder.Services.AddScoped<BrowserPermissionsService>();
 
 // Register chat location service for Phase 0: Location-Aware Chat
 builder.Services.AddScoped<ChatLocationService>();
+
+// Register chat settings service for Phase 0.5: Configurable welcome messages
+builder.Services.AddScoped<ChatSettingsService>();
 
 // Register culture service for localization
 builder.Services.AddScoped<ICultureService, CultureService>();

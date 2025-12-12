@@ -105,6 +105,12 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<BusinessContactInfo> BusinessContactInfos { get; set; } = null!;
 
+    /// <summary>
+    /// Chat bot settings for configurable welcome messages and prompts
+    /// Phase 0.5: Database-driven chat configuration
+    /// </summary>
+    public DbSet<ChatBotSettings> ChatBotSettings { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -130,6 +136,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ProfileEmotionSummaryConfiguration());
         modelBuilder.ApplyConfiguration(new ContactTypeConfiguration());
         modelBuilder.ApplyConfiguration(new BusinessContactInfoConfiguration());
+        modelBuilder.ApplyConfiguration(new ChatBotSettingsConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

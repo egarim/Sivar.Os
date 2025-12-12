@@ -12,6 +12,7 @@
 @inject IJSRuntime JS
 @inject ISivarClient SivarClient
 @inject ILogger<MainLayout> Logger
+@inject ChatSettingsService ChatSettings
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -711,6 +712,10 @@
 
         try
         {
+            // Phase 0.5: Load chat settings from database
+            Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Loading chat settings - InitId={InitId}", initId);
+            await ChatSettings.LoadSettingsAsync();
+            
             // Get current user's profile
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching active profile - InitId={InitId}", initId);
             _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
@@ -776,16 +781,10 @@
         
         Logger.LogInformation("[MainLayout.CreateLocalWelcomeConversation] Created - ConversationId={ConversationId}", _currentConversationId);
         
-        var welcomeMessage = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
-
-🔍 Find profiles and businesses
-📝 Search posts and content
-🏪 Discover local services
-📊 Explore activity streams
-
-Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+        // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+        var welcomeMessage = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
         {
-            QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+            QuickActions = ChatSettings.GetQuickActions()
         };
         
         _chatMessages = new List<ChatMessage> { welcomeMessage };
@@ -998,16 +997,10 @@ Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "w
         {
             Logger.LogInformation("[MainLayout.LoadConversationAsync] Adding welcome message - ConversationId={ConversationId}, LoadId={LoadId}", 
                 conversationId, loadId);
-            var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
-
-🔍 Find profiles and businesses
-📝 Search posts and content
-🏪 Discover local services
-📊 Explore activity streams
-
-Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+            // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+            var welcome = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
             {
-                QuickActions = new List<string> { "🍕 Find pizza", "💼 Tech companies", "🎉 Events", "💼 Jobs" }
+                QuickActions = ChatSettings.GetQuickActions()
             };
             _chatMessages.Add(welcome);
         }

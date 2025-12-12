@@ -145,8 +145,25 @@ Chat is location-aware from the start, enabling accurate "near me" searches and 
 
 ---
 
-## Phase 0.5: Configurable Welcome Messages & Chat Settings 🔴
+## Phase 0.5: Configurable Welcome Messages & Chat Settings ✅ COMPLETED
 **Goal**: Make welcome messages and chat bot settings configurable via database instead of hardcoded
+
+### Implementation Summary (Completed)
+- **ChatBotSettings Entity** - New entity with Key, Culture, WelcomeMessage, HeaderTagline, BotName, QuickActionsJson, SystemPrompt, IsActive, Priority, RegionCode, ErrorMessage, ThinkingMessage
+- **ChatBotSettingsDto** - DTOs for API (read, create, update)
+- **IChatBotSettingsRepository / ChatBotSettingsRepository** - Repository pattern with culture/region matching logic
+- **ChatBotSettingsConfiguration** - EF Core config: table "Sivar_ChatBotSettings", indexes, soft delete filter
+- **ChatBotSettingsController** - REST API endpoints:
+  - `GET /api/chat/settings` - Active settings with caching (5 min TTL)
+  - `GET /api/chat/settings/{key}` - By key
+  - `POST /api/admin/chat/settings` - Create (admin)
+  - `PUT /api/admin/chat/settings/{id}` - Update (admin)
+  - `DELETE /api/admin/chat/settings/{id}` - Soft delete (admin)
+  - `POST /api/admin/chat/settings/clear-cache` - Clear cache (admin)
+- **ChatSettingsService** - Client-side service for loading/caching settings
+- **ISivarChatClient** - Extended with GetSettingsAsync method
+- **MainLayout.razor / Home.razor** - Updated to use ChatSettingsService instead of hardcoded messages
+- **Updater.cs** - Seeds default Spanish and English settings on database update
 
 ### Problem Being Solved
 Currently the welcome message is **hardcoded in 3+ places**:

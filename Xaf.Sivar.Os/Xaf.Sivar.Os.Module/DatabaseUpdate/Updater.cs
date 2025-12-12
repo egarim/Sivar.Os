@@ -115,6 +115,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists contact types
             
+            // Seed chat bot settings (Phase 0.5: Configurable welcome messages)
+            SeedChatBotSettings();
+            
+            ObjectSpace.CommitChanges(); //This line persists chat bot settings
+            
             // Seed default profiles for users (runs in both DEBUG and RELEASE)
             SeedDefaultProfiles();
 
@@ -812,6 +817,85 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 organizationProfileType.CreatedAt = now;
                 organizationProfileType.UpdatedAt = now;
             }
+        }
+        
+        /// <summary>
+        /// Seeds default chat bot settings for Phase 0.5: Configurable welcome messages
+        /// Creates default settings for Spanish (es) culture
+        /// </summary>
+        void SeedChatBotSettings()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedChatBotSettings...");
+            var now = DateTime.UtcNow;
+
+            // Check if default settings already exist
+            var existingSettings = ObjectSpace.FirstOrDefault<ChatBotSettings>(s => s.Key == "default");
+            if (existingSettings != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Default ChatBotSettings already exists. Skipping.");
+                return;
+            }
+
+            // Create default settings (Spanish)
+            var defaultSettings = ObjectSpace.CreateObject<ChatBotSettings>();
+            defaultSettings.Id = Guid.Parse("a0000001-0001-0001-0001-000000000001");
+            defaultSettings.Key = "default";
+            defaultSettings.Culture = "es";
+            defaultSettings.WelcomeMessage = @"¡Hola! Soy tu asistente Sivar AI. Puedo ayudarte a:
+
+🔍 Encontrar negocios y servicios
+📝 Buscar lugares y eventos
+🏪 Descubrir lo mejor de El Salvador
+📋 Guiarte en trámites y papeleos
+
+¡Pregúntame algo como ""pizzerías cerca"" o ""cómo sacar pasaporte""!";
+            defaultSettings.HeaderTagline = "Siempre aquí para ayudarte";
+            defaultSettings.BotName = "Sivar AI Assistant";
+            defaultSettings.QuickActionsJson = @"[""🍕 Buscar comida"", ""🏛️ Trámites"", ""📍 Cerca de mí"", ""🎉 Eventos""]";
+            defaultSettings.SystemPrompt = @"Eres Sivar AI, un asistente virtual amigable y conocedor de El Salvador. 
+Ayudas a los usuarios a encontrar negocios, servicios, lugares y eventos en El Salvador.
+Respondes en español de forma concisa y útil.
+Cuando busques información, usa las funciones disponibles para buscar en la base de datos.
+Siempre sé cortés y positivo.";
+            defaultSettings.ErrorMessage = "Lo siento, ocurrió un error. Por favor intenta de nuevo.";
+            defaultSettings.ThinkingMessage = "Pensando...";
+            defaultSettings.IsActive = true;
+            defaultSettings.Priority = 0;
+            defaultSettings.RegionCode = "SV";
+            defaultSettings.CreatedAt = now;
+            defaultSettings.UpdatedAt = now;
+
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created default ChatBotSettings.");
+
+            // Create English settings
+            var englishSettings = ObjectSpace.CreateObject<ChatBotSettings>();
+            englishSettings.Id = Guid.Parse("a0000001-0001-0001-0001-000000000002");
+            englishSettings.Key = "en";
+            englishSettings.Culture = "en";
+            englishSettings.WelcomeMessage = @"Hello! I'm your Sivar AI assistant. I can help you:
+
+🔍 Find businesses and services
+📝 Search for places and events
+🏪 Discover the best of El Salvador
+📋 Guide you through procedures and paperwork
+
+Ask me something like ""pizza places nearby"" or ""how to get a passport""!";
+            englishSettings.HeaderTagline = "Always here to help you explore";
+            englishSettings.BotName = "Sivar AI Assistant";
+            englishSettings.QuickActionsJson = @"[""🍕 Find food"", ""🏛️ Procedures"", ""📍 Near me"", ""🎉 Events""]";
+            englishSettings.SystemPrompt = @"You are Sivar AI, a friendly and knowledgeable virtual assistant for El Salvador.
+You help users find businesses, services, places, and events in El Salvador.
+Respond concisely and helpfully.
+When searching for information, use available functions to search the database.
+Always be polite and positive.";
+            englishSettings.ErrorMessage = "Sorry, an error occurred. Please try again.";
+            englishSettings.ThinkingMessage = "Thinking...";
+            englishSettings.IsActive = true;
+            englishSettings.Priority = 0;
+            englishSettings.CreatedAt = now;
+            englishSettings.UpdatedAt = now;
+
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created English ChatBotSettings.");
         }
         
         /// <summary>

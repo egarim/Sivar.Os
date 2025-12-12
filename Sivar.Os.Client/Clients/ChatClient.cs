@@ -126,4 +126,26 @@ public class ChatClient : BaseClient, ISivarChatClient
     {
         await DeleteAsync($"api/profiles/{profileId}/savedresults", cancellationToken);
     }
+
+    /// <summary>
+    /// Gets chat bot settings for a culture
+    /// Phase 0.5: Configurable welcome messages and chat settings
+    /// </summary>
+    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default)
+    {
+        var endpoint = $"api/chat/settings?culture={culture ?? "es"}&region={region ?? ""}";
+        _logger?.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}", culture, region);
+        
+        try
+        {
+            var result = await GetAsync<ChatBotSettingsDto>(endpoint, cancellationToken);
+            _logger?.LogInformation("[ChatClient.GetSettingsAsync] SUCCESS - Key={Key}", result?.Key);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[ChatClient.GetSettingsAsync] FAILED - Error={Error}", ex.Message);
+            return null;
+        }
+    }
 }

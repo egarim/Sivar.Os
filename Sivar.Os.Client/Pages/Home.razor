@@ -34,6 +34,7 @@
 @inject IDialogService _dialogService
 @inject IProfileSwitcherService ProfileSwitcherService
 @inject IStringLocalizer<Home> Localizer
+@inject ChatSettingsService ChatSettings
 @implements IAsyncDisposable
 
 @* All CSS has been moved to external files in wwwroot/css/ for better organization and maintainability *@
@@ -914,16 +915,10 @@
         _chatMessages = _conversationMessages[id];
         if (!_chatMessages.Any())
         {
-            var welcome = new ChatMessage("ai", @"Hi! I'm your Sivar AI assistant. I can help you:
-
-?? Find profiles and businesses
-?? Search posts and content
-?? Discover local services
-?? Explore activity streams
-
-Try asking me something like ""I want a pizza"" or ""Find tech companies""!", "welcome")
+            // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+            var welcome = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
             {
-                QuickActions = new List<string> { "?? Find pizza", "?? Tech companies", "?? Events", "?? Jobs" }
+                QuickActions = ChatSettings.GetQuickActions()
             };
             _chatMessages.Add(welcome);
         }

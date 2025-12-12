@@ -73,6 +73,9 @@ builder.Services.AddScoped<BrowserPermissionsService>();
 // Register chat location service for Phase 0: Location-Aware Chat
 builder.Services.AddScoped<ChatLocationService>();
 
+// Register chat settings service for Phase 0.5: Configurable welcome messages
+builder.Services.AddScoped<ChatSettingsService>();
+
 // Register localization services
 builder.Services.AddLocalization();
 
