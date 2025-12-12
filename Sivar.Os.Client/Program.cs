@@ -160,6 +160,13 @@ builder.Services.AddScoped<IFilesClient>(sp =>
     return new FilesClient(httpClient, options.Value);
 });
 
+builder.Services.AddScoped<IContactsClient>(sp =>
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var options = sp.GetRequiredService<IOptions<SivarClientOptions>>();
+    return new ContactsClient(httpClient, options.Value);
+});
+
 // Register image compression service for optimizing uploads
 builder.Services.AddScoped<IImageCompressionService, ImageCompressionService>();
 

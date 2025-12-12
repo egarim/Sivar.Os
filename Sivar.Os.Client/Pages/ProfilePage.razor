@@ -5,6 +5,7 @@
 @using Sivar.Os.Client.Components.Layout
 @using Sivar.Os.Client.Components.Profile
 @using Sivar.Os.Client.Components.Feed
+@using Sivar.Os.Client.Components.Shared
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
@@ -15,6 +16,7 @@
 @inject IProfilesClient ProfilesClient
 @inject IFollowersClient FollowersClient
 @inject IPostsClient PostsClient
+@inject IContactsClient ContactsClient
 @inject ILogger<ProfilePage> Logger
 @inject IStringLocalizer<ProfilePage> Localizer
 
@@ -297,6 +299,33 @@
             SelectedTab="@selectedContentTab"
             SelectedTabChanged="@OnContentTabChanged" />
 
+        @* Contact Actions for Business Profiles *@
+        @if (IsBusinessProfile() && profileContacts.Any())
+        {
+            <MudPaper Class="mt-3 pa-3" Elevation="0" Style="background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
+                <div class="d-flex align-center gap-2 mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.ContactPhone" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Contacto</MudText>
+                </div>
+                <ContactActions 
+                    Contacts="@profileContacts"
+                    MaxTotal="6"
+                    GroupByCategory="false"
+                    ButtonSize="Size.Small"
+                    ButtonVariant="Variant.Outlined"
+                    IconOnly="false" />
+            </MudPaper>
+        }
+        else if (isLoadingContacts && IsBusinessProfile())
+        {
+            <MudPaper Class="mt-3 pa-3" Elevation="0" Style="background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
+                <div class="d-flex align-center justify-center gap-2">
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                    <MudText Typo="Typo.body2">Cargando contactos...</MudText>
+                </div>
+            </MudPaper>
+        }
+
         @if (isLoadingPosts)
         {
             <MudCard Class="mt-4">
@@ -378,6 +407,10 @@
     // Content tabs state
     private string viewedProfileTypeName = "PersonalProfile";
     private string selectedContentTab = "activity";
+    
+    // Contacts state (for business profiles)
+    private List<ContactDisplayDto> profileContacts = new();
+    private bool isLoadingContacts = false;
     
     // Helper to check if viewing own profile
     private bool IsOwnProfile => viewedProfileId.HasValue && 
@@ -474,6 +507,12 @@
                 
                 // Load posts for this profile (based on selected content tab)
                 await LoadPostsAsync();
+                
+                // Load contacts for business profiles
+                if (IsBusinessProfile())
+                {
+                    await LoadContactsAsync(profile.Id);
+                }
             }
         }
         catch (Exception ex)
@@ -486,6 +525,37 @@
         {
             isLoading = false;
             StateHasChanged();
+        }
+    }
+    
+    private bool IsBusinessProfile()
+    {
+        // Check if this is a business-type profile
+        var businessProfileTypes = new[] { "BusinessProfile", "OrganizationProfile", "RestaurantProfile", "HotelProfile", "GovernmentProfile" };
+        return businessProfileTypes.Contains(viewedProfileTypeName, StringComparer.OrdinalIgnoreCase);
+    }
+    
+    private async Task LoadContactsAsync(Guid profileId)
+    {
+        try
+        {
+            isLoadingContacts = true;
+            Logger.LogInformation("[LoadContactsAsync] Loading contacts for profile: {ProfileId}", profileId);
+            
+            var contacts = await ContactsClient.GetContactsByProfileAsync(profileId);
+            profileContacts = contacts?.ToList() ?? new List<ContactDisplayDto>();
+            
+            Logger.LogInformation("[LoadContactsAsync] Loaded {Count} contacts for profile: {ProfileId}", 
+                profileContacts.Count, profileId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[LoadContactsAsync] Error loading contacts for profile: {ProfileId}", profileId);
+            profileContacts = new List<ContactDisplayDto>();
+        }
+        finally
+        {
+            isLoadingContacts = false;
         }
     }
 

@@ -274,6 +274,7 @@ builder.Services.AddScoped<INotificationsClient, NotificationsClient>();
 builder.Services.AddScoped<ISivarChatClient, ChatClient>();
 builder.Services.AddScoped<IFilesClient, FilesClient>();
 builder.Services.AddScoped<IActivitiesClient, ActivitiesClient>();
+builder.Services.AddScoped<IContactsClient, ContactsClient>();
 
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();
