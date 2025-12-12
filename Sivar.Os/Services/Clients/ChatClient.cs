@@ -1,4 +1,5 @@
 
+using Microsoft.Extensions.Caching.Memory;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Repositories;
@@ -15,17 +16,26 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
     private readonly IChatService _chatService;
     private readonly IConversationRepository _conversationRepository;
     private readonly IChatMessageRepository _chatMessageRepository;
+    private readonly IChatBotSettingsRepository _settingsRepository;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<ChatClient> _logger;
+
+    private const string CacheKeyPrefix = "ChatBotSettings_";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     public ChatClient(
         IChatService chatService,
         IConversationRepository conversationRepository,
         IChatMessageRepository chatMessageRepository,
+        IChatBotSettingsRepository settingsRepository,
+        IMemoryCache cache,
         ILogger<ChatClient> logger)
     {
         _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
         _chatMessageRepository = chatMessageRepository ?? throw new ArgumentNullException(nameof(chatMessageRepository));
+        _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -186,23 +196,117 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
     /// <summary>
     /// Gets chat bot settings for a culture
     /// Phase 0.5: Configurable welcome messages and chat settings
-    /// Note: Server-side calls repository directly, skipping HTTP
+    /// Phase 0.6: Properly queries database for relational QuickActions
     /// </summary>
-    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default)
+    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, bool forceReload = false, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}", culture, region);
-        // Note: For server-side rendering, this would typically call the repository directly
-        // For now, return default settings since the controller handles the caching
-        return await Task.FromResult<ChatBotSettingsDto?>(new ChatBotSettingsDto
+        _logger.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}, ForceReload={ForceReload}", culture, region, forceReload);
+        
+        try
         {
+            var cacheKey = $"{CacheKeyPrefix}{culture ?? "default"}_{region ?? "any"}";
+            
+            // Clear cache if force reload requested
+            if (forceReload)
+            {
+                _cache.Remove(cacheKey);
+                _logger.LogInformation("[ChatClient.GetSettingsAsync] Cache cleared for {CacheKey}", cacheKey);
+            }
+            
+            if (!forceReload && _cache.TryGetValue(cacheKey, out ChatBotSettingsDto? cachedSettings) && cachedSettings != null)
+            {
+                _logger.LogDebug("[ChatClient.GetSettingsAsync] Returning cached settings for {Culture}/{Region}", culture, region);
+                return cachedSettings;
+            }
+
+            var settings = await _settingsRepository.GetActiveSettingsAsync(culture, region);
+            
+            if (settings == null)
+            {
+                _logger.LogInformation("[ChatClient.GetSettingsAsync] No settings found for {Culture}/{Region}, returning defaults", culture, region);
+                return GetDefaultSettings(culture);
+            }
+
+            var dto = MapToDto(settings);
+            _cache.Set(cacheKey, dto, CacheDuration);
+            
+            _logger.LogInformation("[ChatClient.GetSettingsAsync] SUCCESS - Loaded settings '{Key}' for {Culture}/{Region} with {Count} QuickActionItems", 
+                settings.Key, culture, region, dto.QuickActionItems.Count);
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatClient.GetSettingsAsync] ERROR - Returning defaults");
+            return GetDefaultSettings(culture);
+        }
+    }
+
+    private ChatBotSettingsDto MapToDto(Sivar.Os.Shared.Entities.ChatBotSettings settings)
+    {
+        // Log quick actions from database for debugging
+        _logger.LogInformation("[ChatClient] 📊 Settings '{Key}' has {Count} QuickAction entities",
+            settings.Key, settings.QuickActions?.Count ?? 0);
+        
+        if (settings.QuickActions != null)
+        {
+            foreach (var qa in settings.QuickActions)
+            {
+                _logger.LogInformation("[ChatClient] 📋 QuickAction: Label='{Label}', IsActive={IsActive}, IsDeleted={IsDeleted}",
+                    qa.Label, qa.IsActive, qa.IsDeleted);
+            }
+        }
+
+        // Map QuickAction entities to DTOs - FILTER by IsActive and !IsDeleted
+        var quickActionItems = settings.QuickActions?
+            .Where(qa => qa.IsActive && !qa.IsDeleted)
+            .OrderBy(qa => qa.SortOrder)
+            .Select(qa => new QuickActionDto
+            {
+                Id = qa.Id,
+                Label = qa.Label,
+                Icon = qa.Icon,
+                MudBlazorIcon = qa.MudBlazorIcon,
+                Color = qa.Color,
+                DefaultQuery = qa.DefaultQuery,
+                ContextHint = qa.ContextHint,
+                SortOrder = qa.SortOrder,
+                RequiresLocation = qa.RequiresLocation,
+                IsActive = qa.IsActive,
+                CapabilityKey = qa.Capability?.Key
+            })
+            .ToList() ?? new();
+        
+        _logger.LogInformation("[ChatClient] ✅ Mapped {Count} active QuickActionItems for settings '{Key}'",
+            quickActionItems.Count, settings.Key);
+
+        return new ChatBotSettingsDto
+        {
+            Id = settings.Id,
+            Key = settings.Key,
+            Culture = settings.Culture,
+            WelcomeMessage = settings.WelcomeMessage,
+            HeaderTagline = settings.HeaderTagline,
+            BotName = settings.BotName,
+            QuickActionItems = quickActionItems,
+            SystemPrompt = settings.SystemPrompt,
+            ErrorMessage = settings.ErrorMessage,
+            ThinkingMessage = settings.ThinkingMessage
+        };
+    }
+
+    private ChatBotSettingsDto GetDefaultSettings(string? culture)
+    {
+        return new ChatBotSettingsDto
+        {
+            Id = Guid.Empty,
             Key = "default",
             Culture = culture ?? "es",
             WelcomeMessage = "¡Hola! Soy tu asistente Sivar AI. Puedo ayudarte a:\n\n🔍 Encontrar negocios y servicios\n📝 Buscar lugares y eventos\n🏪 Descubrir lo mejor de El Salvador\n📋 Guiarte en trámites y papeleos\n\n¡Pregúntame algo como \"pizzerías cerca\" o \"cómo sacar pasaporte\"!",
             HeaderTagline = "Siempre aquí para ayudarte",
             BotName = "Sivar AI Assistant",
-            QuickActions = new List<string> { "🍕 Buscar comida", "🏛️ Trámites", "📍 Cerca de mí", "🎉 Eventos" },
+            QuickActionItems = new List<QuickActionDto>(),
             ErrorMessage = "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
             ThinkingMessage = "Pensando..."
-        });
+        };
     }
 }

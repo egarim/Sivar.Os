@@ -65,6 +65,12 @@ public class ChatBotSettingsConfiguration : IEntityTypeConfiguration<ChatBotSett
         builder.Property(s => s.IsDeleted)
             .HasDefaultValue(false);
 
+        // Relationships
+        builder.HasMany(s => s.QuickActions)
+            .WithOne(q => q.ChatBotSettings)
+            .HasForeignKey(q => q.ChatBotSettingsId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Indexes
         builder.HasIndex(s => s.Key)
             .IsUnique()

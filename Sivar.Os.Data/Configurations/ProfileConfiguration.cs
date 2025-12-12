@@ -127,11 +127,17 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
         // Computed properties
         builder.Ignore(p => p.LocationDisplay);
 
-        // ⚠️ CRITICAL: PostGIS columns - IGNORED by EF Core (following pgvector pattern)
-        // These columns exist in database but are managed via raw SQL only
+        // ⚠️ CRITICAL: PostGIS GeoLocation column - IGNORED by EF Core
         // Reason: NetTopologySuite types incompatible with EF Core 9.0
+        // This column is created via Database/Scripts/003_AddPostGISLocationSupport.sql
         builder.Ignore(p => p.GeoLocation);
-        builder.Ignore(p => p.GeoLocationUpdatedAt);
-        builder.Ignore(p => p.GeoLocationSource);
+        
+        // GeoLocationUpdatedAt and GeoLocationSource are simple types - EF Core manages them
+        builder.Property(p => p.GeoLocationUpdatedAt)
+            .HasColumnName("GeoLocationUpdatedAt");
+            
+        builder.Property(p => p.GeoLocationSource)
+            .HasMaxLength(20)
+            .HasDefaultValue("Manual");
     }
 }

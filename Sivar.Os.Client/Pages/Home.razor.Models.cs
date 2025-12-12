@@ -152,7 +152,13 @@ public class ChatMessage
     public DateTime Time { get; set; } = DateTime.Now;
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public ChatResultCard? ResultCard { get; set; }
-    public List<string>? QuickActions { get; set; }
+    public List<string>? QuickActions { get; set; } // Legacy - simple strings
+    
+    /// <summary>
+    /// Quick action items with full metadata (label, default query, etc.)
+    /// Phase 0.6: Relational quick actions
+    /// </summary>
+    public List<Sivar.Os.Shared.DTOs.QuickActionDto>? QuickActionItems { get; set; }
     
     /// <summary>
     /// Structured search results for card-based rendering

@@ -131,10 +131,10 @@ public class ChatClient : BaseClient, ISivarChatClient
     /// Gets chat bot settings for a culture
     /// Phase 0.5: Configurable welcome messages and chat settings
     /// </summary>
-    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default)
+    public async Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, bool forceReload = false, CancellationToken cancellationToken = default)
     {
-        var endpoint = $"api/chat/settings?culture={culture ?? "es"}&region={region ?? ""}";
-        _logger?.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}", culture, region);
+        var endpoint = $"api/chat/settings?culture={culture ?? "es"}&region={region ?? ""}&forceReload={forceReload}";
+        _logger?.LogInformation("[ChatClient.GetSettingsAsync] START - Culture={Culture}, Region={Region}, ForceReload={ForceReload}", culture, region, forceReload);
         
         try
         {

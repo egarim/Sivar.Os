@@ -782,9 +782,15 @@
         Logger.LogInformation("[MainLayout.CreateLocalWelcomeConversation] Created - ConversationId={ConversationId}", _currentConversationId);
         
         // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+        // Phase 0.6: Use QuickActionItems (relational) - stores full DTO for DefaultQuery support
+        var quickActionItems = ChatSettings.GetQuickActionItems()
+            .Where(qa => qa.IsActive)
+            .OrderBy(qa => qa.SortOrder)
+            .ToList();
+        
         var welcomeMessage = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
         {
-            QuickActions = ChatSettings.GetQuickActions()
+            QuickActionItems = quickActionItems
         };
         
         _chatMessages = new List<ChatMessage> { welcomeMessage };
@@ -849,6 +855,10 @@
         var createId = Guid.NewGuid().ToString()[..8];
         Logger.LogInformation("[MainLayout.CreateNewConversationAsync] START - CreateId={CreateId}, HasProfile={HasProfile}", 
             createId, _currentProfile != null);
+        
+        // Force reload settings to get latest QuickActions from database
+        Logger.LogInformation("[MainLayout.CreateNewConversationAsync] Force reloading chat settings - CreateId={CreateId}", createId);
+        await ChatSettings.LoadSettingsAsync(forceReload: true);
         
         if (_currentProfile == null)
         {
@@ -998,9 +1008,15 @@
             Logger.LogInformation("[MainLayout.LoadConversationAsync] Adding welcome message - ConversationId={ConversationId}, LoadId={LoadId}", 
                 conversationId, loadId);
             // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+            // Phase 0.6: Use QuickActionItems (relational) - stores full DTO for DefaultQuery support
+            var quickActionItems = ChatSettings.GetQuickActionItems()
+                .Where(qa => qa.IsActive)
+                .OrderBy(qa => qa.SortOrder)
+                .ToList();
+            
             var welcome = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
             {
-                QuickActions = ChatSettings.GetQuickActions()
+                QuickActionItems = quickActionItems
             };
             _chatMessages.Add(welcome);
         }

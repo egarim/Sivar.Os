@@ -916,9 +916,16 @@
         if (!_chatMessages.Any())
         {
             // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
+            // Phase 0.6: Use QuickActionItems (relational) instead of legacy QuickActions (JSON)
+            // Now stores full QuickActionDto objects so we can use DefaultQuery on click
+            var quickActionItems = ChatSettings.GetQuickActionItems()
+                .Where(qa => qa.IsActive)
+                .OrderBy(qa => qa.SortOrder)
+                .ToList();
+            
             var welcome = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
             {
-                QuickActions = ChatSettings.GetQuickActions()
+                QuickActionItems = quickActionItems
             };
             _chatMessages.Add(welcome);
         }

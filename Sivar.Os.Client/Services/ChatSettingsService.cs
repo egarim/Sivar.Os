@@ -63,13 +63,30 @@ public class ChatSettingsService
 
             _logger.LogInformation("[ChatSettingsService] Loading settings for culture: {Culture}", culture);
             
-            var settings = await _sivarClient.Chat.GetSettingsAsync(culture);
+            var settings = await _sivarClient.Chat.GetSettingsAsync(culture, null, forceReload);
             
             if (settings != null)
             {
                 _currentSettings = settings;
                 _cache.Set(cacheKey, settings, CacheDuration);
-                _logger.LogInformation("[ChatSettingsService] Loaded settings '{Key}' for {Culture}", settings.Key, culture);
+                
+                // Detailed logging for debugging quick actions
+                _logger.LogInformation("[ChatSettingsService] ✅ Loaded settings '{Key}' for {Culture} with {Count} QuickActionItems", 
+                    settings.Key, culture, settings.QuickActionItems?.Count ?? 0);
+                
+                if (settings.QuickActionItems != null && settings.QuickActionItems.Any())
+                {
+                    foreach (var qa in settings.QuickActionItems)
+                    {
+                        _logger.LogInformation("[ChatSettingsService] 📋 QuickAction: Label='{Label}', IsActive={IsActive}, DefaultQuery='{DefaultQuery}', CapabilityKey='{CapabilityKey}'",
+                            qa.Label, qa.IsActive, qa.DefaultQuery, qa.CapabilityKey);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[ChatSettingsService] ⚠️ No QuickActionItems loaded! Check database QuickActions table.");
+                }
+                
                 return settings;
             }
         }
@@ -92,11 +109,11 @@ public class ChatSettingsService
     }
 
     /// <summary>
-    /// Gets quick action buttons
+    /// Gets quick action items with full metadata
     /// </summary>
-    public List<string> GetQuickActions()
+    public List<QuickActionDto> GetQuickActionItems()
     {
-        return CurrentSettings.QuickActions;
+        return CurrentSettings.QuickActionItems;
     }
 
     /// <summary>
@@ -153,12 +170,19 @@ public class ChatSettingsService
     {
         return new ChatBotSettingsDto
         {
+            Id = Guid.Empty,
             Key = "default",
             Culture = "es",
             WelcomeMessage = "¡Hola! Soy tu asistente Sivar AI. Puedo ayudarte a:\n\n🔍 Encontrar negocios y servicios\n📝 Buscar lugares y eventos\n🏪 Descubrir lo mejor de El Salvador\n📋 Guiarte en trámites y papeleos\n\n¡Pregúntame algo como \"pizzerías cerca\" o \"cómo sacar pasaporte\"!",
             HeaderTagline = "Siempre aquí para ayudarte",
             BotName = "Sivar AI Assistant",
-            QuickActions = new List<string> { "🍕 Buscar comida", "🏛️ Trámites", "📍 Cerca de mí", "🎉 Eventos" },
+            QuickActionItems = new List<QuickActionDto>
+            {
+                new() { Id = Guid.NewGuid(), Label = "🍕 Buscar comida", Icon = "🍕", Color = "#FF5722", DefaultQuery = "Buscar restaurantes cerca", SortOrder = 1, RequiresLocation = true },
+                new() { Id = Guid.NewGuid(), Label = "🏛️ Trámites", Icon = "🏛️", Color = "#3F51B5", DefaultQuery = "¿Qué trámites puedo hacer?", SortOrder = 2, RequiresLocation = false },
+                new() { Id = Guid.NewGuid(), Label = "📍 Cerca de mí", Icon = "📍", Color = "#4CAF50", DefaultQuery = "¿Qué hay cerca de mí?", SortOrder = 3, RequiresLocation = true },
+                new() { Id = Guid.NewGuid(), Label = "🎉 Eventos", Icon = "🎉", Color = "#9C27B0", DefaultQuery = "¿Qué eventos hay?", SortOrder = 4, RequiresLocation = false }
+            },
             ErrorMessage = "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
             ThinkingMessage = "Pensando..."
         };

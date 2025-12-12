@@ -27,6 +27,10 @@ namespace Xaf.Sivar.Os.Module
             //
 
             AdditionalExportedTypes.Add(typeof(BusinessContactInfo));
+            AdditionalExportedTypes.Add(typeof(ChatBotSettings));
+            AdditionalExportedTypes.Add(typeof(AgentCapability));
+            AdditionalExportedTypes.Add(typeof(CapabilityParameter));
+            AdditionalExportedTypes.Add(typeof(QuickAction));
             AdditionalExportedTypes.Add(typeof(Activity));
             AdditionalExportedTypes.Add(typeof(Post));
             AdditionalExportedTypes.Add(typeof(User));
@@ -94,6 +98,7 @@ namespace Xaf.Sivar.Os.Module
             if (typeInfo != null)
             {
                 typeInfo.AddAttribute(new DefaultClassOptionsAttribute());
+                typeInfo.AddAttribute(new ModelDefaultAttribute("IsCloneable", "True"));
                 additionalConfig?.Invoke(typeInfo);
             }
         }
@@ -124,6 +129,10 @@ namespace Xaf.Sivar.Os.Module
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SavedResult));
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Activity));
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessContactInfo));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatBotSettings));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AgentCapability));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(CapabilityParameter));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(QuickAction));
         }
     }
 }

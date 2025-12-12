@@ -326,7 +326,18 @@
                 <div class="chat-bubble" style="white-space: pre-line;">@((MarkupString)RenderMarkdown(Message.Text))</div>
             }
             
-            @if (Message.QuickActions != null && Message.QuickActions.Any())
+            @* Phase 0.6: Render QuickActionItems with DefaultQuery support *@
+            @if (Message.QuickActionItems != null && Message.QuickActionItems.Any())
+            {
+                <div class="chat-quick-actions">
+                    @foreach (var qa in Message.QuickActionItems)
+                    {
+                        <button class="quick-action-btn" @onclick="() => OnQuickAction.InvokeAsync(qa.DefaultQuery ?? qa.Label)">@qa.Label</button>
+                    }
+                </div>
+            }
+            @* Legacy: Simple string-based quick actions *@
+            else if (Message.QuickActions != null && Message.QuickActions.Any())
             {
                 <div class="chat-quick-actions">
                     @foreach (var action in Message.QuickActions)

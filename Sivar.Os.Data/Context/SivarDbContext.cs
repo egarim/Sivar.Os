@@ -111,6 +111,21 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<ChatBotSettings> ChatBotSettings { get; set; } = null!;
 
+    /// <summary>
+    /// Agent capabilities - defines what AI functions are available
+    /// </summary>
+    public DbSet<AgentCapability> AgentCapabilities { get; set; } = null!;
+
+    /// <summary>
+    /// Capability parameters - defines parameters for AI functions
+    /// </summary>
+    public DbSet<CapabilityParameter> CapabilityParameters { get; set; } = null!;
+
+    /// <summary>
+    /// Quick actions - buttons shown in chat interface
+    /// </summary>
+    public DbSet<QuickAction> QuickActions { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -137,6 +152,9 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ContactTypeConfiguration());
         modelBuilder.ApplyConfiguration(new BusinessContactInfoConfiguration());
         modelBuilder.ApplyConfiguration(new ChatBotSettingsConfiguration());
+        modelBuilder.ApplyConfiguration(new AgentCapabilityConfiguration());
+        modelBuilder.ApplyConfiguration(new CapabilityParameterConfiguration());
+        modelBuilder.ApplyConfiguration(new QuickActionConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Sivar.Os.Shared.Entities;
@@ -13,13 +14,13 @@ public class ChatBotSettings : BaseEntity
     /// </summary>
     [Required]
     [StringLength(50)]
-    public string Key { get; set; } = "default";
+    public virtual string Key { get; set; } = "default";
 
     /// <summary>
     /// Language/culture code (e.g., "es", "en")
     /// </summary>
     [StringLength(10)]
-    public string? Culture { get; set; }
+    public virtual string? Culture { get; set; }
 
     /// <summary>
     /// The welcome message shown when chat opens.
@@ -27,58 +28,64 @@ public class ChatBotSettings : BaseEntity
     /// </summary>
     [Required]
     [StringLength(2000)]
-    public string WelcomeMessage { get; set; } = string.Empty;
+    public virtual string WelcomeMessage { get; set; } = string.Empty;
 
     /// <summary>
     /// Short tagline shown in chat header (e.g., "Always here to help you explore")
     /// </summary>
     [StringLength(100)]
-    public string? HeaderTagline { get; set; }
+    public virtual string? HeaderTagline { get; set; }
 
     /// <summary>
     /// Bot name displayed in header
     /// </summary>
     [StringLength(50)]
-    public string BotName { get; set; } = "Sivar AI Assistant";
+    public virtual string BotName { get; set; } = "Sivar AI Assistant";
 
     /// <summary>
     /// Quick action buttons as JSON array.
     /// e.g., ["🍕 Buscar comida", "🏛️ Trámites", "📍 Cerca de mí", "🎉 Eventos"]
     /// </summary>
-    public string? QuickActionsJson { get; set; }
+    public virtual string? QuickActionsJson { get; set; }
 
     /// <summary>
     /// System prompt for the AI agent.
     /// Used to customize the AI's behavior and knowledge.
     /// </summary>
     [StringLength(5000)]
-    public string? SystemPrompt { get; set; }
+    public virtual string? SystemPrompt { get; set; }
 
     /// <summary>
     /// Whether this setting is active
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public virtual bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Priority for selection (higher = preferred when multiple match)
     /// </summary>
-    public int Priority { get; set; } = 0;
+    public virtual int Priority { get; set; } = 0;
 
     /// <summary>
     /// Optional region code (e.g., "SV", "GT") for region-specific settings
     /// </summary>
     [StringLength(10)]
-    public string? RegionCode { get; set; }
+    public virtual string? RegionCode { get; set; }
 
     /// <summary>
     /// Error fallback message when something goes wrong
     /// </summary>
     [StringLength(500)]
-    public string? ErrorMessage { get; set; }
+    public virtual string? ErrorMessage { get; set; }
 
     /// <summary>
     /// Message shown while AI is "thinking"
     /// </summary>
     [StringLength(200)]
-    public string? ThinkingMessage { get; set; }
+    public virtual string? ThinkingMessage { get; set; }
+
+    /// <summary>
+    /// Navigation property to Quick Actions for this setting.
+    /// Replaces QuickActionsJson with proper relational data.
+    /// </summary>
+    public virtual ObservableCollection<QuickAction> QuickActions { get; set; } = new ObservableCollection<QuickAction>();
 }

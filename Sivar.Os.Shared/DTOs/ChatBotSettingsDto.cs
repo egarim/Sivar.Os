@@ -6,6 +6,11 @@ namespace Sivar.Os.Shared.DTOs;
 public record ChatBotSettingsDto
 {
     /// <summary>
+    /// Unique identifier
+    /// </summary>
+    public Guid Id { get; init; }
+
+    /// <summary>
     /// Unique key for this setting
     /// </summary>
     public string Key { get; init; } = "default";
@@ -31,9 +36,9 @@ public record ChatBotSettingsDto
     public string BotName { get; init; } = "Sivar AI Assistant";
 
     /// <summary>
-    /// Quick action buttons as list
+    /// Quick action buttons with full relational data
     /// </summary>
-    public List<string> QuickActions { get; init; } = new();
+    public List<QuickActionDto> QuickActionItems { get; init; } = new();
 
     /// <summary>
     /// System prompt for the AI agent

@@ -115,6 +115,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists contact types
             
+            // Seed agent capabilities (Phase 0.6: Relational capabilities)
+            SeedAgentCapabilities();
+            
+            ObjectSpace.CommitChanges(); //This line persists agent capabilities
+            
             // Seed chat bot settings (Phase 0.5: Configurable welcome messages)
             SeedChatBotSettings();
             
@@ -820,6 +825,227 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
         }
         
         /// <summary>
+        /// Seeds agent capabilities for Phase 0.6: Relational capabilities
+        /// Defines what AI functions are available and their parameters
+        /// </summary>
+        void SeedAgentCapabilities()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedAgentCapabilities...");
+            var now = DateTime.UtcNow;
+            
+            // Check if capabilities already exist
+            var existingCapability = ObjectSpace.FirstOrDefault<AgentCapability>(c => c.Key == "search_posts");
+            if (existingCapability != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Agent capabilities already exist. Skipping.");
+                return;
+            }
+            
+            // ===================================
+            // 1. Search Posts Capability
+            // ===================================
+            var searchPosts = ObjectSpace.CreateObject<AgentCapability>();
+            searchPosts.Id = Guid.Parse("b0000001-0001-0001-0001-000000000001");
+            searchPosts.Key = "search_posts";
+            searchPosts.Name = "Search Posts";
+            searchPosts.Description = "Search for posts, businesses, places, and services by keyword or semantic similarity. Returns posts matching the query with content, location, and profile information.";
+            searchPosts.FunctionName = "SearchPosts";
+            searchPosts.Category = "search";
+            searchPosts.Icon = "🔍";
+            searchPosts.ExampleQueriesJson = @"[""pizzerías cerca de mí"", ""restaurantes italianos"", ""farmacias abiertas"", ""hoteles en la playa""]";
+            searchPosts.UsageInstructions = "Use this function when the user wants to find businesses, places, services, or any general information. Supports both keyword and semantic search.";
+            searchPosts.IsEnabled = true;
+            searchPosts.SortOrder = 1;
+            searchPosts.CreatedAt = now;
+            searchPosts.UpdatedAt = now;
+            
+            // Parameters for SearchPosts
+            var searchPostsQuery = ObjectSpace.CreateObject<CapabilityParameter>();
+            searchPostsQuery.Id = Guid.Parse("b0000002-0001-0001-0001-000000000001");
+            searchPostsQuery.CapabilityId = searchPosts.Id;
+            searchPostsQuery.Name = "query";
+            searchPostsQuery.DisplayName = "Search Query";
+            searchPostsQuery.Description = "The search term or phrase to look for";
+            searchPostsQuery.DataType = "string";
+            searchPostsQuery.IsRequired = true;
+            searchPostsQuery.SortOrder = 1;
+            searchPostsQuery.CreatedAt = now;
+            searchPostsQuery.UpdatedAt = now;
+            
+            var searchPostsLat = ObjectSpace.CreateObject<CapabilityParameter>();
+            searchPostsLat.Id = Guid.Parse("b0000002-0001-0001-0001-000000000002");
+            searchPostsLat.CapabilityId = searchPosts.Id;
+            searchPostsLat.Name = "latitude";
+            searchPostsLat.DisplayName = "Latitude";
+            searchPostsLat.Description = "User's latitude for location-aware search";
+            searchPostsLat.DataType = "number";
+            searchPostsLat.IsRequired = false;
+            searchPostsLat.SortOrder = 2;
+            searchPostsLat.CreatedAt = now;
+            searchPostsLat.UpdatedAt = now;
+            
+            var searchPostsLng = ObjectSpace.CreateObject<CapabilityParameter>();
+            searchPostsLng.Id = Guid.Parse("b0000002-0001-0001-0001-000000000003");
+            searchPostsLng.CapabilityId = searchPosts.Id;
+            searchPostsLng.Name = "longitude";
+            searchPostsLng.DisplayName = "Longitude";
+            searchPostsLng.Description = "User's longitude for location-aware search";
+            searchPostsLng.DataType = "number";
+            searchPostsLng.IsRequired = false;
+            searchPostsLng.SortOrder = 3;
+            searchPostsLng.CreatedAt = now;
+            searchPostsLng.UpdatedAt = now;
+            
+            var searchPostsRadius = ObjectSpace.CreateObject<CapabilityParameter>();
+            searchPostsRadius.Id = Guid.Parse("b0000002-0001-0001-0001-000000000004");
+            searchPostsRadius.CapabilityId = searchPosts.Id;
+            searchPostsRadius.Name = "radiusKm";
+            searchPostsRadius.DisplayName = "Radius (km)";
+            searchPostsRadius.Description = "Search radius in kilometers";
+            searchPostsRadius.DataType = "number";
+            searchPostsRadius.IsRequired = false;
+            searchPostsRadius.DefaultValue = "10";
+            searchPostsRadius.SortOrder = 4;
+            searchPostsRadius.CreatedAt = now;
+            searchPostsRadius.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created SearchPosts capability.");
+            
+            // ===================================
+            // 2. Search Profiles Capability
+            // ===================================
+            var searchProfiles = ObjectSpace.CreateObject<AgentCapability>();
+            searchProfiles.Id = Guid.Parse("b0000001-0001-0001-0001-000000000002");
+            searchProfiles.Key = "search_profiles";
+            searchProfiles.Name = "Search Profiles";
+            searchProfiles.Description = "Search for business profiles, users, and organizations by name or handle. Returns profile details including contact information and location.";
+            searchProfiles.FunctionName = "SearchProfiles";
+            searchProfiles.Category = "search";
+            searchProfiles.Icon = "👤";
+            searchProfiles.ExampleQueriesJson = @"[""buscar Pizza Hut"", ""perfil de McDonald's"", ""información de contacto de Pollo Campero""]";
+            searchProfiles.UsageInstructions = "Use this function when the user asks specifically for a business profile or wants to find contact information for a specific place.";
+            searchProfiles.IsEnabled = true;
+            searchProfiles.SortOrder = 2;
+            searchProfiles.CreatedAt = now;
+            searchProfiles.UpdatedAt = now;
+            
+            // Parameters for SearchProfiles
+            var searchProfilesQuery = ObjectSpace.CreateObject<CapabilityParameter>();
+            searchProfilesQuery.Id = Guid.Parse("b0000002-0001-0001-0001-000000000005");
+            searchProfilesQuery.CapabilityId = searchProfiles.Id;
+            searchProfilesQuery.Name = "query";
+            searchProfilesQuery.DisplayName = "Search Query";
+            searchProfilesQuery.Description = "The business name or handle to search for";
+            searchProfilesQuery.DataType = "string";
+            searchProfilesQuery.IsRequired = true;
+            searchProfilesQuery.SortOrder = 1;
+            searchProfilesQuery.CreatedAt = now;
+            searchProfilesQuery.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created SearchProfiles capability.");
+            
+            // ===================================
+            // 3. Get Nearby Places Capability
+            // ===================================
+            var getNearby = ObjectSpace.CreateObject<AgentCapability>();
+            getNearby.Id = Guid.Parse("b0000001-0001-0001-0001-000000000003");
+            getNearby.Key = "get_nearby";
+            getNearby.Name = "Get Nearby Places";
+            getNearby.Description = "Find places near the user's location. Returns businesses and services within a specified radius.";
+            getNearby.FunctionName = "GetNearbyPosts";
+            getNearby.Category = "location";
+            getNearby.Icon = "📍";
+            getNearby.ExampleQueriesJson = @"[""qué hay cerca de mí"", ""lugares cercanos"", ""negocios cerca""]";
+            getNearby.UsageInstructions = "Use this function when the user asks for places near them without a specific search term. Requires user location.";
+            getNearby.IsEnabled = true;
+            getNearby.SortOrder = 3;
+            getNearby.CreatedAt = now;
+            getNearby.UpdatedAt = now;
+            
+            // Parameters for GetNearby
+            var getNearbyLat = ObjectSpace.CreateObject<CapabilityParameter>();
+            getNearbyLat.Id = Guid.Parse("b0000002-0001-0001-0001-000000000006");
+            getNearbyLat.CapabilityId = getNearby.Id;
+            getNearbyLat.Name = "latitude";
+            getNearbyLat.DisplayName = "Latitude";
+            getNearbyLat.Description = "User's current latitude";
+            getNearbyLat.DataType = "number";
+            getNearbyLat.IsRequired = true;
+            getNearbyLat.SortOrder = 1;
+            getNearbyLat.CreatedAt = now;
+            getNearbyLat.UpdatedAt = now;
+            
+            var getNearbyLng = ObjectSpace.CreateObject<CapabilityParameter>();
+            getNearbyLng.Id = Guid.Parse("b0000002-0001-0001-0001-000000000007");
+            getNearbyLng.CapabilityId = getNearby.Id;
+            getNearbyLng.Name = "longitude";
+            getNearbyLng.DisplayName = "Longitude";
+            getNearbyLng.Description = "User's current longitude";
+            getNearbyLng.DataType = "number";
+            getNearbyLng.IsRequired = true;
+            getNearbyLng.SortOrder = 2;
+            getNearbyLng.CreatedAt = now;
+            getNearbyLng.UpdatedAt = now;
+            
+            var getNearbyRadius = ObjectSpace.CreateObject<CapabilityParameter>();
+            getNearbyRadius.Id = Guid.Parse("b0000002-0001-0001-0001-000000000008");
+            getNearbyRadius.CapabilityId = getNearby.Id;
+            getNearbyRadius.Name = "radiusKm";
+            getNearbyRadius.DisplayName = "Radius (km)";
+            getNearbyRadius.Description = "Search radius in kilometers";
+            getNearbyRadius.DataType = "number";
+            getNearbyRadius.IsRequired = false;
+            getNearbyRadius.DefaultValue = "5";
+            getNearbyRadius.SortOrder = 3;
+            getNearbyRadius.CreatedAt = now;
+            getNearbyRadius.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created GetNearby capability.");
+            
+            // ===================================
+            // 4. Get Government Procedures Capability
+            // ===================================
+            var getProcedures = ObjectSpace.CreateObject<AgentCapability>();
+            getProcedures.Id = Guid.Parse("b0000001-0001-0001-0001-000000000004");
+            getProcedures.Key = "get_procedures";
+            getProcedures.Name = "Get Government Procedures";
+            getProcedures.Description = "Search for government procedures, paperwork requirements, and official processes in El Salvador.";
+            getProcedures.FunctionName = "SearchPosts";
+            getProcedures.Category = "information";
+            getProcedures.Icon = "🏛️";
+            getProcedures.ExampleQueriesJson = @"[""cómo sacar pasaporte"", ""requisitos para DUI"", ""trámites de licencia de conducir""]";
+            getProcedures.UsageInstructions = "Use SearchPosts with government-related keywords when users ask about official procedures, documents, or paperwork.";
+            getProcedures.IsEnabled = true;
+            getProcedures.SortOrder = 4;
+            getProcedures.CreatedAt = now;
+            getProcedures.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created GetProcedures capability.");
+            
+            // ===================================
+            // 5. Get Events Capability
+            // ===================================
+            var getEvents = ObjectSpace.CreateObject<AgentCapability>();
+            getEvents.Id = Guid.Parse("b0000001-0001-0001-0001-000000000005");
+            getEvents.Key = "get_events";
+            getEvents.Name = "Get Events";
+            getEvents.Description = "Search for events, festivals, shows, and activities happening in El Salvador.";
+            getEvents.FunctionName = "SearchPosts";
+            getEvents.Category = "entertainment";
+            getEvents.Icon = "🎉";
+            getEvents.ExampleQueriesJson = @"[""eventos este fin de semana"", ""conciertos"", ""festivales"", ""qué hacer hoy""]";
+            getEvents.UsageInstructions = "Use SearchPosts with event-related keywords when users ask about things to do, events, or entertainment.";
+            getEvents.IsEnabled = true;
+            getEvents.SortOrder = 5;
+            getEvents.CreatedAt = now;
+            getEvents.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created GetEvents capability.");
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] Finished SeedAgentCapabilities.");
+        }
+        
+        /// <summary>
         /// Seeds default chat bot settings for Phase 0.5: Configurable welcome messages
         /// Creates default settings for Spanish (es) culture
         /// </summary>
@@ -836,6 +1062,12 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 return;
             }
 
+            // Get capability IDs for linking QuickActions
+            var searchPostsCapabilityId = Guid.Parse("b0000001-0001-0001-0001-000000000001");
+            var getProceduresCapabilityId = Guid.Parse("b0000001-0001-0001-0001-000000000004");
+            var getNearbyCapabilityId = Guid.Parse("b0000001-0001-0001-0001-000000000003");
+            var getEventsCapabilityId = Guid.Parse("b0000001-0001-0001-0001-000000000005");
+
             // Create default settings (Spanish)
             var defaultSettings = ObjectSpace.CreateObject<ChatBotSettings>();
             defaultSettings.Id = Guid.Parse("a0000001-0001-0001-0001-000000000001");
@@ -851,7 +1083,7 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
 ¡Pregúntame algo como ""pizzerías cerca"" o ""cómo sacar pasaporte""!";
             defaultSettings.HeaderTagline = "Siempre aquí para ayudarte";
             defaultSettings.BotName = "Sivar AI Assistant";
-            defaultSettings.QuickActionsJson = @"[""🍕 Buscar comida"", ""🏛️ Trámites"", ""📍 Cerca de mí"", ""🎉 Eventos""]";
+            defaultSettings.QuickActionsJson = @"[""🍕 Buscar comida"", ""🏛️ Trámites"", ""📍 Cerca de mí"", ""🎉 Eventos""]"; // Legacy JSON kept for backward compatibility
             defaultSettings.SystemPrompt = @"Eres Sivar AI, un asistente virtual amigable y conocedor de El Salvador. 
 Ayudas a los usuarios a encontrar negocios, servicios, lugares y eventos en El Salvador.
 Respondes en español de forma concisa y útil.
@@ -865,7 +1097,68 @@ Siempre sé cortés y positivo.";
             defaultSettings.CreatedAt = now;
             defaultSettings.UpdatedAt = now;
 
-            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created default ChatBotSettings.");
+            // Create QuickActions for default Spanish settings
+            var qaFoodEs = ObjectSpace.CreateObject<QuickAction>();
+            qaFoodEs.Id = Guid.Parse("c0000003-0001-0001-0001-000000000001");
+            qaFoodEs.ChatBotSettingsId = defaultSettings.Id;
+            qaFoodEs.CapabilityId = searchPostsCapabilityId;
+            qaFoodEs.Label = "🍕 Buscar comida";
+            qaFoodEs.Icon = "🍕";
+            qaFoodEs.Color = "#FF5722";
+            qaFoodEs.DefaultQuery = "Buscar restaurantes y comida cerca de mi ubicación";
+            qaFoodEs.ContextHint = "El usuario quiere encontrar opciones de comida cercanas";
+            qaFoodEs.SortOrder = 1;
+            qaFoodEs.IsActive = true;
+            qaFoodEs.RequiresLocation = true;
+            qaFoodEs.CreatedAt = now;
+            qaFoodEs.UpdatedAt = now;
+            
+            var qaProceduresEs = ObjectSpace.CreateObject<QuickAction>();
+            qaProceduresEs.Id = Guid.Parse("c0000003-0001-0001-0001-000000000002");
+            qaProceduresEs.ChatBotSettingsId = defaultSettings.Id;
+            qaProceduresEs.CapabilityId = getProceduresCapabilityId;
+            qaProceduresEs.Label = "🏛️ Trámites";
+            qaProceduresEs.Icon = "🏛️";
+            qaProceduresEs.Color = "#3F51B5";
+            qaProceduresEs.DefaultQuery = "¿Qué trámites gubernamentales puedo realizar?";
+            qaProceduresEs.ContextHint = "El usuario quiere información sobre trámites y procedimientos gubernamentales";
+            qaProceduresEs.SortOrder = 2;
+            qaProceduresEs.IsActive = true;
+            qaProceduresEs.RequiresLocation = false;
+            qaProceduresEs.CreatedAt = now;
+            qaProceduresEs.UpdatedAt = now;
+            
+            var qaNearbyEs = ObjectSpace.CreateObject<QuickAction>();
+            qaNearbyEs.Id = Guid.Parse("c0000003-0001-0001-0001-000000000003");
+            qaNearbyEs.ChatBotSettingsId = defaultSettings.Id;
+            qaNearbyEs.CapabilityId = getNearbyCapabilityId;
+            qaNearbyEs.Label = "📍 Cerca de mí";
+            qaNearbyEs.Icon = "📍";
+            qaNearbyEs.Color = "#4CAF50";
+            qaNearbyEs.DefaultQuery = "¿Qué hay cerca de mi ubicación?";
+            qaNearbyEs.ContextHint = "El usuario quiere ver lugares cercanos a su ubicación actual";
+            qaNearbyEs.SortOrder = 3;
+            qaNearbyEs.IsActive = true;
+            qaNearbyEs.RequiresLocation = true;
+            qaNearbyEs.CreatedAt = now;
+            qaNearbyEs.UpdatedAt = now;
+            
+            var qaEventsEs = ObjectSpace.CreateObject<QuickAction>();
+            qaEventsEs.Id = Guid.Parse("c0000003-0001-0001-0001-000000000004");
+            qaEventsEs.ChatBotSettingsId = defaultSettings.Id;
+            qaEventsEs.CapabilityId = getEventsCapabilityId;
+            qaEventsEs.Label = "🎉 Eventos";
+            qaEventsEs.Icon = "🎉";
+            qaEventsEs.Color = "#9C27B0";
+            qaEventsEs.DefaultQuery = "¿Qué eventos hay este fin de semana?";
+            qaEventsEs.ContextHint = "El usuario quiere saber sobre eventos y actividades";
+            qaEventsEs.SortOrder = 4;
+            qaEventsEs.IsActive = true;
+            qaEventsEs.RequiresLocation = false;
+            qaEventsEs.CreatedAt = now;
+            qaEventsEs.UpdatedAt = now;
+
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created default ChatBotSettings with QuickActions.");
 
             // Create English settings
             var englishSettings = ObjectSpace.CreateObject<ChatBotSettings>();
@@ -882,7 +1175,7 @@ Siempre sé cortés y positivo.";
 Ask me something like ""pizza places nearby"" or ""how to get a passport""!";
             englishSettings.HeaderTagline = "Always here to help you explore";
             englishSettings.BotName = "Sivar AI Assistant";
-            englishSettings.QuickActionsJson = @"[""🍕 Find food"", ""🏛️ Procedures"", ""📍 Near me"", ""🎉 Events""]";
+            englishSettings.QuickActionsJson = @"[""🍕 Find food"", ""🏛️ Procedures"", ""📍 Near me"", ""🎉 Events""]"; // Legacy JSON kept for backward compatibility
             englishSettings.SystemPrompt = @"You are Sivar AI, a friendly and knowledgeable virtual assistant for El Salvador.
 You help users find businesses, services, places, and events in El Salvador.
 Respond concisely and helpfully.
@@ -895,7 +1188,68 @@ Always be polite and positive.";
             englishSettings.CreatedAt = now;
             englishSettings.UpdatedAt = now;
 
-            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created English ChatBotSettings.");
+            // Create QuickActions for English settings
+            var qaFoodEn = ObjectSpace.CreateObject<QuickAction>();
+            qaFoodEn.Id = Guid.Parse("c0000003-0001-0001-0001-000000000005");
+            qaFoodEn.ChatBotSettingsId = englishSettings.Id;
+            qaFoodEn.CapabilityId = searchPostsCapabilityId;
+            qaFoodEn.Label = "🍕 Find food";
+            qaFoodEn.Icon = "🍕";
+            qaFoodEn.Color = "#FF5722";
+            qaFoodEn.DefaultQuery = "Find restaurants and food near my location";
+            qaFoodEn.ContextHint = "User wants to find food options nearby";
+            qaFoodEn.SortOrder = 1;
+            qaFoodEn.IsActive = true;
+            qaFoodEn.RequiresLocation = true;
+            qaFoodEn.CreatedAt = now;
+            qaFoodEn.UpdatedAt = now;
+            
+            var qaProceduresEn = ObjectSpace.CreateObject<QuickAction>();
+            qaProceduresEn.Id = Guid.Parse("c0000003-0001-0001-0001-000000000006");
+            qaProceduresEn.ChatBotSettingsId = englishSettings.Id;
+            qaProceduresEn.CapabilityId = getProceduresCapabilityId;
+            qaProceduresEn.Label = "🏛️ Procedures";
+            qaProceduresEn.Icon = "🏛️";
+            qaProceduresEn.Color = "#3F51B5";
+            qaProceduresEn.DefaultQuery = "What government procedures can I do?";
+            qaProceduresEn.ContextHint = "User wants information about government procedures";
+            qaProceduresEn.SortOrder = 2;
+            qaProceduresEn.IsActive = true;
+            qaProceduresEn.RequiresLocation = false;
+            qaProceduresEn.CreatedAt = now;
+            qaProceduresEn.UpdatedAt = now;
+            
+            var qaNearbyEn = ObjectSpace.CreateObject<QuickAction>();
+            qaNearbyEn.Id = Guid.Parse("c0000003-0001-0001-0001-000000000007");
+            qaNearbyEn.ChatBotSettingsId = englishSettings.Id;
+            qaNearbyEn.CapabilityId = getNearbyCapabilityId;
+            qaNearbyEn.Label = "📍 Near me";
+            qaNearbyEn.Icon = "📍";
+            qaNearbyEn.Color = "#4CAF50";
+            qaNearbyEn.DefaultQuery = "What's near my location?";
+            qaNearbyEn.ContextHint = "User wants to see places near their current location";
+            qaNearbyEn.SortOrder = 3;
+            qaNearbyEn.IsActive = true;
+            qaNearbyEn.RequiresLocation = true;
+            qaNearbyEn.CreatedAt = now;
+            qaNearbyEn.UpdatedAt = now;
+            
+            var qaEventsEn = ObjectSpace.CreateObject<QuickAction>();
+            qaEventsEn.Id = Guid.Parse("c0000003-0001-0001-0001-000000000008");
+            qaEventsEn.ChatBotSettingsId = englishSettings.Id;
+            qaEventsEn.CapabilityId = getEventsCapabilityId;
+            qaEventsEn.Label = "🎉 Events";
+            qaEventsEn.Icon = "🎉";
+            qaEventsEn.Color = "#9C27B0";
+            qaEventsEn.DefaultQuery = "What events are happening this weekend?";
+            qaEventsEn.ContextHint = "User wants to know about events and activities";
+            qaEventsEn.SortOrder = 4;
+            qaEventsEn.IsActive = true;
+            qaEventsEn.RequiresLocation = false;
+            qaEventsEn.CreatedAt = now;
+            qaEventsEn.UpdatedAt = now;
+
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created English ChatBotSettings with QuickActions.");
         }
         
         /// <summary>

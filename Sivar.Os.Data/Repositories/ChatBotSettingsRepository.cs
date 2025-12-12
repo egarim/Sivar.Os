@@ -19,6 +19,8 @@ public class ChatBotSettingsRepository : BaseRepository<ChatBotSettings>, IChatB
     public async Task<ChatBotSettings?> GetByKeyAsync(string key)
     {
         return await _dbSet
+            .Include(s => s.QuickActions.Where(qa => !qa.IsDeleted))
+                .ThenInclude(qa => qa.Capability)
             .FirstOrDefaultAsync(s => s.Key == key && !s.IsDeleted);
     }
 
@@ -26,6 +28,8 @@ public class ChatBotSettingsRepository : BaseRepository<ChatBotSettings>, IChatB
     public async Task<ChatBotSettings?> GetActiveSettingsAsync(string? culture = null, string? regionCode = null)
     {
         var query = _dbSet
+            .Include(s => s.QuickActions.Where(qa => !qa.IsDeleted))
+                .ThenInclude(qa => qa.Capability)
             .Where(s => s.IsActive && !s.IsDeleted);
 
         // Try to find the most specific match:
@@ -68,6 +72,8 @@ public class ChatBotSettingsRepository : BaseRepository<ChatBotSettings>, IChatB
     public async Task<IEnumerable<ChatBotSettings>> GetAllActiveAsync()
     {
         return await _dbSet
+            .Include(s => s.QuickActions.Where(qa => !qa.IsDeleted))
+                .ThenInclude(qa => qa.Capability)
             .Where(s => s.IsActive && !s.IsDeleted)
             .OrderByDescending(s => s.Priority)
             .ThenBy(s => s.Key)
@@ -78,6 +84,8 @@ public class ChatBotSettingsRepository : BaseRepository<ChatBotSettings>, IChatB
     public async Task<IEnumerable<ChatBotSettings>> GetByCultureAsync(string culture)
     {
         return await _dbSet
+            .Include(s => s.QuickActions.Where(qa => !qa.IsDeleted))
+                .ThenInclude(qa => qa.Capability)
             .Where(s => s.Culture == culture && !s.IsDeleted)
             .OrderByDescending(s => s.Priority)
             .ToListAsync();

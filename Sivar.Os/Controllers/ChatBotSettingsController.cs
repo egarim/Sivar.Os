@@ -38,18 +38,27 @@ public class ChatBotSettingsController : ControllerBase
     /// </summary>
     /// <param name="culture">Culture code (e.g., "es", "en"). Defaults to "es"</param>
     /// <param name="region">Region code (e.g., "SV", "GT"). Optional</param>
+    /// <param name="forceReload">Force reload from database, bypassing cache</param>
     /// <returns>Chat bot settings DTO</returns>
     [HttpGet("settings")]
     [AllowAnonymous]
     public async Task<ActionResult<ChatBotSettingsDto>> GetSettings(
         [FromQuery] string? culture = "es",
-        [FromQuery] string? region = null)
+        [FromQuery] string? region = null,
+        [FromQuery] bool forceReload = false)
     {
         try
         {
             var cacheKey = $"{CacheKeyPrefix}{culture ?? "default"}_{region ?? "any"}";
             
-            if (_cache.TryGetValue(cacheKey, out ChatBotSettingsDto? cachedSettings) && cachedSettings != null)
+            // Clear cache if force reload requested
+            if (forceReload)
+            {
+                _cache.Remove(cacheKey);
+                _logger.LogInformation("[ChatBotSettings] Cache cleared for {CacheKey} due to forceReload", cacheKey);
+            }
+            
+            if (!forceReload && _cache.TryGetValue(cacheKey, out ChatBotSettingsDto? cachedSettings) && cachedSettings != null)
             {
                 _logger.LogDebug("[ChatBotSettings] Returning cached settings for {Culture}/{Region}", culture, region);
                 return Ok(cachedSettings);
@@ -259,26 +268,53 @@ public class ChatBotSettingsController : ControllerBase
         return Ok(new { message = "Cache cleared successfully" });
     }
 
-    private static ChatBotSettingsDto MapToDto(ChatBotSettings settings)
+    private ChatBotSettingsDto MapToDto(ChatBotSettings settings)
     {
-        List<string> quickActions = new();
-        if (!string.IsNullOrEmpty(settings.QuickActionsJson))
+        // Log quick actions from database for debugging
+        _logger.LogInformation("[ChatBotSettings] 📊 Settings '{Key}' has {Count} QuickAction entities",
+            settings.Key, settings.QuickActions?.Count ?? 0);
+        
+        if (settings.QuickActions != null)
         {
-            try
+            foreach (var qa in settings.QuickActions)
             {
-                quickActions = JsonSerializer.Deserialize<List<string>>(settings.QuickActionsJson) ?? new();
+                _logger.LogInformation("[ChatBotSettings] 📋 QuickAction: Label='{Label}', IsActive={IsActive}, CapabilityId={CapabilityId}",
+                    qa.Label, qa.IsActive, qa.CapabilityId);
             }
-            catch { /* Ignore parse errors */ }
         }
+
+        // Map QuickAction entities to DTOs
+        var quickActionItems = settings.QuickActions?
+            .Where(qa => qa.IsActive && !qa.IsDeleted)
+            .OrderBy(qa => qa.SortOrder)
+            .Select(qa => new QuickActionDto
+            {
+                Id = qa.Id,
+                Label = qa.Label,
+                Icon = qa.Icon,
+                MudBlazorIcon = qa.MudBlazorIcon,
+                Color = qa.Color,
+                DefaultQuery = qa.DefaultQuery,
+                ContextHint = qa.ContextHint,
+                SortOrder = qa.SortOrder,
+                RequiresLocation = qa.RequiresLocation,
+                IsActive = qa.IsActive,
+                CapabilityKey = qa.Capability?.Key
+            })
+            .ToList() ?? new();
+        
+        _logger.LogInformation("[ChatBotSettings] ✅ Mapped {Count} active QuickActionItems for settings '{Key}'",
+            quickActionItems.Count, settings.Key);
 
         return new ChatBotSettingsDto
         {
+            Id = settings.Id,
             Key = settings.Key,
             Culture = settings.Culture,
             WelcomeMessage = settings.WelcomeMessage,
             HeaderTagline = settings.HeaderTagline,
             BotName = settings.BotName,
-            QuickActions = quickActions,
+            QuickActionItems = quickActionItems,
             SystemPrompt = settings.SystemPrompt,
             ErrorMessage = settings.ErrorMessage,
             ThinkingMessage = settings.ThinkingMessage
@@ -289,12 +325,19 @@ public class ChatBotSettingsController : ControllerBase
     {
         return new ChatBotSettingsDto
         {
+            Id = Guid.Empty,
             Key = "default",
             Culture = "es",
             WelcomeMessage = "¡Hola! Soy tu asistente Sivar AI. Puedo ayudarte a:\n\n🔍 Encontrar negocios y servicios\n📝 Buscar lugares y eventos\n🏪 Descubrir lo mejor de El Salvador\n📋 Guiarte en trámites y papeleos\n\n¡Pregúntame algo como \"pizzerías cerca\" o \"cómo sacar pasaporte\"!",
             HeaderTagline = "Siempre aquí para ayudarte",
             BotName = "Sivar AI Assistant",
-            QuickActions = new List<string> { "🍕 Buscar comida", "🏛️ Trámites", "📍 Cerca de mí", "🎉 Eventos" },
+            QuickActionItems = new List<QuickActionDto>
+            {
+                new() { Id = Guid.NewGuid(), Label = "🍕 Buscar comida", Icon = "🍕", Color = "#FF5722", DefaultQuery = "Buscar restaurantes cerca", SortOrder = 1, RequiresLocation = true },
+                new() { Id = Guid.NewGuid(), Label = "🏛️ Trámites", Icon = "🏛️", Color = "#3F51B5", DefaultQuery = "¿Qué trámites puedo hacer?", SortOrder = 2, RequiresLocation = false },
+                new() { Id = Guid.NewGuid(), Label = "📍 Cerca de mí", Icon = "📍", Color = "#4CAF50", DefaultQuery = "¿Qué hay cerca de mí?", SortOrder = 3, RequiresLocation = true },
+                new() { Id = Guid.NewGuid(), Label = "🎉 Eventos", Icon = "🎉", Color = "#9C27B0", DefaultQuery = "¿Qué eventos hay?", SortOrder = 4, RequiresLocation = false }
+            },
             ErrorMessage = "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
             ThinkingMessage = "Pensando..."
         };

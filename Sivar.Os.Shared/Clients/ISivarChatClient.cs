@@ -29,7 +29,8 @@ public interface ISivarChatClient
     /// </summary>
     /// <param name="culture">Culture code (e.g., "es", "en")</param>
     /// <param name="region">Optional region code (e.g., "SV")</param>
+    /// <param name="forceReload">Force reload from database, bypassing cache</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Chat bot settings</returns>
-    Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, CancellationToken cancellationToken = default);
+    Task<ChatBotSettingsDto?> GetSettingsAsync(string? culture = null, string? region = null, bool forceReload = false, CancellationToken cancellationToken = default);
 }
