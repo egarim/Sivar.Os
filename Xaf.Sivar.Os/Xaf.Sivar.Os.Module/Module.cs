@@ -26,6 +26,7 @@ namespace Xaf.Sivar.Os.Module
             // OsModule
             //
 
+            AdditionalExportedTypes.Add(typeof(BusinessContactInfo));
             AdditionalExportedTypes.Add(typeof(Activity));
             AdditionalExportedTypes.Add(typeof(Post));
             AdditionalExportedTypes.Add(typeof(User));
@@ -87,6 +88,15 @@ namespace Xaf.Sivar.Os.Module
         {
             base.Setup(moduleManager);
         }
+        private void ConfigureTypeWithDefaultClassOptions(ITypesInfo typesInfo, Type type, Action<ITypeInfo>? additionalConfig = null)
+        {
+            var typeInfo = typesInfo.FindTypeInfo(type);
+            if (typeInfo != null)
+            {
+                typeInfo.AddAttribute(new DefaultClassOptionsAttribute());
+                additionalConfig?.Invoke(typeInfo);
+            }
+        }
         public override void CustomizeTypesInfo(ITypesInfo typesInfo)
         {
             base.CustomizeTypesInfo(typesInfo);
@@ -97,84 +107,23 @@ namespace Xaf.Sivar.Os.Module
             );
 
             // Configure DefaultClassOptions for Sivar.Os entities
-            var postTypeInfo = typesInfo.FindTypeInfo(typeof(Post));
-            if (postTypeInfo != null)
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Post));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(User));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Profile));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileType), typeInfo =>
             {
-                postTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var userTypeInfo = typesInfo.FindTypeInfo(typeof(User));
-            if (userTypeInfo != null)
-            {
-                userTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var profileTypeInfo = typesInfo.FindTypeInfo(typeof(Profile));
-            if (profileTypeInfo != null)
-            {
-                profileTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var profileTypeTypeInfo = typesInfo.FindTypeInfo(typeof(ProfileType));
-            if (profileTypeTypeInfo != null)
-            {
-
-                profileTypeTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-                profileTypeTypeInfo.Members.FirstOrDefault(m => m.Name == nameof(ProfileType.FeatureFlags))?.AddAttribute(new FieldSizeAttribute(FieldSizeAttribute.Unlimited));
-            }
-
-            var profileFollowerTypeInfo = typesInfo.FindTypeInfo(typeof(ProfileFollower));
-            if (profileFollowerTypeInfo != null)
-            {
-                profileFollowerTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var postAttachmentTypeInfo = typesInfo.FindTypeInfo(typeof(PostAttachment));
-            if (postAttachmentTypeInfo != null)
-            {
-                postAttachmentTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var commentTypeInfo = typesInfo.FindTypeInfo(typeof(Comment));
-            if (commentTypeInfo != null)
-            {
-                commentTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var reactionTypeInfo = typesInfo.FindTypeInfo(typeof(Reaction));
-            if (reactionTypeInfo != null)
-            {
-                reactionTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var notificationTypeInfo = typesInfo.FindTypeInfo(typeof(Notification));
-            if (notificationTypeInfo != null)
-            {
-                notificationTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var conversationTypeInfo = typesInfo.FindTypeInfo(typeof(Conversation));
-            if (conversationTypeInfo != null)
-            {
-                conversationTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var chatMessageTypeInfo = typesInfo.FindTypeInfo(typeof(ChatMessage));
-            if (chatMessageTypeInfo != null)
-            {
-                chatMessageTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-
-            var savedResultTypeInfo = typesInfo.FindTypeInfo(typeof(SavedResult));
-            if (savedResultTypeInfo != null)
-            {
-                savedResultTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
-            var activityTypeInfo = typesInfo.FindTypeInfo(typeof(Activity));
-            if (activityTypeInfo != null)
-            {
-                activityTypeInfo.AddAttribute(new DefaultClassOptionsAttribute());
-            }
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(ProfileType.FeatureFlags))?.AddAttribute(new FieldSizeAttribute(FieldSizeAttribute.Unlimited));
+            });
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileFollower));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(PostAttachment));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Comment));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Reaction));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Notification));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Conversation));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatMessage));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SavedResult));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Activity));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessContactInfo));
         }
     }
 }

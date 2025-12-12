@@ -54,6 +54,12 @@ public record BusinessSearchResultDto : SearchResultBaseDto
     public int? ReviewCount { get; init; }
 
     /// <summary>
+    /// Contact information from the extensible contact system (Phase 1 enhancement)
+    /// Uses 'set' instead of 'init' to allow bulk loading after search results are created
+    /// </summary>
+    public List<ContactDisplayDto>? Contacts { get; set; }
+
+    /// <summary>
     /// Call-to-action buttons for this result
     /// </summary>
     public IReadOnlyList<CallToActionDto> Actions => GenerateActions();
@@ -181,6 +187,11 @@ public record TourismSearchResultDto : SearchResultBaseDto
     public string? TicketPrice { get; init; }
     public double? Rating { get; init; }
     public int? ReviewCount { get; init; }
+
+    /// <summary>
+    /// Contact information from the extensible contact system
+    /// </summary>
+    public List<ContactDisplayDto>? Contacts { get; init; }
 
     /// <summary>
     /// Call-to-action buttons for this result

@@ -110,6 +110,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
 
             ObjectSpace.CommitChanges(); //This line persists created object(s);
             
+            // Seed contact type catalog (Phase 1: Contact Actions)
+            SeedContactTypes();
+            
+            ObjectSpace.CommitChanges(); //This line persists contact types
+            
             // Seed default profiles for users (runs in both DEBUG and RELEASE)
             SeedDefaultProfiles();
 
@@ -119,6 +124,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             await SeedDemoDataAsync();
             
             ObjectSpace.CommitChanges(); //This line persists demo data
+            
+            // Seed demo contact info for business profiles (Phase 1: Contact Actions)
+            SeedDemoContactInfo();
+            
+            ObjectSpace.CommitChanges(); //This line persists demo contact info
             
             // Apply content embeddings via raw SQL (EF Core ignores ContentEmbedding property)
             // This must be called AFTER CommitChanges so posts exist in the database
@@ -802,6 +812,551 @@ AND indexname = 'IX_Posts_ContentEmbedding_Hnsw';
                 organizationProfileType.CreatedAt = now;
                 organizationProfileType.UpdatedAt = now;
             }
+        }
+        
+        /// <summary>
+        /// Seeds contact type catalog for Phase 1: Contact Actions
+        /// Creates contact types for phone, messaging, social, email, web, location, delivery
+        /// </summary>
+        void SeedContactTypes()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedContactTypes...");
+            var now = DateTime.UtcNow;
+            var seededCount = 0;
+
+            var contactTypes = new[]
+            {
+                // ============================================
+                // PHONE / CALLING
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000001-0000-0000-0000-000000000001"),
+                    Key = "phone",
+                    DisplayName = "Llamar",
+                    Icon = "📞",
+                    MudBlazorIcon = "Icons.Material.Filled.Phone",
+                    Color = "#4CAF50",
+                    UrlTemplate = "tel:+{country_code}{value}",
+                    Category = "phone",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 100, ""US"": 100, ""MX"": 100, ""GT"": 100}",
+                    ValidationRegex = @"^\d{8}$",
+                    Placeholder = (string?)null,
+                    OpenInNewTab = false,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000001-0000-0000-0000-000000000002"),
+                    Key = "sms",
+                    DisplayName = "SMS",
+                    Icon = "💬",
+                    MudBlazorIcon = "Icons.Material.Filled.Sms",
+                    Color = "#2196F3",
+                    UrlTemplate = "sms:+{country_code}{value}?body={message}",
+                    Category = "phone",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""SV"": 60, ""US"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = false,
+                    MobileOnly = true
+                },
+
+                // ============================================
+                // MESSAGING APPS
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000002-0000-0000-0000-000000000001"),
+                    Key = "whatsapp",
+                    DisplayName = "WhatsApp",
+                    Icon = "💬",
+                    MudBlazorIcon = "Icons.Custom.Brands.WhatsApp",
+                    Color = "#25D366",
+                    UrlTemplate = "https://wa.me/{country_code}{value}?text={message}",
+                    Category = "messaging",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 100, ""MX"": 95, ""ES"": 90, ""BR"": 95, ""GT"": 98, ""HN"": 95, ""US"": 40, ""RU"": 10}",
+                    ValidationRegex = @"^\d{8,15}$",
+                    Placeholder = "7XXX-XXXX",
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000002-0000-0000-0000-000000000002"),
+                    Key = "telegram",
+                    DisplayName = "Telegram",
+                    Icon = "✈️",
+                    MudBlazorIcon = "Icons.Custom.Brands.Telegram",
+                    Color = "#0088CC",
+                    UrlTemplate = "https://t.me/{value}",
+                    Category = "messaging",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""RU"": 100, ""IR"": 90, ""UA"": 85, ""US"": 30, ""SV"": 15}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = "@username or +phone",
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000002-0000-0000-0000-000000000003"),
+                    Key = "messenger",
+                    DisplayName = "Messenger",
+                    Icon = "💬",
+                    MudBlazorIcon = "Icons.Custom.Brands.Facebook",
+                    Color = "#0084FF",
+                    UrlTemplate = "https://m.me/{value}",
+                    Category = "messaging",
+                    SortOrder = 3,
+                    RegionalPopularity = @"{""US"": 70, ""SV"": 50, ""MX"": 45}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = "Facebook username or Page ID",
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+
+                // ============================================
+                // EMAIL
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000003-0000-0000-0000-000000000001"),
+                    Key = "email",
+                    DisplayName = "Email",
+                    Icon = "📧",
+                    MudBlazorIcon = "Icons.Material.Filled.Email",
+                    Color = "#EA4335",
+                    UrlTemplate = "mailto:{value}?subject={subject}&body={message}",
+                    Category = "email",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 80, ""US"": 90, ""MX"": 75}",
+                    ValidationRegex = @"^[\w\.-]+@[\w\.-]+\.\w+$",
+                    Placeholder = (string?)null,
+                    OpenInNewTab = false,
+                    MobileOnly = false
+                },
+
+                // ============================================
+                // SOCIAL MEDIA
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000004-0000-0000-0000-000000000001"),
+                    Key = "facebook",
+                    DisplayName = "Facebook",
+                    Icon = "📘",
+                    MudBlazorIcon = "Icons.Custom.Brands.Facebook",
+                    Color = "#1877F2",
+                    UrlTemplate = "https://facebook.com/{value}",
+                    Category = "social",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 90, ""US"": 70, ""MX"": 85}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000004-0000-0000-0000-000000000002"),
+                    Key = "instagram",
+                    DisplayName = "Instagram",
+                    Icon = "📷",
+                    MudBlazorIcon = "Icons.Custom.Brands.Instagram",
+                    Color = "#E4405F",
+                    UrlTemplate = "https://instagram.com/{value}",
+                    Category = "social",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""SV"": 85, ""US"": 80, ""MX"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = "@username",
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000004-0000-0000-0000-000000000003"),
+                    Key = "tiktok",
+                    DisplayName = "TikTok",
+                    Icon = "🎵",
+                    MudBlazorIcon = "Icons.Custom.Brands.TikTok",
+                    Color = "#000000",
+                    UrlTemplate = "https://tiktok.com/@{value}",
+                    Category = "social",
+                    SortOrder = 3,
+                    RegionalPopularity = @"{""SV"": 75, ""US"": 85, ""MX"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+
+                // ============================================
+                // WEB
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000005-0000-0000-0000-000000000001"),
+                    Key = "website",
+                    DisplayName = "Sitio Web",
+                    Icon = "🌐",
+                    MudBlazorIcon = "Icons.Material.Filled.Language",
+                    Color = "#607D8B",
+                    UrlTemplate = "{value}",
+                    Category = "web",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 70, ""US"": 90, ""MX"": 75}",
+                    ValidationRegex = @"^https?://.*",
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000005-0000-0000-0000-000000000002"),
+                    Key = "menu",
+                    DisplayName = "Menú",
+                    Icon = "🍽️",
+                    MudBlazorIcon = "Icons.Material.Filled.MenuBook",
+                    Color = "#795548",
+                    UrlTemplate = "{value}",
+                    Category = "web",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""SV"": 80, ""US"": 85}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000005-0000-0000-0000-000000000003"),
+                    Key = "booking",
+                    DisplayName = "Reservar",
+                    Icon = "📅",
+                    MudBlazorIcon = "Icons.Material.Filled.EventAvailable",
+                    Color = "#FF9800",
+                    UrlTemplate = "{value}",
+                    Category = "web",
+                    SortOrder = 3,
+                    RegionalPopularity = @"{""SV"": 60, ""US"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+
+                // ============================================
+                // LOCATION / NAVIGATION
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000006-0000-0000-0000-000000000001"),
+                    Key = "google_maps",
+                    DisplayName = "Google Maps",
+                    Icon = "📍",
+                    MudBlazorIcon = "Icons.Material.Filled.Map",
+                    Color = "#4285F4",
+                    UrlTemplate = "https://www.google.com/maps/search/?api=1&query={lat},{lng}",
+                    Category = "location",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""SV"": 90, ""US"": 95, ""MX"": 90}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000006-0000-0000-0000-000000000002"),
+                    Key = "waze",
+                    DisplayName = "Waze",
+                    Icon = "🚗",
+                    MudBlazorIcon = (string?)null,
+                    Color = "#33CCFF",
+                    UrlTemplate = "https://waze.com/ul?ll={lat},{lng}&navigate=yes",
+                    Category = "location",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""SV"": 85, ""US"": 50, ""MX"": 75, ""IL"": 90}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = true
+                },
+                new {
+                    Id = Guid.Parse("c0000006-0000-0000-0000-000000000003"),
+                    Key = "directions",
+                    DisplayName = "Cómo llegar",
+                    Icon = "🧭",
+                    MudBlazorIcon = "Icons.Material.Filled.Directions",
+                    Color = "#4285F4",
+                    UrlTemplate = "https://www.google.com/maps/dir/?api=1&destination={lat},{lng}",
+                    Category = "location",
+                    SortOrder = 3,
+                    RegionalPopularity = @"{""SV"": 95, ""US"": 90, ""MX"": 90}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+
+                // ============================================
+                // DELIVERY SERVICES (Regional)
+                // ============================================
+                new {
+                    Id = Guid.Parse("c0000007-0000-0000-0000-000000000001"),
+                    Key = "uber_eats",
+                    DisplayName = "Uber Eats",
+                    Icon = "🍔",
+                    MudBlazorIcon = (string?)null,
+                    Color = "#06C167",
+                    UrlTemplate = "https://www.ubereats.com/store/{value}",
+                    Category = "delivery",
+                    SortOrder = 1,
+                    RegionalPopularity = @"{""US"": 90, ""SV"": 75, ""MX"": 85}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000007-0000-0000-0000-000000000002"),
+                    Key = "hugo",
+                    DisplayName = "Hugo",
+                    Icon = "🛵",
+                    MudBlazorIcon = (string?)null,
+                    Color = "#FF6B00",
+                    UrlTemplate = "https://hugo.com/sv/store/{value}",
+                    Category = "delivery",
+                    SortOrder = 2,
+                    RegionalPopularity = @"{""SV"": 95, ""GT"": 90, ""HN"": 85, ""NI"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                },
+                new {
+                    Id = Guid.Parse("c0000007-0000-0000-0000-000000000003"),
+                    Key = "pedidosya",
+                    DisplayName = "PedidosYa",
+                    Icon = "🍕",
+                    MudBlazorIcon = (string?)null,
+                    Color = "#FA0050",
+                    UrlTemplate = "https://www.pedidosya.com.sv/restaurantes/{value}",
+                    Category = "delivery",
+                    SortOrder = 3,
+                    RegionalPopularity = @"{""SV"": 85, ""AR"": 95, ""UY"": 95, ""BO"": 80}",
+                    ValidationRegex = (string?)null,
+                    Placeholder = (string?)null,
+                    OpenInNewTab = true,
+                    MobileOnly = false
+                }
+            };
+
+            foreach (var ct in contactTypes)
+            {
+                // Check if contact type already exists
+                var existing = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == ct.Key);
+                if (existing != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] Contact type '{ct.Key}' already exists. Skipping.");
+                    continue;
+                }
+
+                var contactType = ObjectSpace.CreateObject<ContactType>();
+                contactType.Id = ct.Id;
+                contactType.Key = ct.Key;
+                contactType.DisplayName = ct.DisplayName;
+                contactType.Icon = ct.Icon;
+                contactType.MudBlazorIcon = ct.MudBlazorIcon;
+                contactType.Color = ct.Color;
+                contactType.UrlTemplate = ct.UrlTemplate;
+                contactType.Category = ct.Category;
+                contactType.SortOrder = ct.SortOrder;
+                contactType.RegionalPopularity = ct.RegionalPopularity;
+                contactType.ValidationRegex = ct.ValidationRegex;
+                contactType.Placeholder = ct.Placeholder;
+                contactType.OpenInNewTab = ct.OpenInNewTab;
+                contactType.MobileOnly = ct.MobileOnly;
+                contactType.IsActive = true;
+                contactType.CreatedAt = now;
+                contactType.UpdatedAt = now;
+
+                seededCount++;
+                System.Diagnostics.Debug.WriteLine($"[Updater] ✓ Created contact type: {ct.Key}");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded {seededCount} contact types.");
+        }
+        
+        /// <summary>
+        /// Seeds demo contact information for business profiles (restaurants, entertainment, etc.)
+        /// Creates WhatsApp, Phone, and Email contacts for each business profile
+        /// </summary>
+        void SeedDemoContactInfo()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedDemoContactInfo...");
+            var now = DateTime.UtcNow;
+            
+            // Check if demo contacts already exist
+            var existingContact = ObjectSpace.FirstOrDefault<BusinessContactInfo>(c => c.IsDeleted == false);
+            if (existingContact != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Demo contact info already exists. Skipping.");
+                return;
+            }
+            
+            // Query contact types by Key (in case they were created with different IDs)
+            var phoneType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "phone");
+            var whatsappType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "whatsapp");
+            var emailType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "email");
+            var websiteType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "website");
+            var facebookType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "facebook");
+            var instagramType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "instagram");
+            var googleMapsType = ObjectSpace.FirstOrDefault<ContactType>(x => x.Key == "google_maps");
+            
+            if (phoneType == null || whatsappType == null || emailType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Required contact types not found. Skipping contact info seeding.");
+                return;
+            }
+            
+            var phoneId = phoneType.Id;
+            var whatsappId = whatsappType.Id;
+            var emailId = emailType.Id;
+            var websiteId = websiteType?.Id ?? Guid.Empty;
+            var facebookId = facebookType?.Id ?? Guid.Empty;
+            var instagramId = instagramType?.Id ?? Guid.Empty;
+            var googleMapsId = googleMapsType?.Id ?? Guid.Empty;
+            
+            // Business profile type ID
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get all business profiles
+            var businessProfiles = ObjectSpace.GetObjectsQuery<Profile>()
+                .Where(p => !p.IsDeleted && p.ProfileTypeId == businessProfileTypeId)
+                .ToList();
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Found {businessProfiles.Count} business profiles to add contacts to.");
+            
+            if (businessProfiles.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] No business profiles found. Skipping contact info seeding.");
+                return;
+            }
+            
+            var seededCount = 0;
+            var random = new Random(42); // Fixed seed for reproducible demo data
+            
+            foreach (var profile in businessProfiles)
+            {
+                var contactsAdded = 0;
+                
+                // Generate a phone number base for this business (7-digit local number)
+                var phoneBase = random.Next(2000, 9000).ToString() + "-" + random.Next(1000, 9999).ToString();
+                
+                // 1. WhatsApp (primary contact for most SV businesses)
+                var whatsapp = ObjectSpace.CreateObject<BusinessContactInfo>();
+                whatsapp.ProfileId = profile.Id;
+                whatsapp.ContactTypeId = whatsappId;
+                whatsapp.Value = phoneBase.Replace("-", "");
+                whatsapp.Label = "WhatsApp";
+                whatsapp.CountryCode = "503";
+                whatsapp.SortOrder = 1;
+                whatsapp.IsPrimary = true;
+                whatsapp.IsActive = true;
+                whatsapp.AvailableHours = "{\"weekdays\": \"8:00-22:00\", \"weekends\": \"9:00-21:00\"}";
+                whatsapp.CreatedAt = now;
+                whatsapp.UpdatedAt = now;
+                contactsAdded++;
+                
+                // 2. Phone
+                var phone = ObjectSpace.CreateObject<BusinessContactInfo>();
+                phone.ProfileId = profile.Id;
+                phone.ContactTypeId = phoneId;
+                phone.Value = phoneBase.Replace("-", "");
+                phone.Label = "Llamar";
+                phone.CountryCode = "503";
+                phone.SortOrder = 2;
+                phone.IsPrimary = false;
+                phone.IsActive = true;
+                phone.CreatedAt = now;
+                phone.UpdatedAt = now;
+                contactsAdded++;
+                
+                // 3. Email (use profile handle if available)
+                var emailHandle = profile.Handle?.ToLowerInvariant().Replace(" ", "") ?? "contacto";
+                var email = ObjectSpace.CreateObject<BusinessContactInfo>();
+                email.ProfileId = profile.Id;
+                email.ContactTypeId = emailId;
+                email.Value = $"{emailHandle}@ejemplo.sv";
+                email.Label = "Email";
+                email.SortOrder = 3;
+                email.IsPrimary = false;
+                email.IsActive = true;
+                email.CreatedAt = now;
+                email.UpdatedAt = now;
+                contactsAdded++;
+                
+                // 4. Website (50% of businesses)
+                if (websiteId != Guid.Empty && random.NextDouble() > 0.5)
+                {
+                    var website = ObjectSpace.CreateObject<BusinessContactInfo>();
+                    website.ProfileId = profile.Id;
+                    website.ContactTypeId = websiteId;
+                    website.Value = $"https://www.{emailHandle}.com.sv";
+                    website.Label = "Sitio Web";
+                    website.SortOrder = 4;
+                    website.IsPrimary = false;
+                    website.IsActive = true;
+                    website.CreatedAt = now;
+                    website.UpdatedAt = now;
+                    contactsAdded++;
+                }
+                
+                // 5. Instagram (70% of businesses)
+                if (instagramId != Guid.Empty && random.NextDouble() > 0.3)
+                {
+                    var instagram = ObjectSpace.CreateObject<BusinessContactInfo>();
+                    instagram.ProfileId = profile.Id;
+                    instagram.ContactTypeId = instagramId;
+                    instagram.Value = emailHandle;
+                    instagram.Label = "Instagram";
+                    instagram.SortOrder = 5;
+                    instagram.IsPrimary = false;
+                    instagram.IsActive = true;
+                    instagram.CreatedAt = now;
+                    instagram.UpdatedAt = now;
+                    contactsAdded++;
+                }
+                
+                // 6. Facebook (60% of businesses)
+                if (facebookId != Guid.Empty && random.NextDouble() > 0.4)
+                {
+                    var facebook = ObjectSpace.CreateObject<BusinessContactInfo>();
+                    facebook.ProfileId = profile.Id;
+                    facebook.ContactTypeId = facebookId;
+                    facebook.Value = emailHandle;
+                    facebook.Label = "Facebook";
+                    facebook.SortOrder = 6;
+                    facebook.IsPrimary = false;
+                    facebook.IsActive = true;
+                    facebook.CreatedAt = now;
+                    facebook.UpdatedAt = now;
+                    contactsAdded++;
+                }
+                
+                // 7. Google Maps (80% of businesses - most have a location)
+                if (googleMapsId != Guid.Empty && random.NextDouble() > 0.2 && profile.Location != null && profile.Location.Latitude.HasValue && profile.Location.Longitude.HasValue)
+                {
+                    var maps = ObjectSpace.CreateObject<BusinessContactInfo>();
+                    maps.ProfileId = profile.Id;
+                    maps.ContactTypeId = googleMapsId;
+                    maps.Value = $"{profile.Location.Latitude},{profile.Location.Longitude}"; // lat,lng
+                    maps.Label = "Ver en Mapa";
+                    maps.SortOrder = 7;
+                    maps.IsPrimary = false;
+                    maps.IsActive = true;
+                    maps.CreatedAt = now;
+                    maps.UpdatedAt = now;
+                    contactsAdded++;
+                }
+                
+                seededCount++;
+                System.Diagnostics.Debug.WriteLine($"[Updater] ✓ Added {contactsAdded} contacts to: {profile.Handle}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded contacts for {seededCount} business profiles.");
         }
         
         /// <summary>

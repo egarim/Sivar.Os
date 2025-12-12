@@ -91,6 +91,9 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<AnalyticsRepository>(); // Phase 7: Continuous Aggregates
+// Phase 1: Contact Actions - Repository registration
+builder.Services.AddScoped<IContactTypeRepository, ContactTypeRepository>();
+builder.Services.AddScoped<IBusinessContactInfoRepository, BusinessContactInfoRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -170,6 +173,8 @@ builder.Services.AddScoped<INotificationService, Sivar.Os.Services.NotificationS
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISavedResultService, SavedResultService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+// Phase 1: Contact Actions - Service registration
+builder.Services.AddScoped<IContactUrlBuilder, ContactUrlBuilder>();
 
 // --- Utility Services Registration ---
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();

@@ -18,17 +18,23 @@ public class SearchResultService : ISearchResultService
     private readonly IPostRepository _postRepository;
     private readonly SivarDbContext _dbContext;
     private readonly IVectorEmbeddingService _embeddingService;
+    private readonly IBusinessContactInfoRepository _contactInfoRepository;
+    private readonly IContactUrlBuilder _contactUrlBuilder;
     private readonly ILogger<SearchResultService> _logger;
 
     public SearchResultService(
         IPostRepository postRepository,
         SivarDbContext dbContext,
         IVectorEmbeddingService embeddingService,
+        IBusinessContactInfoRepository contactInfoRepository,
+        IContactUrlBuilder contactUrlBuilder,
         ILogger<SearchResultService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _embeddingService = embeddingService ?? throw new ArgumentNullException(nameof(embeddingService));
+        _contactInfoRepository = contactInfoRepository ?? throw new ArgumentNullException(nameof(contactInfoRepository));
+        _contactUrlBuilder = contactUrlBuilder ?? throw new ArgumentNullException(nameof(contactUrlBuilder));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -127,6 +133,9 @@ public class SearchResultService : ISearchResultService
                 Products = products,
                 Services = services
             };
+            
+            // Phase 1: Load contacts for all business results (bulk load for efficiency)
+            await LoadContactsForBusinessResultsAsync(businesses);
 
             _logger.LogInformation(
                 "[SearchResultService.HybridSearchAsync] Completed: {Count} results in {Ms}ms",
@@ -489,6 +498,7 @@ public class SearchResultService : ISearchResultService
             Website = metadata?.Website,
             WorkingHours = FormatWorkingHours(metadata?.WorkingHours),
             PriceRange = metadata?.PriceRange
+            // Contacts loaded via bulk LoadContactsForBusinessResultsAsync after search
         };
     }
 
@@ -861,6 +871,70 @@ public class SearchResultService : ISearchResultService
         ProfileId = entity.ProfileId,
         Phone = entity.Phone
     };
+    
+    /// <summary>
+    /// Loads contacts for a profile and converts them to ContactDisplayDto
+    /// </summary>
+    private async Task<List<ContactDisplayDto>> LoadContactsForProfileAsync(Guid profileId, string regionCode = "SV")
+    {
+        try
+        {
+            var contacts = await _contactInfoRepository.GetByProfileIdAsync(profileId);
+            if (!contacts.Any())
+                return new List<ContactDisplayDto>();
+            
+            return contacts
+                .Where(c => c.IsActive && c.ContactType != null && c.ContactType.IsActive)
+                .OrderBy(c => c.ContactType?.Category)
+                .ThenByDescending(c => c.ContactType?.GetRegionalPopularity(regionCode) ?? 50)
+                .ThenBy(c => c.SortOrder)
+                .Select(c => new ContactDisplayDto
+                {
+                    TypeKey = c.ContactType?.Key ?? "unknown",
+                    DisplayName = c.ContactType?.DisplayName ?? c.Label ?? "Contacto",
+                    Icon = c.ContactType?.Icon ?? "📞",
+                    MudBlazorIcon = c.ContactType?.MudBlazorIcon,
+                    Color = c.ContactType?.Color ?? "#607D8B",
+                    Category = c.ContactType?.Category ?? "other",
+                    Url = c.ContactType != null 
+                        ? _contactUrlBuilder.BuildUrl(c.ContactType, c)
+                        : string.Empty,
+                    Value = c.Value,
+                    Label = c.Label,
+                    OpenInNewTab = c.ContactType?.OpenInNewTab ?? true,
+                    MobileOnly = c.ContactType?.MobileOnly ?? false,
+                    SortOrder = c.SortOrder,
+                    RegionalPopularity = c.ContactType?.GetRegionalPopularity(regionCode) ?? 50
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SearchResultService] Failed to load contacts for profile {ProfileId}", profileId);
+            return new List<ContactDisplayDto>();
+        }
+    }
+    
+    /// <summary>
+    /// Bulk loads contacts for all business results (Phase 1: Contact Actions)
+    /// </summary>
+    private async Task LoadContactsForBusinessResultsAsync(List<BusinessSearchResultDto> businesses)
+    {
+        if (!businesses.Any()) return;
+        
+        _logger.LogDebug("[SearchResultService] Loading contacts for {Count} business results", businesses.Count);
+        
+        foreach (var business in businesses)
+        {
+            if (business.ProfileId.HasValue)
+            {
+                business.Contacts = await LoadContactsForProfileAsync(business.ProfileId.Value);
+            }
+        }
+        
+        var withContacts = businesses.Count(b => b.Contacts?.Any() == true);
+        _logger.LogDebug("[SearchResultService] Loaded contacts: {WithContacts}/{Total} businesses have contacts", withContacts, businesses.Count);
+    }
 
     #endregion
 }

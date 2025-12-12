@@ -83,6 +83,18 @@
                                 }
                             </div>
                             
+                            @* Contact Actions (Phase 1: Enhanced Contact System) *@
+                            @if (business.Contacts?.Any() == true)
+                            {
+                                <div class="card-contacts">
+                                    <ContactActions Contacts="@business.Contacts.ToList()" 
+                                                    MaxTotal="3" 
+                                                    IconOnly="true"
+                                                    ButtonSize="Size.Small"
+                                                    ButtonVariant="Variant.Text" />
+                                </div>
+                            }
+                            
                             <div class="card-actions">
                                 @foreach (var action in business.Actions.Take(2))
                                 {

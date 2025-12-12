@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: November 2, 2025 - Added Multi-Language Localization Standards  
+> **Last Updated**: December 12, 2025 - Added XAF Entity Rules for DevExpress ORM Compatibility  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -44,13 +44,14 @@
 14. [Error Handling](#error-handling)
 15. [Testing & Debugging](#testing--debugging)
 16. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-17. [Database Script System](#database-script-system) ⭐ **UPDATED**
+17. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
+18. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-18. [References](#references)
+19. [References](#references)
 
 ---
 
@@ -352,6 +353,234 @@ Monitor these for EF Core 9.0 support:
 2. Test Vector type compatibility
 3. Update this documentation
 4. Consider migrating from string? back to Vector? if stable
+
+---
+
+## ⚠️ CRITICAL: XAF Entity Rules - DevExpress ORM Compatibility
+
+### 🚨 RECURRING ISSUE - READ THIS BEFORE CREATING ENTITIES
+
+**Problem:** DevExpress XAF uses `UseChangeTrackingProxies` and `UseLazyLoadingProxies` which require ALL entities to follow specific patterns. Failing to follow these rules causes runtime errors.
+
+### The Requirements Explained
+
+| Requirement | Reason | Error If Missing |
+|-------------|--------|------------------|
+| **All properties must be `virtual`** | XAF creates proxy classes that override properties | `Property 'X' is not virtual. 'UseChangeTrackingProxies' requires all entity types to be public, unsealed, have virtual properties` |
+| **Collections must use `ObservableCollection<T>`** | XAF requires `INotifyCollectionChanged` for change tracking | `The collection type 'List<T>' does not implement 'INotifyCollectionChanged'` |
+| **Class must be `public`** | Proxy classes need public access | `Entity type must be public` |
+| **Class must NOT be `sealed`** | XAF creates derived proxy classes | `Entity type must be unsealed` |
+| **Must have public or protected constructor** | Proxy instantiation | `Must have a public or protected constructor` |
+
+### ✅ CORRECT Entity Pattern
+
+```csharp
+using System.Collections.ObjectModel;  // ⭐ REQUIRED for ObservableCollection
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Sivar.Os.Shared.Entities;
+
+/// <summary>
+/// Example entity following XAF ORM requirements
+/// </summary>
+public class MyEntity : BaseEntity  // ✅ public, not sealed
+{
+    // ============================================
+    // SCALAR PROPERTIES - All must be virtual
+    // ============================================
+    
+    [Required, StringLength(100)]
+    public virtual string Name { get; set; } = string.Empty;  // ✅ virtual
+    
+    [StringLength(500)]
+    public virtual string? Description { get; set; }  // ✅ virtual (nullable)
+    
+    public virtual int SortOrder { get; set; } = 100;  // ✅ virtual
+    
+    public virtual bool IsActive { get; set; } = true;  // ✅ virtual
+    
+    public virtual Guid? ParentId { get; set; }  // ✅ virtual (FK)
+    
+    [Column(TypeName = "jsonb")]
+    public virtual string? Metadata { get; set; }  // ✅ virtual (JSONB)
+
+    // ============================================
+    // NAVIGATION PROPERTIES - Must be virtual
+    // ============================================
+    
+    public virtual MyEntity? Parent { get; set; }  // ✅ virtual (reference)
+    
+    // ============================================
+    // COLLECTION PROPERTIES - ObservableCollection + virtual
+    // ============================================
+    
+    public virtual ObservableCollection<ChildEntity> Children { get; set; } 
+        = new ObservableCollection<ChildEntity>();  // ✅ ObservableCollection + virtual
+        
+    public virtual ObservableCollection<RelatedEntity> RelatedItems { get; set; } 
+        = new ObservableCollection<RelatedEntity>();  // ✅ ObservableCollection + virtual
+}
+```
+
+### ❌ WRONG Entity Pattern (Common Mistakes)
+
+```csharp
+// ❌ WRONG - This will cause runtime errors!
+
+public class BrokenEntity : BaseEntity
+{
+    // ❌ NOT virtual - causes "Property is not virtual" error
+    public string Name { get; set; } = string.Empty;
+    
+    // ❌ NOT virtual
+    public int SortOrder { get; set; } = 100;
+    
+    // ❌ ICollection with List - causes "does not implement INotifyCollectionChanged" error
+    public virtual ICollection<ChildEntity> Children { get; set; } 
+        = new List<ChildEntity>();
+        
+    // ❌ List<T> directly - same error
+    public virtual List<ChildEntity> Items { get; set; } 
+        = new List<ChildEntity>();
+}
+```
+
+### Quick Fix Checklist
+
+When you see these runtime errors, apply these fixes:
+
+| Error Message | Fix |
+|--------------|-----|
+| `Property 'X' is not virtual` | Add `virtual` keyword to the property |
+| `does not implement 'INotifyCollectionChanged'` | Change `ICollection<T>` or `List<T>` to `ObservableCollection<T>` |
+| `Entity type must be public` | Change class to `public class` |
+| `Entity type must be unsealed` | Remove `sealed` keyword from class |
+
+### BaseEntity Pattern
+
+All entities inherit from `BaseEntity` which already has virtual properties:
+
+```csharp
+public abstract class BaseEntity
+{
+    public virtual Guid Id { get; set; }
+    public virtual DateTime CreatedAt { get; set; }
+    public virtual DateTime UpdatedAt { get; set; }
+    public virtual bool IsDeleted { get; set; }
+}
+```
+
+### Entity Creation Checklist
+
+Before creating any new entity, verify:
+
+- [ ] **Class is `public`** - Not internal or private
+- [ ] **Class is NOT `sealed`** - Remove sealed keyword if present
+- [ ] **ALL scalar properties are `virtual`** - string, int, bool, Guid, DateTime, etc.
+- [ ] **ALL nullable properties are `virtual`** - string?, int?, Guid?, etc.
+- [ ] **ALL navigation properties are `virtual`** - References to other entities
+- [ ] **ALL collections use `ObservableCollection<T>`** - NOT ICollection, List, or HashSet
+- [ ] **Add `using System.Collections.ObjectModel;`** - Required for ObservableCollection
+- [ ] **Inherits from `BaseEntity`** - Or implements virtual Id, CreatedAt, UpdatedAt, IsDeleted
+
+### Common Scenarios
+
+**Scenario 1: One-to-Many Relationship**
+
+```csharp
+// Parent entity
+public class ContactType : BaseEntity
+{
+    public virtual string Key { get; set; } = string.Empty;
+    
+    // ✅ ObservableCollection for one-to-many
+    public virtual ObservableCollection<BusinessContactInfo> BusinessContacts { get; set; } 
+        = new ObservableCollection<BusinessContactInfo>();
+}
+
+// Child entity
+public class BusinessContactInfo : BaseEntity
+{
+    public virtual Guid ContactTypeId { get; set; }  // ✅ virtual FK
+    public virtual ContactType ContactType { get; set; } = null!;  // ✅ virtual navigation
+}
+```
+
+**Scenario 2: Many-to-Many Relationship**
+
+```csharp
+public class Post : BaseEntity
+{
+    public virtual string Content { get; set; } = string.Empty;
+    
+    // ✅ ObservableCollection for many-to-many
+    public virtual ObservableCollection<PostTag> PostTags { get; set; } 
+        = new ObservableCollection<PostTag>();
+}
+
+public class Tag : BaseEntity
+{
+    public virtual string Name { get; set; } = string.Empty;
+    
+    // ✅ ObservableCollection for many-to-many
+    public virtual ObservableCollection<PostTag> PostTags { get; set; } 
+        = new ObservableCollection<PostTag>();
+}
+
+// Junction table
+public class PostTag : BaseEntity
+{
+    public virtual Guid PostId { get; set; }
+    public virtual Post Post { get; set; } = null!;
+    
+    public virtual Guid TagId { get; set; }
+    public virtual Tag Tag { get; set; } = null!;
+}
+```
+
+**Scenario 3: Self-Referencing Relationship**
+
+```csharp
+public class Category : BaseEntity
+{
+    public virtual string Name { get; set; } = string.Empty;
+    
+    public virtual Guid? ParentId { get; set; }  // ✅ virtual nullable FK
+    public virtual Category? Parent { get; set; }  // ✅ virtual nullable navigation
+    
+    // ✅ ObservableCollection for children
+    public virtual ObservableCollection<Category> Children { get; set; } 
+        = new ObservableCollection<Category>();
+}
+```
+
+### Why XAF Requires These Patterns
+
+**1. Change Tracking Proxies (`UseChangeTrackingProxies`):**
+- XAF creates runtime proxy classes that inherit from your entity
+- Proxies override properties to intercept get/set operations
+- Non-virtual properties cannot be overridden → runtime error
+
+**2. Lazy Loading Proxies (`UseLazyLoadingProxies`):**
+- Navigation properties are loaded on-demand when accessed
+- Proxies override navigation properties to trigger lazy loading
+- Non-virtual navigation properties cannot be intercepted
+
+**3. Collection Change Notifications:**
+- XAF tracks changes to collections (add/remove items)
+- Requires `INotifyCollectionChanged` interface
+- `List<T>` and `ICollection<T>` don't implement this
+- `ObservableCollection<T>` does implement it
+
+### Testing After Entity Changes
+
+After creating or modifying an entity:
+
+1. **Build the solution** - Check for compile errors
+2. **Run XAF application** - The error appears at runtime during database update
+3. **Check Updater.cs execution** - Errors occur during `UpdateDatabaseAfterUpdateSchemaAsync()`
+4. **Look for specific error message** - Apply the fix from the table above
 
 ---
 

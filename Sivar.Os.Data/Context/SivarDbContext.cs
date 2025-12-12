@@ -95,6 +95,16 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<ProfileEmotionSummary> ProfileEmotionSummaries { get; set; } = null!;
 
+    /// <summary>
+    /// Contact type catalog (phone, whatsapp, email, etc.)
+    /// </summary>
+    public DbSet<ContactType> ContactTypes { get; set; } = null!;
+
+    /// <summary>
+    /// Business contact information linked to profiles
+    /// </summary>
+    public DbSet<BusinessContactInfo> BusinessContactInfos { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -118,6 +128,8 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SearchResultConfiguration());
         modelBuilder.ApplyConfiguration(new ActivityConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileEmotionSummaryConfiguration());
+        modelBuilder.ApplyConfiguration(new ContactTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new BusinessContactInfoConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

@@ -1,0 +1,247 @@
+@using Sivar.Os.Shared.DTOs
+
+@* ContactActions.razor - Reusable contact buttons component *@
+
+@if (Contacts?.Any() == true)
+{
+    <div class="contact-actions @Class">
+        @if (GroupByCategory)
+        {
+            @foreach (var group in GetGroupedContacts())
+            {
+                <div class="contact-category mb-2">
+                    @if (ShowCategoryLabels)
+                    {
+                        <MudText Typo="Typo.caption" Class="mb-1 mud-text-secondary">
+                            @group.CategoryDisplayName
+                        </MudText>
+                    }
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var contact in group.Contacts.Take(MaxPerCategory))
+                        {
+                            @RenderContactButton(contact)
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="d-flex flex-wrap gap-1">
+                @foreach (var contact in Contacts.Take(MaxTotal))
+                {
+                    @RenderContactButton(contact)
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// List of contacts to display
+    /// </summary>
+    [Parameter]
+    public List<ContactDisplayDto>? Contacts { get; set; }
+
+    /// <summary>
+    /// Maximum contacts to show per category
+    /// </summary>
+    [Parameter]
+    public int MaxPerCategory { get; set; } = 3;
+
+    /// <summary>
+    /// Maximum total contacts to show (when not grouping)
+    /// </summary>
+    [Parameter]
+    public int MaxTotal { get; set; } = 6;
+
+    /// <summary>
+    /// Whether to group contacts by category
+    /// </summary>
+    [Parameter]
+    public bool GroupByCategory { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show category labels
+    /// </summary>
+    [Parameter]
+    public bool ShowCategoryLabels { get; set; } = false;
+
+    /// <summary>
+    /// Button size
+    /// </summary>
+    [Parameter]
+    public Size ButtonSize { get; set; } = Size.Small;
+
+    /// <summary>
+    /// Button variant
+    /// </summary>
+    [Parameter]
+    public Variant ButtonVariant { get; set; } = Variant.Outlined;
+
+    /// <summary>
+    /// Show only icons (no text)
+    /// </summary>
+    [Parameter]
+    public bool IconOnly { get; set; } = false;
+
+    /// <summary>
+    /// Additional CSS class
+    /// </summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>
+    /// Callback when a contact is clicked (for analytics)
+    /// </summary>
+    [Parameter]
+    public EventCallback<ContactDisplayDto> OnContactClick { get; set; }
+
+    private List<ContactGroupDto> GetGroupedContacts()
+    {
+        if (Contacts == null) return new();
+
+        return Contacts
+            .GroupBy(c => c.Category)
+            .Select(g => new ContactGroupDto
+            {
+                Category = g.Key,
+                CategoryDisplayName = GetCategoryDisplayName(g.Key),
+                CategorySortOrder = GetCategorySortOrder(g.Key),
+                Contacts = g.OrderByDescending(c => c.RegionalPopularity)
+                           .ThenBy(c => c.SortOrder)
+                           .ToList()
+            })
+            .OrderBy(g => g.CategorySortOrder)
+            .ToList();
+    }
+
+    private string GetCategoryDisplayName(string category) => category.ToLowerInvariant() switch
+    {
+        "phone" => "Teléfono",
+        "messaging" => "Mensajería",
+        "email" => "Correo",
+        "web" => "Web",
+        "social" => "Redes Sociales",
+        "location" => "Ubicación",
+        "delivery" => "Delivery",
+        _ => "Otros"
+    };
+
+    private int GetCategorySortOrder(string category) => category.ToLowerInvariant() switch
+    {
+        "phone" => 1,
+        "messaging" => 2,
+        "email" => 3,
+        "web" => 4,
+        "social" => 5,
+        "location" => 6,
+        "delivery" => 7,
+        _ => 99
+    };
+
+    private string GetIcon(ContactDisplayDto contact)
+    {
+        // Prefer MudBlazor icon name if available
+        if (!string.IsNullOrEmpty(contact.MudBlazorIcon))
+        {
+            return contact.MudBlazorIcon switch
+            {
+                "Icons.Material.Filled.Phone" => Icons.Material.Filled.Phone,
+                "Icons.Material.Filled.Sms" => Icons.Material.Filled.Sms,
+                "Icons.Material.Filled.Email" => Icons.Material.Filled.Email,
+                "Icons.Material.Filled.Language" => Icons.Material.Filled.Language,
+                "Icons.Material.Filled.ContactPage" => Icons.Material.Filled.ContactPage,
+                "Icons.Material.Filled.EventAvailable" => Icons.Material.Filled.EventAvailable,
+                "Icons.Material.Filled.MenuBook" => Icons.Material.Filled.MenuBook,
+                "Icons.Material.Filled.ShoppingCart" => Icons.Material.Filled.ShoppingCart,
+                "Icons.Material.Filled.Map" => Icons.Material.Filled.Map,
+                "Icons.Material.Filled.Directions" => Icons.Material.Filled.Directions,
+                "Icons.Custom.Brands.WhatsApp" => Icons.Custom.Brands.WhatsApp,
+                "Icons.Custom.Brands.Telegram" => Icons.Custom.Brands.Telegram,
+                "Icons.Custom.Brands.Facebook" => Icons.Custom.Brands.Facebook,
+                "Icons.Custom.Brands.Instagram" => Icons.Custom.Brands.Instagram,
+                "Icons.Custom.Brands.Twitter" => Icons.Custom.Brands.Twitter,
+                "Icons.Custom.Brands.LinkedIn" => Icons.Custom.Brands.LinkedIn,
+                "Icons.Custom.Brands.YouTube" => Icons.Custom.Brands.YouTube,
+                "Icons.Custom.Brands.TikTok" => Icons.Custom.Brands.TikTok,
+                _ => Icons.Material.Filled.Link
+            };
+        }
+        
+        // Fall back to default icon based on category
+        return contact.Category.ToLowerInvariant() switch
+        {
+            "phone" => Icons.Material.Filled.Phone,
+            "messaging" => Icons.Material.Filled.Chat,
+            "email" => Icons.Material.Filled.Email,
+            "web" => Icons.Material.Filled.Language,
+            "social" => Icons.Material.Filled.Share,
+            "location" => Icons.Material.Filled.Place,
+            "delivery" => Icons.Material.Filled.DeliveryDining,
+            _ => Icons.Material.Filled.Link
+        };
+    }
+
+    private string GetTooltip(ContactDisplayDto contact)
+    {
+        var tooltip = contact.DisplayName;
+        
+        if (!string.IsNullOrEmpty(contact.Label))
+            tooltip = $"{contact.Label} ({contact.DisplayName})";
+        
+        if (!string.IsNullOrEmpty(contact.Value) && contact.Category != "location")
+            tooltip += $": {contact.Value}";
+        
+        if (contact.MobileOnly)
+            tooltip += " (móvil)";
+        
+        if (!string.IsNullOrEmpty(contact.Notes))
+            tooltip += $" - {contact.Notes}";
+        
+        return tooltip;
+    }
+
+    private string GetButtonStyle(ContactDisplayDto contact)
+    {
+        if (!string.IsNullOrEmpty(contact.Color))
+        {
+            return $"border-color: {contact.Color}; color: {contact.Color};";
+        }
+        return string.Empty;
+    }
+
+    private async Task HandleClick(ContactDisplayDto contact)
+    {
+        if (OnContactClick.HasDelegate)
+        {
+            await OnContactClick.InvokeAsync(contact);
+        }
+    }
+
+    private RenderFragment RenderContactButton(ContactDisplayDto contact) => __builder =>
+    {
+        <MudTooltip Text="@GetTooltip(contact)">
+            <MudButton Href="@contact.Url"
+                       Target="@(contact.OpenInNewTab ? "_blank" : "_self")"
+                       Variant="@ButtonVariant"
+                       Size="@ButtonSize"
+                       StartIcon="@GetIcon(contact)"
+                       Style="@GetButtonStyle(contact)"
+                       OnClick="@(() => HandleClick(contact))">
+                @if (!IconOnly)
+                {
+                    @if (!string.IsNullOrEmpty(contact.Label))
+                    {
+                        <span>@contact.Label</span>
+                    }
+                    else
+                    {
+                        <span>@contact.DisplayName</span>
+                    }
+                }
+            </MudButton>
+        </MudTooltip>
+    };
+}
