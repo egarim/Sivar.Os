@@ -207,6 +207,9 @@ public class ChatService : IChatService
                 _logger.LogDebug("[ChatService.SendMessageAsync] No location context provided - RequestId={RequestId}", requestId);
             }
 
+            // Phase 2: Clear last search results before AI agent call
+            _functionService.ClearLastSearchResults();
+
             // Build chat history for context
             var chatHistory = BuildChatHistory(conversation);
             chatHistory.Add(new AiChatMessage(ChatRole.User, dto.Content));
@@ -249,13 +252,22 @@ public class ChatService : IChatService
             // Update conversation last message time
             await _conversationRepository.UpdateLastMessageTimeAsync(dto.ConversationId);
 
-            // Check if this is a search-type query and perform structured search
-            SearchResultsCollectionDto? structuredResults = null;
-            if (IsSearchQuery(dto.Content))
+            // Phase 2: Unified Structured Search Pipeline
+            // First, check if the AI agent's function calls produced structured results
+            SearchResultsCollectionDto? structuredResults = _functionService.LastSearchResults;
+            
+            if (structuredResults?.HasResults == true)
             {
+                _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2: AI Agent function call returned {Count} structured results - RequestId={RequestId}", 
+                    structuredResults.TotalCount, requestId);
+            }
+            else if (IsSearchQuery(dto.Content))
+            {
+                // Fallback: If the AI agent didn't call a search function but this looks like a search query,
+                // perform a hybrid search (this maintains backward compatibility during transition)
                 try
                 {
-                    _logger.LogInformation("[ChatService.SendMessageAsync] Performing structured search for query - RequestId={RequestId}", requestId);
+                    _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2 fallback: Performing hybrid search for query - RequestId={RequestId}", requestId);
                     structuredResults = await _searchResultService.HybridSearchAsync(new HybridSearchRequestDto
                     {
                         Query = dto.Content,
@@ -267,13 +279,13 @@ public class ChatService : IChatService
 
                     if (structuredResults?.HasResults == true)
                     {
-                        _logger.LogInformation("[ChatService.SendMessageAsync] Structured search returned {Count} results - RequestId={RequestId}", 
+                        _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2 fallback: Hybrid search returned {Count} results - RequestId={RequestId}", 
                             structuredResults.TotalCount, requestId);
                     }
                 }
                 catch (Exception searchEx)
                 {
-                    _logger.LogWarning(searchEx, "[ChatService.SendMessageAsync] Structured search failed, continuing with text response - RequestId={RequestId}", requestId);
+                    _logger.LogWarning(searchEx, "[ChatService.SendMessageAsync] Phase 2 fallback: Structured search failed, continuing with text response - RequestId={RequestId}", requestId);
                     // Don't fail the whole request, just don't include structured results
                 }
             }

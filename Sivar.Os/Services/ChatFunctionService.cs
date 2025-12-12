@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
+using Sivar.Os.Shared.Enums;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
 
@@ -9,6 +11,7 @@ namespace Sivar.Os.Services;
 /// <summary>
 /// Service that provides AI-callable functions for social platform actions.
 /// Includes PostGIS-powered spatial search for nearby profiles and posts.
+/// Phase 2: Now captures structured search results for card-based UI rendering.
 /// </summary>
 public class ChatFunctionService
 {
@@ -19,6 +22,21 @@ public class ChatFunctionService
     private readonly ILogger<ChatFunctionService> _logger;
     private Guid _currentProfileId; // Set before each AI call
     private (double Latitude, double Longitude)? _currentLocation; // Optional user location context
+    
+    /// <summary>
+    /// Phase 2: Captures the last search results as structured DTOs for card rendering.
+    /// Reset before each AI agent call and populated by search functions.
+    /// </summary>
+    public SearchResultsCollectionDto? LastSearchResults { get; private set; }
+    
+    /// <summary>
+    /// Clears the last search results. Call before each AI agent invocation.
+    /// </summary>
+    public void ClearLastSearchResults()
+    {
+        LastSearchResults = null;
+        _logger.LogDebug("[ChatFunctionService] LastSearchResults cleared");
+    }
 
     public ChatFunctionService(
         IProfileRepository profileRepository,
@@ -117,12 +135,33 @@ public class ChatFunctionService
             // Get all profiles and filter (in real app, this would be a DB query)
             var allProfiles = await _profileRepository.GetAllAsync();
 
-            var matchingProfiles = allProfiles
+            var matchingProfileEntities = allProfiles
                 .Where(p => !p.IsDeleted &&
                     (p.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                      p.Bio.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                      p.ProfileType?.Name.Contains(query, StringComparison.OrdinalIgnoreCase) == true))
                 .Take(maxResults)
+                .ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ChatFunctionService.SearchProfiles] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms",
+                requestId, matchingProfileEntities.Count, elapsed);
+
+            if (!matchingProfileEntities.Any())
+            {
+                return $"No profiles found matching '{query}'";
+            }
+
+            // Phase 2: Populate structured results for card rendering
+            var businessResults = matchingProfileEntities
+                .Select((p, index) => MapProfileToBusinessResult(p, null, index))
+                .ToList();
+            
+            LastSearchResults = CreateSearchResultsCollection(query, businessResults, (long)elapsed);
+            _logger.LogInformation("[ChatFunctionService.SearchProfiles] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
+
+            // Return JSON for AI agent (preserving existing behavior)
+            var matchingProfiles = matchingProfileEntities
                 .Select(p => new
                 {
                     id = p.Id,
@@ -132,15 +171,6 @@ public class ChatFunctionService
                     isFollowing = _followerRepository.IsFollowingAsync(_currentProfileId, p.Id).Result
                 })
                 .ToList();
-
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogInformation("[ChatFunctionService.SearchProfiles] SUCCESS - RequestId={RequestId}, MatchCount={MatchCount}, Duration={Duration}ms",
-                requestId, matchingProfiles.Count, elapsed);
-
-            if (!matchingProfiles.Any())
-            {
-                return $"No profiles found matching '{query}'";
-            }
 
             return JsonSerializer.Serialize(new
             {
@@ -327,6 +357,30 @@ public class ChatFunctionService
                 
                 return $"No posts found matching {string.Join(" in ", searchCriteria)}. Try broader search terms or check if locations are registered on the platform.";
             }
+
+            // Phase 2: Populate structured results for card rendering
+            var postsWithDistance = _currentLocation.HasValue
+                ? filteredPosts
+                    .Select(p => (Post: p, Distance: p.Location?.Latitude.HasValue == true && p.Location?.Longitude.HasValue == true
+                        ? CalculateDistanceKm(_currentLocation.Value.Latitude, _currentLocation.Value.Longitude, 
+                            p.Location.Latitude.Value, p.Location.Longitude.Value)
+                        : (double?)null))
+                    .OrderBy(x => x.Distance ?? double.MaxValue)
+                    .Take(maxResults)
+                    .ToList()
+                : filteredPosts
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Take(maxResults)
+                    .Select(p => (Post: p, Distance: (double?)null))
+                    .ToList();
+
+            var businessResults = postsWithDistance
+                .Select((x, index) => MapPostToBusinessResult(x.Post, x.Distance, index))
+                .ToList();
+            
+            var combinedQuery = string.Join(" ", new[] { query, city, country }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            LastSearchResults = CreateSearchResultsCollection(combinedQuery, businessResults, (long)elapsed);
+            _logger.LogInformation("[ChatFunctionService.SearchPosts] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
 
             return JsonSerializer.Serialize(new
             {
@@ -750,6 +804,44 @@ public class ChatFunctionService
                        $"3. Try a broader location search";
             }
 
+            // Phase 2: Populate structured results for card rendering
+            // Re-fetch to get actual Post entities for mapping
+            var matchingPostEntities = allPosts
+                .Where(p => !p.IsDeleted)
+                .Where(p =>
+                {
+                    bool contentMatch = p.Content.Contains(businessType, StringComparison.OrdinalIgnoreCase);
+                    bool isBusinessLocation = p.PostType == Sivar.Os.Shared.Enums.PostType.BusinessLocation;
+
+                    if (!contentMatch && !isBusinessLocation)
+                        return false;
+
+                    if (!string.IsNullOrWhiteSpace(city))
+                    {
+                        if (p.Location?.City?.Contains(city, StringComparison.OrdinalIgnoreCase) != true)
+                            return false;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(country))
+                    {
+                        if (p.Location?.Country?.Contains(country, StringComparison.OrdinalIgnoreCase) != true)
+                            return false;
+                    }
+
+                    return true;
+                })
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(maxResults)
+                .ToList();
+
+            var businessResults = matchingPostEntities
+                .Select((p, index) => MapPostToBusinessResult(p, null, index))
+                .ToList();
+            
+            var combinedQuery = string.Join(" ", new[] { businessType, city, country }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            LastSearchResults = CreateSearchResultsCollection(combinedQuery, businessResults, (long)elapsed);
+            _logger.LogInformation("[ChatFunctionService.FindBusinesses] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
+
             return JsonSerializer.Serialize(new
             {
                 searchCriteria = new { businessType, city, country },
@@ -825,6 +917,14 @@ public class ChatFunctionService
                 return $"No profiles found within {radiusKm}km of the specified location.";
             }
 
+            // Phase 2: Populate structured results for card rendering
+            var businessResults = nearbyProfiles
+                .Select((p, index) => MapProfileDtoToBusinessResult(p, index))
+                .ToList();
+            
+            LastSearchResults = CreateSearchResultsCollection($"nearby {profileType ?? "profiles"}", businessResults, (long)elapsed);
+            _logger.LogInformation("[ChatFunctionService.SearchNearbyProfiles] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
+
             var results = nearbyProfiles.Select(p => new
             {
                 id = p.Id,
@@ -898,6 +998,14 @@ public class ChatFunctionService
             {
                 return $"No posts found within {radiusKm}km of the specified location.";
             }
+
+            // Phase 2: Populate structured results for card rendering
+            var businessResults = nearbyPosts
+                .Select((p, index) => MapPostDtoToBusinessResult(p, index))
+                .ToList();
+            
+            LastSearchResults = CreateSearchResultsCollection("nearby posts", businessResults, (long)elapsed);
+            _logger.LogInformation("[ChatFunctionService.SearchNearbyPosts] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
 
             var results = nearbyPosts.Select(p => new
             {
@@ -1151,5 +1259,172 @@ public class ChatFunctionService
                 message = "No location set. The user needs to share their location first, or you can search using specific coordinates."
             }, new JsonSerializerOptions { WriteIndented = true });
         }
+    }
+
+    // ==================== PHASE 2: STRUCTURED RESULT MAPPING ====================
+
+    /// <summary>
+    /// Maps a Profile entity to a BusinessSearchResultDto for structured card rendering
+    /// </summary>
+    private BusinessSearchResultDto MapProfileToBusinessResult(Profile profile, double? distanceKm = null, int displayOrder = 0)
+    {
+        return new BusinessSearchResultDto
+        {
+            Id = profile.Id,
+            ProfileId = profile.Id,
+            ResultType = SearchResultType.Business,
+            MatchSource = SearchMatchSource.Hybrid, // Function calls use hybrid matching
+            RelevanceScore = 1.0 - (distanceKm ?? 0) / 100, // Simple distance-based relevance
+            DisplayOrder = displayOrder,
+            Title = profile.DisplayName,
+            Description = profile.Bio?.Length > 150 ? profile.Bio.Substring(0, 150) + "..." : profile.Bio,
+            Handle = profile.Handle,
+            Category = profile.ProfileType?.Name ?? "Business",
+            ImageUrl = profile.Avatar,
+            City = profile.Location?.City,
+            Department = profile.Location?.State,
+            Latitude = profile.Location?.Latitude,
+            Longitude = profile.Location?.Longitude,
+            DistanceKm = distanceKm,
+            Tags = null // Could extract from profile metadata
+        };
+    }
+
+    /// <summary>
+    /// Maps a ProfileDto (from location service) to a BusinessSearchResultDto for structured card rendering
+    /// </summary>
+    private BusinessSearchResultDto MapProfileDtoToBusinessResult(ProfileDto profile, int displayOrder = 0)
+    {
+        return new BusinessSearchResultDto
+        {
+            Id = profile.Id,
+            ProfileId = profile.Id,
+            ResultType = SearchResultType.Business,
+            MatchSource = SearchMatchSource.Geographic, // Location-based searches use geographic matching
+            RelevanceScore = 1.0 - (profile.DistanceKm ?? 0) / 100,
+            DisplayOrder = displayOrder,
+            Title = profile.DisplayName,
+            Description = profile.Bio?.Length > 150 ? profile.Bio.Substring(0, 150) + "..." : profile.Bio,
+            Handle = profile.Handle,
+            Category = profile.ProfileType?.Name ?? "Business",
+            ImageUrl = profile.Avatar,
+            City = profile.Location?.City,
+            Department = profile.Location?.State,
+            Latitude = profile.Location?.Latitude,
+            Longitude = profile.Location?.Longitude,
+            DistanceKm = profile.DistanceKm,
+            Tags = profile.Tags?.ToArray()
+        };
+    }
+
+    /// <summary>
+    /// Maps a Post entity to a BusinessSearchResultDto for structured card rendering
+    /// </summary>
+    private BusinessSearchResultDto MapPostToBusinessResult(Post post, double? distanceKm = null, int displayOrder = 0)
+    {
+        return new BusinessSearchResultDto
+        {
+            Id = post.Id,
+            ProfileId = post.ProfileId,
+            ResultType = SearchResultType.Business,
+            MatchSource = SearchMatchSource.Hybrid,
+            RelevanceScore = 1.0 - (distanceKm ?? 0) / 100,
+            DisplayOrder = displayOrder,
+            Title = post.Profile?.DisplayName ?? "Business",
+            Description = post.Content?.Length > 150 ? post.Content.Substring(0, 150) + "..." : post.Content,
+            Handle = post.Profile?.Handle,
+            Category = post.Profile?.ProfileType?.Name ?? "Business",
+            ImageUrl = post.Attachments?.FirstOrDefault()?.Url ?? post.Profile?.Avatar,
+            City = post.Location?.City,
+            Department = post.Location?.State,
+            Latitude = post.Location?.Latitude,
+            Longitude = post.Location?.Longitude,
+            DistanceKm = distanceKm,
+            Tags = null
+        };
+    }
+
+    /// <summary>
+    /// Maps a PostDto (from location service) to a BusinessSearchResultDto for structured card rendering
+    /// </summary>
+    private BusinessSearchResultDto MapPostDtoToBusinessResult(PostDto post, int displayOrder = 0)
+    {
+        return new BusinessSearchResultDto
+        {
+            Id = post.Id,
+            ProfileId = post.Profile?.Id ?? Guid.Empty,
+            ResultType = SearchResultType.Business,
+            MatchSource = SearchMatchSource.Geographic,
+            RelevanceScore = 1.0 - (post.DistanceKm ?? 0) / 100,
+            DisplayOrder = displayOrder,
+            Title = post.Profile?.DisplayName ?? "Business",
+            Description = post.Content?.Length > 150 ? post.Content.Substring(0, 150) + "..." : post.Content,
+            Handle = post.Profile?.Handle,
+            Category = post.Profile?.ProfileType?.Name ?? "Business",
+            ImageUrl = post.Attachments?.FirstOrDefault()?.FilePath ?? post.Profile?.Avatar,
+            City = post.Location?.City,
+            Department = post.Location?.State,
+            Latitude = post.Location?.Latitude,
+            Longitude = post.Location?.Longitude,
+            DistanceKm = post.DistanceKm,
+            Tags = post.Tags?.ToArray()
+        };
+    }
+
+    /// <summary>
+    /// Creates a SearchResultsCollectionDto from a list of business results
+    /// </summary>
+    private SearchResultsCollectionDto CreateSearchResultsCollection(
+        string query,
+        List<BusinessSearchResultDto> businesses,
+        long searchTimeMs)
+    {
+        return new SearchResultsCollectionDto
+        {
+            Query = query,
+            TotalCount = businesses.Count,
+            SearchTimeMs = searchTimeMs,
+            Businesses = businesses,
+            Events = [],
+            Procedures = [],
+            Tourism = [],
+            Products = [],
+            Services = []
+        };
+    }
+
+    /// <summary>
+    /// Creates a SearchResultsCollectionDto from multiple result types
+    /// </summary>
+    private SearchResultsCollectionDto CreateMixedSearchResultsCollection(
+        string query,
+        List<BusinessSearchResultDto>? businesses = null,
+        List<EventSearchResultDto>? events = null,
+        List<ProcedureSearchResultDto>? procedures = null,
+        List<TourismSearchResultDto>? tourism = null,
+        List<ProductSearchResultDto>? products = null,
+        List<ServiceSearchResultDto>? services = null,
+        long searchTimeMs = 0)
+    {
+        var businessList = businesses ?? [];
+        var eventList = events ?? [];
+        var procedureList = procedures ?? [];
+        var tourismList = tourism ?? [];
+        var productList = products ?? [];
+        var serviceList = services ?? [];
+
+        return new SearchResultsCollectionDto
+        {
+            Query = query,
+            TotalCount = businessList.Count + eventList.Count + procedureList.Count + 
+                        tourismList.Count + productList.Count + serviceList.Count,
+            SearchTimeMs = searchTimeMs,
+            Businesses = businessList,
+            Events = eventList,
+            Procedures = procedureList,
+            Tourism = tourismList,
+            Products = productList,
+            Services = serviceList
+        };
     }
 }
