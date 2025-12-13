@@ -1073,13 +1073,78 @@
     private async Task SendChat()
     {
         var chatId = Guid.NewGuid().ToString()[..8];
-        Logger.LogInformation("[MainLayout.SendChat] START - ChatId={ChatId}, ConversationId={ConversationId}, InputLength={Length}", 
-            chatId, _currentConversationId, _chatInput?.Length ?? 0);
+        Logger.LogInformation("[MainLayout.SendChat] START - ChatId={ChatId}, ConversationId={ConversationId}, InputLength={Length}, HasProfile={HasProfile}", 
+            chatId, _currentConversationId, _chatInput?.Length ?? 0, _currentProfile != null);
         
         if (string.IsNullOrWhiteSpace(_chatInput))
         {
             Logger.LogWarning("[MainLayout.SendChat] EMPTY_INPUT - ChatId={ChatId}", chatId);
             return;
+        }
+
+        // Check if we need to create a real conversation (user has no profile or conversation is local-only)
+        if (_currentProfile == null)
+        {
+            Logger.LogWarning("[MainLayout.SendChat] NO_PROFILE - ChatId={ChatId}, attempting to fetch profile", chatId);
+            // Try to refresh the profile one more time
+            try
+            {
+                _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+                Logger.LogInformation("[MainLayout.SendChat] Profile refresh result - HasProfile={HasProfile}", _currentProfile != null);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[MainLayout.SendChat] Failed to refresh profile");
+            }
+            
+            if (_currentProfile == null)
+            {
+                Logger.LogError("[MainLayout.SendChat] PROFILE_REQUIRED - User must create a profile to use chat");
+                var errorMessage = new ChatMessage("ai", "Para usar el chat, primero necesitas crear un perfil. Ve a tu perfil y crea uno nuevo.");
+                AddMessage(_currentConversationId, errorMessage);
+                StateHasChanged();
+                return;
+            }
+        }
+
+        // Ensure conversation exists in database (may be local-only from welcome screen)
+        var existingConversation = _conversations.FirstOrDefault(c => c.GuidId == _currentConversationId);
+        if (existingConversation != null && !existingConversation.IsPersisted)
+        {
+            Logger.LogInformation("[MainLayout.SendChat] Creating DB conversation for local conversation - ChatId={ChatId}", chatId);
+            try
+            {
+                var createDto = new CreateConversationDto
+                {
+                    ProfileId = _currentProfile.Id,
+                    Title = existingConversation.Title ?? "Welcome"
+                };
+                var conversationDto = await SivarClient.Chat.CreateConversationAsync(createDto);
+                
+                // Update the messages dictionary with new conversation ID
+                var oldGuidId = existingConversation.GuidId;
+                if (_conversationMessages.TryGetValue(oldGuidId, out var messages))
+                {
+                    _conversationMessages.Remove(oldGuidId);
+                    _conversationMessages[conversationDto.Id] = messages;
+                }
+                
+                // Update the conversation object
+                existingConversation.GuidId = conversationDto.Id;
+                existingConversation.Id = conversationDto.Id.ToString();
+                existingConversation.IsPersisted = true;
+                _currentConversationId = conversationDto.Id;
+                
+                Logger.LogInformation("[MainLayout.SendChat] DB conversation created - NewConversationId={NewId}", conversationDto.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[MainLayout.SendChat] Failed to create DB conversation - ChatId={ChatId}", chatId);
+                var errorMessage = new ChatMessage("ai", $"Error al crear la conversación: {ex.Message}");
+                AddMessage(_currentConversationId, errorMessage);
+                StateHasChanged();
+                return;
+            }
         }
 
         var userMessage = new ChatMessage("user", _chatInput);

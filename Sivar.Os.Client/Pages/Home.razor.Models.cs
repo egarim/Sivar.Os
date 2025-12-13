@@ -119,6 +119,7 @@ public class Conversation
         Title = title;
         GuidId = Guid.NewGuid();
         Id = GuidId.ToString();
+        IsPersisted = false; // Local-only conversation
     }
 
     public Conversation(Guid guidId, string title)
@@ -126,15 +127,22 @@ public class Conversation
         GuidId = guidId;
         Id = guidId.ToString();
         Title = title;
+        IsPersisted = true; // Loaded from or created in database
     }
 
-    public Guid GuidId { get; }
-    public string Id { get; }
+    public Guid GuidId { get; set; }
+    public string Id { get; set; }
     public string Title { get; set; }
     public string Preview { get; set; } = "Start a conversation";
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     public int MessageCount { get; set; }
     public int ResultCount { get; set; }
+    
+    /// <summary>
+    /// Indicates if this conversation exists in the database.
+    /// False for local-only conversations created before user has a profile.
+    /// </summary>
+    public bool IsPersisted { get; set; }
 }
 
 public class ChatMessage
