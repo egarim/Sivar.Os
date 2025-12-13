@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sivar.Os.Data.Context;
+using Sivar.Os.Helpers;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
@@ -475,6 +476,10 @@ public class SearchResultService : ISearchResultService
         Post post, double relevanceScore, double? semanticScore, double? fullTextRank, 
         double? distanceKm, int displayOrder, SearchMatchSource matchSource, BusinessMetadataDto? metadata)
     {
+        // Calculate open status from working hours
+        var workingHoursJson = SerializeWorkingHoursToJson(metadata?.WorkingHours);
+        var openStatus = WorkingHoursHelper.CalculateOpenStatus(workingHoursJson);
+
         return new BusinessSearchResultDto
         {
             Id = post.Id,
@@ -498,7 +503,13 @@ public class SearchResultService : ISearchResultService
             Phone = metadata?.ContactPhone,
             Website = metadata?.Website,
             WorkingHours = FormatWorkingHours(metadata?.WorkingHours),
-            PriceRange = metadata?.PriceRange
+            WorkingHoursJson = workingHoursJson,
+            PriceRange = metadata?.PriceRange,
+            // Phase 5: Real-time open status
+            IsOpenNow = openStatus.IsOpenNow,
+            ClosingTime = openStatus.ClosingTime,
+            NextOpenTime = openStatus.NextOpenTime,
+            OpenStatusText = openStatus.OpenStatusText
             // Contacts loaded via bulk LoadContactsForBusinessResultsAsync after search
         };
     }
@@ -600,10 +611,47 @@ public class SearchResultService : ISearchResultService
         };
     }
 
-    private static string? FormatWorkingHours(Dictionary<string, string>? hours)
+    private static string? FormatWorkingHours(BusinessHours? hours)
     {
-        if (hours == null || hours.Count == 0) return null;
-        return string.Join(", ", hours.Select(kv => $"{kv.Key}: {kv.Value}"));
+        if (hours == null) return null;
+
+        var parts = new List<string>();
+        
+        void AddDayRange(string dayRange, DaySchedule schedule)
+        {
+            if (!schedule.IsClosed && schedule.OpenTime.HasValue && schedule.CloseTime.HasValue)
+            {
+                var open = schedule.OpenTime.Value.ToString("h:mmtt").ToLower();
+                var close = schedule.CloseTime.Value.ToString("h:mmtt").ToLower();
+                parts.Add($"{dayRange}: {open}-{close}");
+            }
+        }
+
+        // Try to group consecutive days with same hours for cleaner display
+        AddDayRange("Lun-Vie", hours.Monday); // Simplified for now
+        
+        if (!hours.Saturday.IsClosed)
+            AddDayRange("Sáb", hours.Saturday);
+        if (!hours.Sunday.IsClosed)
+            AddDayRange("Dom", hours.Sunday);
+
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
+    private static string? SerializeWorkingHoursToJson(BusinessHours? hours)
+    {
+        if (hours == null) return null;
+        try
+        {
+            return JsonSerializer.Serialize(hours, new JsonSerializerOptions 
+            { 
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+            });
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private SearchResult MapDtoToEntity(SearchResultBaseDto dto, Guid chatMessageId, int displayOrder)
@@ -640,6 +688,7 @@ public class SearchResultService : ISearchResultService
                 entity.Phone = biz.Phone;
                 entity.Website = biz.Website;
                 entity.WorkingHours = biz.WorkingHours;
+                entity.WorkingHoursJson = biz.WorkingHoursJson;
                 entity.PriceRange = biz.PriceRange;
                 entity.Rating = biz.Rating;
                 entity.ReviewCount = biz.ReviewCount;
@@ -714,33 +763,45 @@ public class SearchResultService : ISearchResultService
         };
     }
 
-    private static BusinessSearchResultDto MapEntityToBusinessDto(SearchResult entity) => new()
+    private static BusinessSearchResultDto MapEntityToBusinessDto(SearchResult entity)
     {
-        Id = entity.Id,
-        ResultType = entity.ResultType,
-        MatchSource = entity.MatchSource,
-        RelevanceScore = entity.RelevanceScore,
-        DisplayOrder = entity.DisplayOrder,
-        Title = entity.Title,
-        Description = entity.Description,
-        Handle = entity.Handle,
-        Category = entity.Category,
-        ImageUrl = entity.ImageUrl,
-        City = entity.City,
-        Department = entity.Department,
-        Latitude = entity.Latitude,
-        Longitude = entity.Longitude,
-        DistanceKm = entity.DistanceKm,
-        Tags = entity.Tags,
-        ProfileId = entity.ProfileId,
-        Address = entity.Address,
-        Phone = entity.Phone,
-        Website = entity.Website,
-        WorkingHours = entity.WorkingHours,
-        PriceRange = entity.PriceRange,
-        Rating = entity.Rating,
-        ReviewCount = entity.ReviewCount
-    };
+        // Calculate open status from stored working hours JSON (real-time calculation)
+        var openStatus = WorkingHoursHelper.CalculateOpenStatus(entity.WorkingHoursJson);
+        
+        return new BusinessSearchResultDto
+        {
+            Id = entity.Id,
+            ResultType = entity.ResultType,
+            MatchSource = entity.MatchSource,
+            RelevanceScore = entity.RelevanceScore,
+            DisplayOrder = entity.DisplayOrder,
+            Title = entity.Title,
+            Description = entity.Description,
+            Handle = entity.Handle,
+            Category = entity.Category,
+            ImageUrl = entity.ImageUrl,
+            City = entity.City,
+            Department = entity.Department,
+            Latitude = entity.Latitude,
+            Longitude = entity.Longitude,
+            DistanceKm = entity.DistanceKm,
+            Tags = entity.Tags,
+            ProfileId = entity.ProfileId,
+            Address = entity.Address,
+            Phone = entity.Phone,
+            Website = entity.Website,
+            WorkingHours = entity.WorkingHours,
+            WorkingHoursJson = entity.WorkingHoursJson,
+            PriceRange = entity.PriceRange,
+            Rating = entity.Rating,
+            ReviewCount = entity.ReviewCount,
+            // Phase 5: Real-time open status
+            IsOpenNow = openStatus.IsOpenNow,
+            ClosingTime = openStatus.ClosingTime,
+            NextOpenTime = openStatus.NextOpenTime,
+            OpenStatusText = openStatus.OpenStatusText
+        };
+    }
 
     private static EventSearchResultDto MapEntityToEventDto(SearchResult entity) => new()
     {
@@ -1173,7 +1234,7 @@ internal class BusinessMetadataDto
     public string? ContactPhone { get; set; }
     public string? Website { get; set; }
     public string? PriceRange { get; set; }
-    public Dictionary<string, string>? WorkingHours { get; set; }
+    public BusinessHours? WorkingHours { get; set; }
     public DateTime? EventDate { get; set; }
     public DateTime? EventEndDate { get; set; }
     public string? Venue { get; set; }

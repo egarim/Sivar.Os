@@ -406,6 +406,42 @@
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+/* ===== Phase 5: Open Status Badge ===== */
+.open-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.open-status-badge.open {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.open-status-badge.closed {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.open-status-badge .status-dot {
+    font-size: 8px;
+    line-height: 1;
+}
+
+.open-status-badge .status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
 /* ===== Card Meta (location, price, rating) ===== */
 .card-meta {
     display: flex;
@@ -859,6 +895,17 @@
     
     .procedure-actions {
         border-top-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Phase 5: Open status badge light mode */
+    .open-status-badge.open {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.12) 100%);
+        color: #059669;
+    }
+    
+    .open-status-badge.closed {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(220, 38, 38, 0.12) 100%);
+        color: #dc2626;
     }
 }
 

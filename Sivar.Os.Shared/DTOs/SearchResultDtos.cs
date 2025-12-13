@@ -49,6 +49,7 @@ public record BusinessSearchResultDto : SearchResultBaseDto
     public string? Phone { get; init; }
     public string? Website { get; init; }
     public string? WorkingHours { get; init; }
+    public string? WorkingHoursJson { get; init; }
     public string? PriceRange { get; init; }
     public double? Rating { get; init; }
     public int? ReviewCount { get; init; }
@@ -58,6 +59,30 @@ public record BusinessSearchResultDto : SearchResultBaseDto
     /// Uses 'set' instead of 'init' to allow bulk loading after search results are created
     /// </summary>
     public List<ContactDisplayDto>? Contacts { get; set; }
+    
+    #region Phase 5: Real-time Business Status
+    
+    /// <summary>
+    /// Whether the business is currently open (calculated based on current time in El Salvador timezone)
+    /// </summary>
+    public bool? IsOpenNow { get; set; }
+    
+    /// <summary>
+    /// When the business closes (if currently open), e.g., "10:00 PM"
+    /// </summary>
+    public string? ClosingTime { get; set; }
+    
+    /// <summary>
+    /// When the business opens next (if currently closed), e.g., "Mañana 8:00 AM"
+    /// </summary>
+    public string? NextOpenTime { get; set; }
+    
+    /// <summary>
+    /// Formatted status text for display, e.g., "Abierto · Cierra a las 10pm" or "Cerrado · Abre mañana 8am"
+    /// </summary>
+    public string? OpenStatusText { get; set; }
+    
+    #endregion
 
     /// <summary>
     /// Call-to-action buttons for this result

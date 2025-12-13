@@ -157,6 +157,11 @@ public class SearchResult : BaseEntity
     public virtual string? WorkingHours { get; set; }
 
     /// <summary>
+    /// Raw working hours JSON for real-time open/closed calculation
+    /// </summary>
+    public virtual string? WorkingHoursJson { get; set; }
+
+    /// <summary>
     /// Price range indicator (e.g., "$", "$$", "$$$")
     /// </summary>
     [StringLength(10)]

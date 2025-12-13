@@ -56,6 +56,15 @@
                                 }
                             </div>
                             
+                            @* Phase 5: Real-time Open Status Badge *@
+                            @if (business.IsOpenNow.HasValue)
+                            {
+                                <div class="open-status-badge @(business.IsOpenNow.Value ? "open" : "closed")">
+                                    <span class="status-dot">@(business.IsOpenNow.Value ? "🟢" : "🔴")</span>
+                                    <span class="status-text">@business.OpenStatusText</span>
+                                </div>
+                            }
+                            
                             @if (!string.IsNullOrEmpty(business.Description))
                             {
                                 <p class="card-description">@TruncateText(business.Description, 80)</p>
