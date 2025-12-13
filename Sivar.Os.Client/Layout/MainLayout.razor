@@ -99,7 +99,8 @@
                                 OnQuickAction="@HandleQuickAction"
                                 OnResultView="@(() => {})"
                                 OnResultSave="@(() => {})"
-                                OnResultFollow="@(() => {})" />
+                                OnResultFollow="@(() => {})"
+                                OnSuggestionClick="@HandleSuggestionClick" />
 
                             <Sivar.Os.Client.Components.AIChat.ChatInput 
                                 InputText="@_chatInput"
@@ -1229,6 +1230,15 @@
     private void HandleQuickAction(string action)
     {
         _chatInput = action;
+        _ = SendChat();
+    }
+    
+    /// <summary>
+    /// Handle suggestion chip click - sends pre-filled query
+    /// </summary>
+    private void HandleSuggestionClick(string query)
+    {
+        _chatInput = query;
         _ = SendChat();
     }
 

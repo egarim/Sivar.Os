@@ -1389,7 +1389,8 @@ public class ChatFunctionService
             Procedures = [],
             Tourism = [],
             Products = [],
-            Services = []
+            Services = [],
+            SuggestedActions = GenerateSuggestions(query, businesses, [], [], [], [], [])
         };
     }
 
@@ -1424,7 +1425,103 @@ public class ChatFunctionService
             Procedures = procedureList,
             Tourism = tourismList,
             Products = productList,
-            Services = serviceList
+            Services = serviceList,
+            SuggestedActions = GenerateSuggestions(query, businessList, eventList, procedureList, tourismList, productList, serviceList)
         };
+    }
+    
+    /// <summary>
+    /// Generates contextual follow-up suggestions based on search results
+    /// </summary>
+    private static List<SuggestedActionDto> GenerateSuggestions(
+        string query,
+        List<BusinessSearchResultDto> businesses,
+        List<EventSearchResultDto> events,
+        List<ProcedureSearchResultDto> procedures,
+        List<TourismSearchResultDto> tourism,
+        List<ProductSearchResultDto> products,
+        List<ServiceSearchResultDto> services)
+    {
+        var suggestions = new List<SuggestedActionDto>();
+        var totalResults = businesses.Count + events.Count + procedures.Count + 
+                          tourism.Count + products.Count + services.Count;
+        
+        // No results - offer alternatives
+        if (totalResults == 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "🔄 Buscar en toda la ciudad",
+                Query = $"{query} en San Salvador",
+                Type = SuggestedActionType.Alternative
+            });
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "💡 Mostrar sugerencias similares",
+                Query = $"lugares similares a {query}",
+                Type = SuggestedActionType.Alternative
+            });
+            return suggestions;
+        }
+        
+        // Business results - offer refinements
+        if (businesses.Count > 0)
+        {
+            if (businesses.Any(b => b.Latitude.HasValue && b.Longitude.HasValue))
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = "🗺️ Ver en mapa",
+                    Query = $"mostrar {query} en el mapa",
+                    Icon = "map",
+                    Type = SuggestedActionType.Refinement
+                });
+            }
+            
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "🕐 Solo abiertos ahora",
+                Query = $"{query} abiertos ahora",
+                Icon = "schedule",
+                Type = SuggestedActionType.Filter
+            });
+            
+            if (businesses.Any(b => b.DistanceKm.HasValue))
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = "📍 Los más cercanos",
+                    Query = $"{query} más cercanos a mi ubicación",
+                    Icon = "near_me",
+                    Type = SuggestedActionType.Location
+                });
+            }
+        }
+        
+        // Procedure results
+        if (procedures.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "📋 Ver todos los requisitos",
+                Query = $"requisitos completos para {query}",
+                Icon = "checklist",
+                Type = SuggestedActionType.Refinement
+            });
+        }
+        
+        // Events
+        if (events.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "📅 Esta semana",
+                Query = $"eventos de {query} esta semana",
+                Icon = "event",
+                Type = SuggestedActionType.Filter
+            });
+        }
+        
+        return suggestions.Take(4).ToList();
     }
 }

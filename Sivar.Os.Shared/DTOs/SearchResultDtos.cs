@@ -424,6 +424,47 @@ public record CallToActionDto
 }
 
 /// <summary>
+/// Suggested follow-up action after search results
+/// </summary>
+public record SuggestedActionDto
+{
+    /// <summary>
+    /// Display label with emoji (e.g., "🗺️ Ver en mapa")
+    /// </summary>
+    public required string Label { get; init; }
+    
+    /// <summary>
+    /// Pre-filled query to send when clicked
+    /// </summary>
+    public required string Query { get; init; }
+    
+    /// <summary>
+    /// Optional icon for the chip
+    /// </summary>
+    public string? Icon { get; init; }
+    
+    /// <summary>
+    /// Category of suggestion for styling
+    /// </summary>
+    public SuggestedActionType Type { get; init; } = SuggestedActionType.Refinement;
+}
+
+/// <summary>
+/// Types of suggested actions
+/// </summary>
+public enum SuggestedActionType
+{
+    /// <summary>Refine current search</summary>
+    Refinement,
+    /// <summary>Filter by category</summary>
+    Filter,
+    /// <summary>Geographic modification</summary>
+    Location,
+    /// <summary>No results alternative</summary>
+    Alternative
+}
+
+/// <summary>
 /// Collection of search results with metadata
 /// </summary>
 public record SearchResultsCollectionDto
@@ -485,6 +526,16 @@ public record SearchResultsCollectionDto
         Businesses.Any(b => b.DistanceKm.HasValue) ||
         Events.Any(e => e.DistanceKm.HasValue) ||
         Tourism.Any(t => t.DistanceKm.HasValue);
+    
+    /// <summary>
+    /// Smart follow-up suggestions based on results
+    /// </summary>
+    public IReadOnlyList<SuggestedActionDto> SuggestedActions { get; init; } = [];
+    
+    /// <summary>
+    /// Whether there are suggested actions
+    /// </summary>
+    public bool HasSuggestions => SuggestedActions.Count > 0;
 }
 
 /// <summary>

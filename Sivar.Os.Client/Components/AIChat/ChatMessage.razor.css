@@ -862,3 +862,112 @@
     }
 }
 
+/* ===== Phase 4: Smart Follow-up Suggestion Chips ===== */
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 0;
+}
+
+.suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(102, 126, 234, 0.1);
+    color: #a5b4fc;
+    white-space: nowrap;
+}
+
+.suggestion-chip:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+}
+
+.suggestion-chip:active {
+    transform: translateY(0);
+}
+
+/* Chip type variants */
+.suggestion-chip.chip-refinement {
+    background: rgba(102, 126, 234, 0.1);
+    color: #a5b4fc;
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.suggestion-chip.chip-refinement:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.suggestion-chip.chip-filter {
+    background: rgba(16, 185, 129, 0.1);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.suggestion-chip.chip-filter:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.suggestion-chip.chip-location {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.suggestion-chip.chip-location:hover {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.suggestion-chip.chip-alternative {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.suggestion-chip.chip-alternative:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Light mode for suggestion chips */
+@media (prefers-color-scheme: light) {
+    .suggestion-chip {
+        background: rgba(102, 126, 234, 0.1);
+        color: #4f46e5;
+        border-color: rgba(102, 126, 234, 0.3);
+    }
+    
+    .suggestion-chip.chip-refinement {
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+    }
+    
+    .suggestion-chip.chip-filter {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+    
+    .suggestion-chip.chip-location {
+        background: rgba(251, 191, 36, 0.1);
+        color: #d97706;
+    }
+    
+    .suggestion-chip.chip-alternative {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+    }
+}
+

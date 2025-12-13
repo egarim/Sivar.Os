@@ -18,7 +18,8 @@
                 OnQuickAction="@OnQuickAction"
                 OnResultView="@OnResultView"
                 OnResultSave="@OnResultSave"
-                OnResultFollow="@OnResultFollow" />
+                OnResultFollow="@OnResultFollow"
+                OnSuggestionClick="@OnSuggestionClick" />
         }
     }
 
@@ -81,4 +82,10 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResultFollow { get; set; }
+    
+    /// <summary>
+    /// Callback when a suggestion chip is clicked (sends pre-filled query)
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSuggestionClick { get; set; }
 }

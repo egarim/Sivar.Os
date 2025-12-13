@@ -393,6 +393,21 @@
                     Mostrando los primeros resultados. <a href="#" @onclick="OnShowMore" @onclick:preventDefault>Ver más...</a>
                 </div>
             }
+            
+            @* Phase 4: Smart Follow-up Suggestions *@
+            @if (Message.StructuredResults.HasSuggestions)
+            {
+                <div class="suggestion-chips">
+                    @foreach (var suggestion in Message.StructuredResults.SuggestedActions)
+                    {
+                        <button class="suggestion-chip @GetSuggestionChipClass(suggestion.Type)"
+                                @onclick="() => OnSuggestionClick.InvokeAsync(suggestion.Query)"
+                                @onclick:stopPropagation="true">
+                            @suggestion.Label
+                        </button>
+                    }
+                </div>
+            }
         }
         else
         {
@@ -573,6 +588,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnShowMoreResults { get; set; }
+    
+    /// <summary>
+    /// Callback when a suggestion chip is clicked (sends pre-filled query)
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSuggestionClick { get; set; }
 
     // Parsed results cache
     private List<BusinessResult>? _cachedResults;
@@ -828,6 +849,18 @@
         // TODO: Implement share functionality
         Console.WriteLine($"Sharing: {result.Name}");
     }
+
+    /// <summary>
+    /// Get CSS class for suggestion chip based on type
+    /// </summary>
+    private static string GetSuggestionChipClass(SuggestedActionType type) => type switch
+    {
+        SuggestedActionType.Refinement => "chip-refinement",
+        SuggestedActionType.Filter => "chip-filter",
+        SuggestedActionType.Location => "chip-location",
+        SuggestedActionType.Alternative => "chip-alternative",
+        _ => "chip-refinement"
+    };
 
     /// <summary>
     /// Renders basic markdown to HTML (links and bold)

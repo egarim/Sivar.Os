@@ -131,7 +131,8 @@ public class SearchResultService : ISearchResultService
                 Procedures = procedures,
                 Tourism = tourism,
                 Products = products,
-                Services = services
+                Services = services,
+                SuggestedActions = GenerateSuggestions(request.Query, businesses, events, procedures, tourism, products, services)
             };
             
             // Phase 1: Load contacts for all business results (bulk load for efficiency)
@@ -967,6 +968,199 @@ public class SearchResultService : ISearchResultService
         var withContacts = businesses.Count(b => b.Contacts?.Any() == true);
         _logger.LogDebug("[SearchResultService] Loaded contacts: {WithContacts}/{Total} businesses have contacts", withContacts, businesses.Count);
     }
+    
+    #region Phase 4: Smart Follow-up Suggestions
+    
+    /// <summary>
+    /// Generates contextual follow-up suggestions based on search results
+    /// </summary>
+    private static List<SuggestedActionDto> GenerateSuggestions(
+        string query,
+        List<BusinessSearchResultDto> businesses,
+        List<EventSearchResultDto> events,
+        List<ProcedureSearchResultDto> procedures,
+        List<TourismSearchResultDto> tourism,
+        List<ProductSearchResultDto> products,
+        List<ServiceSearchResultDto> services)
+    {
+        var suggestions = new List<SuggestedActionDto>();
+        var totalResults = businesses.Count + events.Count + procedures.Count + 
+                          tourism.Count + products.Count + services.Count;
+        
+        // No results - offer alternatives
+        if (totalResults == 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "🔄 Buscar en toda la ciudad",
+                Query = $"{query} en San Salvador",
+                Type = SuggestedActionType.Alternative
+            });
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "💡 Mostrar sugerencias similares",
+                Query = $"lugares similares a {query}",
+                Type = SuggestedActionType.Alternative
+            });
+            return suggestions;
+        }
+        
+        // Business results - offer refinements
+        if (businesses.Count > 0)
+        {
+            // Map suggestion if we have location data
+            if (businesses.Any(b => b.Latitude.HasValue && b.Longitude.HasValue))
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = "🗺️ Ver en mapa",
+                    Query = $"mostrar {query} en el mapa",
+                    Icon = "map",
+                    Type = SuggestedActionType.Refinement
+                });
+            }
+            
+            // Open now filter
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "🕐 Solo abiertos ahora",
+                Query = $"{query} abiertos ahora",
+                Icon = "schedule",
+                Type = SuggestedActionType.Filter
+            });
+            
+            // Nearby suggestion if we have distance data
+            if (businesses.Any(b => b.DistanceKm.HasValue))
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = "📍 Los más cercanos",
+                    Query = $"{query} más cercanos a mi ubicación",
+                    Icon = "near_me",
+                    Type = SuggestedActionType.Location
+                });
+            }
+            
+            // Category-based filters if multiple categories
+            var categories = businesses
+                .Where(b => !string.IsNullOrEmpty(b.Category))
+                .Select(b => b.Category!)
+                .Distinct()
+                .Take(2)
+                .ToList();
+            
+            foreach (var category in categories)
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = $"🏷️ Solo {category.ToLower()}",
+                    Query = $"{query} tipo {category}",
+                    Type = SuggestedActionType.Filter
+                });
+            }
+        }
+        
+        // Event results
+        if (events.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "📅 Esta semana",
+                Query = $"eventos de {query} esta semana",
+                Icon = "event",
+                Type = SuggestedActionType.Filter
+            });
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "🎟️ Eventos gratuitos",
+                Query = $"eventos gratuitos de {query}",
+                Type = SuggestedActionType.Filter
+            });
+        }
+        
+        // Procedure results
+        if (procedures.Count > 0)
+        {
+            var hasOnline = procedures.Any(p => p.IsOnlineAvailable);
+            if (hasOnline)
+            {
+                suggestions.Add(new SuggestedActionDto
+                {
+                    Label = "🌐 Solo trámites en línea",
+                    Query = $"{query} que se puedan hacer en línea",
+                    Type = SuggestedActionType.Filter
+                });
+            }
+            
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "📋 Ver todos los requisitos",
+                Query = $"requisitos completos para {query}",
+                Icon = "checklist",
+                Type = SuggestedActionType.Refinement
+            });
+        }
+        
+        // Tourism results
+        if (tourism.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "⭐ Mejor valorados",
+                Query = $"{query} mejor valorados",
+                Icon = "star",
+                Type = SuggestedActionType.Filter
+            });
+        }
+        
+        // Products
+        if (products.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "💰 Ordenar por precio",
+                Query = $"{query} ordenar por precio de menor a mayor",
+                Type = SuggestedActionType.Refinement
+            });
+        }
+        
+        // Services
+        if (services.Count > 0)
+        {
+            suggestions.Add(new SuggestedActionDto
+            {
+                Label = "✅ Disponibles hoy",
+                Query = $"{query} disponibles hoy",
+                Type = SuggestedActionType.Filter
+            });
+        }
+        
+        // Multiple result types - offer category filters
+        var resultTypes = new List<(string label, int count)>();
+        if (businesses.Count > 0) resultTypes.Add(("negocios", businesses.Count));
+        if (events.Count > 0) resultTypes.Add(("eventos", events.Count));
+        if (procedures.Count > 0) resultTypes.Add(("trámites", procedures.Count));
+        if (tourism.Count > 0) resultTypes.Add(("turismo", tourism.Count));
+        if (products.Count > 0) resultTypes.Add(("productos", products.Count));
+        if (services.Count > 0) resultTypes.Add(("servicios", services.Count));
+        
+        if (resultTypes.Count > 1)
+        {
+            // Add filter for the largest category
+            var largest = resultTypes.OrderByDescending(r => r.count).First();
+            suggestions.Insert(0, new SuggestedActionDto
+            {
+                Label = $"🔍 Solo {largest.label}",
+                Query = $"{query} solo {largest.label}",
+                Type = SuggestedActionType.Filter
+            });
+        }
+        
+        // Limit to 4 suggestions
+        return suggestions.Take(4).ToList();
+    }
+    
+    #endregion
 
     #endregion
 }
