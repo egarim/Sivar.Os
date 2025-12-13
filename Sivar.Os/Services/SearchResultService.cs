@@ -767,36 +767,68 @@ public class SearchResultService : ISearchResultService
         TicketPrice = entity.TicketPrice
     };
 
-    private static ProcedureSearchResultDto MapEntityToProcedureDto(SearchResult entity) => new()
+    private static ProcedureSearchResultDto MapEntityToProcedureDto(SearchResult entity)
     {
-        Id = entity.Id,
-        ResultType = entity.ResultType,
-        MatchSource = entity.MatchSource,
-        RelevanceScore = entity.RelevanceScore,
-        DisplayOrder = entity.DisplayOrder,
-        Title = entity.Title,
-        Description = entity.Description,
-        Handle = entity.Handle,
-        Category = entity.Category,
-        ImageUrl = entity.ImageUrl,
-        City = entity.City,
-        Department = entity.Department,
-        Latitude = entity.Latitude,
-        Longitude = entity.Longitude,
-        DistanceKm = entity.DistanceKm,
-        Tags = entity.Tags,
-        PostId = entity.PostId,
-        Requirements = !string.IsNullOrEmpty(entity.Requirements) 
-            ? JsonSerializer.Deserialize<string[]>(entity.Requirements) 
-            : null,
-        ProcessingTime = entity.ProcessingTime,
-        Cost = entity.Cost,
-        WhereToGo = entity.WhereToGo,
-        OnlineUrl = entity.OnlineUrl,
-        Address = entity.Address,
-        Phone = entity.Phone,
-        WorkingHours = entity.WorkingHours
-    };
+        // Parse legacy requirements into structured documents
+        string[]? requirements = null;
+        IReadOnlyList<ProcedureDocumentDto>? documents = null;
+        
+        if (!string.IsNullOrEmpty(entity.Requirements))
+        {
+            try
+            {
+                requirements = JsonSerializer.Deserialize<string[]>(entity.Requirements);
+                
+                // Convert simple requirements to structured documents for the checklist
+                if (requirements?.Length > 0)
+                {
+                    documents = requirements
+                        .Select(req => new ProcedureDocumentDto
+                        {
+                            Name = req,
+                            IsRequired = true
+                        })
+                        .ToList();
+                }
+            }
+            catch
+            {
+                // If JSON parsing fails, treat as null
+            }
+        }
+        
+        return new()
+        {
+            Id = entity.Id,
+            ResultType = entity.ResultType,
+            MatchSource = entity.MatchSource,
+            RelevanceScore = entity.RelevanceScore,
+            DisplayOrder = entity.DisplayOrder,
+            Title = entity.Title,
+            Description = entity.Description,
+            Handle = entity.Handle,
+            Category = entity.Category,
+            ImageUrl = entity.ImageUrl,
+            City = entity.City,
+            Department = entity.Department,
+            Latitude = entity.Latitude,
+            Longitude = entity.Longitude,
+            DistanceKm = entity.DistanceKm,
+            Tags = entity.Tags,
+            PostId = entity.PostId,
+            Requirements = requirements,
+            Documents = documents,
+            // Steps will be populated when structured step data is available
+            Steps = null,
+            ProcessingTime = entity.ProcessingTime,
+            Cost = entity.Cost,
+            WhereToGo = entity.WhereToGo,
+            OnlineUrl = entity.OnlineUrl,
+            Address = entity.Address,
+            Phone = entity.Phone,
+            WorkingHours = entity.WorkingHours
+        };
+    }
 
     private static TourismSearchResultDto MapEntityToTourismDto(SearchResult entity) => new()
     {

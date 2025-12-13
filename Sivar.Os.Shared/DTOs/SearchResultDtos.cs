@@ -129,12 +129,94 @@ public record EventSearchResultDto : SearchResultBaseDto
 }
 
 /// <summary>
+/// Step in a government procedure
+/// </summary>
+public record ProcedureStepDto
+{
+    /// <summary>
+    /// Step number (1-based)
+    /// </summary>
+    public int StepNumber { get; init; }
+    
+    /// <summary>
+    /// Brief title for the step
+    /// </summary>
+    public string Title { get; init; } = string.Empty;
+    
+    /// <summary>
+    /// Detailed description of what to do
+    /// </summary>
+    public string? Description { get; init; }
+    
+    /// <summary>
+    /// Estimated time for this step (e.g., "15 minutos", "1-2 días")
+    /// </summary>
+    public string? EstimatedTime { get; init; }
+    
+    /// <summary>
+    /// Whether this step can be done online
+    /// </summary>
+    public bool IsOnline { get; init; }
+    
+    /// <summary>
+    /// URL if this step can be done online
+    /// </summary>
+    public string? OnlineUrl { get; init; }
+}
+
+/// <summary>
+/// Required document for a government procedure
+/// </summary>
+public record ProcedureDocumentDto
+{
+    /// <summary>
+    /// Name of the required document
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+    
+    /// <summary>
+    /// Description or additional details
+    /// </summary>
+    public string? Description { get; init; }
+    
+    /// <summary>
+    /// Whether the document is required or optional
+    /// </summary>
+    public bool IsRequired { get; init; } = true;
+    
+    /// <summary>
+    /// Where to obtain this document (if applicable)
+    /// </summary>
+    public string? WhereToGet { get; init; }
+    
+    /// <summary>
+    /// Validity period (e.g., "Menos de 3 meses")
+    /// </summary>
+    public string? ValidityPeriod { get; init; }
+}
+
+/// <summary>
 /// DTO for government procedure search results
 /// </summary>
 public record ProcedureSearchResultDto : SearchResultBaseDto
 {
     public Guid? PostId { get; init; }
+    
+    /// <summary>
+    /// Legacy requirements array (kept for backwards compatibility)
+    /// </summary>
     public string[]? Requirements { get; init; }
+    
+    /// <summary>
+    /// Structured required documents with details
+    /// </summary>
+    public IReadOnlyList<ProcedureDocumentDto>? Documents { get; init; }
+    
+    /// <summary>
+    /// Step-by-step process for completing the procedure
+    /// </summary>
+    public IReadOnlyList<ProcedureStepDto>? Steps { get; init; }
+    
     public string? ProcessingTime { get; init; }
     public string? Cost { get; init; }
     public string? WhereToGo { get; init; }
@@ -142,6 +224,16 @@ public record ProcedureSearchResultDto : SearchResultBaseDto
     public string? Address { get; init; }
     public string? Phone { get; init; }
     public string? WorkingHours { get; init; }
+    
+    /// <summary>
+    /// Number of required documents
+    /// </summary>
+    public int DocumentCount => Documents?.Count ?? Requirements?.Length ?? 0;
+    
+    /// <summary>
+    /// Number of steps in the procedure
+    /// </summary>
+    public int StepCount => Steps?.Count ?? 0;
 
     /// <summary>
     /// Whether this procedure can be done online

@@ -160,8 +160,8 @@
                 
                 @foreach (var proc in Message.StructuredResults.Procedures)
                 {
-                    <div class="chat-business-card procedure-card" @onclick="() => NavigateTo(proc.NavigationUrl)">
-                        <div class="card-header">
+                    <div class="chat-business-card procedure-card @(IsProcedureExpanded(proc.Id) ? "expanded" : "")">
+                        <div class="card-header" @onclick="() => NavigateTo(proc.NavigationUrl)">
                             <div class="card-icon procedure">📋</div>
                             <div class="card-title-section">
                                 <h4 class="card-name">@proc.Title</h4>
@@ -173,43 +173,167 @@
                             }
                         </div>
                         
-                        @if (!string.IsNullOrEmpty(proc.Description))
-                        {
-                            <p class="card-description">@TruncateText(proc.Description, 100)</p>
-                        }
-                        
-                        <div class="procedure-details">
+                        @* Summary row: Time, Cost at a glance *@
+                        <div class="procedure-summary">
                             @if (!string.IsNullOrEmpty(proc.ProcessingTime))
                             {
-                                <div class="procedure-item">
-                                    <span class="item-label">⏱️ Tiempo:</span>
-                                    @proc.ProcessingTime
-                                </div>
+                                <span class="summary-item">⏱️ @proc.ProcessingTime</span>
                             }
                             @if (!string.IsNullOrEmpty(proc.Cost))
                             {
-                                <div class="procedure-item">
-                                    <span class="item-label">💰 Costo:</span>
-                                    @proc.Cost
+                                <span class="summary-item cost">💰 @proc.Cost</span>
+                            }
+                        </div>
+                        
+                        @* Location & Hours - Always visible *@
+                        <div class="procedure-location-info">
+                            @if (!string.IsNullOrEmpty(proc.WhereToGo) || !string.IsNullOrEmpty(proc.Address))
+                            {
+                                <div class="location-row">
+                                    <span class="material-icons-outlined">place</span>
+                                    <span>@(proc.WhereToGo ?? proc.Address)</span>
                                 </div>
                             }
-                            @if (!string.IsNullOrEmpty(proc.WhereToGo))
+                            @if (!string.IsNullOrEmpty(proc.WorkingHours))
                             {
-                                <div class="procedure-item">
-                                    <span class="item-label">📍 Dónde:</span>
-                                    @proc.WhereToGo
+                                <div class="location-row">
+                                    <span class="material-icons-outlined">schedule</span>
+                                    <span>@proc.WorkingHours</span>
                                 </div>
                             }
                         </div>
                         
-                        <div class="card-actions">
-                            @foreach (var action in proc.Actions.Take(2))
+                        @* Expandable requirements section *@
+                        @{
+                            var requirementCount = proc.DocumentCount;
+                            var hasRequirements = proc.Documents?.Any() == true || proc.Requirements?.Any() == true;
+                            var hasSteps = proc.Steps?.Any() == true;
+                        }
+                        
+                        @if (hasRequirements || hasSteps)
+                        {
+                            <button class="expand-toggle" 
+                                    @onclick="() => ToggleProcedureExpand(proc.Id)" 
+                                    @onclick:stopPropagation="true">
+                                <span class="material-icons-outlined">@(IsProcedureExpanded(proc.Id) ? "expand_less" : "expand_more")</span>
+                                @if (hasRequirements)
+                                {
+                                    <span>Ver requisitos (@requirementCount documentos)</span>
+                                }
+                                else if (hasSteps)
+                                {
+                                    <span>Ver pasos (@proc.StepCount)</span>
+                                }
+                            </button>
+                            
+                            @if (IsProcedureExpanded(proc.Id))
                             {
-                                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
-                                        @onclick="() => HandleAction(action)" 
+                                <div class="procedure-expanded-content">
+                                    @* Requirements checklist *@
+                                    @if (hasRequirements)
+                                    {
+                                        <div class="requirements-section">
+                                            <h5 class="section-title">📄 Requisitos</h5>
+                                            <ul class="requirements-checklist">
+                                                @if (proc.Documents?.Any() == true)
+                                                {
+                                                    @foreach (var doc in proc.Documents)
+                                                    {
+                                                        <li class="requirement-item @(IsRequirementChecked(proc.Id, doc.Name) ? "checked" : "")"
+                                                            @onclick="() => ToggleRequirement(proc.Id, doc.Name)"
+                                                            @onclick:stopPropagation="true">
+                                                            <span class="checkbox">@(IsRequirementChecked(proc.Id, doc.Name) ? "☑" : "☐")</span>
+                                                            <div class="requirement-content">
+                                                                <span class="requirement-name">@doc.Name</span>
+                                                                @if (!string.IsNullOrEmpty(doc.ValidityPeriod))
+                                                                {
+                                                                    <span class="requirement-note">(@doc.ValidityPeriod)</span>
+                                                                }
+                                                                @if (!doc.IsRequired)
+                                                                {
+                                                                    <span class="optional-tag">Opcional</span>
+                                                                }
+                                                            </div>
+                                                        </li>
+                                                    }
+                                                }
+                                                else if (proc.Requirements?.Any() == true)
+                                                {
+                                                    @foreach (var req in proc.Requirements)
+                                                    {
+                                                        <li class="requirement-item @(IsRequirementChecked(proc.Id, req) ? "checked" : "")"
+                                                            @onclick="() => ToggleRequirement(proc.Id, req)"
+                                                            @onclick:stopPropagation="true">
+                                                            <span class="checkbox">@(IsRequirementChecked(proc.Id, req) ? "☑" : "☐")</span>
+                                                            <span class="requirement-name">@req</span>
+                                                        </li>
+                                                    }
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                    
+                                    @* Steps section *@
+                                    @if (hasSteps)
+                                    {
+                                        <div class="steps-section">
+                                            <h5 class="section-title">📝 Pasos a seguir</h5>
+                                            <ol class="steps-list">
+                                                @foreach (var step in proc.Steps!)
+                                                {
+                                                    <li class="step-item">
+                                                        <div class="step-header">
+                                                            <span class="step-number">@step.StepNumber</span>
+                                                            <span class="step-title">@step.Title</span>
+                                                            @if (step.IsOnline)
+                                                            {
+                                                                <span class="online-tag">🌐 En línea</span>
+                                                            }
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(step.Description))
+                                                        {
+                                                            <p class="step-description">@step.Description</p>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(step.EstimatedTime))
+                                                        {
+                                                            <span class="step-time">⏱️ @step.EstimatedTime</span>
+                                                        }
+                                                    </li>
+                                                }
+                                            </ol>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        
+                        @* Action buttons *@
+                        <div class="card-actions procedure-actions">
+                            @if (!string.IsNullOrEmpty(proc.OnlineUrl))
+                            {
+                                <button class="card-btn primary"
+                                        @onclick="() => NavigateExternal(proc.OnlineUrl!)"
                                         @onclick:stopPropagation="true">
-                                    <span class="btn-icon material-icons-outlined">@action.Icon</span> 
-                                    @action.Label
+                                    <span class="btn-icon material-icons-outlined">event_available</span>
+                                    Cita en línea
+                                </button>
+                            }
+                            @if (!string.IsNullOrEmpty(proc.Phone))
+                            {
+                                <button class="card-btn secondary"
+                                        @onclick="() => NavigateToPhone(proc.Phone!)"
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">phone</span>
+                                    Llamar
+                                </button>
+                            }
+                            @if (proc.Latitude.HasValue && proc.Longitude.HasValue)
+                            {
+                                <button class="card-btn secondary"
+                                        @onclick="() => NavigateToMap(proc.Latitude!.Value, proc.Longitude!.Value)"
+                                        @onclick:stopPropagation="true">
+                                    <span class="btn-icon material-icons-outlined">map</span>
+                                    Mapa
                                 </button>
                             }
                         </div>
@@ -367,6 +491,49 @@
     /// Reference to the carousel element for scrolling
     /// </summary>
     private ElementReference _carouselRef;
+    
+    /// <summary>
+    /// Tracks which procedure cards are expanded (by Id)
+    /// </summary>
+    private HashSet<Guid> _expandedProcedures = new();
+    
+    /// <summary>
+    /// Tracks checked requirements for procedures (by procedureId:documentName)
+    /// </summary>
+    private HashSet<string> _checkedRequirements = new();
+    
+    /// <summary>
+    /// Toggle procedure card expansion
+    /// </summary>
+    private void ToggleProcedureExpand(Guid procedureId)
+    {
+        if (_expandedProcedures.Contains(procedureId))
+            _expandedProcedures.Remove(procedureId);
+        else
+            _expandedProcedures.Add(procedureId);
+    }
+    
+    /// <summary>
+    /// Check if a procedure card is expanded
+    /// </summary>
+    private bool IsProcedureExpanded(Guid procedureId) => _expandedProcedures.Contains(procedureId);
+    
+    /// <summary>
+    /// Toggle a requirement checkbox
+    /// </summary>
+    private void ToggleRequirement(Guid procedureId, string requirement)
+    {
+        var key = $"{procedureId}:{requirement}";
+        if (_checkedRequirements.Contains(key))
+            _checkedRequirements.Remove(key);
+        else
+            _checkedRequirements.Add(key);
+    }
+    
+    /// <summary>
+    /// Check if a requirement is checked
+    /// </summary>
+    private bool IsRequirementChecked(Guid procedureId, string requirement) => _checkedRequirements.Contains($"{procedureId}:{requirement}");
 
     /// <summary>
     /// Scroll the carousel left or right
@@ -595,6 +762,36 @@
         {
             NavigationManager.NavigateTo(url);
         }
+    }
+    
+    /// <summary>
+    /// Navigate to an external URL (opens in new tab via force load)
+    /// </summary>
+    private void NavigateExternal(string url)
+    {
+        if (!string.IsNullOrEmpty(url))
+        {
+            NavigationManager.NavigateTo(url, forceLoad: true);
+        }
+    }
+    
+    /// <summary>
+    /// Navigate to a phone number (tel: link)
+    /// </summary>
+    private void NavigateToPhone(string phone)
+    {
+        if (!string.IsNullOrEmpty(phone))
+        {
+            NavigationManager.NavigateTo($"tel:{phone}", forceLoad: true);
+        }
+    }
+    
+    /// <summary>
+    /// Navigate to Google Maps for a location
+    /// </summary>
+    private void NavigateToMap(double latitude, double longitude)
+    {
+        NavigationManager.NavigateTo($"https://maps.google.com/?q={latitude},{longitude}", forceLoad: true);
     }
 
     private async Task OnShowMore()
