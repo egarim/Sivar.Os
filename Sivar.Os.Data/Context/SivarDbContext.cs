@@ -126,6 +126,11 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<QuickAction> QuickActions { get; set; } = null!;
 
+    /// <summary>
+    /// Profile bookmarks - saved posts by profiles
+    /// </summary>
+    public DbSet<ProfileBookmark> ProfileBookmarks { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -155,6 +160,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AgentCapabilityConfiguration());
         modelBuilder.ApplyConfiguration(new CapabilityParameterConfiguration());
         modelBuilder.ApplyConfiguration(new QuickActionConfiguration());
+        modelBuilder.ApplyConfiguration(new ProfileBookmarkConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

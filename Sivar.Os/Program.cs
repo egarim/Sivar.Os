@@ -96,6 +96,8 @@ builder.Services.AddScoped<IContactTypeRepository, ContactTypeRepository>();
 builder.Services.AddScoped<IBusinessContactInfoRepository, BusinessContactInfoRepository>();
 // Phase 0.5: Chat Bot Settings - Repository registration
 builder.Services.AddScoped<IChatBotSettingsRepository, ChatBotSettingsRepository>();
+// Profile Bookmarks - Repository registration
+builder.Services.AddScoped<IProfileBookmarkRepository, ProfileBookmarkRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -178,6 +180,8 @@ builder.Services.AddScoped<ISavedResultService, SavedResultService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 // Phase 1: Contact Actions - Service registration
 builder.Services.AddScoped<IContactUrlBuilder, ContactUrlBuilder>();
+// Profile Bookmarks - Service registration
+builder.Services.AddScoped<IProfileBookmarkService, ProfileBookmarkService>();
 
 // --- Utility Services Registration ---
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();

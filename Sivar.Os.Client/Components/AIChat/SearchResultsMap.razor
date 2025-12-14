@@ -5,8 +5,10 @@
 
 @using Microsoft.JSInterop
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject IProfileBookmarkService BookmarkService
 @implements IAsyncDisposable
 
 <div class="search-results-map-container">
@@ -105,7 +107,24 @@
     {
         if (firstRender)
         {
+            await LoadBookmarksAsync();
             await InitializeMapAsync();
+        }
+    }
+    
+    /// <summary>
+    /// Load user's bookmarks from the database
+    /// </summary>
+    private async Task LoadBookmarksAsync()
+    {
+        try
+        {
+            var bookmarkedIds = await BookmarkService.GetMyBookmarkedPostIdsAsync();
+            _savedBusinessIds = new HashSet<Guid>(bookmarkedIds);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SearchResultsMap] Error loading bookmarks: {ex.Message}");
         }
     }
 
@@ -302,23 +321,43 @@
     #region Phase 7: Save & Share
     
     /// <summary>
-    /// Static set of saved business IDs (shared with ChatMessage)
+    /// Set of saved business IDs (loaded from database)
     /// </summary>
-    private static HashSet<Guid> _savedBusinessIds = new();
+    private HashSet<Guid> _savedBusinessIds = new();
     
     private bool IsBusinessSaved(Guid businessId) => _savedBusinessIds.Contains(businessId);
     
+    /// <summary>
+    /// Toggle save state for a business (persists to database)
+    /// </summary>
+    private async Task ToggleSaveAsync(BusinessSearchResultDto business)
+    {
+        try
+        {
+            var isNowBookmarked = await BookmarkService.ToggleBookmarkAsync(business.Id);
+            
+            if (isNowBookmarked)
+            {
+                _savedBusinessIds.Add(business.Id);
+            }
+            else
+            {
+                _savedBusinessIds.Remove(business.Id);
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SearchResultsMap] Error toggling bookmark: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Toggle save state (synchronous wrapper for UI binding)
+    /// </summary>
     private void ToggleSave(BusinessSearchResultDto business)
     {
-        if (_savedBusinessIds.Contains(business.Id))
-        {
-            _savedBusinessIds.Remove(business.Id);
-        }
-        else
-        {
-            _savedBusinessIds.Add(business.Id);
-        }
-        StateHasChanged();
+        _ = ToggleSaveAsync(business);
     }
     
     private async Task ShareBusiness(BusinessSearchResultDto business)

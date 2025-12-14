@@ -1,8 +1,10 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
 @using System.Text.RegularExpressions
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
+@inject IProfileBookmarkService BookmarkService
 
 @* ChatMessage component *@
 
@@ -619,9 +621,14 @@
         Message.StructuredResults?.Businesses?.Any(b => b.Latitude.HasValue && b.Longitude.HasValue) == true;
     
     /// <summary>
-    /// Phase 7: Set of saved business IDs (local to this session)
+    /// Phase 7: Set of saved business IDs (loaded from database)
     /// </summary>
-    private static HashSet<Guid> _savedBusinessIds = new();
+    private HashSet<Guid> _savedBusinessIds = new();
+    
+    /// <summary>
+    /// Phase 7: Loading state for bookmarks
+    /// </summary>
+    private bool _loadingBookmarks = false;
     
     /// <summary>
     /// Phase 7: Show share modal
@@ -637,6 +644,35 @@
     /// Phase 7: Show copied message
     /// </summary>
     private bool _showCopiedMessage = false;
+    
+    /// <summary>
+    /// Load bookmarks from database when component initializes
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBookmarksAsync();
+    }
+    
+    /// <summary>
+    /// Load user's bookmarks from the database
+    /// </summary>
+    private async Task LoadBookmarksAsync()
+    {
+        try
+        {
+            _loadingBookmarks = true;
+            var bookmarkedIds = await BookmarkService.GetMyBookmarkedPostIdsAsync();
+            _savedBusinessIds = new HashSet<Guid>(bookmarkedIds);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ChatMessage] Error loading bookmarks: {ex.Message}");
+        }
+        finally
+        {
+            _loadingBookmarks = false;
+        }
+    }
     
     /// <summary>
     /// Tracks which procedure cards are expanded (by Id)
@@ -989,21 +1025,38 @@
     private bool IsBusinessSaved(Guid businessId) => _savedBusinessIds.Contains(businessId);
     
     /// <summary>
-    /// Toggle save state for a business
+    /// Toggle save state for a business (persists to database)
+    /// </summary>
+    private async Task ToggleSaveBusinessAsync(BusinessSearchResultDto business)
+    {
+        try
+        {
+            var isNowBookmarked = await BookmarkService.ToggleBookmarkAsync(business.Id);
+            
+            if (isNowBookmarked)
+            {
+                _savedBusinessIds.Add(business.Id);
+                Console.WriteLine($"[ChatMessage] Saved to database: {business.Title}");
+            }
+            else
+            {
+                _savedBusinessIds.Remove(business.Id);
+                Console.WriteLine($"[ChatMessage] Removed from database: {business.Title}");
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ChatMessage] Error toggling bookmark: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Toggle save state for a business (synchronous wrapper for UI binding)
     /// </summary>
     private void ToggleSaveBusiness(BusinessSearchResultDto business)
     {
-        if (_savedBusinessIds.Contains(business.Id))
-        {
-            _savedBusinessIds.Remove(business.Id);
-            Console.WriteLine($"[ChatMessage] Removed from saved: {business.Title}");
-        }
-        else
-        {
-            _savedBusinessIds.Add(business.Id);
-            Console.WriteLine($"[ChatMessage] Saved: {business.Title}");
-        }
-        StateHasChanged();
+        _ = ToggleSaveBusinessAsync(business);
     }
     
     /// <summary>
