@@ -95,6 +95,13 @@
     gap: 4px;
 }
 
+.selected-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .selected-card-content h4 {
     margin: 0;
     font-size: 15px;
@@ -103,6 +110,43 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+}
+
+/* Phase 7: Quick Action Buttons */
+.selected-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.map-quick-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.map-quick-btn .material-icons-outlined {
+    font-size: 18px;
+}
+
+.map-quick-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.map-quick-btn.saved {
+    color: #f59e0b;
+}
 }
 
 .selected-card-category {

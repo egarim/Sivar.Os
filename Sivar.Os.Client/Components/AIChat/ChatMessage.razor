@@ -50,6 +50,21 @@
                                         <span class="card-category">@business.Category</span>
                                     }
                                 </div>
+                                @* Phase 7: Quick Save/Share Actions *@
+                                <div class="card-quick-actions">
+                                    <button class="quick-action-btn @(IsBusinessSaved(business.Id) ? "saved" : "")" 
+                                            @onclick="() => ToggleSaveBusiness(business)" 
+                                            @onclick:stopPropagation="true"
+                                            title="@(IsBusinessSaved(business.Id) ? "Quitar de guardados" : "Guardar")">
+                                        <span class="material-icons-outlined">@(IsBusinessSaved(business.Id) ? "bookmark" : "bookmark_border")</span>
+                                    </button>
+                                    <button class="quick-action-btn" 
+                                            @onclick="() => ShowShareOptions(business)" 
+                                            @onclick:stopPropagation="true"
+                                            title="Compartir">
+                                        <span class="material-icons-outlined">share</span>
+                                    </button>
+                                </div>
                                 @if (business.RelevanceScore > 0.7)
                                 {
                                     <span class="relevance-badge high">⭐</span>
@@ -525,6 +540,46 @@
     </div>
 </div>
 
+@* Phase 7: Share Modal *@
+@if (_showShareModal && _shareBusinessTarget != null)
+{
+    <div class="share-modal-backdrop" @onclick="CloseShareModal">
+        <div class="share-modal" @onclick:stopPropagation="true">
+            <div class="share-modal-header">
+                <h4>Compartir</h4>
+                <button class="share-modal-close" @onclick="CloseShareModal">×</button>
+            </div>
+            <div class="share-modal-content">
+                <div class="share-business-preview">
+                    <strong>@_shareBusinessTarget.Title</strong>
+                    @if (!string.IsNullOrEmpty(_shareBusinessTarget.Category))
+                    {
+                        <span class="share-category">@_shareBusinessTarget.Category</span>
+                    }
+                </div>
+                <div class="share-options">
+                    <button class="share-option-btn" @onclick="() => CopyLinkToClipboard()">
+                        <span class="material-icons-outlined">content_copy</span>
+                        <span>Copiar enlace</span>
+                    </button>
+                    <button class="share-option-btn whatsapp" @onclick="() => ShareViaWhatsApp()">
+                        <span class="share-icon">📱</span>
+                        <span>WhatsApp</span>
+                    </button>
+                    <button class="share-option-btn" @onclick="() => ShareNative()">
+                        <span class="material-icons-outlined">share</span>
+                        <span>Más opciones</span>
+                    </button>
+                </div>
+                @if (_showCopiedMessage)
+                {
+                    <div class="copied-message">✓ Enlace copiado</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     /// <summary>
     /// The chat message to display
@@ -552,6 +607,26 @@
     /// </summary>
     private bool HasLocationResults() => 
         Message.StructuredResults?.Businesses?.Any(b => b.Latitude.HasValue && b.Longitude.HasValue) == true;
+    
+    /// <summary>
+    /// Phase 7: Set of saved business IDs (local to this session)
+    /// </summary>
+    private static HashSet<Guid> _savedBusinessIds = new();
+    
+    /// <summary>
+    /// Phase 7: Show share modal
+    /// </summary>
+    private bool _showShareModal = false;
+    
+    /// <summary>
+    /// Phase 7: Target business for sharing
+    /// </summary>
+    private BusinessSearchResultDto? _shareBusinessTarget = null;
+    
+    /// <summary>
+    /// Phase 7: Show copied message
+    /// </summary>
+    private bool _showCopiedMessage = false;
     
     /// <summary>
     /// Tracks which procedure cards are expanded (by Id)
@@ -895,6 +970,132 @@
         // TODO: Implement share functionality
         Console.WriteLine($"Sharing: {result.Name}");
     }
+
+    #region Phase 7: Save & Share Functionality
+    
+    /// <summary>
+    /// Check if a business is saved
+    /// </summary>
+    private bool IsBusinessSaved(Guid businessId) => _savedBusinessIds.Contains(businessId);
+    
+    /// <summary>
+    /// Toggle save state for a business
+    /// </summary>
+    private void ToggleSaveBusiness(BusinessSearchResultDto business)
+    {
+        if (_savedBusinessIds.Contains(business.Id))
+        {
+            _savedBusinessIds.Remove(business.Id);
+            Console.WriteLine($"[ChatMessage] Removed from saved: {business.Title}");
+        }
+        else
+        {
+            _savedBusinessIds.Add(business.Id);
+            Console.WriteLine($"[ChatMessage] Saved: {business.Title}");
+        }
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Show share options modal
+    /// </summary>
+    private void ShowShareOptions(BusinessSearchResultDto business)
+    {
+        _shareBusinessTarget = business;
+        _showShareModal = true;
+        _showCopiedMessage = false;
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Close share modal
+    /// </summary>
+    private void CloseShareModal()
+    {
+        _showShareModal = false;
+        _shareBusinessTarget = null;
+        _showCopiedMessage = false;
+    }
+    
+    /// <summary>
+    /// Build shareable URL for a business
+    /// </summary>
+    private string GetShareableUrl(BusinessSearchResultDto business)
+    {
+        var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
+        return $"{baseUrl}{business.NavigationUrl}";
+    }
+    
+    /// <summary>
+    /// Copy link to clipboard
+    /// </summary>
+    private async Task CopyLinkToClipboard()
+    {
+        if (_shareBusinessTarget == null) return;
+        
+        var url = GetShareableUrl(_shareBusinessTarget);
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            _showCopiedMessage = true;
+            StateHasChanged();
+            
+            // Hide message after 2 seconds
+            await Task.Delay(2000);
+            _showCopiedMessage = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ChatMessage] Failed to copy to clipboard: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Share via WhatsApp
+    /// </summary>
+    private void ShareViaWhatsApp()
+    {
+        if (_shareBusinessTarget == null) return;
+        
+        var url = GetShareableUrl(_shareBusinessTarget);
+        var text = $"¡Mira esto! {_shareBusinessTarget.Title}";
+        if (!string.IsNullOrEmpty(_shareBusinessTarget.Category))
+        {
+            text += $" - {_shareBusinessTarget.Category}";
+        }
+        
+        var whatsappUrl = $"https://wa.me/?text={Uri.EscapeDataString(text + "\n" + url)}";
+        NavigationManager.NavigateTo(whatsappUrl, forceLoad: true);
+        CloseShareModal();
+    }
+    
+    /// <summary>
+    /// Use native share API (mobile)
+    /// </summary>
+    private async Task ShareNative()
+    {
+        if (_shareBusinessTarget == null) return;
+        
+        var url = GetShareableUrl(_shareBusinessTarget);
+        var title = _shareBusinessTarget.Title;
+        var text = !string.IsNullOrEmpty(_shareBusinessTarget.Description) 
+            ? _shareBusinessTarget.Description 
+            : $"Descubre {title} en Sivar.Os";
+        
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.share", new { title, text, url });
+            CloseShareModal();
+        }
+        catch
+        {
+            // Fallback to copy if native share not available
+            await CopyLinkToClipboard();
+        }
+    }
+    
+    #endregion
 
     /// <summary>
     /// Get CSS class for suggestion chip based on type

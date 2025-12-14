@@ -28,7 +28,24 @@
                 <img src="@_selectedBusiness.ImageUrl" alt="@_selectedBusiness.Title" class="selected-card-image" />
             }
             <div class="selected-card-content">
-                <h4>@_selectedBusiness.Title</h4>
+                <div class="selected-card-header">
+                    <h4>@_selectedBusiness.Title</h4>
+                    @* Phase 7: Quick Actions *@
+                    <div class="selected-card-actions">
+                        <button class="map-quick-btn @(IsBusinessSaved(_selectedBusiness.Id) ? "saved" : "")" 
+                                @onclick="() => ToggleSave(_selectedBusiness)" 
+                                @onclick:stopPropagation="true"
+                                title="@(IsBusinessSaved(_selectedBusiness.Id) ? "Quitar" : "Guardar")">
+                            <span class="material-icons-outlined">@(IsBusinessSaved(_selectedBusiness.Id) ? "bookmark" : "bookmark_border")</span>
+                        </button>
+                        <button class="map-quick-btn" 
+                                @onclick="() => ShareBusiness(_selectedBusiness)" 
+                                @onclick:stopPropagation="true"
+                                title="Compartir">
+                            <span class="material-icons-outlined">share</span>
+                        </button>
+                    </div>
+                </div>
                 @if (!string.IsNullOrEmpty(_selectedBusiness.Category))
                 {
                     <span class="selected-card-category">@_selectedBusiness.Category</span>
@@ -281,6 +298,57 @@
     {
         NavigationManager.NavigateTo(business.NavigationUrl);
     }
+
+    #region Phase 7: Save & Share
+    
+    /// <summary>
+    /// Static set of saved business IDs (shared with ChatMessage)
+    /// </summary>
+    private static HashSet<Guid> _savedBusinessIds = new();
+    
+    private bool IsBusinessSaved(Guid businessId) => _savedBusinessIds.Contains(businessId);
+    
+    private void ToggleSave(BusinessSearchResultDto business)
+    {
+        if (_savedBusinessIds.Contains(business.Id))
+        {
+            _savedBusinessIds.Remove(business.Id);
+        }
+        else
+        {
+            _savedBusinessIds.Add(business.Id);
+        }
+        StateHasChanged();
+    }
+    
+    private async Task ShareBusiness(BusinessSearchResultDto business)
+    {
+        var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
+        var url = $"{baseUrl}{business.NavigationUrl}";
+        var text = $"¡Mira esto! {business.Title}";
+        
+        try
+        {
+            // Try native share first
+            await JS.InvokeVoidAsync("navigator.share", new { title = business.Title, text, url });
+        }
+        catch
+        {
+            // Fallback to clipboard
+            try
+            {
+                await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            }
+            catch
+            {
+                // Final fallback: open WhatsApp
+                var whatsappUrl = $"https://wa.me/?text={Uri.EscapeDataString(text + "\n" + url)}";
+                NavigationManager.NavigateTo(whatsappUrl, forceLoad: true);
+            }
+        }
+    }
+    
+    #endregion
 
     public async ValueTask DisposeAsync()
     {
