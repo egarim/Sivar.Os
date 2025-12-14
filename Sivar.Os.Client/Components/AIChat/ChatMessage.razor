@@ -646,11 +646,12 @@
     private bool _showCopiedMessage = false;
     
     /// <summary>
-    /// Load bookmarks from database when component initializes
+    /// Load bookmarks and procedure checklist when component initializes
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadBookmarksAsync();
+        await LoadCheckedRequirementsFromLocalStorage();
     }
     
     /// <summary>
@@ -701,15 +702,57 @@
     private bool IsProcedureExpanded(Guid procedureId) => _expandedProcedures.Contains(procedureId);
     
     /// <summary>
-    /// Toggle a requirement checkbox
+    /// Toggle a requirement checkbox and persist to localStorage
     /// </summary>
-    private void ToggleRequirement(Guid procedureId, string requirement)
+    private async Task ToggleRequirement(Guid procedureId, string requirement)
     {
         var key = $"{procedureId}:{requirement}";
         if (_checkedRequirements.Contains(key))
             _checkedRequirements.Remove(key);
         else
             _checkedRequirements.Add(key);
+        
+        // Persist to localStorage
+        await SaveCheckedRequirementsToLocalStorage();
+    }
+    
+    /// <summary>
+    /// Save checked requirements to localStorage
+    /// </summary>
+    private async Task SaveCheckedRequirementsToLocalStorage()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(_checkedRequirements.ToArray());
+            await JS.InvokeVoidAsync("localStorage.setItem", "sivaros_procedure_checklist", json);
+        }
+        catch
+        {
+            // Ignore localStorage errors (private browsing, etc.)
+        }
+    }
+    
+    /// <summary>
+    /// Load checked requirements from localStorage
+    /// </summary>
+    private async Task LoadCheckedRequirementsFromLocalStorage()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("localStorage.getItem", "sivaros_procedure_checklist");
+            if (!string.IsNullOrEmpty(json))
+            {
+                var items = System.Text.Json.JsonSerializer.Deserialize<string[]>(json);
+                if (items != null)
+                {
+                    _checkedRequirements = new HashSet<string>(items);
+                }
+            }
+        }
+        catch
+        {
+            // Ignore localStorage errors
+        }
     }
     
     /// <summary>
