@@ -191,6 +191,15 @@ public class PostService : IPostService
                 post.IsDraft, post.ReadTimeMinutes);
         }
 
+        // Set procedure-specific fields if this is a procedure post
+        if (createPostDto.PostType == PostType.Procedure)
+        {
+            post.ProcedureMetadataJson = createPostDto.ProcedureMetadataJson;
+            
+            _logger.LogInformation("[CreatePostAsync] Procedure post created with metadata: {HasMetadata}", 
+                !string.IsNullOrEmpty(createPostDto.ProcedureMetadataJson));
+        }
+
         // Set location: prioritize user-provided, fallback to AI-extracted
         if (createPostDto.Location != null)
         {
@@ -551,6 +560,14 @@ public class PostService : IPostService
                         requestId);
                     post.BusinessMetadata = aiBusinessMetadata;
                 }
+            }
+
+            // Update procedure metadata if provided
+            if (updatePostDto.ProcedureMetadataJson != null)
+            {
+                _logger.LogInformation("[PostService.UpdatePostAsync] Updating procedure metadata - RequestId={RequestId}",
+                    requestId);
+                post.ProcedureMetadataJson = updatePostDto.ProcedureMetadataJson;
             }
 
             post.UpdatedAt = DateTime.UtcNow;
@@ -1147,6 +1164,7 @@ public class PostService : IPostService
             Language = post.Language,
             Tags = post.Tags?.ToList() ?? new List<string>(),
             BusinessMetadata = post.BusinessMetadata,
+            ProcedureMetadataJson = post.ProcedureMetadataJson,
             Attachments = await MapAttachmentsToDtosAsync(post.Id),
             CommentCount = includeComments ? await _commentRepository.GetCommentCountByPostAsync(post.Id) : 0,
             CreatedAt = post.CreatedAt,

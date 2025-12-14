@@ -48,6 +48,12 @@ public record CreatePostDto
     public string? BusinessMetadata { get; init; }
 
     /// <summary>
+    /// Procedure-specific metadata (JSON) for procedure/how-to posts
+    /// Contains steps, required documents, processing time, costs
+    /// </summary>
+    public string? ProcedureMetadataJson { get; init; }
+
+    /// <summary>
     /// Attachment information for images, videos, files
     /// </summary>
     public List<CreatePostAttachmentDto> Attachments { get; init; } = new();
@@ -114,6 +120,11 @@ public record UpdatePostDto
     /// Updated business metadata
     /// </summary>
     public string? BusinessMetadata { get; init; }
+
+    /// <summary>
+    /// Updated procedure metadata (JSON)
+    /// </summary>
+    public string? ProcedureMetadataJson { get; init; }
 
     // ==================== BLOG-SPECIFIC FIELDS ====================
 
@@ -202,6 +213,12 @@ public record PostDto
     /// Business-specific metadata
     /// </summary>
     public string? BusinessMetadata { get; init; }
+
+    /// <summary>
+    /// Procedure-specific metadata (JSON)
+    /// For Procedure posts: steps, required documents, processing time, costs
+    /// </summary>
+    public string? ProcedureMetadataJson { get; init; }
 
     /// <summary>
     /// Post attachments

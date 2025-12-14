@@ -46,8 +46,17 @@ JobPosting = 6,
 /// Blog post - long-form content with rich text
 /// Available to: All profile types (based on FeatureFlags)
 /// </summary>
-Blog = 7
-}/// <summary>
+Blog = 7,
+
+/// <summary>
+/// Procedure/How-to guide post with structured steps and requirements
+/// Available to: All profile types
+/// Examples: Government procedures, business processes, tutorials, how-to guides
+/// </summary>
+Procedure = 8
+}
+
+/// <summary>
 /// Types of reactions users can have on posts and comments
 /// </summary>
 public enum ReactionType

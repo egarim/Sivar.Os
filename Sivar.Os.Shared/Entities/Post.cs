@@ -73,6 +73,13 @@ public class Post : BaseEntity
     public virtual string? BusinessMetadata { get; set; }
 
     /// <summary>
+    /// Procedure-specific metadata (JSON)
+    /// For Procedure posts: steps, required documents, processing time, costs
+    /// Available to all profile types for how-to guides, government procedures, tutorials
+    /// </summary>
+    public virtual string? ProcedureMetadataJson { get; set; }
+
+    /// <summary>
     /// Availability status for products/services
     /// </summary>
     public virtual AvailabilityStatus? AvailabilityStatus { get; set; }
@@ -482,6 +489,140 @@ public class ServiceMetadata
     public string[] IncludedFeatures { get; set; } = Array.Empty<string>();
     public string? BookingInstructions { get; set; }
     public bool RequiresConsultation { get; set; } = false;
+}
+
+/// <summary>
+/// Procedure/How-to metadata for step-by-step guides
+/// Available to all profile types for government procedures, tutorials, business processes, etc.
+/// </summary>
+public class ProcedureMetadata
+{
+    /// <summary>
+    /// Estimated time to complete the entire procedure (e.g., "2-3 semanas", "1 hora")
+    /// </summary>
+    public string? ProcessingTime { get; set; }
+    
+    /// <summary>
+    /// Cost or fee for the procedure (e.g., "$25 USD", "Gratis")
+    /// </summary>
+    public string? Cost { get; set; }
+    
+    /// <summary>
+    /// Where to go to complete this procedure
+    /// </summary>
+    public string? WhereToGo { get; set; }
+    
+    /// <summary>
+    /// URL for online completion if available
+    /// </summary>
+    public string? OnlineUrl { get; set; }
+    
+    /// <summary>
+    /// Whether appointment is required
+    /// </summary>
+    public bool RequiresAppointment { get; set; } = false;
+    
+    /// <summary>
+    /// Contact phone number
+    /// </summary>
+    public string? ContactPhone { get; set; }
+    
+    /// <summary>
+    /// Contact email
+    /// </summary>
+    public string? ContactEmail { get; set; }
+    
+    /// <summary>
+    /// Office working hours
+    /// </summary>
+    public BusinessHours? WorkingHours { get; set; }
+    
+    /// <summary>
+    /// Validity period of the result (e.g., "5 años", "Permanente")
+    /// </summary>
+    public string? ValidityPeriod { get; set; }
+    
+    /// <summary>
+    /// Required documents for this procedure
+    /// </summary>
+    public List<ProcedureDocument> Documents { get; set; } = new();
+    
+    /// <summary>
+    /// Step-by-step instructions
+    /// </summary>
+    public List<ProcedureStep> Steps { get; set; } = new();
+    
+    /// <summary>
+    /// Additional notes or tips
+    /// </summary>
+    public string? AdditionalNotes { get; set; }
+}
+
+/// <summary>
+/// A required document for a procedure
+/// </summary>
+public class ProcedureDocument
+{
+    /// <summary>
+    /// Name of the document (e.g., "DUI vigente")
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Additional description or specifications
+    /// </summary>
+    public string? Description { get; set; }
+    
+    /// <summary>
+    /// Whether this document is required or optional
+    /// </summary>
+    public bool IsRequired { get; set; } = true;
+    
+    /// <summary>
+    /// Where to obtain this document if applicable
+    /// </summary>
+    public string? WhereToGet { get; set; }
+    
+    /// <summary>
+    /// Validity requirements (e.g., "No mayor a 6 meses")
+    /// </summary>
+    public string? ValidityPeriod { get; set; }
+}
+
+/// <summary>
+/// A step in a procedure
+/// </summary>
+public class ProcedureStep
+{
+    /// <summary>
+    /// Step number (1-based)
+    /// </summary>
+    public int StepNumber { get; set; }
+    
+    /// <summary>
+    /// Brief title for the step
+    /// </summary>
+    public string Title { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Detailed description of what to do
+    /// </summary>
+    public string? Description { get; set; }
+    
+    /// <summary>
+    /// Estimated time for this step (e.g., "15 minutos")
+    /// </summary>
+    public string? EstimatedTime { get; set; }
+    
+    /// <summary>
+    /// Whether this step can be done online
+    /// </summary>
+    public bool IsOnline { get; set; } = false;
+    
+    /// <summary>
+    /// URL if this step can be done online
+    /// </summary>
+    public string? OnlineUrl { get; set; }
 }
 
 /// <summary>
