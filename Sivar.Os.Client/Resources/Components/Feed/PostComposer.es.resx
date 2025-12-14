@@ -315,4 +315,118 @@
   <data name="CustomHours" xml:space="preserve">
     <value>Abierto {0} días/semana</value>
   </data>
+  
+  <!-- Procedure Form -->
+  <data name="ProcedureFormTitle" xml:space="preserve">
+    <value>Crear Procedimiento</value>
+    <comment>Header for procedure form</comment>
+  </data>
+  <data name="ProcedureTitleLabel" xml:space="preserve">
+    <value>Título del procedimiento</value>
+    <comment>Label for procedure title field</comment>
+  </data>
+  <data name="ProcedureTitlePlaceholder" xml:space="preserve">
+    <value>Ej: Cómo obtener pasaporte</value>
+    <comment>Placeholder for procedure title</comment>
+  </data>
+  <data name="ProcedureDescriptionLabel" xml:space="preserve">
+    <value>Descripción</value>
+    <comment>Label for procedure description field</comment>
+  </data>
+  <data name="ProcedureDescriptionPlaceholder" xml:space="preserve">
+    <value>Breve descripción del procedimiento</value>
+    <comment>Placeholder for procedure description</comment>
+  </data>
+  <data name="ProcessingTimeLabel" xml:space="preserve">
+    <value>Tiempo estimado</value>
+    <comment>Label for processing time field</comment>
+  </data>
+  <data name="ProcessingTimePlaceholder" xml:space="preserve">
+    <value>Ej: 2-3 semanas</value>
+    <comment>Placeholder for processing time</comment>
+  </data>
+  <data name="CostLabel" xml:space="preserve">
+    <value>Costo</value>
+    <comment>Label for cost field</comment>
+  </data>
+  <data name="CostPlaceholder" xml:space="preserve">
+    <value>Ej: $25 USD o Gratis</value>
+    <comment>Placeholder for cost</comment>
+  </data>
+  <data name="WhereToGoLabel" xml:space="preserve">
+    <value>Dónde ir</value>
+    <comment>Label for where to go field</comment>
+  </data>
+  <data name="WhereToGoPlaceholder" xml:space="preserve">
+    <value>Ej: Centro de Gobierno, San Salvador</value>
+    <comment>Placeholder for where to go</comment>
+  </data>
+  <data name="OnlineUrlLabel" xml:space="preserve">
+    <value>URL en línea</value>
+    <comment>Label for online URL field</comment>
+  </data>
+  <data name="OnlineUrlPlaceholder" xml:space="preserve">
+    <value>https://...</value>
+    <comment>Placeholder for online URL</comment>
+  </data>
+  <data name="ContactPhoneLabel" xml:space="preserve">
+    <value>Teléfono de contacto</value>
+    <comment>Label for contact phone field</comment>
+  </data>
+  <data name="ContactPhonePlaceholder" xml:space="preserve">
+    <value>+503 2222-3333</value>
+    <comment>Placeholder for contact phone</comment>
+  </data>
+  <data name="ContactEmailLabel" xml:space="preserve">
+    <value>Correo electrónico</value>
+    <comment>Label for contact email field</comment>
+  </data>
+  <data name="ContactEmailPlaceholder" xml:space="preserve">
+    <value>contacto@ejemplo.com</value>
+    <comment>Placeholder for contact email</comment>
+  </data>
+  <data name="RequiresAppointmentLabel" xml:space="preserve">
+    <value>Requiere cita previa</value>
+    <comment>Checkbox label for appointment requirement</comment>
+  </data>
+  <data name="RequiredDocumentsLabel" xml:space="preserve">
+    <value>Documentos requeridos</value>
+    <comment>Section header for documents</comment>
+  </data>
+  <data name="AddButton" xml:space="preserve">
+    <value>Agregar</value>
+    <comment>Button to add item</comment>
+  </data>
+  <data name="DocumentNamePlaceholder" xml:space="preserve">
+    <value>Nombre del documento</value>
+    <comment>Placeholder for document name</comment>
+  </data>
+  <data name="RequiredCheckbox" xml:space="preserve">
+    <value>Obligatorio</value>
+    <comment>Checkbox label for required status</comment>
+  </data>
+  <data name="NoDocumentsAdded" xml:space="preserve">
+    <value>No hay documentos agregados</value>
+    <comment>Empty state for documents</comment>
+  </data>
+  <data name="StepsLabel" xml:space="preserve">
+    <value>Pasos del procedimiento</value>
+    <comment>Section header for steps</comment>
+  </data>
+  <data name="StepTitlePlaceholder" xml:space="preserve">
+    <value>Descripción del paso</value>
+    <comment>Placeholder for step title</comment>
+  </data>
+  <data name="NoStepsAdded" xml:space="preserve">
+    <value>No hay pasos agregados</value>
+    <comment>Empty state for steps</comment>
+  </data>
+  <data name="AdditionalNotesLabel" xml:space="preserve">
+    <value>Notas adicionales</value>
+    <comment>Label for additional notes field</comment>
+  </data>
+  <data name="AdditionalNotesPlaceholder" xml:space="preserve">
+    <value>Consejos o información adicional</value>
+    <comment>Placeholder for additional notes</comment>
+  </data>
 </root>

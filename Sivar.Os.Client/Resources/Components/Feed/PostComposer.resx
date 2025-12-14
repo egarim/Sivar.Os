@@ -315,4 +315,118 @@
   <data name="CustomHours" xml:space="preserve">
     <value>Open {0} days/week</value>
   </data>
+  
+  <!-- Procedure Form -->
+  <data name="ProcedureFormTitle" xml:space="preserve">
+    <value>Create a Procedure</value>
+    <comment>Header for procedure form</comment>
+  </data>
+  <data name="ProcedureTitleLabel" xml:space="preserve">
+    <value>Procedure Title</value>
+    <comment>Label for procedure title field</comment>
+  </data>
+  <data name="ProcedureTitlePlaceholder" xml:space="preserve">
+    <value>e.g., How to get a passport</value>
+    <comment>Placeholder for procedure title</comment>
+  </data>
+  <data name="ProcedureDescriptionLabel" xml:space="preserve">
+    <value>Description</value>
+    <comment>Label for procedure description field</comment>
+  </data>
+  <data name="ProcedureDescriptionPlaceholder" xml:space="preserve">
+    <value>Brief description of this procedure</value>
+    <comment>Placeholder for procedure description</comment>
+  </data>
+  <data name="ProcessingTimeLabel" xml:space="preserve">
+    <value>Processing Time</value>
+    <comment>Label for processing time field</comment>
+  </data>
+  <data name="ProcessingTimePlaceholder" xml:space="preserve">
+    <value>e.g., 2-3 weeks</value>
+    <comment>Placeholder for processing time</comment>
+  </data>
+  <data name="CostLabel" xml:space="preserve">
+    <value>Cost</value>
+    <comment>Label for cost field</comment>
+  </data>
+  <data name="CostPlaceholder" xml:space="preserve">
+    <value>e.g., $25 USD or Free</value>
+    <comment>Placeholder for cost</comment>
+  </data>
+  <data name="WhereToGoLabel" xml:space="preserve">
+    <value>Where To Go</value>
+    <comment>Label for where to go field</comment>
+  </data>
+  <data name="WhereToGoPlaceholder" xml:space="preserve">
+    <value>e.g., Government Center, San Salvador</value>
+    <comment>Placeholder for where to go</comment>
+  </data>
+  <data name="OnlineUrlLabel" xml:space="preserve">
+    <value>Online URL</value>
+    <comment>Label for online URL field</comment>
+  </data>
+  <data name="OnlineUrlPlaceholder" xml:space="preserve">
+    <value>https://...</value>
+    <comment>Placeholder for online URL</comment>
+  </data>
+  <data name="ContactPhoneLabel" xml:space="preserve">
+    <value>Contact Phone</value>
+    <comment>Label for contact phone field</comment>
+  </data>
+  <data name="ContactPhonePlaceholder" xml:space="preserve">
+    <value>+503 2222-3333</value>
+    <comment>Placeholder for contact phone</comment>
+  </data>
+  <data name="ContactEmailLabel" xml:space="preserve">
+    <value>Contact Email</value>
+    <comment>Label for contact email field</comment>
+  </data>
+  <data name="ContactEmailPlaceholder" xml:space="preserve">
+    <value>contact@example.com</value>
+    <comment>Placeholder for contact email</comment>
+  </data>
+  <data name="RequiresAppointmentLabel" xml:space="preserve">
+    <value>Requires Appointment</value>
+    <comment>Checkbox label for appointment requirement</comment>
+  </data>
+  <data name="RequiredDocumentsLabel" xml:space="preserve">
+    <value>Required Documents</value>
+    <comment>Section header for documents</comment>
+  </data>
+  <data name="AddButton" xml:space="preserve">
+    <value>Add</value>
+    <comment>Button to add item</comment>
+  </data>
+  <data name="DocumentNamePlaceholder" xml:space="preserve">
+    <value>Document name</value>
+    <comment>Placeholder for document name</comment>
+  </data>
+  <data name="RequiredCheckbox" xml:space="preserve">
+    <value>Required</value>
+    <comment>Checkbox label for required status</comment>
+  </data>
+  <data name="NoDocumentsAdded" xml:space="preserve">
+    <value>No documents added</value>
+    <comment>Empty state for documents</comment>
+  </data>
+  <data name="StepsLabel" xml:space="preserve">
+    <value>Procedure Steps</value>
+    <comment>Section header for steps</comment>
+  </data>
+  <data name="StepTitlePlaceholder" xml:space="preserve">
+    <value>Step description</value>
+    <comment>Placeholder for step title</comment>
+  </data>
+  <data name="NoStepsAdded" xml:space="preserve">
+    <value>No steps added</value>
+    <comment>Empty state for steps</comment>
+  </data>
+  <data name="AdditionalNotesLabel" xml:space="preserve">
+    <value>Additional Notes</value>
+    <comment>Label for additional notes field</comment>
+  </data>
+  <data name="AdditionalNotesPlaceholder" xml:space="preserve">
+    <value>Tips or additional information</value>
+    <comment>Placeholder for additional notes</comment>
+  </data>
 </root>
