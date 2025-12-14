@@ -56,13 +56,13 @@
                                             @onclick="() => ToggleSaveBusiness(business)" 
                                             @onclick:stopPropagation="true"
                                             title="@(IsBusinessSaved(business.Id) ? "Quitar de guardados" : "Guardar")">
-                                        <span class="material-icons-outlined">@(IsBusinessSaved(business.Id) ? "bookmark" : "bookmark_border")</span>
+                                        <MudIcon Icon="@(IsBusinessSaved(business.Id) ? Icons.Material.Filled.Bookmark : Icons.Material.Outlined.BookmarkBorder)" Size="Size.Small" />
                                     </button>
                                     <button class="quick-action-btn" 
                                             @onclick="() => ShowShareOptions(business)" 
                                             @onclick:stopPropagation="true"
                                             title="Compartir">
-                                        <span class="material-icons-outlined">share</span>
+                                        <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
                                     </button>
                                 </div>
                                 @if (business.RelevanceScore > 0.7)
@@ -426,14 +426,14 @@
                             @onclick="() => _showMapView = false" 
                             @onclick:stopPropagation="true"
                             title="Ver como lista">
-                        <span class="material-icons-outlined">view_list</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ViewList" Size="Size.Small" />
                         <span class="toggle-label">Lista</span>
                     </button>
                     <button class="view-toggle-btn @(_showMapView ? "active" : "")" 
                             @onclick="() => _showMapView = true" 
                             @onclick:stopPropagation="true"
                             title="Ver en mapa">
-                        <span class="material-icons-outlined">map</span>
+                        <MudIcon Icon="@Icons.Material.Filled.Map" Size="Size.Small" />
                         <span class="toggle-label">Mapa</span>
                     </button>
                 </div>
@@ -559,15 +559,15 @@
                 </div>
                 <div class="share-options">
                     <button class="share-option-btn" @onclick="() => CopyLinkToClipboard()">
-                        <span class="material-icons-outlined">content_copy</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Class="share-btn-icon" />
                         <span>Copiar enlace</span>
                     </button>
                     <button class="share-option-btn whatsapp" @onclick="() => ShareViaWhatsApp()">
-                        <span class="share-icon">📱</span>
+                        <span class="share-icon">💬</span>
                         <span>WhatsApp</span>
                     </button>
                     <button class="share-option-btn" @onclick="() => ShareNative()">
-                        <span class="material-icons-outlined">share</span>
+                        <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" Class="share-btn-icon" />
                         <span>Más opciones</span>
                     </button>
                 </div>

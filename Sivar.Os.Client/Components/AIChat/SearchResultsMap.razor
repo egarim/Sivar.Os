@@ -36,13 +36,13 @@
                                 @onclick="() => ToggleSave(_selectedBusiness)" 
                                 @onclick:stopPropagation="true"
                                 title="@(IsBusinessSaved(_selectedBusiness.Id) ? "Quitar" : "Guardar")">
-                            <span class="material-icons-outlined">@(IsBusinessSaved(_selectedBusiness.Id) ? "bookmark" : "bookmark_border")</span>
+                            <MudIcon Icon="@(IsBusinessSaved(_selectedBusiness.Id) ? Icons.Material.Filled.Bookmark : Icons.Material.Outlined.BookmarkBorder)" Size="Size.Small" />
                         </button>
                         <button class="map-quick-btn" 
                                 @onclick="() => ShareBusiness(_selectedBusiness)" 
                                 @onclick:stopPropagation="true"
                                 title="Compartir">
-                            <span class="material-icons-outlined">share</span>
+                            <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
                         </button>
                     </div>
                 </div>
