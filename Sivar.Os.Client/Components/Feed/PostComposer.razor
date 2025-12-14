@@ -259,15 +259,15 @@
         <div class="procedure-form">
             <div class="form-header">
                 <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Medium" />
-                <span>@Localizer["ProcedureFormTitle", "Create a Procedure"]</span>
+                <span>Crear Procedimiento</span>
             </div>
             
             @* Procedure Title *@
             <div class="form-group">
                 <MudTextField Value="@ProcedureTitle"
                               ValueChanged="@((string val) => OnProcedureTitleChanged(val))"
-                              Label="@Localizer["ProcedureTitleLabel", "Procedure Title"]"
-                              Placeholder="@Localizer["ProcedureTitlePlaceholder", "e.g., How to get a passport"]"
+                              Label="Título del procedimiento"
+                              Placeholder="Ej: Cómo obtener pasaporte"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
                               Required="true"
@@ -278,8 +278,8 @@
             <div class="form-group">
                 <MudTextField Value="@ProcedureDescription"
                               ValueChanged="@((string val) => OnProcedureDescriptionChanged(val))"
-                              Label="@Localizer["ProcedureDescriptionLabel", "Description"]"
-                              Placeholder="@Localizer["ProcedureDescriptionPlaceholder", "Brief description of this procedure"]"
+                              Label="Descripción"
+                              Placeholder="Breve descripción del procedimiento"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
                               Lines="2"
@@ -291,19 +291,23 @@
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureProcessingTime"
                                   ValueChanged="@((string val) => OnProcedureProcessingTimeChanged(val))"
-                                  Label="@Localizer["ProcessingTimeLabel", "Processing Time"]"
-                                  Placeholder="@Localizer["ProcessingTimePlaceholder", "e.g., 2-3 weeks"]"
+                                  Label="Tiempo estimado"
+                                  Placeholder="Ej: 2-3 semanas"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Schedule"
                                   FullWidth="true" />
                 </div>
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureCost"
                                   ValueChanged="@((string val) => OnProcedureCostChanged(val))"
-                                  Label="@Localizer["CostLabel", "Cost"]"
-                                  Placeholder="@Localizer["CostPlaceholder", "e.g., $25 USD or Free"]"
+                                  Label="Costo"
+                                  Placeholder="Ej: $25 USD o Gratis"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.AttachMoney"
                                   FullWidth="true" />
                 </div>
             </div>
@@ -313,19 +317,23 @@
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureWhereToGo"
                                   ValueChanged="@((string val) => OnProcedureWhereToGoChanged(val))"
-                                  Label="@Localizer["WhereToGoLabel", "Where To Go"]"
-                                  Placeholder="@Localizer["WhereToGoPlaceholder", "e.g., Government Center, San Salvador"]"
+                                  Label="Dónde ir"
+                                  Placeholder="Ej: Centro de Gobierno, San Salvador"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.LocationOn"
                                   FullWidth="true" />
                 </div>
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureOnlineUrl"
                                   ValueChanged="@((string val) => OnProcedureOnlineUrlChanged(val))"
-                                  Label="@Localizer["OnlineUrlLabel", "Online URL"]"
-                                  Placeholder="@Localizer["OnlineUrlPlaceholder", "https://..."]"
+                                  Label="URL en línea"
+                                  Placeholder="https://..."
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Link"
                                   FullWidth="true" />
                 </div>
             </div>
@@ -335,29 +343,33 @@
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureContactPhone"
                                   ValueChanged="@((string val) => OnProcedureContactPhoneChanged(val))"
-                                  Label="@Localizer["ContactPhoneLabel", "Contact Phone"]"
-                                  Placeholder="@Localizer["ContactPhonePlaceholder", "e.g., +503 2222-3333"]"
+                                  Label="Teléfono de contacto"
+                                  Placeholder="+503 2222-3333"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Phone"
                                   FullWidth="true" />
                 </div>
                 <div class="form-group flex-1">
                     <MudTextField Value="@ProcedureContactEmail"
                                   ValueChanged="@((string val) => OnProcedureContactEmailChanged(val))"
-                                  Label="@Localizer["ContactEmailLabel", "Contact Email"]"
-                                  Placeholder="@Localizer["ContactEmailPlaceholder", "contact@example.com"]"
+                                  Label="Correo electrónico"
+                                  Placeholder="contacto@ejemplo.com"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email"
                                   FullWidth="true" />
                 </div>
             </div>
             
             @* Appointment Required Checkbox *@
-            <div class="form-group">
+            <div class="form-group checkbox-group">
                 <MudCheckBox T="bool" 
                              Value="@ProcedureRequiresAppointment"
                              ValueChanged="@((bool val) => OnProcedureRequiresAppointmentChanged(val))"
-                             Label="@Localizer["RequiresAppointmentLabel", "Requires Appointment"]"
+                             Label="Requiere cita previa"
                              Color="Color.Primary" />
             </div>
             
@@ -365,12 +377,14 @@
             <div class="procedure-section">
                 <div class="section-header">
                     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
-                    <span>@Localizer["RequiredDocumentsLabel", "Required Documents"]</span>
-                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                   Size="Size.Small" 
-                                   Color="Color.Primary"
-                                   Title="Add Document"
-                                   OnClick="AddProcedureDocument" />
+                    <span>Documentos requeridos</span>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                               Size="Size.Small" 
+                               Variant="Variant.Text"
+                               Color="Color.Primary"
+                               OnClick="AddProcedureDocument">
+                        Agregar
+                    </MudButton>
                 </div>
                 @if (ProcedureDocuments.Any())
                 {
@@ -380,15 +394,16 @@
                             <div class="document-item">
                                 <MudTextField Value="@doc.Name"
                                               ValueChanged="@((string val) => OnDocumentNameChanged(index, val))"
-                                              Placeholder="@Localizer["DocumentNamePlaceholder", "Document name"]"
+                                              Placeholder="Nombre del documento"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense"
-                                              Class="flex-2" />
+                                              Class="document-name-field" />
                                 <MudCheckBox T="bool" 
                                              Value="@doc.IsRequired"
                                              ValueChanged="@((bool val) => OnDocumentRequiredChanged(index, val))"
-                                             Label="Required"
-                                             Class="flex-shrink-0" />
+                                             Label="Obligatorio"
+                                             Size="Size.Small"
+                                             Class="document-required-checkbox" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                Size="Size.Small" 
                                                Color="Color.Error"
@@ -400,7 +415,8 @@
                 else
                 {
                     <div class="empty-section">
-                        <span class="text-secondary">@Localizer["NoDocumentsAdded", "No documents added yet"]</span>
+                        <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" Class="me-2" />
+                        <span>No hay documentos agregados</span>
                     </div>
                 }
             </div>
@@ -409,12 +425,14 @@
             <div class="procedure-section">
                 <div class="section-header">
                     <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" />
-                    <span>@Localizer["StepsLabel", "Steps"]</span>
-                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                   Size="Size.Small" 
-                                   Color="Color.Primary"
-                                   Title="Add Step"
-                                   OnClick="AddProcedureStep" />
+                    <span>Pasos del procedimiento</span>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                               Size="Size.Small" 
+                               Variant="Variant.Text"
+                               Color="Color.Primary"
+                               OnClick="AddProcedureStep">
+                        Agregar
+                    </MudButton>
                 </div>
                 @if (ProcedureSteps.Any())
                 {
@@ -425,10 +443,10 @@
                                 <div class="step-number">@(index + 1)</div>
                                 <MudTextField Value="@step.Title"
                                               ValueChanged="@((string val) => OnStepTitleChanged(index, val))"
-                                              Placeholder="@Localizer["StepTitlePlaceholder", "Step title"]"
+                                              Placeholder="Descripción del paso"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense"
-                                              Class="flex-1" />
+                                              Class="step-title-field" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                Size="Size.Small" 
                                                Color="Color.Error"
@@ -440,7 +458,8 @@
                 else
                 {
                     <div class="empty-section">
-                        <span class="text-secondary">@Localizer["NoStepsAdded", "No steps added yet"]</span>
+                        <MudIcon Icon="@Icons.Material.Outlined.ListAlt" Size="Size.Small" Class="me-2" />
+                        <span>No hay pasos agregados</span>
                     </div>
                 }
             </div>
@@ -449,8 +468,8 @@
             <div class="form-group">
                 <MudTextField Value="@ProcedureAdditionalNotes"
                               ValueChanged="@((string val) => OnProcedureAdditionalNotesChanged(val))"
-                              Label="@Localizer["AdditionalNotesLabel", "Additional Notes"]"
-                              Placeholder="@Localizer["AdditionalNotesPlaceholder", "Tips or additional information"]"
+                              Label="Notas adicionales"
+                              Placeholder="Consejos o información adicional"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
                               Lines="2"
