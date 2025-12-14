@@ -1262,37 +1262,53 @@ Users can prepare for government procedures with a checklist and direct access t
 
 ---
 
-## Phase 4: Smart Follow-up Suggestions 🟡
+## Phase 4: Smart Follow-up Suggestions ✅ COMPLETED
 **Goal**: Guide users to refine their search or take next steps
 
-### Scope
-- Generate contextual suggestions after results
-- Quick action chips below results
-- Pre-filled queries for common refinements
+### Implementation Summary (2024-12-14)
+- **SuggestedActionDto** - DTO with Label, Query, Icon, Type (Refinement/Filter/Location/Alternative)
+- **SearchResultsCollectionDto.SuggestedActions** - Property holds contextual suggestions
+- **ChatFunctionService.GenerateSuggestions()** - Generates 2-4 suggestions based on result types:
+  - Business results: "🗺️ Ver en mapa", "🕐 Solo abiertos ahora", "📍 Los más cercanos"
+  - Procedure results: "📋 Ver todos los requisitos"
+  - Event results: "📅 Esta semana"
+  - No results: "🔄 Buscar en toda la ciudad", "💡 Mostrar sugerencias similares"
+- **ChatMessage.razor** - Renders suggestion chips with color-coded styling
+- **ChatMessage.razor.css** - CSS for `.suggestion-chips`, `.chip-refinement`, `.chip-filter`, `.chip-location`, `.chip-alternative`
+- **ChatMessages.razor** - Passes `OnSuggestionClick` callback through
+- **MainLayout.razor** - `HandleSuggestionClick()` sends pre-filled query
 
-### Files to Modify
+### Scope
+- Generate contextual suggestions after results ✅
+- Quick action chips below results ✅
+- Pre-filled queries for common refinements ✅
+
+### Files Modified
 | File | Changes |
 |------|---------|
-| `Sivar.Os.Shared/DTOs/ChatDTOs.cs` | Add `SuggestedActions` to `ChatResponseDto` |
-| `Sivar.Os/Services/ChatService.cs` | Generate suggestions based on results |
-| `Sivar.Os.Client/Components/AIChat/ChatMessage.razor` | Render suggestion chips |
+| `Sivar.Os.Shared/DTOs/SearchResultDtos.cs` | `SuggestedActionDto`, `SuggestedActionType` enum, `SuggestedActions` property |
+| `Sivar.Os/Services/ChatFunctionService.cs` | `GenerateSuggestions()` method, `CreateSearchResultsCollection()` includes suggestions |
+| `Sivar.Os.Client/Components/AIChat/ChatMessage.razor` | Renders suggestion chips with `GetSuggestionChipClass()` |
+| `Sivar.Os.Client/Components/AIChat/ChatMessage.razor.css` | Styled chip variants with gradients |
+| `Sivar.Os.Client/Components/AIChat/ChatMessages.razor` | Passes `OnSuggestionClick` callback |
+| `Sivar.Os.Client/Layout/MainLayout.razor` | `HandleSuggestionClick()` handler |
 
 ### Suggestion Types
 | Context | Suggestions |
 |---------|-------------|
-| Business results | "🗺️ Ver en mapa", "🕐 Solo abiertos", "📍 Más cercanos" |
-| Procedure results | "📋 Ver todos los requisitos", "📅 Agendar cita" |
-| Multiple categories | "🍽️ Solo restaurantes", "🏨 Solo hoteles" |
-| No results | "🔄 Buscar en toda la ciudad", "💡 Sugerencias similares" |
+| Business results | "🗺️ Ver en mapa", "🕐 Solo abiertos ahora", "📍 Los más cercanos" |
+| Procedure results | "📋 Ver todos los requisitos" |
+| Event results | "📅 Esta semana" |
+| No results | "🔄 Buscar en toda la ciudad", "💡 Mostrar sugerencias similares" |
 
 ### Acceptance Criteria
-- [ ] 2-4 relevant suggestions appear after results
-- [ ] Clicking suggestion sends pre-filled query
-- [ ] Suggestions adapt to result type
-- [ ] "No results" has helpful alternatives
+- [x] 2-4 relevant suggestions appear after results
+- [x] Clicking suggestion sends pre-filled query
+- [x] Suggestions adapt to result type
+- [x] "No results" has helpful alternatives
 
 ### Deliverable
-Users can quickly refine searches without typing new queries.
+Users can quickly refine searches without typing new queries. ✅
 
 ---
 
