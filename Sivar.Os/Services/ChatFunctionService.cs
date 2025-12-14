@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Sivar.Os.Helpers;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Enums;
@@ -1322,6 +1323,27 @@ public class ChatFunctionService
     /// </summary>
     private BusinessSearchResultDto MapPostToBusinessResult(Post post, double? distanceKm = null, int displayOrder = 0)
     {
+        // Extract working hours from BusinessMetadata and calculate open status
+        string? workingHoursJson = null;
+        var openStatus = new WorkingHoursHelper.OpenStatusResult(null, null, null, null);
+        
+        if (!string.IsNullOrEmpty(post.BusinessMetadata))
+        {
+            try
+            {
+                var metadata = post.GetBusinessLocationMetadata();
+                if (metadata?.WorkingHours != null)
+                {
+                    workingHoursJson = JsonSerializer.Serialize(metadata.WorkingHours);
+                    openStatus = WorkingHoursHelper.CalculateOpenStatus(workingHoursJson);
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+        }
+        
         return new BusinessSearchResultDto
         {
             Id = post.Id,
@@ -1340,7 +1362,13 @@ public class ChatFunctionService
             Latitude = post.Location?.Latitude,
             Longitude = post.Location?.Longitude,
             DistanceKm = distanceKm,
-            Tags = null
+            Tags = null,
+            // Phase 5: Real-time business status
+            WorkingHoursJson = workingHoursJson,
+            IsOpenNow = openStatus.IsOpenNow,
+            ClosingTime = openStatus.ClosingTime,
+            NextOpenTime = openStatus.NextOpenTime,
+            OpenStatusText = openStatus.OpenStatusText
         };
     }
 
@@ -1349,6 +1377,28 @@ public class ChatFunctionService
     /// </summary>
     private BusinessSearchResultDto MapPostDtoToBusinessResult(PostDto post, int displayOrder = 0)
     {
+        // Extract working hours from BusinessMetadata and calculate open status
+        string? workingHoursJson = null;
+        var openStatus = new WorkingHoursHelper.OpenStatusResult(null, null, null, null);
+        
+        if (!string.IsNullOrEmpty(post.BusinessMetadata))
+        {
+            try
+            {
+                var metadata = JsonSerializer.Deserialize<BusinessLocationMetadata>(post.BusinessMetadata, 
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (metadata?.WorkingHours != null)
+                {
+                    workingHoursJson = JsonSerializer.Serialize(metadata.WorkingHours);
+                    openStatus = WorkingHoursHelper.CalculateOpenStatus(workingHoursJson);
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+        }
+        
         return new BusinessSearchResultDto
         {
             Id = post.Id,
@@ -1367,7 +1417,13 @@ public class ChatFunctionService
             Latitude = post.Location?.Latitude,
             Longitude = post.Location?.Longitude,
             DistanceKm = post.DistanceKm,
-            Tags = post.Tags?.ToArray()
+            Tags = post.Tags?.ToArray(),
+            // Phase 5: Real-time business status
+            WorkingHoursJson = workingHoursJson,
+            IsOpenNow = openStatus.IsOpenNow,
+            ClosingTime = openStatus.ClosingTime,
+            NextOpenTime = openStatus.NextOpenTime,
+            OpenStatusText = openStatus.OpenStatusText
         };
     }
 
