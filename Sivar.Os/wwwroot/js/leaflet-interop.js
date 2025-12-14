@@ -38,14 +38,28 @@ window.initializeMap = function (mapId, lat, lng, zoom = 13, options = {}, dotNe
             zoom: zoom,
             scrollWheelZoom: options.scrollWheelZoom !== false,
             dragging: options.dragging !== false,
-            zoomControl: options.zoomControl !== false
+            zoomControl: options.zoomControl !== false,
+            preferCanvas: true // Better performance for many markers
         });
 
-        // Add OpenStreetMap tiles (FREE, no API key needed)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19
-        }).addTo(map);
+        // Use CartoDB Positron tiles (faster CDN, cleaner look)
+        // Alternative: OpenStreetMap tiles are slower but fully open
+        const tileProvider = options.tileProvider || 'cartodb';
+        
+        if (tileProvider === 'cartodb') {
+            // CartoDB Positron - fast CDN, clean minimal style
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+        } else {
+            // Fallback to OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            }).addTo(map);
+        }
 
         // Store map instance
         window._leafletMaps[mapId] = {

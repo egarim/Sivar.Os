@@ -113,7 +113,8 @@
             {
                 scrollWheelZoom = true,
                 dragging = true,
-                zoomControl = true
+                zoomControl = true,
+                tileProvider = "cartodb" // Faster CDN tiles
             };
 
             var success = await JS.InvokeAsync<bool>(
@@ -129,15 +130,20 @@
             if (success)
             {
                 _isInitialized = true;
+                _isLoading = false;
+                StateHasChanged();
+                
                 await UpdateMarkersAsync();
                 
-                // Invalidate size after delay
-                await Task.Delay(200);
+                // Invalidate size after short delay
+                await Task.Delay(100);
                 await JS.InvokeVoidAsync("leafletInterop.invalidateSize", _mapId);
             }
-
-            _isLoading = false;
-            StateHasChanged();
+            else
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
         }
         catch (Exception ex)
         {
