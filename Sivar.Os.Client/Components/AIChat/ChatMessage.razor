@@ -540,45 +540,55 @@
     </div>
 </div>
 
-@* Phase 7: Share Modal *@
-@if (_showShareModal && _shareBusinessTarget != null)
-{
-    <div class="share-modal-backdrop" @onclick="CloseShareModal">
-        <div class="share-modal" @onclick:stopPropagation="true">
-            <div class="share-modal-header">
-                <h4>Compartir</h4>
-                <button class="share-modal-close" @onclick="CloseShareModal">×</button>
+@* Phase 7: Share Modal using MudBlazor *@
+<MudOverlay Visible="_showShareModal" OnClick="CloseShareModal" DarkBackground="true" ZIndex="1000">
+    <MudPaper Class="share-modal-paper" Elevation="8" Style="min-width: 320px; max-width: 400px; border-radius: 16px;">
+        @if (_shareBusinessTarget != null)
+        {
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--mud-palette-divider);">
+                <MudText Typo="Typo.h6">Compartir</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="CloseShareModal" />
             </div>
-            <div class="share-modal-content">
-                <div class="share-business-preview">
-                    <strong>@_shareBusinessTarget.Title</strong>
+            <div style="padding: 20px;">
+                <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background: var(--mud-palette-background-grey); border-radius: 10px;">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@_shareBusinessTarget.Title</MudText>
                     @if (!string.IsNullOrEmpty(_shareBusinessTarget.Category))
                     {
-                        <span class="share-category">@_shareBusinessTarget.Category</span>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@_shareBusinessTarget.Category</MudText>
                     }
-                </div>
-                <div class="share-options">
-                    <button class="share-option-btn" @onclick="() => CopyLinkToClipboard()">
-                        <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Class="share-btn-icon" />
-                        <span>Copiar enlace</span>
-                    </button>
-                    <button class="share-option-btn whatsapp" @onclick="() => ShareViaWhatsApp()">
-                        <span class="share-icon">💬</span>
-                        <span>WhatsApp</span>
-                    </button>
-                    <button class="share-option-btn" @onclick="() => ShareNative()">
-                        <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" Class="share-btn-icon" />
-                        <span>Más opciones</span>
-                    </button>
-                </div>
+                </MudPaper>
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Outlined" 
+                               StartIcon="@Icons.Material.Filled.ContentCopy" 
+                               FullWidth="true" 
+                               OnClick="() => CopyLinkToClipboard()"
+                               Style="justify-content: flex-start; text-transform: none;">
+                        Copiar enlace
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               StartIcon="@Icons.Custom.Brands.WhatsApp" 
+                               FullWidth="true" 
+                               OnClick="() => ShareViaWhatsApp()"
+                               Color="Color.Success"
+                               Style="justify-content: flex-start; text-transform: none;">
+                        WhatsApp
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               StartIcon="@Icons.Material.Filled.Share" 
+                               FullWidth="true" 
+                               OnClick="() => ShareNative()"
+                               Style="justify-content: flex-start; text-transform: none;">
+                        Más opciones
+                    </MudButton>
+                </MudStack>
                 @if (_showCopiedMessage)
                 {
-                    <div class="copied-message">✓ Enlace copiado</div>
+                    <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">✓ Enlace copiado</MudAlert>
                 }
             </div>
-        </div>
-    </div>
-}
+        }
+    </MudPaper>
+</MudOverlay>
 
 @code {
     /// <summary>
