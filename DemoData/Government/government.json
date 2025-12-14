@@ -6,10 +6,11 @@
     "profileTypeId": "22222222-2222-2222-2222-222222222222",
     "postTypes": [
       2,
-      4
+      4,
+      8
     ],
     "totalProfiles": 10,
-    "totalPosts": 20
+    "totalPosts": 26
   },
   "profiles": [
     {
@@ -1010,6 +1011,551 @@
         "tramite"
       ],
       "contentEmbedding": "[-0.003822,0.078983,-0.044023,-0.050670,-0.004435,0.021272,0.001344,0.135422,0.031900,0.092946,0.075291,-0.074581,-0.025328,0.048167,-0.062058,-0.071512,-0.007793,0.044945,-0.038056,0.089483,0.108181,-0.104659,-0.019751,0.013259,-0.012322,-0.033495,-0.028927,0.041393,-0.030744,-0.097514,-0.030528,0.045540,0.024643,-0.017177,0.061772,0.059186,0.012839,-0.088748,-0.056211,0.003262,-0.085098,-0.019345,-0.104614,-0.004550,0.031522,-0.030870,0.040108,0.050557,0.005304,-0.011688,-0.018272,0.019347,-0.063821,-0.000914,-0.024660,-0.050742,-0.024981,-0.003418,0.020677,-0.049448,0.017489,0.031533,-0.093671,0.018464,0.049511,-0.008570,0.027884,-0.055072,-0.027660,0.050223,0.028837,-0.073547,0.033790,-0.001309,-0.051725,0.016998,0.062045,0.045244,-0.034655,-0.128220,0.064446,-0.057618,-0.001484,-0.048980,0.038141,-0.051716,-0.032033,0.017094,0.118038,-0.020354,0.091404,0.047056,-0.104417,-0.016095,-0.035822,-0.024630,-0.051148,-0.038755,0.065719,0.046903,0.084640,-0.010150,0.019518,-0.000173,-0.043621,-0.017191,0.062777,0.025719,-0.007000,0.065128,-0.124490,0.005627,-0.033155,-0.061011,-0.124219,0.081546,-0.054444,-0.074317,0.069313,-0.080276,0.045741,-0.037931,-0.009463,-0.061790,-0.126288,-0.109434,0.045169,0.000000,-0.089536,0.015318,-0.053419,-0.012786,-0.011339,0.068800,0.000937,0.024425,-0.059049,-0.041877,-0.074292,-0.062655,0.002454,0.070026,0.038327,0.042663,0.040478,0.005647,-0.021507,0.048333,-0.021034,-0.020323,0.038193,0.022612,-0.035319,0.079150,-0.027837,-0.089380,-0.027416,0.013656,0.035375,0.071169,0.066329,0.002414,0.002696,0.088718,0.068883,-0.001161,-0.061810,0.033072,-0.038195,0.053754,0.014777,0.035876,0.056463,-0.016520,-0.001833,0.009160,0.034434,0.009852,-0.075993,0.022002,-0.060723,-0.056321,-0.027687,0.028496,-0.056042,0.026016,-0.019256,-0.078118,0.024715,0.057071,0.018808,0.006176,-0.022879,0.031408,-0.000805,0.045466,0.059922,-0.001151,-0.100950,0.031035,0.026608,-0.003347,0.066745,0.011818,0.051160,-0.010435,-0.008913,-0.009130,-0.092840,-0.056852,0.002977,-0.017134,0.073267,0.028731,0.076135,-0.011515,-0.021338,0.065099,0.095471,0.032283,-0.010066,-0.008203,0.059946,-0.000000,-0.013449,0.062773,-0.047221,0.033010,-0.011848,0.032115,-0.029868,-0.041836,-0.008097,-0.089598,-0.145066,-0.084951,0.012526,-0.016122,-0.056620,0.047112,-0.029816,-0.041855,-0.064185,-0.040805,0.024508,0.103839,0.048245,0.018072,-0.020085,0.002216,0.031728,-0.016111,-0.095735,-0.003403,0.040404,-0.033866,-0.035725,0.134637,-0.031060,0.015707,0.087806,0.051818,-0.031169,0.109566,0.011030,0.103728,0.024115,-0.078626,-0.072646,-0.058994,-0.050101,-0.098411,0.025576,0.005660,0.063810,-0.031875,-0.070106,-0.003349,-0.006437,0.021835,-0.029820,-0.069534,-0.030723,0.054928,0.080609,0.043991,-0.056338,-0.005330,0.108321,0.028039,-0.022546,-0.001180,0.011319,0.044078,0.023255,-0.006002,0.010777,-0.033775,0.031521,0.004375,0.017807,0.063918,0.016627,-0.023205,-0.011828,-0.066965,0.008284,-0.000122,-0.041678,-0.060451,-0.025303,-0.051164,0.024697,0.014212,-0.011075,0.048886,0.077770,-0.014061,-0.014070,-0.000000,-0.027802,-0.035665,-0.058916,0.029729,0.050501,-0.042650,-0.007315,0.040841,-0.049096,-0.015731,0.027515,-0.032250,-0.018953,-0.010175,-0.053457,-0.042677,0.057137,0.092564,-0.084511,-0.002006,-0.026784,0.013727,-0.085484,-0.036559,-0.001599,0.007791,0.009916,0.051366,0.027272,-0.028606,-0.074520,0.035852,0.065589,-0.034881,-0.099497,-0.036018,-0.023881,0.040112,-0.062051,0.020131,0.098393,-0.061174,-0.018975,0.005783,0.082465,-0.042713,-0.012082,-0.010683,0.010386,0.022191,-0.033273,0.043478,0.038145,0.063799,-0.017841,-0.040806,0.081453,0.083354,-0.014854,0.009299,0.018690,-0.059938,0.028519,-0.059645]"
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000021",
+      "profileId": "e0000001-0000-0000-0000-000000000002",
+      "postType": 8,
+      "title": "Cómo obtener el Pasaporte Salvadoreño",
+      "content": "Guía completa para obtener tu pasaporte salvadoreño. El pasaporte es necesario para viajar al exterior y tiene validez de 5 años para adultos.",
+      "imageUrls": [
+        "https://placehold.co/800x600/0D47A1/white?text=Pasaporte+SV"
+      ],
+      "tags": [
+        "government",
+        "passport",
+        "procedure",
+        "migration",
+        "tramite",
+        "viajes"
+      ],
+      "procedureMetadata": {
+        "processingTime": "7-10 días hábiles",
+        "cost": "$25 USD (adultos) / $15 USD (menores)",
+        "whereToGo": "Centro de Gobierno, Oficina de Migración",
+        "onlineUrl": "https://www.migracion.gob.sv/servicios/pasaportes/",
+        "requiresAppointment": true,
+        "contactPhone": "+503 2213-7700",
+        "contactEmail": "info@migracion.gob.sv",
+        "validityPeriod": "5 años",
+        "documents": [
+          {
+            "name": "DUI vigente",
+            "description": "Documento Único de Identidad en buen estado",
+            "isRequired": true
+          },
+          {
+            "name": "Partida de nacimiento original",
+            "description": "Emitida en los últimos 6 meses",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 6 meses"
+          },
+          {
+            "name": "Pasaporte anterior",
+            "description": "Si es renovación",
+            "isRequired": false
+          },
+          {
+            "name": "Autorización de padres",
+            "description": "Para menores de edad, firmada ante notario",
+            "isRequired": false
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Agendar cita en línea",
+            "description": "Visitar migracion.gob.sv y seleccionar fecha disponible",
+            "isOnline": true,
+            "onlineUrl": "https://www.migracion.gob.sv/servicios/pasaportes/"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Reunir documentos requeridos",
+            "description": "Obtener partida de nacimiento actualizada y DUI vigente"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Presentarse a la cita",
+            "description": "Llegar 15 minutos antes con todos los documentos"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Toma de datos biométricos",
+            "description": "Fotografía, huellas dactilares y firma digital"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Pagar en caja",
+            "description": "Pago en efectivo o tarjeta",
+            "estimatedTime": "5 minutos"
+          },
+          {
+            "stepNumber": 6,
+            "title": "Recibir comprobante",
+            "description": "Se entrega boleta con fecha de entrega"
+          },
+          {
+            "stepNumber": 7,
+            "title": "Recoger pasaporte",
+            "description": "Presentarse en la fecha indicada con DUI y comprobante",
+            "estimatedTime": "7-10 días hábiles"
+          }
+        ],
+        "additionalNotes": "Se recomienda agendar cita con al menos 3 semanas de anticipación. Para viajes urgentes existe el servicio express con costo adicional de $50 USD."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000022",
+      "profileId": "e0000001-0000-0000-0000-000000000001",
+      "postType": 8,
+      "title": "Cómo obtener el DUI por primera vez",
+      "content": "Guía paso a paso para obtener tu Documento Único de Identidad (DUI) por primera vez. Obligatorio para todos los salvadoreños mayores de 18 años.",
+      "imageUrls": [
+        "https://placehold.co/800x600/1565C0/white?text=DUI+Nuevo"
+      ],
+      "tags": [
+        "government",
+        "dui",
+        "identity",
+        "procedure",
+        "tramite",
+        "first-time"
+      ],
+      "procedureMetadata": {
+        "processingTime": "7-15 días hábiles",
+        "cost": "$10 USD",
+        "whereToGo": "Centro de Gobierno u oficinas DUI departamentales",
+        "requiresAppointment": false,
+        "contactPhone": "+503 2527-7000",
+        "contactEmail": "info@rnpn.gob.sv",
+        "validityPeriod": "10 años",
+        "documents": [
+          {
+            "name": "Partida de nacimiento original",
+            "description": "Certificación reciente del Registro Civil",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 6 meses"
+          },
+          {
+            "name": "Comprobante de domicilio",
+            "description": "Recibo de agua, luz o teléfono reciente",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 3 meses"
+          },
+          {
+            "name": "Carné de minoridad",
+            "description": "Si lo posee, para facilitar el trámite",
+            "isRequired": false
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Obtener partida de nacimiento",
+            "description": "Solicitar en la alcaldía donde fue registrado su nacimiento",
+            "estimatedTime": "1-2 días"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Presentarse a oficina DUI",
+            "description": "Ir a cualquier oficina DUI a nivel nacional",
+            "estimatedTime": "Variable según demanda"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Tomar turno electrónico",
+            "description": "Solicitar número de turno en el sistema"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Entregar documentos",
+            "description": "Presentar partida de nacimiento y comprobante de domicilio"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Registro biométrico",
+            "description": "Toma de fotografía, huellas dactilares y firma",
+            "estimatedTime": "10 minutos"
+          },
+          {
+            "stepNumber": 6,
+            "title": "Pagar en caja",
+            "description": "Pago de $10 en efectivo o tarjeta"
+          },
+          {
+            "stepNumber": 7,
+            "title": "Recibir comprobante",
+            "description": "Se entrega boleta con fecha estimada de entrega"
+          },
+          {
+            "stepNumber": 8,
+            "title": "Recoger DUI",
+            "description": "Regresar en la fecha indicada con el comprobante"
+          }
+        ],
+        "additionalNotes": "Se recomienda llegar temprano (antes de las 8:00 AM) ya que hay alta demanda. El DUI es obligatorio para votar, trabajar y realizar trámites oficiales."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000023",
+      "profileId": "e0000001-0000-0000-0000-000000000006",
+      "postType": 8,
+      "title": "Cómo obtener la Licencia de Conducir",
+      "content": "Guía completa para obtener tu licencia de conducir en El Salvador. Incluye examen teórico, práctico y requisitos médicos.",
+      "imageUrls": [
+        "https://placehold.co/800x600/42A5F5/white?text=Licencia"
+      ],
+      "tags": [
+        "government",
+        "license",
+        "driving",
+        "dgt",
+        "procedure",
+        "tramite"
+      ],
+      "procedureMetadata": {
+        "processingTime": "1-2 semanas",
+        "cost": "$22 USD (licencia liviana)",
+        "whereToGo": "Oficinas del VMT - Dirección General de Tránsito",
+        "onlineUrl": "https://www.vmt.gob.sv/",
+        "requiresAppointment": true,
+        "contactPhone": "+503 2244-9900",
+        "contactEmail": "info@vmt.gob.sv",
+        "validityPeriod": "5 años",
+        "documents": [
+          {
+            "name": "DUI vigente",
+            "description": "Original y copia",
+            "isRequired": true
+          },
+          {
+            "name": "Examen de la vista",
+            "description": "Realizado por oftalmólogo certificado",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 30 días"
+          },
+          {
+            "name": "Tipo de sangre",
+            "description": "Constancia de laboratorio clínico",
+            "isRequired": true
+          },
+          {
+            "name": "Certificado de escuela de manejo",
+            "description": "De escuela autorizada por el VMT",
+            "isRequired": true
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Tomar curso en escuela de manejo",
+            "description": "Inscribirse en escuela autorizada por VMT",
+            "estimatedTime": "2-4 semanas"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Obtener exámenes médicos",
+            "description": "Examen de la vista y tipo de sangre"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Agendar cita en línea",
+            "description": "Ingresar a vmt.gob.sv para programar cita",
+            "isOnline": true,
+            "onlineUrl": "https://www.vmt.gob.sv/"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Realizar examen teórico",
+            "description": "30 preguntas sobre señales y reglamento de tránsito",
+            "estimatedTime": "30 minutos"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Realizar examen práctico",
+            "description": "Demostrar habilidades de manejo con instructor",
+            "estimatedTime": "20 minutos"
+          },
+          {
+            "stepNumber": 6,
+            "title": "Pagar en caja",
+            "description": "Pago de $22 para licencia liviana"
+          },
+          {
+            "stepNumber": 7,
+            "title": "Toma de fotografía",
+            "description": "Foto y datos biométricos para la licencia"
+          },
+          {
+            "stepNumber": 8,
+            "title": "Recibir licencia",
+            "description": "Se entrega el mismo día si aprueba los exámenes"
+          }
+        ],
+        "additionalNotes": "Si reprueba algún examen, puede reprogramar después de 15 días. Estudiar el manual del conductor disponible en vmt.gob.sv"
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000024",
+      "profileId": "e0000001-0000-0000-0000-000000000003",
+      "postType": 8,
+      "title": "Cómo obtener Partida de Nacimiento",
+      "content": "Guía para solicitar tu partida de nacimiento en la Alcaldía Municipal. Documento esencial para trámites de DUI, pasaporte y otros.",
+      "imageUrls": [
+        "https://placehold.co/800x600/1976D2/white?text=Partida"
+      ],
+      "tags": [
+        "government",
+        "birth-certificate",
+        "alcaldia",
+        "procedure",
+        "tramite",
+        "registro-civil"
+      ],
+      "procedureMetadata": {
+        "processingTime": "Mismo día (15-30 minutos)",
+        "cost": "$3 USD",
+        "whereToGo": "Alcaldía Municipal donde fue registrado el nacimiento",
+        "requiresAppointment": false,
+        "contactPhone": "+503 2221-4900",
+        "contactEmail": "registro@alcaldiass.gob.sv",
+        "validityPeriod": "6 meses para trámites oficiales",
+        "documents": [
+          {
+            "name": "DUI del solicitante",
+            "description": "Para identificación",
+            "isRequired": true
+          },
+          {
+            "name": "Nombre completo del registrado",
+            "description": "Nombres y apellidos exactos como aparecen en el registro",
+            "isRequired": true
+          },
+          {
+            "name": "Fecha de nacimiento",
+            "description": "Día, mes y año de nacimiento",
+            "isRequired": true
+          },
+          {
+            "name": "Nombres de los padres",
+            "description": "Facilita la búsqueda en el sistema",
+            "isRequired": false
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Presentarse al Registro Civil",
+            "description": "Ir a la alcaldía donde fue registrado su nacimiento"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Solicitar la partida",
+            "description": "Proporcionar datos del registrado (nombre, fecha, padres)"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Pagar en caja",
+            "description": "Cancelar $3 en ventanilla"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Esperar emisión",
+            "description": "La partida se imprime y sella",
+            "estimatedTime": "10-15 minutos"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Recibir documento",
+            "description": "Verificar que los datos estén correctos"
+          }
+        ],
+        "additionalNotes": "Si nació en otro municipio, debe solicitarla en esa alcaldía. Algunas alcaldías ofrecen servicio en línea. La partida tiene validez de 6 meses para trámites oficiales."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000025",
+      "profileId": "e0000001-0000-0000-0000-000000000005",
+      "postType": 8,
+      "title": "Cómo obtener el NIT (Número de Identificación Tributaria)",
+      "content": "Guía para obtener tu NIT personal o empresarial. Documento obligatorio para actividades comerciales y fiscales en El Salvador.",
+      "imageUrls": [
+        "https://placehold.co/800x600/2196F3/white?text=NIT"
+      ],
+      "tags": [
+        "government",
+        "nit",
+        "taxes",
+        "hacienda",
+        "procedure",
+        "tramite",
+        "fiscal"
+      ],
+      "procedureMetadata": {
+        "processingTime": "Mismo día (30-60 minutos)",
+        "cost": "Gratis",
+        "whereToGo": "Oficinas del Ministerio de Hacienda o en línea",
+        "onlineUrl": "https://portaldgii.mh.gob.sv/",
+        "requiresAppointment": false,
+        "contactPhone": "+503 2244-3000",
+        "contactEmail": "info@mh.gob.sv",
+        "validityPeriod": "Permanente",
+        "documents": [
+          {
+            "name": "DUI vigente",
+            "description": "Original y copia para personas naturales",
+            "isRequired": true
+          },
+          {
+            "name": "Comprobante de domicilio",
+            "description": "Recibo de servicios reciente",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 3 meses"
+          },
+          {
+            "name": "Escritura de constitución",
+            "description": "Solo para personas jurídicas (empresas)",
+            "isRequired": false
+          },
+          {
+            "name": "Credencial de representante legal",
+            "description": "Solo para personas jurídicas",
+            "isRequired": false
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Elegir modalidad",
+            "description": "Decidir si tramitar en línea o presencial"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Reunir documentos",
+            "description": "DUI y comprobante de domicilio"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Llenar formulario F-210",
+            "description": "Disponible en línea o en las oficinas",
+            "isOnline": true,
+            "onlineUrl": "https://portaldgii.mh.gob.sv/"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Presentar documentos",
+            "description": "Entregar formulario y documentos requeridos"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Recibir tarjeta NIT",
+            "description": "Se entrega de forma inmediata"
+          }
+        ],
+        "additionalNotes": "El NIT es gratuito y obligatorio para cualquier actividad económica. Se puede tramitar completamente en línea si tiene DUI con chip."
+      }
+    },
+    {
+      "id": "b0000001-0000-0000-0000-000000000026",
+      "profileId": "e0000001-0000-0000-0000-000000000004",
+      "postType": 8,
+      "title": "Cómo registrar una propiedad inmueble",
+      "content": "Guía completa para inscribir la compra de un terreno o casa en el Centro Nacional de Registros (CNR). Proceso legal obligatorio.",
+      "imageUrls": [
+        "https://placehold.co/800x600/1E88E5/white?text=Registro+Propiedad"
+      ],
+      "tags": [
+        "government",
+        "property",
+        "cnr",
+        "real-estate",
+        "procedure",
+        "tramite",
+        "registro"
+      ],
+      "procedureMetadata": {
+        "processingTime": "15-30 días hábiles",
+        "cost": "Variable según valor de la propiedad (0.5% del valor)",
+        "whereToGo": "Centro Nacional de Registros (CNR) - San Salvador o departamental",
+        "onlineUrl": "https://www.cnr.gob.sv/",
+        "requiresAppointment": false,
+        "contactPhone": "+503 2260-8000",
+        "contactEmail": "info@cnr.gob.sv",
+        "validityPeriod": "Permanente",
+        "documents": [
+          {
+            "name": "Escritura de compraventa",
+            "description": "Otorgada ante notario, original y copia",
+            "isRequired": true
+          },
+          {
+            "name": "DUI del comprador",
+            "description": "Original y copia",
+            "isRequired": true
+          },
+          {
+            "name": "NIT del comprador",
+            "description": "Original y copia",
+            "isRequired": true
+          },
+          {
+            "name": "Solvencia municipal",
+            "description": "Del inmueble, emitida por la alcaldía",
+            "isRequired": true,
+            "validityPeriod": "No mayor a 30 días"
+          },
+          {
+            "name": "Certificación del ISSS",
+            "description": "Constancia de no adeudar",
+            "isRequired": true
+          }
+        ],
+        "steps": [
+          {
+            "stepNumber": 1,
+            "title": "Firmar escritura ante notario",
+            "description": "El abogado elabora la escritura de compraventa"
+          },
+          {
+            "stepNumber": 2,
+            "title": "Obtener solvencias",
+            "description": "Solvencia municipal y del ISSS del vendedor"
+          },
+          {
+            "stepNumber": 3,
+            "title": "Presentar documentos en CNR",
+            "description": "Entregar escritura y documentos en ventanilla"
+          },
+          {
+            "stepNumber": 4,
+            "title": "Pagar derechos de inscripción",
+            "description": "Calcular el 0.5% del valor de la propiedad"
+          },
+          {
+            "stepNumber": 5,
+            "title": "Esperar calificación",
+            "description": "El registrador revisa los documentos",
+            "estimatedTime": "5-10 días"
+          },
+          {
+            "stepNumber": 6,
+            "title": "Subsanar observaciones",
+            "description": "Si hay errores, corregirlos con el notario"
+          },
+          {
+            "stepNumber": 7,
+            "title": "Inscripción definitiva",
+            "description": "Se registra la propiedad a nombre del comprador"
+          },
+          {
+            "stepNumber": 8,
+            "title": "Retirar escritura inscrita",
+            "description": "Recoger el documento con sellos del CNR"
+          }
+        ],
+        "additionalNotes": "Se recomienda contratar un abogado para todo el proceso. Verificar que el vendedor sea el dueño legítimo solicitando una certificación de propiedad antes de comprar."
+      }
     }
   ]
 }
