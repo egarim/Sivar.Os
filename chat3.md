@@ -1296,21 +1296,33 @@ Users can quickly refine searches without typing new queries.
 
 ---
 
-## Phase 5: Real-time Business Status 🟢
+## Phase 5: Real-time Business Status ✅ COMPLETED
 **Goal**: Show users if a business is open right now
 
-### Scope
-- Parse working hours into structured format
-- Calculate "Open Now" / "Closed" status
-- Show next opening time when closed
-- Visual indicators on cards
+### Implementation Summary (2024-12-14)
+- **WorkingHoursHelper.cs** - Already existed with full timezone-aware logic (El Salvador UTC-6)
+- **SearchResultDtos.cs** - Already had `IsOpenNow`, `ClosingTime`, `NextOpenTime`, `OpenStatusText` properties
+- **SearchResultService.cs** - Already calculating open status for hybrid search results
+- **ChatFunctionService.cs** - **UPDATED** to calculate open status for AI agent function call results:
+  - `MapPostToBusinessResult()` - Now parses BusinessMetadata and calculates open status
+  - `MapPostDtoToBusinessResult()` - Now parses BusinessMetadata and calculates open status
+- **ChatMessage.razor** - Already had UI badge with 🟢/🔴 indicators
+- **ChatMessage.razor.css** - Already had gradient styling for open/closed badges
 
-### Files to Modify
+### Scope
+- Parse working hours into structured format ✅
+- Calculate "Open Now" / "Closed" status ✅
+- Show next opening time when closed ✅
+- Visual indicators on cards ✅
+
+### Files Modified
 | File | Changes |
 |------|---------|
-| `Sivar.Os.Shared/DTOs/SearchResultDtos.cs` | Add `IsOpenNow`, `NextOpenTime`, `ParsedHours` |
-| `Sivar.Os/Services/SearchResultService.cs` | Calculate open status based on current time |
-| `Sivar.Os.Client/Components/AIChat/ChatMessage.razor` | Show open/closed badge |
+| `Sivar.Os.Shared/DTOs/SearchResultDtos.cs` | Already had `IsOpenNow`, `NextOpenTime`, `OpenStatusText` |
+| `Sivar.Os/Services/SearchResultService.cs` | Already calculated open status |
+| `Sivar.Os/Services/ChatFunctionService.cs` | **Added** open status calculation to mapping functions |
+| `Sivar.Os/Helpers/WorkingHoursHelper.cs` | Already existed with El Salvador timezone logic |
+| `Sivar.Os.Client/Components/AIChat/ChatMessage.razor` | Already had 🟢/🔴 badge UI |
 
 ### Visual Design
 ```
@@ -1326,11 +1338,11 @@ Users can quickly refine searches without typing new queries.
 ```
 
 ### Acceptance Criteria
-- [ ] Cards show 🟢/🔴 open status badge
-- [ ] Closing time shown when open
-- [ ] Next opening time shown when closed
-- [ ] Filter "Solo abiertos ahora" works
-- [ ] Timezone handled correctly (El Salvador = UTC-6)
+- [x] Cards show 🟢/🔴 open status badge
+- [x] Closing time shown when open
+- [x] Next opening time shown when closed
+- [ ] Filter "Solo abiertos ahora" works (future enhancement)
+- [x] Timezone handled correctly (El Salvador = UTC-6)
 
 ### Deliverable
 Users immediately know if a business is available right now.
