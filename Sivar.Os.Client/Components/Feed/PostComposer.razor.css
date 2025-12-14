@@ -403,3 +403,146 @@
         gap: 8px;
     }
 }
+/* ============================================
+   Procedure Form Styles
+   ============================================ */
+
+.procedure-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: var(--mud-palette-background-grey, #f5f8fa);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.procedure-form .form-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary, #14171a);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}
+
+.procedure-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.procedure-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.procedure-form .flex-1 {
+    flex: 1;
+}
+
+.procedure-form .flex-2 {
+    flex: 2;
+}
+
+.procedure-form .flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+/* Procedure Sections */
+.procedure-section {
+    padding: 12px;
+    background: var(--mud-palette-surface, #ffffff);
+    border-radius: 8px;
+    border: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+}
+
+.procedure-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary, #14171a);
+    margin-bottom: 12px;
+}
+
+.procedure-section .section-header button {
+    margin-left: auto;
+}
+
+/* Documents List */
+.documents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.document-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--mud-palette-background-grey, #f5f8fa);
+    border-radius: 6px;
+}
+
+/* Steps List */
+.steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--mud-palette-background-grey, #f5f8fa);
+    border-radius: 6px;
+}
+
+.step-number {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mud-palette-primary, #1976d2);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Empty Section State */
+.empty-section {
+    padding: 16px;
+    text-align: center;
+    color: var(--mud-palette-text-secondary, #657786);
+    font-size: 14px;
+}
+
+.text-secondary {
+    color: var(--mud-palette-text-secondary, #657786);
+}
+
+/* Responsive adjustments for Procedure form */
+@media (max-width: 600px) {
+    .procedure-form .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .document-item {
+        flex-wrap: wrap;
+    }
+    
+    .document-item .flex-2 {
+        flex: 1 1 100%;
+    }
+}

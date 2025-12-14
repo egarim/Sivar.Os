@@ -71,6 +71,7 @@
                           @bind-BlogCoverImageUrl="@_blogCoverImageUrl"
                           @bind-BlogCoverImageFileId="@_blogCoverImageFileId"
                           @bind-BlogIsDraft="@_blogIsDraft"
+                          @bind-ProcedureMetadataJson="@_procedureMetadataJson"
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             <div class="posts-grid">
@@ -154,6 +155,9 @@
     private string _blogCoverImageUrl = string.Empty;
     private string? _blogCoverImageFileId = null;
     private bool _blogIsDraft = false;
+
+    // Procedure-specific fields
+    private string _procedureMetadataJson = string.Empty;
 
     // Feed & Pagination
     private List<ActivityDto> _activities = new();
@@ -1543,7 +1547,7 @@
             var createPostDto = new CreatePostDto
             {
                 ProfileId = _currentProfileId,  // Send active profile ID to server
-                // For blog posts, use blog title as the main content; for regular posts, use post text
+                // For blog posts, use blog title as the main content; for procedure posts, use procedure title; for regular posts, use post text
                 Content = postType == PostType.Blog ? _blogTitle : _postText,
                 PostType = postType,
                 Visibility = _postVisibility,
@@ -1561,7 +1565,11 @@
                 Subtitle = postType == PostType.Blog ? _blogSubtitle : null,
                 CoverImageUrl = postType == PostType.Blog ? _blogCoverImageUrl : null,
                 CoverImageFileId = postType == PostType.Blog ? _blogCoverImageFileId : null,
-                IsDraft = postType == PostType.Blog && _blogIsDraft
+                IsDraft = postType == PostType.Blog && _blogIsDraft,
+                // Procedure-specific fields
+                ProcedureMetadataJson = postType == PostType.Procedure && !string.IsNullOrEmpty(_procedureMetadataJson)
+                    ? _procedureMetadataJson
+                    : null
             };
 
             var newPost = await SivarClient.Posts.CreatePostAsync(createPostDto);
@@ -1598,6 +1606,9 @@
                 _blogCoverImageUrl = string.Empty;
                 _blogCoverImageFileId = null;
                 _blogIsDraft = false;
+                
+                // Clear procedure-specific fields
+                _procedureMetadataJson = string.Empty;
                 
                 StateHasChanged();
             }

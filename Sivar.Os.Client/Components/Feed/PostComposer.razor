@@ -253,6 +253,211 @@
             </div>
         </div>
     }
+    else if (SelectedType == "procedure")
+    {
+        @* Procedure Form *@
+        <div class="procedure-form">
+            <div class="form-header">
+                <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Medium" />
+                <span>@Localizer["ProcedureFormTitle", "Create a Procedure"]</span>
+            </div>
+            
+            @* Procedure Title *@
+            <div class="form-group">
+                <MudTextField Value="@ProcedureTitle"
+                              ValueChanged="@((string val) => OnProcedureTitleChanged(val))"
+                              Label="@Localizer["ProcedureTitleLabel", "Procedure Title"]"
+                              Placeholder="@Localizer["ProcedureTitlePlaceholder", "e.g., How to get a passport"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Required="true"
+                              FullWidth="true" />
+            </div>
+            
+            @* Procedure Description *@
+            <div class="form-group">
+                <MudTextField Value="@ProcedureDescription"
+                              ValueChanged="@((string val) => OnProcedureDescriptionChanged(val))"
+                              Label="@Localizer["ProcedureDescriptionLabel", "Description"]"
+                              Placeholder="@Localizer["ProcedureDescriptionPlaceholder", "Brief description of this procedure"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              FullWidth="true" />
+            </div>
+            
+            @* Time and Cost Row *@
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureProcessingTime"
+                                  ValueChanged="@((string val) => OnProcedureProcessingTimeChanged(val))"
+                                  Label="@Localizer["ProcessingTimeLabel", "Processing Time"]"
+                                  Placeholder="@Localizer["ProcessingTimePlaceholder", "e.g., 2-3 weeks"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureCost"
+                                  ValueChanged="@((string val) => OnProcedureCostChanged(val))"
+                                  Label="@Localizer["CostLabel", "Cost"]"
+                                  Placeholder="@Localizer["CostPlaceholder", "e.g., $25 USD or Free"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+            </div>
+            
+            @* Where To Go and Online URL *@
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureWhereToGo"
+                                  ValueChanged="@((string val) => OnProcedureWhereToGoChanged(val))"
+                                  Label="@Localizer["WhereToGoLabel", "Where To Go"]"
+                                  Placeholder="@Localizer["WhereToGoPlaceholder", "e.g., Government Center, San Salvador"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureOnlineUrl"
+                                  ValueChanged="@((string val) => OnProcedureOnlineUrlChanged(val))"
+                                  Label="@Localizer["OnlineUrlLabel", "Online URL"]"
+                                  Placeholder="@Localizer["OnlineUrlPlaceholder", "https://..."]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+            </div>
+            
+            @* Contact Info Row *@
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureContactPhone"
+                                  ValueChanged="@((string val) => OnProcedureContactPhoneChanged(val))"
+                                  Label="@Localizer["ContactPhoneLabel", "Contact Phone"]"
+                                  Placeholder="@Localizer["ContactPhonePlaceholder", "e.g., +503 2222-3333"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+                <div class="form-group flex-1">
+                    <MudTextField Value="@ProcedureContactEmail"
+                                  ValueChanged="@((string val) => OnProcedureContactEmailChanged(val))"
+                                  Label="@Localizer["ContactEmailLabel", "Contact Email"]"
+                                  Placeholder="@Localizer["ContactEmailPlaceholder", "contact@example.com"]"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+            </div>
+            
+            @* Appointment Required Checkbox *@
+            <div class="form-group">
+                <MudCheckBox T="bool" 
+                             Value="@ProcedureRequiresAppointment"
+                             ValueChanged="@((bool val) => OnProcedureRequiresAppointmentChanged(val))"
+                             Label="@Localizer["RequiresAppointmentLabel", "Requires Appointment"]"
+                             Color="Color.Primary" />
+            </div>
+            
+            @* Required Documents Section *@
+            <div class="procedure-section">
+                <div class="section-header">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                    <span>@Localizer["RequiredDocumentsLabel", "Required Documents"]</span>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                   Size="Size.Small" 
+                                   Color="Color.Primary"
+                                   Title="Add Document"
+                                   OnClick="AddProcedureDocument" />
+                </div>
+                @if (ProcedureDocuments.Any())
+                {
+                    <div class="documents-list">
+                        @foreach (var (doc, index) in ProcedureDocuments.Select((d, i) => (d, i)))
+                        {
+                            <div class="document-item">
+                                <MudTextField Value="@doc.Name"
+                                              ValueChanged="@((string val) => OnDocumentNameChanged(index, val))"
+                                              Placeholder="@Localizer["DocumentNamePlaceholder", "Document name"]"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Class="flex-2" />
+                                <MudCheckBox T="bool" 
+                                             Value="@doc.IsRequired"
+                                             ValueChanged="@((bool val) => OnDocumentRequiredChanged(index, val))"
+                                             Label="Required"
+                                             Class="flex-shrink-0" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => RemoveProcedureDocument(index))" />
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-section">
+                        <span class="text-secondary">@Localizer["NoDocumentsAdded", "No documents added yet"]</span>
+                    </div>
+                }
+            </div>
+            
+            @* Steps Section *@
+            <div class="procedure-section">
+                <div class="section-header">
+                    <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" />
+                    <span>@Localizer["StepsLabel", "Steps"]</span>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                   Size="Size.Small" 
+                                   Color="Color.Primary"
+                                   Title="Add Step"
+                                   OnClick="AddProcedureStep" />
+                </div>
+                @if (ProcedureSteps.Any())
+                {
+                    <div class="steps-list">
+                        @foreach (var (step, index) in ProcedureSteps.Select((s, i) => (s, i)))
+                        {
+                            <div class="step-item">
+                                <div class="step-number">@(index + 1)</div>
+                                <MudTextField Value="@step.Title"
+                                              ValueChanged="@((string val) => OnStepTitleChanged(index, val))"
+                                              Placeholder="@Localizer["StepTitlePlaceholder", "Step title"]"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Class="flex-1" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => RemoveProcedureStep(index))" />
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-section">
+                        <span class="text-secondary">@Localizer["NoStepsAdded", "No steps added yet"]</span>
+                    </div>
+                }
+            </div>
+            
+            @* Additional Notes *@
+            <div class="form-group">
+                <MudTextField Value="@ProcedureAdditionalNotes"
+                              ValueChanged="@((string val) => OnProcedureAdditionalNotesChanged(val))"
+                              Label="@Localizer["AdditionalNotesLabel", "Additional Notes"]"
+                              Placeholder="@Localizer["AdditionalNotesPlaceholder", "Tips or additional information"]"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              FullWidth="true" />
+            </div>
+        </div>
+    }
     else
     {
         <textarea class="post-input" 
@@ -750,7 +955,8 @@
         new("product", "Product", Icons.Material.Filled.Storefront, "Highlight new features or releases."),
         new("service", "Service", Icons.Material.Filled.HeadsetMic, "Promote a service offering."),
         new("event", "Event", Icons.Material.Filled.Event, "Schedule an event or meetup."),
-        new("job", "Job", Icons.Material.Filled.Work, "Share an open role with the community.")
+        new("job", "Job", Icons.Material.Filled.Work, "Share an open role with the community."),
+        new("procedure", "Procedure", Icons.Material.Filled.Checklist, "Create a step-by-step guide or procedure.")
     };
 
     /// <summary>
@@ -768,8 +974,9 @@
             return PostTypeOptions;
         }
         
-        // Personal and other profiles can use General and Blog
-        return PostTypeOptions.Where(o => o.Id == "general" || o.Id == "blog").ToList();
+        // Personal, Government, and other profiles can use General, Blog, and Procedure
+        // Procedure is available to ALL profile types for guides, tutorials, how-tos
+        return PostTypeOptions.Where(o => o.Id == "general" || o.Id == "blog" || o.Id == "procedure").ToList();
     }
 
     /// <summary>
@@ -1253,6 +1460,283 @@
 
     #endregion
 
+    #region Procedure Parameters
+
+    /// <summary>
+    /// Procedure title
+    /// </summary>
+    private string ProcedureTitle { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Procedure description
+    /// </summary>
+    private string ProcedureDescription { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Estimated processing time
+    /// </summary>
+    private string ProcedureProcessingTime { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Cost for the procedure
+    /// </summary>
+    private string ProcedureCost { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Where to go to complete the procedure
+    /// </summary>
+    private string ProcedureWhereToGo { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Online URL if available
+    /// </summary>
+    private string ProcedureOnlineUrl { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Contact phone number
+    /// </summary>
+    private string ProcedureContactPhone { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Contact email
+    /// </summary>
+    private string ProcedureContactEmail { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Whether appointment is required
+    /// </summary>
+    private bool ProcedureRequiresAppointment { get; set; } = false;
+    
+    /// <summary>
+    /// Required documents list
+    /// </summary>
+    private List<ProcedureDocument> ProcedureDocuments { get; set; } = new();
+    
+    /// <summary>
+    /// Steps list
+    /// </summary>
+    private List<ProcedureStep> ProcedureSteps { get; set; } = new();
+    
+    /// <summary>
+    /// Additional notes
+    /// </summary>
+    private string ProcedureAdditionalNotes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ProcedureMetadataJson parameter for binding to parent
+    /// </summary>
+    [Parameter]
+    public string ProcedureMetadataJson { get; set; } = string.Empty;
+    
+    [Parameter]
+    public EventCallback<string> ProcedureMetadataJsonChanged { get; set; }
+
+    /// <summary>
+    /// Build ProcedureMetadata from form fields
+    /// </summary>
+    private ProcedureMetadata BuildProcedureMetadata()
+    {
+        // Update step numbers before building
+        for (int i = 0; i < ProcedureSteps.Count; i++)
+        {
+            ProcedureSteps[i].StepNumber = i + 1;
+        }
+        
+        return new ProcedureMetadata
+        {
+            ProcessingTime = !string.IsNullOrWhiteSpace(ProcedureProcessingTime) ? ProcedureProcessingTime : null,
+            Cost = !string.IsNullOrWhiteSpace(ProcedureCost) ? ProcedureCost : null,
+            WhereToGo = !string.IsNullOrWhiteSpace(ProcedureWhereToGo) ? ProcedureWhereToGo : null,
+            OnlineUrl = !string.IsNullOrWhiteSpace(ProcedureOnlineUrl) ? ProcedureOnlineUrl : null,
+            RequiresAppointment = ProcedureRequiresAppointment,
+            ContactPhone = !string.IsNullOrWhiteSpace(ProcedureContactPhone) ? ProcedureContactPhone : null,
+            ContactEmail = !string.IsNullOrWhiteSpace(ProcedureContactEmail) ? ProcedureContactEmail : null,
+            Documents = ProcedureDocuments.Where(d => !string.IsNullOrWhiteSpace(d.Name)).ToList(),
+            Steps = ProcedureSteps.Where(s => !string.IsNullOrWhiteSpace(s.Title)).ToList(),
+            AdditionalNotes = !string.IsNullOrWhiteSpace(ProcedureAdditionalNotes) ? ProcedureAdditionalNotes : null
+        };
+    }
+    
+    /// <summary>
+    /// Sync Procedure form data to parent bindings
+    /// </summary>
+    private async Task SyncProcedureToParent()
+    {
+        if (SelectedType != "procedure")
+            return;
+            
+        // Set the procedure title as the post content
+        PostText = ProcedureTitle;
+        await PostTextChanged.InvokeAsync(PostText);
+        
+        // Serialize metadata to JSON
+        var metadata = BuildProcedureMetadata();
+        var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false 
+        });
+        
+        ProcedureMetadataJson = metadataJson;
+        await ProcedureMetadataJsonChanged.InvokeAsync(metadataJson);
+        
+        Logger.LogDebug("[PostComposer] Synced Procedure data to parent");
+    }
+    
+    /// <summary>
+    /// Clear procedure form fields
+    /// </summary>
+    private void ClearProcedureFields()
+    {
+        ProcedureTitle = string.Empty;
+        ProcedureDescription = string.Empty;
+        ProcedureProcessingTime = string.Empty;
+        ProcedureCost = string.Empty;
+        ProcedureWhereToGo = string.Empty;
+        ProcedureOnlineUrl = string.Empty;
+        ProcedureContactPhone = string.Empty;
+        ProcedureContactEmail = string.Empty;
+        ProcedureRequiresAppointment = false;
+        ProcedureDocuments = new();
+        ProcedureSteps = new();
+        ProcedureAdditionalNotes = string.Empty;
+    }
+    
+    // Procedure field change handlers
+    
+    private async Task OnProcedureTitleChanged(string value)
+    {
+        ProcedureTitle = value;
+        await SyncProcedureToParent();
+        StateHasChanged();
+    }
+    
+    private async Task OnProcedureDescriptionChanged(string value)
+    {
+        ProcedureDescription = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureProcessingTimeChanged(string value)
+    {
+        ProcedureProcessingTime = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureCostChanged(string value)
+    {
+        ProcedureCost = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureWhereToGoChanged(string value)
+    {
+        ProcedureWhereToGo = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureOnlineUrlChanged(string value)
+    {
+        ProcedureOnlineUrl = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureContactPhoneChanged(string value)
+    {
+        ProcedureContactPhone = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureContactEmailChanged(string value)
+    {
+        ProcedureContactEmail = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureRequiresAppointmentChanged(bool value)
+    {
+        ProcedureRequiresAppointment = value;
+        await SyncProcedureToParent();
+    }
+    
+    private async Task OnProcedureAdditionalNotesChanged(string value)
+    {
+        ProcedureAdditionalNotes = value;
+        await SyncProcedureToParent();
+    }
+    
+    // Document management
+    
+    private async Task AddProcedureDocument()
+    {
+        ProcedureDocuments.Add(new ProcedureDocument { Name = string.Empty, IsRequired = true });
+        await SyncProcedureToParent();
+        StateHasChanged();
+    }
+    
+    private async Task RemoveProcedureDocument(int index)
+    {
+        if (index >= 0 && index < ProcedureDocuments.Count)
+        {
+            ProcedureDocuments.RemoveAt(index);
+            await SyncProcedureToParent();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task OnDocumentNameChanged(int index, string value)
+    {
+        if (index >= 0 && index < ProcedureDocuments.Count)
+        {
+            ProcedureDocuments[index].Name = value;
+            await SyncProcedureToParent();
+        }
+    }
+    
+    private async Task OnDocumentRequiredChanged(int index, bool value)
+    {
+        if (index >= 0 && index < ProcedureDocuments.Count)
+        {
+            ProcedureDocuments[index].IsRequired = value;
+            await SyncProcedureToParent();
+        }
+    }
+    
+    // Step management
+    
+    private async Task AddProcedureStep()
+    {
+        ProcedureSteps.Add(new ProcedureStep { StepNumber = ProcedureSteps.Count + 1, Title = string.Empty });
+        await SyncProcedureToParent();
+        StateHasChanged();
+    }
+    
+    private async Task RemoveProcedureStep(int index)
+    {
+        if (index >= 0 && index < ProcedureSteps.Count)
+        {
+            ProcedureSteps.RemoveAt(index);
+            // Renumber remaining steps
+            for (int i = 0; i < ProcedureSteps.Count; i++)
+            {
+                ProcedureSteps[i].StepNumber = i + 1;
+            }
+            await SyncProcedureToParent();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task OnStepTitleChanged(int index, string value)
+    {
+        if (index >= 0 && index < ProcedureSteps.Count)
+        {
+            ProcedureSteps[index].Title = value;
+            await SyncProcedureToParent();
+        }
+    }
+
+    #endregion
+
     #region State Management
 
     /// <summary>
@@ -1348,6 +1832,11 @@
                 return string.IsNullOrWhiteSpace(BusinessLocationName) || 
                        !BusinessPostLocation.Latitude.HasValue || 
                        !BusinessPostLocation.Longitude.HasValue;
+            }
+            else if (SelectedType == "procedure")
+            {
+                // For procedures, require at least a title
+                return string.IsNullOrWhiteSpace(ProcedureTitle);
             }
             // For regular posts, require post text
             return string.IsNullOrWhiteSpace(PostText);
