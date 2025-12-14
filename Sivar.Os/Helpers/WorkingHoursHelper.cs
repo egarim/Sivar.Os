@@ -7,8 +7,15 @@ namespace Sivar.Os.Helpers;
 /// Helper class to parse working hours and calculate open/closed status.
 /// El Salvador timezone is UTC-6 with no daylight saving time.
 /// </summary>
+/// <remarks>
+/// TODO: Currently hardcoded to El Salvador timezone (UTC-6). 
+/// Future enhancement: Accept user's timezone from their profile/browser settings
+/// to show open/closed status relative to the user's current location, not just the business location.
+/// This is important for users traveling or viewing from different timezones.
+/// </remarks>
 public static class WorkingHoursHelper
 {
+    // TODO: Get user's timezone from profile/browser instead of hardcoding
     // El Salvador is UTC-6 with no daylight saving
     private static readonly TimeSpan ElSalvadorOffset = TimeSpan.FromHours(-6);
 

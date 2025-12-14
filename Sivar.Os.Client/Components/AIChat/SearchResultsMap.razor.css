@@ -1,0 +1,251 @@
+/* SearchResultsMap.razor.css - Styles for the search results map view */
+
+.search-results-map-container {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 12px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.search-results-map {
+    width: 100%;
+    border-radius: 12px;
+    z-index: 1;
+}
+
+.map-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(30, 30, 30, 0.9);
+    z-index: 10;
+    border-radius: 12px;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+/* Selected business card overlay */
+.map-selected-card {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    z-index: 100;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.map-selected-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.close-card-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: #aaa;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.close-card-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.selected-card-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.selected-card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.selected-card-content h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.selected-card-category {
+    font-size: 12px;
+    color: #888;
+}
+
+.selected-card-status {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.selected-card-status.open {
+    color: #4caf50;
+}
+
+.selected-card-status.closed {
+    color: #f44336;
+}
+
+.selected-card-location {
+    font-size: 12px;
+    color: #aaa;
+    margin: 0;
+}
+
+.view-profile-btn {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 6px 12px;
+    background: var(--mud-palette-primary, #1976d2);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.view-profile-btn:hover {
+    background: var(--mud-palette-primary-darken, #1565c0);
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+    .map-loading-overlay {
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+    }
+
+    .map-selected-card {
+        background: #fff;
+        border-color: rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .close-card-btn {
+        background: rgba(0, 0, 0, 0.05);
+        color: #666;
+    }
+
+    .close-card-btn:hover {
+        background: rgba(0, 0, 0, 0.1);
+        color: #333;
+    }
+
+    .selected-card-content h4 {
+        color: #1e1e1e;
+    }
+
+    .selected-card-location {
+        color: #666;
+    }
+}
+
+/* Popup styles (applied via global CSS since Leaflet injects popups into body) */
+::deep .search-result-popup .leaflet-popup-content-wrapper {
+    background: #1e1e1e;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+::deep .search-result-popup .leaflet-popup-content {
+    margin: 8px 12px;
+    color: #fff;
+}
+
+::deep .search-result-popup .leaflet-popup-tip {
+    background: #1e1e1e;
+}
+
+::deep .search-result-popup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+}
+
+::deep .popup-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+::deep .popup-category {
+    font-size: 11px;
+    color: #888;
+}
+
+::deep .popup-status {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+::deep .popup-status.open {
+    color: #4caf50;
+}
+
+::deep .popup-status.closed {
+    color: #f44336;
+}
+
+::deep .popup-distance {
+    font-size: 11px;
+    color: #aaa;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .map-selected-card {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        padding: 10px;
+    }
+
+    .selected-card-image {
+        width: 56px;
+        height: 56px;
+    }
+
+    .selected-card-content h4 {
+        font-size: 14px;
+    }
+}

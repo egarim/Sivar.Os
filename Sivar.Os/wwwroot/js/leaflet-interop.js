@@ -548,6 +548,81 @@ window.leafletInterop = {
     },
     
     /**
+     * Add multiple markers to the map and optionally fit bounds to show all
+     * @param {string} mapId - Map ID
+     * @param {Array} markers - Array of marker objects with {lat, lng, title, popup, iconType}
+     * @param {boolean} fitBounds - Whether to adjust zoom to fit all markers
+     * @returns {boolean} Success
+     */
+    addMultipleMarkers: function (mapId, markers, fitBounds = true) {
+        try {
+            const instance = window._leafletMaps[mapId];
+            if (!instance) {
+                console.error(`[Leaflet] Map not found: ${mapId}`);
+                return false;
+            }
+
+            // Clear existing markers first
+            this.clearMarkers(mapId);
+
+            if (!markers || markers.length === 0) {
+                console.log(`[Leaflet] No markers to add to ${mapId}`);
+                return true;
+            }
+
+            const bounds = [];
+
+            markers.forEach((m, index) => {
+                if (m.lat == null || m.lng == null) return;
+
+                // Create marker icon based on type
+                const icon = getMarkerIcon(m.iconType || 'Default');
+
+                // Create marker
+                const marker = L.marker([m.lat, m.lng], {
+                    title: m.title || '',
+                    icon: icon
+                }).addTo(instance.map);
+
+                // Add popup if provided
+                if (m.popup) {
+                    marker.bindPopup(m.popup, {
+                        maxWidth: 280,
+                        className: 'search-result-popup'
+                    });
+                }
+
+                // Add click handler for the marker
+                if (m.onClick) {
+                    marker.on('click', () => {
+                        if (instance.dotNetRef) {
+                            instance.dotNetRef.invokeMethodAsync('OnMarkerClick', index, m.id || null);
+                        }
+                    });
+                }
+
+                instance.markers.push(marker);
+                bounds.push([m.lat, m.lng]);
+            });
+
+            // Fit map to show all markers
+            if (fitBounds && bounds.length > 0) {
+                if (bounds.length === 1) {
+                    instance.map.setView(bounds[0], 14);
+                } else {
+                    instance.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+                }
+            }
+
+            console.log(`[Leaflet] Added ${instance.markers.length} markers to ${mapId}`);
+            return true;
+        } catch (error) {
+            console.error(`[Leaflet] Error adding multiple markers to ${mapId}:`, error);
+            return false;
+        }
+    },
+
+    /**
      * Dispose/destroy the map
      */
     disposeMap: function (mapId) {

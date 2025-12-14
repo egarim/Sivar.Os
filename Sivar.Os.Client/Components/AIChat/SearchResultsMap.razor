@@ -1,0 +1,294 @@
+@*
+    SearchResultsMap.razor - Displays search results on an interactive Leaflet map
+    Phase 6: Map View Integration
+*@
+
+@using Microsoft.JSInterop
+@using Sivar.Os.Shared.DTOs
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<div class="search-results-map-container">
+    @if (_isLoading)
+    {
+        <div class="map-loading-overlay">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+            <span>Cargando mapa...</span>
+        </div>
+    }
+    <div id="@_mapId" class="search-results-map" style="height: @(Height)px;"></div>
+    
+    @if (_selectedBusiness != null)
+    {
+        <div class="map-selected-card" @onclick="() => NavigateToResult(_selectedBusiness)">
+            <button class="close-card-btn" @onclick="CloseSelectedCard" @onclick:stopPropagation="true">×</button>
+            @if (!string.IsNullOrEmpty(_selectedBusiness.ImageUrl))
+            {
+                <img src="@_selectedBusiness.ImageUrl" alt="@_selectedBusiness.Title" class="selected-card-image" />
+            }
+            <div class="selected-card-content">
+                <h4>@_selectedBusiness.Title</h4>
+                @if (!string.IsNullOrEmpty(_selectedBusiness.Category))
+                {
+                    <span class="selected-card-category">@_selectedBusiness.Category</span>
+                }
+                @if (_selectedBusiness.IsOpenNow.HasValue)
+                {
+                    <span class="selected-card-status @(_selectedBusiness.IsOpenNow.Value ? "open" : "closed")">
+                        @(_selectedBusiness.IsOpenNow.Value ? "🟢 Abierto" : "🔴 Cerrado")
+                    </span>
+                }
+                @if (!string.IsNullOrEmpty(_selectedBusiness.City))
+                {
+                    <p class="selected-card-location">📍 @_selectedBusiness.City</p>
+                }
+                <button class="view-profile-btn" @onclick="() => NavigateToResult(_selectedBusiness)" @onclick:stopPropagation="true">
+                    Ver Perfil →
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Search results to display on the map
+    /// </summary>
+    [Parameter] public SearchResultsCollectionDto? Results { get; set; }
+
+    /// <summary>
+    /// Height of the map in pixels
+    /// </summary>
+    [Parameter] public int Height { get; set; } = 350;
+
+    /// <summary>
+    /// Default center latitude (El Salvador)
+    /// </summary>
+    [Parameter] public double DefaultLatitude { get; set; } = 13.6929;
+
+    /// <summary>
+    /// Default center longitude (El Salvador)
+    /// </summary>
+    [Parameter] public double DefaultLongitude { get; set; } = -89.2182;
+
+    /// <summary>
+    /// Default zoom level
+    /// </summary>
+    [Parameter] public int DefaultZoom { get; set; } = 12;
+
+    private readonly string _mapId = $"search-map-{Guid.NewGuid():N}";
+    private bool _isLoading = true;
+    private bool _isInitialized = false;
+    private DotNetObjectReference<SearchResultsMap>? _dotNetRef;
+    private BusinessSearchResultDto? _selectedBusiness;
+    private List<BusinessSearchResultDto> _businessesWithLocation = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeMapAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_isInitialized && Results != null)
+        {
+            await UpdateMarkersAsync();
+        }
+    }
+
+    private async Task InitializeMapAsync()
+    {
+        try
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+            // Calculate initial center from results or use default
+            var (centerLat, centerLng) = CalculateCenter();
+
+            var options = new
+            {
+                scrollWheelZoom = true,
+                dragging = true,
+                zoomControl = true
+            };
+
+            var success = await JS.InvokeAsync<bool>(
+                "initializeMap",
+                _mapId,
+                centerLat,
+                centerLng,
+                DefaultZoom,
+                options,
+                _dotNetRef
+            );
+
+            if (success)
+            {
+                _isInitialized = true;
+                await UpdateMarkersAsync();
+                
+                // Invalidate size after delay
+                await Task.Delay(200);
+                await JS.InvokeVoidAsync("leafletInterop.invalidateSize", _mapId);
+            }
+
+            _isLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SearchResultsMap] Error initializing map: {ex.Message}");
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UpdateMarkersAsync()
+    {
+        if (!_isInitialized || Results == null) return;
+
+        try
+        {
+            // Get all businesses with valid coordinates
+            _businessesWithLocation = Results.Businesses
+                .Where(b => b.Latitude.HasValue && b.Longitude.HasValue)
+                .ToList();
+
+            if (_businessesWithLocation.Count == 0)
+            {
+                Console.WriteLine("[SearchResultsMap] No businesses with location data");
+                return;
+            }
+
+            // Create marker data for JS
+            var markers = _businessesWithLocation.Select((b, index) => new
+            {
+                id = b.Id.ToString(),
+                lat = b.Latitude!.Value,
+                lng = b.Longitude!.Value,
+                title = b.Title,
+                popup = BuildPopupHtml(b),
+                iconType = GetIconType(b),
+                onClick = true
+            }).ToList();
+
+            await JS.InvokeVoidAsync("leafletInterop.addMultipleMarkers", _mapId, markers, true);
+            
+            Console.WriteLine($"[SearchResultsMap] Added {markers.Count} markers");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SearchResultsMap] Error updating markers: {ex.Message}");
+        }
+    }
+
+    private (double lat, double lng) CalculateCenter()
+    {
+        if (Results?.Businesses == null || !Results.Businesses.Any())
+            return (DefaultLatitude, DefaultLongitude);
+
+        var withCoords = Results.Businesses
+            .Where(b => b.Latitude.HasValue && b.Longitude.HasValue)
+            .ToList();
+
+        if (!withCoords.Any())
+            return (DefaultLatitude, DefaultLongitude);
+
+        var avgLat = withCoords.Average(b => b.Latitude!.Value);
+        var avgLng = withCoords.Average(b => b.Longitude!.Value);
+
+        return (avgLat, avgLng);
+    }
+
+    private string BuildPopupHtml(BusinessSearchResultDto business)
+    {
+        var statusHtml = business.IsOpenNow.HasValue
+            ? $"<span class='popup-status {(business.IsOpenNow.Value ? "open" : "closed")}'>{(business.IsOpenNow.Value ? "🟢 Abierto" : "🔴 Cerrado")}</span>"
+            : "";
+
+        var categoryHtml = !string.IsNullOrEmpty(business.Category)
+            ? $"<span class='popup-category'>{business.Category}</span>"
+            : "";
+
+        var distanceHtml = business.DistanceKm.HasValue
+            ? $"<span class='popup-distance'>📍 {business.DistanceKm.Value:F1} km</span>"
+            : "";
+
+        return $@"
+            <div class='search-result-popup-content'>
+                <strong class='popup-title'>{EscapeHtml(business.Title)}</strong>
+                {categoryHtml}
+                {statusHtml}
+                {distanceHtml}
+            </div>";
+    }
+
+    private string GetIconType(BusinessSearchResultDto business)
+    {
+        // Map category to icon type
+        var category = business.Category?.ToLowerInvariant() ?? "";
+        
+        return category switch
+        {
+            var c when c.Contains("restaurant") || c.Contains("comida") || c.Contains("food") => "Restaurant",
+            var c when c.Contains("hotel") || c.Contains("hospedaje") => "Hotel",
+            var c when c.Contains("tienda") || c.Contains("store") || c.Contains("shop") => "Store",
+            var c when c.Contains("gobierno") || c.Contains("government") => "Government",
+            var c when c.Contains("salud") || c.Contains("hospital") || c.Contains("clinic") => "Health",
+            var c when c.Contains("banco") || c.Contains("bank") => "Bank",
+            var c when c.Contains("turismo") || c.Contains("tourism") => "Tourism",
+            _ => "Default"
+        };
+    }
+
+    private string EscapeHtml(string text)
+    {
+        return text
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;")
+            .Replace("'", "&#39;");
+    }
+
+    [JSInvokable]
+    public void OnMarkerClick(int index, string? id)
+    {
+        if (index >= 0 && index < _businessesWithLocation.Count)
+        {
+            _selectedBusiness = _businessesWithLocation[index];
+            StateHasChanged();
+        }
+    }
+
+    private void CloseSelectedCard()
+    {
+        _selectedBusiness = null;
+        StateHasChanged();
+    }
+
+    private void NavigateToResult(BusinessSearchResultDto business)
+    {
+        NavigationManager.NavigateTo(business.NavigationUrl);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_isInitialized)
+            {
+                await JS.InvokeVoidAsync("destroyMap", _mapId);
+            }
+            _dotNetRef?.Dispose();
+        }
+        catch
+        {
+            // Ignore disposal errors
+        }
+    }
+}

@@ -56,10 +56,15 @@ public class VectorEmbeddingService : IVectorEmbeddingService
                     requestId, text.Length, processedText.Length, _options.MaxTextLength);
             }
 
-            _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Calling embedding generator - RequestId={RequestId}, ProcessedTextLength={ProcessedTextLength}",
-                requestId, processedText.Length);
+            _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Calling embedding generator - RequestId={RequestId}, ProcessedTextLength={ProcessedTextLength}, Dimensions={Dimensions}",
+                requestId, processedText.Length, _options.Dimensions);
 
-            var embedding = await _embeddingGenerator.GenerateAsync(processedText);
+            // Use EmbeddingGenerationOptions to specify dimensions for Matryoshka embeddings
+            var generationOptions = _options.Dimensions.HasValue 
+                ? new EmbeddingGenerationOptions { Dimensions = _options.Dimensions.Value }
+                : null;
+
+            var embedding = await _embeddingGenerator.GenerateAsync(processedText, generationOptions);
             
             _logger.LogInformation("[VectorEmbeddingService.GenerateEmbeddingAsync] Embedding generated - RequestId={RequestId}, VectorLength={VectorLength}",
                 requestId, embedding.Vector.Length);
@@ -395,6 +400,13 @@ public class VectorEmbeddingOptions
     /// Minimum similarity threshold for search results
     /// </summary>
     public float MinimumSimilarityThreshold { get; set; } = 0.1f;
+
+    /// <summary>
+    /// Target embedding dimensions. OpenAI's text-embedding-3 models support Matryoshka dimensions.
+    /// Use 384 for compatibility with all-minilm, 1536 for full text-embedding-3-small, 3072 for text-embedding-3-large.
+    /// When null, uses the model's default dimensions.
+    /// </summary>
+    public int? Dimensions { get; set; } = 384;
 
     /// <summary>
     /// Ollama service configuration

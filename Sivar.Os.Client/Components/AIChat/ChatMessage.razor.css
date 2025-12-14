@@ -1018,3 +1018,78 @@
     }
 }
 
+/* =====================================================
+   Phase 6: View Toggle (List/Map)
+   ===================================================== */
+
+.view-toggle {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 4px;
+    margin: 12px 0;
+    width: fit-content;
+}
+
+.view-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.view-toggle-btn .material-icons-outlined {
+    font-size: 18px;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.view-toggle-btn.active {
+    background: rgba(102, 126, 234, 0.3);
+    color: #a5b4fc;
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+    .view-toggle {
+        background: rgba(0, 0, 0, 0.05);
+    }
+    
+    .view-toggle-btn {
+        color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .view-toggle-btn:hover {
+        background: rgba(0, 0, 0, 0.08);
+        color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .view-toggle-btn.active {
+        background: rgba(99, 102, 241, 0.2);
+        color: #4f46e5;
+    }
+}
+
+/* Mobile: hide label, show only icon */
+@media (max-width: 480px) {
+    .toggle-label {
+        display: none;
+    }
+    
+    .view-toggle-btn {
+        padding: 8px;
+    }
+}
+

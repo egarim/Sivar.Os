@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: December 12, 2025 - Added XAF Entity Rules for DevExpress ORM Compatibility  
+> **Last Updated**: December 14, 2025 - Added Python Environment & Scripts section  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -51,7 +51,12 @@
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-19. [References](#references)
+19. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
+    - Virtual Environment Setup
+    - Available Scripts
+    - Running Python Scripts
+    - Adding New Dependencies
+20. [References](#references)
 
 ---
 
@@ -6068,6 +6073,220 @@ WHERE "Name" = '{ScriptName}';
 - Dashboard summary endpoint: **< 200ms** (9 aggregates combined)
 - Refresh policies: Hourly for real-time, daily for historical
 - Compression savings: **60-90%** storage reduction after 30-90 days
+
+---
+
+## Python Environment & Scripts
+
+### Overview
+
+This project includes a Python virtual environment for utility scripts that complement the .NET application. These scripts are used for tasks like database migrations, embedding regeneration, and data processing.
+
+### Virtual Environment Location
+
+```
+Sivar.Os/
+├── .venv/                          # Python virtual environment
+│   ├── Scripts/
+│   │   ├── python.exe             # Python interpreter (Windows)
+│   │   ├── pip.exe                # Package manager
+│   │   └── activate.ps1           # PowerShell activation script
+│   └── Lib/
+│       └── site-packages/         # Installed packages
+├── Scripts/                        # Python utility scripts
+│   └── reembed_with_openai.py     # Re-embed posts with OpenAI
+└── ...
+```
+
+### Environment Details
+
+| Property | Value |
+|----------|-------|
+| **Environment Type** | Virtual Environment (venv) |
+| **Python Version** | 3.13.x |
+| **Location** | `Sivar.Os/.venv/` |
+| **Interpreter Path** | `C:/Users/joche/source/repos/SivarOs/Sivar.Os/.venv/Scripts/python.exe` |
+
+### Activating the Environment
+
+**PowerShell (Recommended):**
+```powershell
+# Navigate to project root
+cd c:\Users\joche\source\repos\SivarOs\Sivar.Os
+
+# Activate the virtual environment
+.\.venv\Scripts\Activate.ps1
+
+# You should see (.venv) in your prompt
+(.venv) PS C:\Users\joche\source\repos\SivarOs\Sivar.Os>
+```
+
+**Command Prompt:**
+```cmd
+cd c:\Users\joche\source\repos\SivarOs\Sivar.Os
+.venv\Scripts\activate.bat
+```
+
+**Deactivate when done:**
+```powershell
+deactivate
+```
+
+### Running Python Scripts Without Activation
+
+You can run scripts directly using the full interpreter path:
+
+```powershell
+# Run a script without activating the environment
+C:/Users/joche/source/repos/SivarOs/Sivar.Os/.venv/Scripts/python.exe Scripts/reembed_with_openai.py
+```
+
+### Available Scripts
+
+#### 1. `Scripts/reembed_with_openai.py` - Re-embed Posts with OpenAI
+
+**Purpose:** Regenerates all post embeddings using OpenAI's `text-embedding-3-small` model with 384 dimensions (Matryoshka embeddings).
+
+**When to use:**
+- After switching embedding providers (e.g., Ollama → OpenAI)
+- After changing embedding dimensions
+- To regenerate corrupted or missing embeddings
+
+**Configuration:** Reads automatically from `Sivar.Os/appsettings.json`:
+- `ChatService.OpenAI.ApiKey` - OpenAI API key
+- `ConnectionStrings.DefaultConnection` - PostgreSQL connection
+
+**Usage:**
+```powershell
+cd c:\Users\joche\source\repos\SivarOs\Sivar.Os\Scripts
+C:/Users/joche/source/repos/SivarOs/Sivar.Os/.venv/Scripts/python.exe reembed_with_openai.py
+```
+
+**Output:**
+```
+============================================================
+Re-embedding Posts with OpenAI text-embedding-3-small
+Target dimensions: 384
+============================================================
+
+[1/4] Connecting to services...
+  ✓ Connected to database: localhost:5432/XafSivarOs
+
+[2/4] Fetching posts from database...
+  ✓ Found 120 posts with content
+
+[3/4] Generating embeddings (batch size: 100)...
+  Progress: 100/120 (83%) - 35.4 posts/sec - ETA: 1s
+  Progress: 120/120 (100%) - 26.8 posts/sec - ETA: 0s
+
+[4/4] Complete!
+============================================================
+  Posts processed: 120/120
+  Errors: 0
+  Time elapsed: 4.6s
+  Embedding model: text-embedding-3-small
+  Dimensions: 384
+============================================================
+```
+
+### Installing New Dependencies
+
+**Using pip directly:**
+```powershell
+# With environment activated
+pip install package-name
+
+# Without activation
+C:/Users/joche/source/repos/SivarOs/Sivar.Os/.venv/Scripts/pip.exe install package-name
+```
+
+**Currently installed packages:**
+- `openai` - OpenAI API client
+- `psycopg2-binary` - PostgreSQL database adapter
+
+### Creating New Python Scripts
+
+When creating new Python utility scripts:
+
+1. **Place scripts in `Scripts/` folder:**
+   ```
+   Sivar.Os/Scripts/my_new_script.py
+   ```
+
+2. **Read configuration from appsettings.json:**
+   ```python
+   import json
+   from pathlib import Path
+   
+   def load_config():
+       script_dir = Path(__file__).parent
+       appsettings_path = script_dir.parent / "Sivar.Os" / "appsettings.json"
+       
+       with open(appsettings_path, 'r', encoding='utf-8') as f:
+           content = f.read()
+       
+       # Remove comments (// style)
+       import re
+       lines = content.split('\n')
+       cleaned_lines = []
+       for line in lines:
+           if '//' in line:
+               idx = 0
+               while True:
+                   pos = line.find('//', idx)
+                   if pos == -1:
+                       break
+                   if pos > 0 and line[pos-1] == ':':
+                       idx = pos + 2
+                       continue
+                   line = line[:pos]
+                   break
+           cleaned_lines.append(line)
+       
+       return json.loads('\n'.join(cleaned_lines))
+   ```
+
+3. **Add progress reporting:**
+   ```python
+   print(f"Progress: {processed}/{total} ({processed*100//total}%)")
+   ```
+
+4. **Handle errors gracefully:**
+   ```python
+   try:
+       # operation
+   except Exception as e:
+       print(f"ERROR: {e}")
+       errors += 1
+   ```
+
+### Embedding Provider Compatibility
+
+⚠️ **IMPORTANT:** Different embedding models produce incompatible vectors!
+
+| Provider | Model | Dimensions | Vector Space |
+|----------|-------|------------|-------------|
+| Ollama | all-minilm | 384 | Space A |
+| OpenAI | text-embedding-3-small | 384* | Space B |
+| OpenAI | text-embedding-3-small | 1536 | Space B |
+
+*Using Matryoshka dimension reduction
+
+**Key Points:**
+- Vectors from different models are **NOT compatible** even with same dimensions
+- When switching providers, you **MUST re-embed all existing data**
+- Use `reembed_with_openai.py` after switching to OpenAI
+- The .NET app uses `EmbeddingGenerationOptions { Dimensions = 384 }` for Matryoshka truncation
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `ModuleNotFoundError: No module named 'xyz'` | Install the package: `pip install xyz` |
+| `JSON parse error` in appsettings | Check for trailing commas or invalid JSON comments |
+| `401 Incorrect API key` | Verify API key in `appsettings.json` is valid |
+| `Connection refused` to database | Ensure PostgreSQL is running on localhost:5432 |
+| Python not found | Use full path: `.venv/Scripts/python.exe` |
 
 ---
 

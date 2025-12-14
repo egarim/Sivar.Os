@@ -403,6 +403,32 @@
                 </div>
             }
             
+            @* Phase 6: Map View Toggle for results with location data *@
+            @if (HasLocationResults())
+            {
+                <div class="view-toggle">
+                    <button class="view-toggle-btn @(!_showMapView ? "active" : "")" 
+                            @onclick="() => _showMapView = false" 
+                            @onclick:stopPropagation="true"
+                            title="Ver como lista">
+                        <span class="material-icons-outlined">view_list</span>
+                        <span class="toggle-label">Lista</span>
+                    </button>
+                    <button class="view-toggle-btn @(_showMapView ? "active" : "")" 
+                            @onclick="() => _showMapView = true" 
+                            @onclick:stopPropagation="true"
+                            title="Ver en mapa">
+                        <span class="material-icons-outlined">map</span>
+                        <span class="toggle-label">Mapa</span>
+                    </button>
+                </div>
+                
+                @if (_showMapView)
+                {
+                    <SearchResultsMap Results="Message.StructuredResults" Height="280" />
+                }
+            }
+            
             @* Phase 4: Smart Follow-up Suggestions *@
             @if (Message.StructuredResults.HasSuggestions)
             {
@@ -515,6 +541,17 @@
     /// Reference to the carousel element for scrolling
     /// </summary>
     private ElementReference _carouselRef;
+    
+    /// <summary>
+    /// Phase 6: Toggle between list view and map view for results with location data
+    /// </summary>
+    private bool _showMapView = false;
+    
+    /// <summary>
+    /// Phase 6: Check if any search results have location data
+    /// </summary>
+    private bool HasLocationResults() => 
+        Message.StructuredResults?.Businesses?.Any(b => b.Latitude.HasValue && b.Longitude.HasValue) == true;
     
     /// <summary>
     /// Tracks which procedure cards are expanded (by Id)

@@ -154,12 +154,13 @@ For example, use '/post/abc-123' not 'https://example.com/post/abc-123'.",
         loggerFactory: loggerFactory);
 });
 
-// Register IEmbeddingGenerator for VectorEmbeddingService
+// Register IEmbeddingGenerator for VectorEmbeddingService (using OpenAI)
 builder.Services.AddScoped<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
-    var endpoint = "http://127.0.0.1:11434/";
-    var modelId = "all-minilm:latest"; // Common embedding model for Ollama
-    return new OllamaEmbeddingGenerator(endpoint, modelId: modelId);
+    var chatOptions = builder.Configuration.GetSection(ChatServiceOptions.SectionName).Get<ChatServiceOptions>();
+    var apiKey = chatOptions?.OpenAI?.ApiKey ?? throw new InvalidOperationException("OpenAI API key not configured");
+    var openAiClient = new OpenAIClient(apiKey);
+    return openAiClient.GetEmbeddingClient("text-embedding-3-small").AsIEmbeddingGenerator();
 });
 
 // --- Service Registration ---
@@ -245,15 +246,12 @@ builder.Services.Configure<ChatServiceOptions>(
 // Configure VectorEmbeddingOptions
 builder.Services.Configure<VectorEmbeddingOptions>(options =>
 {
-    options.Provider = "Ollama";
+    options.Provider = "OpenAI";
     options.MaxTextLength = 8000;
     options.BatchSize = 10;
     options.MinimumSimilarityThreshold = 0.1f;
-    options.Ollama = new OllamaOptions
-    {
-   Endpoint = "http://127.0.0.1:11434",
-        ModelId = "all-minilm:latest"
-    };
+    // Use 384 dimensions for Matryoshka embeddings - compatible with existing all-minilm vectors
+    options.Dimensions = 384;
 });
 
 builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
