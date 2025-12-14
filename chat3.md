@@ -1213,17 +1213,46 @@ Consistent card-based UI for ALL search queries regardless of how they're proces
 ## Phase 3: Interactive Procedure Cards 🟡
 **Goal**: Make government procedure/paperwork guidance actionable and trackable
 
-### Scope
-- Expandable procedure cards with full details
-- Interactive requirements checklist
-- Step-by-step process display
-- Direct links to online services
-- Office hours and location prominent
+### Implementation Progress (2024-12-14)
 
-### Files to Modify
+#### ✅ Backend Infrastructure Complete
+- **PostType.Procedure = 8** - New post type, available to ALL profile types
+- **ProcedureMetadata** class with:
+  - `ProcessingTime`, `Cost`, `WhereToGo`, `OnlineUrl`
+  - `RequiresAppointment`, `ContactPhone`, `ContactEmail`
+  - `WorkingHours`, `ValidityPeriod`, `AdditionalNotes`
+  - `Documents[]` - List of required documents
+  - `Steps[]` - Step-by-step instructions
+- **ProcedureDocument** class: Name, Description, IsRequired, WhereToGet, ValidityPeriod
+- **ProcedureStep** class: StepNumber, Title, Description, EstimatedTime, IsOnline, OnlineUrl
+- **Post.ProcedureMetadataJson** - JSON storage for procedure data
+- **PostDto, CreatePostDto, UpdatePostDto** - Updated with ProcedureMetadataJson
+- **PostService** - Handles procedure metadata in create/update operations
+
+#### 🟡 UI Component Pending
+- Expandable procedure card template in ChatMessage.razor
+- Interactive requirements checklist with localStorage persistence
+- CSS styling for procedure cards
+
+### Scope
+- Expandable procedure cards with full details ✅ (DTO ready)
+- Interactive requirements checklist 🟡
+- Step-by-step process display 🟡
+- Direct links to online services ✅ (OnlineUrl in metadata)
+- Office hours and location prominent ✅ (WorkingHours in metadata)
+
+### Files Modified (Backend)
 | File | Changes |
 |------|---------|
-| `Sivar.Os.Shared/DTOs/SearchResultDtos.cs` | Add `Steps[]`, `Documents[]` to `ProcedureSearchResultDto` |
+| `Sivar.Os.Shared/Enums/PostEnums.cs` | Added `Procedure = 8` |
+| `Sivar.Os.Shared/Entities/Post.cs` | Added `ProcedureMetadataJson`, `ProcedureMetadata`, `ProcedureDocument`, `ProcedureStep` classes |
+| `Sivar.Os.Shared/DTOs/PostDTOs.cs` | Added `ProcedureMetadataJson` to CreatePostDto, UpdatePostDto, PostDto |
+| `Sivar.Os/Services/PostService.cs` | Handle procedure metadata in create/update |
+
+### Files to Modify (UI)
+| File | Changes |
+|------|---------|
+| `Sivar.Os.Shared/DTOs/SearchResultDtos.cs` | `ProcedureSearchResultDto` already has `Steps[]`, `Documents[]` ✅ |
 | `Sivar.Os.Client/Components/AIChat/ChatMessage.razor` | New expandable procedure card template |
 | `Sivar.Os.Client/Components/AIChat/ChatMessage.razor.css` | Styles for procedure cards |
 
@@ -1250,9 +1279,11 @@ Consistent card-based UI for ALL search queries regardless of how they're proces
 ```
 
 ### Acceptance Criteria
+- [x] PostType.Procedure available to all profile types
+- [x] Structured metadata for steps, documents, costs, time
 - [ ] Procedure cards show summary (time, cost) at a glance
 - [ ] Requirements displayed as interactive checklist
-- [ ] Users can check off requirements locally
+- [ ] Users can check off requirements locally (localStorage)
 - [ ] Office hours clearly visible
 - [ ] "Iniciar trámite en línea" button when available
 - [ ] Map button shows office location
