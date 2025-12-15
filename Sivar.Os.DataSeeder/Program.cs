@@ -28,6 +28,11 @@ class Program
             var host = CreateHostBuilder(args).Build();
 
             using var scope = host.Services.CreateScope();
+            
+            // Seed category definitions first (for multilingual search)
+            var categorySeeder = scope.ServiceProvider.GetRequiredService<CategoryDefinitionSeeder>();
+            await categorySeeder.SeedCategoriesAsync();
+            
             var seeder = scope.ServiceProvider.GetRequiredService<DataSeedingService>();
 
             await seeder.SeedDataAsync();
@@ -74,6 +79,7 @@ class Program
                 services.AddScoped<IReactionRepository, ReactionRepository>();
 
                 // Seeding Service
+                services.AddScoped<CategoryDefinitionSeeder>();
                 services.AddScoped<DataSeedingService>();
             });
 }

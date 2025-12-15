@@ -69,12 +69,19 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Register VectorTypeInterceptor as a singleton so it can be injected into DbContext
 builder.Services.AddSingleton<Sivar.Os.Data.Interceptors.VectorTypeInterceptor>();
 
-builder.Services.AddDbContext<SivarDbContext>((serviceProvider, options) =>
+// Use AddPooledDbContextFactory which:
+// 1. Registers IDbContextFactory<SivarDbContext> as singleton (for CategoryNormalizer)
+// 2. Also registers SivarDbContext as scoped (for normal DI injection)
+builder.Services.AddPooledDbContextFactory<SivarDbContext>((serviceProvider, options) =>
 {
     var vectorInterceptor = serviceProvider.GetRequiredService<Sivar.Os.Data.Interceptors.VectorTypeInterceptor>();
     options.UseNpgsql(connectionString, o => o.UseVector())
         .AddInterceptors(vectorInterceptor);
 });
+
+// Also register scoped DbContext for existing code that injects SivarDbContext directly
+builder.Services.AddScoped<SivarDbContext>(sp => 
+    sp.GetRequiredService<IDbContextFactory<SivarDbContext>>().CreateDbContext());
 
 // --- Repository Registration ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -128,30 +135,56 @@ builder.Services.AddScoped<AIAgent>(sp =>
     // Create the agent with instructions and tools
     var tools = new List<AITool>
     {
+        // Core search functions
         AIFunctionFactory.Create(functionService.SearchProfiles),
         AIFunctionFactory.Create(functionService.SearchPosts),
         AIFunctionFactory.Create(functionService.GetPostDetails),
+        AIFunctionFactory.Create(functionService.FindBusinesses),
+        
+        // Profile management functions
         AIFunctionFactory.Create(functionService.FollowProfile),
         AIFunctionFactory.Create(functionService.UnfollowProfile),
-        AIFunctionFactory.Create(functionService.GetMyProfile)
+        AIFunctionFactory.Create(functionService.GetMyProfile),
+        
+        // Location-based functions (PostGIS)
+        AIFunctionFactory.Create(functionService.SearchNearbyProfiles),
+        AIFunctionFactory.Create(functionService.SearchNearbyPosts),
+        AIFunctionFactory.Create(functionService.CalculateDistance),
+        AIFunctionFactory.Create(functionService.GetAddressFromCoordinates),
+        AIFunctionFactory.Create(functionService.GetCoordinatesFromAddress),
+        AIFunctionFactory.Create(functionService.SearchNearMe),
+        AIFunctionFactory.Create(functionService.GetCurrentLocationStatus),
+        
+        // Phase 6: Intent-specific functions
+        AIFunctionFactory.Create(functionService.GetContactInfo),
+        AIFunctionFactory.Create(functionService.GetBusinessHours),
+        AIFunctionFactory.Create(functionService.GetDirections),
+        AIFunctionFactory.Create(functionService.GetProcedureInfo)
     };
     
     return new ChatClientAgent(
         chatClient,
-        instructions: @"You are Sivar, a helpful AI assistant for the Sivar.Os social network platform.
+        instructions: @"You are Sivar, a helpful AI assistant for the Sivar.Os social network platform in El Salvador.
 You can help users:
-- Search for profiles and posts on the network
-- Get details about specific posts
+- Search for profiles, posts, businesses, and places on the network
+- Find nearby businesses and content using GPS location
+- Get contact information (phone, email, WhatsApp) for businesses
+- Get business hours and open/closed status
+- Get directions and location information
+- Help with government procedures and requirements (DUI, pasaporte, licencia, etc.)
 - Follow and unfollow other users
 - Get information about their own profile
 
-Always be friendly and helpful. When users ask about people or content, use your search tools to find relevant information.
-When performing actions like following users, confirm the action was successful.
-
-IMPORTANT: When showing links to users, always use RELATIVE URLs (starting with /) not absolute URLs.
-For example, use '/post/abc-123' not 'https://example.com/post/abc-123'.",
+IMPORTANT INSTRUCTIONS:
+1. Always respond in Spanish when the user writes in Spanish.
+2. When users ask for contact info, use GetContactInfo function.
+3. When users ask about hours/schedule, use GetBusinessHours function.
+4. When users ask for directions/location, use GetDirections function.
+5. When users ask about procedures/requirements, use GetProcedureInfo function.
+6. When showing links, always use RELATIVE URLs (starting with /) not absolute URLs.
+7. Be friendly, helpful, and conversational.",
         name: "SivarAgent",
-        description: "AI assistant for the Sivar.Os social network",
+        description: "AI assistant for the Sivar.Os social network in El Salvador",
         tools: tools,
         loggerFactory: loggerFactory);
 });
@@ -190,6 +223,8 @@ builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>(
 
 // --- AI & Vector Services Registration ---
 builder.Services.AddScoped<ChatFunctionService>();
+builder.Services.AddScoped<IIntentClassifier, IntentClassifier>(); // Phase 6: Intent-Based Routing
+builder.Services.AddSingleton<ICategoryNormalizer, CategoryNormalizer>(); // Phase 6: Multilingual Search
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
 builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
 builder.Services.AddScoped<ISearchResultService, SearchResultService>();

@@ -87,11 +87,12 @@ public class ChatMessagesController : ControllerBase
 
             // TODO: Verify user owns this profile when authentication is implemented
 
-            // Create the SendMessageDto with conversationId
+            // Create the SendMessageDto with conversationId and location
             var sendDto = new SendMessageDto
             {
                 ConversationId = conversationId,
-                Content = messageContent.Content
+                Content = messageContent.Content,
+                Location = messageContent.Location // Pass through location for proximity-aware searches
             };
 
             // Send message to ChatService
@@ -173,4 +174,9 @@ public record SendMessageContentDto
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.StringLength(5000, MinimumLength = 1)]
     public string Content { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional location context for proximity-aware searches.
+    /// </summary>
+    public ChatLocationContext? Location { get; init; }
 }

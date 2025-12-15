@@ -19,6 +19,7 @@ public class ChatFunctionServiceSearchTests
     private readonly Mock<IProfileRepository> _profileRepoMock;
     private readonly Mock<IProfileFollowerRepository> _followerRepoMock;
     private readonly Mock<ILocationService> _locationServiceMock;
+    private readonly Mock<ICategoryNormalizer> _categoryNormalizerMock;
     private readonly Mock<ILogger<ChatFunctionService>> _loggerMock;
     private readonly ChatFunctionService _service;
 
@@ -28,13 +29,19 @@ public class ChatFunctionServiceSearchTests
         _profileRepoMock = new Mock<IProfileRepository>();
         _followerRepoMock = new Mock<IProfileFollowerRepository>();
         _locationServiceMock = new Mock<ILocationService>();
+        _categoryNormalizerMock = new Mock<ICategoryNormalizer>();
         _loggerMock = new Mock<ILogger<ChatFunctionService>>();
+
+        // Default mock: normalizer returns empty list (fallback to content search)
+        _categoryNormalizerMock.Setup(c => c.NormalizeQueryAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<string>());
 
         _service = new ChatFunctionService(
             _profileRepoMock.Object,
             _postRepoMock.Object,
             _followerRepoMock.Object,
             _locationServiceMock.Object,
+            _categoryNormalizerMock.Object,
             _loggerMock.Object);
     }
 

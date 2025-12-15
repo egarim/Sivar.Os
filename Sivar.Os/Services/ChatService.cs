@@ -12,7 +12,8 @@ using EntityChatMessage = Sivar.Os.Shared.Entities.ChatMessage;
 namespace Sivar.Os.Services;
 
 /// <summary>
-/// Service for managing AI chat conversations using Microsoft Agent Framework
+/// Service for managing AI chat conversations using Microsoft Agent Framework.
+/// Phase 6: Now includes intent-based routing for better query handling.
 /// </summary>
 public class ChatService : IChatService
 {
@@ -21,6 +22,7 @@ public class ChatService : IChatService
     private readonly IProfileRepository _profileRepository;
     private readonly AIAgent _agent;
     private readonly ChatFunctionService _functionService;
+    private readonly IIntentClassifier _intentClassifier;
     private readonly ChatServiceOptions _options;
     private readonly ISearchResultService _searchResultService;
     private readonly ILogger<ChatService> _logger;
@@ -31,6 +33,7 @@ public class ChatService : IChatService
         IProfileRepository profileRepository,
         AIAgent agent,
         ChatFunctionService functionService,
+        IIntentClassifier intentClassifier,
         IOptions<ChatServiceOptions> options,
         ISearchResultService searchResultService,
         ILogger<ChatService> logger)
@@ -40,6 +43,7 @@ public class ChatService : IChatService
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _agent = agent ?? throw new ArgumentNullException(nameof(agent));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
+        _intentClassifier = intentClassifier ?? throw new ArgumentNullException(nameof(intentClassifier));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _searchResultService = searchResultService ?? throw new ArgumentNullException(nameof(searchResultService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -210,15 +214,23 @@ public class ChatService : IChatService
             // Phase 2: Clear last search results before AI agent call
             _functionService.ClearLastSearchResults();
 
-            // Build chat history for context
-            var chatHistory = BuildChatHistory(conversation);
-            chatHistory.Add(new AiChatMessage(ChatRole.User, dto.Content));
+            // Phase 6: Intent Classification - Classify user intent before AI agent call
+            var intentClassification = _intentClassifier.ClassifyIntent(dto.Content);
+            _logger.LogInformation("[ChatService.SendMessageAsync] Intent classified - Intent={Intent}, Confidence={Confidence:F2}, Entity={Entity}, RequestId={RequestId}",
+                intentClassification.Intent, intentClassification.Confidence, intentClassification.Entity, requestId);
+
+            // Build chat history for context (include location for AI awareness)
+            var chatHistory = BuildChatHistory(conversation, dto.Location);
+            
+            // Phase 6: Enhance user message with intent context for better AI routing
+            var enhancedContent = EnhanceMessageWithIntent(dto.Content, intentClassification);
+            chatHistory.Add(new AiChatMessage(ChatRole.User, enhancedContent));
             
             _logger.LogInformation("[ChatService.SendMessageAsync] Chat history built - HistoryCount={Count}, RequestId={RequestId}", 
                 chatHistory.Count, requestId);
 
-            _logger.LogInformation("[ChatService.SendMessageAsync] Calling AI Agent - RequestId={RequestId}", 
-                requestId);
+            _logger.LogInformation("[ChatService.SendMessageAsync] Calling AI Agent - Intent={Intent}, RequestId={RequestId}", 
+                intentClassification.Intent, requestId);
 
             var aiStartTime = DateTime.UtcNow;
             
@@ -229,8 +241,8 @@ public class ChatService : IChatService
             // Extract text response from agent
             var responseText = agentResponse.ToString() ?? string.Empty;
             
-            _logger.LogInformation("[ChatService.SendMessageAsync] AI Agent response received - ResponseLength={Length}, AIDuration={Duration}ms, RequestId={RequestId}", 
-                responseText.Length, aiElapsed, requestId);
+            _logger.LogInformation("[ChatService.SendMessageAsync] AI Agent response received - ResponseLength={Length}, AIDuration={Duration}ms, Intent={Intent}, RequestId={RequestId}", 
+                responseText.Length, aiElapsed, intentClassification.Intent, requestId);
 
             // Save assistant message
             var assistantMessageOrder = await _messageRepository.GetNextMessageOrderAsync(dto.ConversationId);
@@ -382,17 +394,32 @@ public class ChatService : IChatService
 
     // Helper methods
 
-    private List<AiChatMessage> BuildChatHistory(Conversation conversation)
+    private List<AiChatMessage> BuildChatHistory(Conversation conversation, ChatLocationContext? location = null)
     {
         var history = new List<AiChatMessage>();
 
-        // Add system message
-        history.Add(new AiChatMessage(ChatRole.System, 
-            "You are a helpful AI assistant for the Sivar social network platform. " +
+        // Build system message with location context and language rules
+        var systemPrompt = "You are a helpful AI assistant for the Sivar social network platform. " +
             "You can help users find profiles, search posts, and perform social actions. " +
             "Respond in a friendly and concise manner. " +
             "IMPORTANT: When showing links, always use RELATIVE URLs (starting with /) not absolute URLs. " +
-            "For example, use '/post/abc-123' not 'https://example.com/post/abc-123'."));
+            "For example, use '/post/abc-123' not 'https://example.com/post/abc-123'." +
+            "\n\nLANGUAGE: ALWAYS respond in the SAME LANGUAGE as the user's LAST message. " +
+            "If they write in Spanish, respond in Spanish. If they write in English, respond in English. " +
+            "If they write in Russian, respond in Russian. Mirror their language exactly, regardless of system settings.";
+
+        // Add location context to system prompt if available
+        if (location != null && location.IsValid)
+        {
+            systemPrompt += $"\n\nLOCATION CONTEXT: The user is currently located in {location.City}, {location.State ?? location.Country}. " +
+                "When searching for businesses, restaurants, or services:\n" +
+                $"1. If the user specifies a DIFFERENT city in their query (e.g., 'pizza en Santa Tecla'), use THAT city instead.\n" +
+                $"2. If the user does NOT specify a city (e.g., 'busco pizzerías'), use their current location '{location.City}' as the default.\n" +
+                "3. Do NOT ask which city they want - either use the city they mentioned OR default to their current location.";
+        }
+
+        // Add system message
+        history.Add(new AiChatMessage(ChatRole.System, systemPrompt));
 
         // Add conversation messages
         var messages = conversation.Messages.OrderBy(m => m.MessageOrder).ToList();
@@ -476,5 +503,49 @@ public class ChatService : IChatService
 
         return spanishKeywords.Any(k => lowerQuery.Contains(k)) ||
                englishKeywords.Any(k => lowerQuery.Contains(k));
+    }
+
+    /// <summary>
+    /// Phase 6: Enhances the user message with intent hints for better AI agent routing.
+    /// This helps the AI choose the most appropriate function to call.
+    /// </summary>
+    private string EnhanceMessageWithIntent(string originalMessage, IntentClassificationDto intent)
+    {
+        // For high-confidence intents, add a hint to guide the AI agent
+        if (intent.Confidence < 0.7f)
+        {
+            return originalMessage; // Low confidence, let AI decide
+        }
+
+        var hint = intent.Intent switch
+        {
+            UserIntent.ContactLookup => 
+                $"[INTENT: User wants contact information. Use GetContactInfo function.]\n{originalMessage}",
+            
+            UserIntent.HoursQuery => 
+                $"[INTENT: User wants business hours. Use GetBusinessHours function.]\n{originalMessage}",
+            
+            UserIntent.DirectionsRequest => 
+                $"[INTENT: User wants location/directions. Use GetDirections function.]\n{originalMessage}",
+            
+            UserIntent.ProcedureHelp => 
+                $"[INTENT: User wants procedure/requirements help. Use GetProcedureInfo function.]\n{originalMessage}",
+            
+            UserIntent.BusinessSearch => 
+                $"[INTENT: User searching for businesses/places. Use SearchPosts or FindBusinesses function.]\n{originalMessage}",
+            
+            UserIntent.EventSearch => 
+                $"[INTENT: User searching for events. Use SearchPosts function with event focus.]\n{originalMessage}",
+            
+            UserIntent.Greeting => 
+                originalMessage, // No hint needed for greetings
+            
+            UserIntent.GeneralQuestion => 
+                originalMessage, // Let AI handle naturally
+            
+            _ => originalMessage
+        };
+
+        return hint;
     }
 }

@@ -90,6 +90,14 @@ public class Post : BaseEntity
     public virtual string[] Tags { get; set; } = Array.Empty<string>();
 
     /// <summary>
+    /// Normalized English category keys for multilingual search
+    /// Following English-First Query Pattern: stores normalized keys like "pizza", "restaurant", "bank"
+    /// Populated at data entry time, matched against CategoryDefinition synonyms at query time
+    /// Stored as PostgreSQL text[] array with GIN index for fast containment queries
+    /// </summary>
+    public virtual string[] CategoryKeys { get; set; } = Array.Empty<string>();
+
+    /// <summary>
     /// Media attachments (images, videos, links)
     /// </summary>
     public virtual ICollection<PostAttachment> Attachments { get; set; } = new ObservableCollection<PostAttachment>();

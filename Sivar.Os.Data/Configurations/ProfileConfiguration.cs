@@ -57,6 +57,13 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
                 v => JsonSerializer.Serialize(v, new JsonSerializerOptions()),
                 v => JsonSerializer.Deserialize<List<Guid>>(v, new JsonSerializerOptions()) ?? new List<Guid>());
 
+        // CategoryKeys - normalized English keys for multilingual search (Phase 6)
+        // Following English-First Query Pattern: stores ["pizza", "restaurant"] for pizzerias
+        // Query-time: user searches "pizzerías" → ICategoryNormalizer → ["pizza"] → CategoryKeys @> ARRAY['pizza']
+        builder.Property(p => p.CategoryKeys)
+            .HasColumnType("text[]")
+            .IsRequired();
+
         builder.Property(p => p.ViewCount)
             .HasDefaultValue(0);
 
@@ -105,6 +112,12 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 
         builder.HasIndex(p => p.CreatedAt)
             .HasDatabaseName("IX_Profiles_CreatedAt");
+
+        // GIN index for CategoryKeys (Phase 6: Multilingual Search)
+        // Enables fast containment queries: WHERE "CategoryKeys" @> ARRAY['pizza']
+        builder.HasIndex(p => p.CategoryKeys)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Profiles_CategoryKeys_Gin");
 
         // Composite index for user + profile type uniqueness (if needed later)
         builder.HasIndex(p => new { p.UserId, p.ProfileTypeId })

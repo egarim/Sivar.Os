@@ -139,7 +139,8 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
             var messageDto = new SendMessageDto
             {
                 ConversationId = conversationId,
-                Content = request.Content
+                Content = request.Content,
+                Location = request.Location // Pass through the location context
             };
             
             // Get the conversation to find the profile ID

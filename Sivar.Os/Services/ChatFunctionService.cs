@@ -20,6 +20,7 @@ public class ChatFunctionService
     private readonly IPostRepository _postRepository;
     private readonly IProfileFollowerRepository _followerRepository;
     private readonly ILocationService _locationService;
+    private readonly ICategoryNormalizer _categoryNormalizer;
     private readonly ILogger<ChatFunctionService> _logger;
     private Guid _currentProfileId; // Set before each AI call
     private (double Latitude, double Longitude)? _currentLocation; // Optional user location context
@@ -44,12 +45,14 @@ public class ChatFunctionService
         IPostRepository postRepository,
         IProfileFollowerRepository followerRepository,
         ILocationService locationService,
+        ICategoryNormalizer categoryNormalizer,
         ILogger<ChatFunctionService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
         _followerRepository = followerRepository ?? throw new ArgumentNullException(nameof(followerRepository));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _categoryNormalizer = categoryNormalizer ?? throw new ArgumentNullException(nameof(categoryNormalizer));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -737,21 +740,34 @@ public class ChatFunctionService
 
             maxResults = Math.Min(maxResults, 20);
 
+            // Phase 6: Normalize the business type to category keys using English-First Query Pattern
+            // This enables multilingual search: "pizzerías" → ["pizza"], "restaurante" → ["restaurant"]
+            var categoryKeys = await _categoryNormalizer.NormalizeQueryAsync(businessType);
+            _logger.LogInformation("[ChatFunctionService.FindBusinesses] Normalized '{BusinessType}' to CategoryKeys: [{Keys}]",
+                businessType, string.Join(", ", categoryKeys));
+
             // Get all posts
             var allPosts = await _postRepository.GetAllAsync();
 
-            // Search for matching businesses
+            // Search for matching businesses using CategoryKeys (Phase 6) with content fallback
             var matchingPosts = allPosts
                 .Where(p => !p.IsDeleted)
                 .Where(p =>
                 {
-                    // Check content for business type
+                    // Phase 6: Primary search using CategoryKeys if available
+                    bool categoryMatch = false;
+                    if (categoryKeys.Any() && p.CategoryKeys != null && p.CategoryKeys.Length > 0)
+                    {
+                        // Check if any normalized category key matches any of the post's CategoryKeys
+                        categoryMatch = categoryKeys.Any(key => 
+                            p.CategoryKeys.Contains(key, StringComparer.OrdinalIgnoreCase));
+                    }
+                    
+                    // Fallback: Content-based search (for posts without CategoryKeys or if no category match)
                     bool contentMatch = p.Content.Contains(businessType, StringComparison.OrdinalIgnoreCase);
                     
-                    // Also check if it's a BusinessLocation post type
-                    bool isBusinessLocation = p.PostType == Sivar.Os.Shared.Enums.PostType.BusinessLocation;
-
-                    if (!contentMatch && !isBusinessLocation)
+                    // Either CategoryKeys match OR content match (for backward compatibility)
+                    if (!categoryMatch && !contentMatch)
                         return false;
 
                     // Apply city filter if provided
@@ -806,15 +822,23 @@ public class ChatFunctionService
             }
 
             // Phase 2: Populate structured results for card rendering
-            // Re-fetch to get actual Post entities for mapping
+            // Re-fetch to get actual Post entities for mapping (using same CategoryKeys + content logic)
             var matchingPostEntities = allPosts
                 .Where(p => !p.IsDeleted)
                 .Where(p =>
                 {
+                    // Phase 6: Primary search using CategoryKeys if available
+                    bool categoryMatch = false;
+                    if (categoryKeys.Any() && p.CategoryKeys != null && p.CategoryKeys.Length > 0)
+                    {
+                        categoryMatch = categoryKeys.Any(key => 
+                            p.CategoryKeys.Contains(key, StringComparer.OrdinalIgnoreCase));
+                    }
+                    
+                    // Fallback: Content-based search
                     bool contentMatch = p.Content.Contains(businessType, StringComparison.OrdinalIgnoreCase);
-                    bool isBusinessLocation = p.PostType == Sivar.Os.Shared.Enums.PostType.BusinessLocation;
-
-                    if (!contentMatch && !isBusinessLocation)
+                    
+                    if (!categoryMatch && !contentMatch)
                         return false;
 
                     if (!string.IsNullOrWhiteSpace(city))
@@ -1259,6 +1283,560 @@ public class ChatFunctionService
                 hasLocation = false,
                 message = "No location set. The user needs to share their location first, or you can search using specific coordinates."
             }, new JsonSerializerOptions { WriteIndented = true });
+        }
+    }
+
+    // ==================== PHASE 6: INTENT-SPECIFIC FUNCTIONS ====================
+
+    /// <summary>
+    /// Get contact information for a specific business or organization.
+    /// Phase 6: Intent-Based Routing - Optimized for ContactLookup intent.
+    /// </summary>
+    [Description("Get phone numbers, email, WhatsApp, and other contact information for a business or organization. Use this when user asks for 'teléfono de X', 'contacto de Y', 'número de Z'.")]
+    public async Task<string> GetContactInfo(
+        [Description("Name of the business or organization to get contact info for")]
+        string businessName,
+        [Description("Optional: Type of contact preferred (phone, whatsapp, email)")]
+        string? contactType = null)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetContactInfo] START - RequestId={RequestId}, BusinessName={BusinessName}, ContactType={ContactType}",
+            requestId, businessName, contactType);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(businessName))
+            {
+                return "Por favor especifica el nombre del negocio o institución del que necesitas el contacto.";
+            }
+
+            // Search for profiles matching the business name
+            var allProfiles = await _profileRepository.GetAllAsync();
+            var matchingProfiles = allProfiles
+                .Where(p => !p.IsDeleted &&
+                    (p.DisplayName.Contains(businessName, StringComparison.OrdinalIgnoreCase) ||
+                     p.Handle?.Contains(businessName, StringComparison.OrdinalIgnoreCase) == true))
+                .Take(3)
+                .ToList();
+
+            if (!matchingProfiles.Any())
+            {
+                // Also search in posts
+                var allPosts = await _postRepository.GetAllAsync();
+                var matchingPosts = allPosts
+                    .Where(p => !p.IsDeleted && 
+                        p.Content.Contains(businessName, StringComparison.OrdinalIgnoreCase))
+                    .Take(3)
+                    .ToList();
+
+                if (matchingPosts.Any())
+                {
+                    matchingProfiles = matchingPosts
+                        .Select(p => p.Profile)
+                        .Where(p => p != null)
+                        .Cast<Profile>()
+                        .Distinct()
+                        .ToList();
+                }
+            }
+
+            if (!matchingProfiles.Any())
+            {
+                return $"No encontré información de contacto para '{businessName}'. Intenta con un nombre más específico o verifica la ortografía.";
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            var results = new List<object>();
+
+            foreach (var profile in matchingProfiles)
+            {
+                var contacts = new List<object>();
+
+                // Add basic contact fields from Profile entity
+                if (!string.IsNullOrWhiteSpace(profile.ContactPhone))
+                {
+                    var phone = profile.ContactPhone.Replace(" ", "").Replace("-", "");
+                    contacts.Add(new
+                    {
+                        type = "phone",
+                        value = profile.ContactPhone,
+                        isPrimary = true,
+                        url = $"tel:{phone}"
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(profile.ContactEmail))
+                {
+                    contacts.Add(new
+                    {
+                        type = "email",
+                        value = profile.ContactEmail,
+                        isPrimary = true,
+                        url = $"mailto:{profile.ContactEmail}"
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(profile.Website))
+                {
+                    contacts.Add(new
+                    {
+                        type = "website",
+                        value = profile.Website,
+                        isPrimary = false,
+                        url = profile.Website
+                    });
+                }
+
+                // Filter by contact type if specified
+                if (!string.IsNullOrWhiteSpace(contactType))
+                {
+                    contacts = contacts
+                        .Where(c => ((dynamic)c).type.ToString().Contains(contactType, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                if (contacts.Any())
+                {
+                    results.Add(new
+                    {
+                        businessName = profile.DisplayName,
+                        handle = profile.Handle,
+                        profileType = profile.ProfileType?.Name ?? "Business",
+                        contacts = contacts,
+                        location = profile.Location != null ? new
+                        {
+                            city = profile.Location.City,
+                            state = profile.Location.State,
+                            country = profile.Location.Country ?? "El Salvador"
+                        } : null
+                    });
+                }
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetContactInfo] SUCCESS - RequestId={RequestId}, Found={Count}, Duration={Duration}ms",
+                requestId, results.Count, elapsed);
+
+            if (!results.Any())
+            {
+                return $"Encontré '{matchingProfiles.First().DisplayName}' pero no tiene información de contacto registrada.";
+            }
+
+            // Create structured results for Phase 2 compatibility
+            var businessResults = matchingProfiles
+                .Select((p, index) => MapProfileToBusinessResult(p, null, index))
+                .ToList();
+            LastSearchResults = CreateSearchResultsCollection($"contacto {businessName}", businessResults, (long)elapsed);
+
+            return JsonSerializer.Serialize(new
+            {
+                query = businessName,
+                intent = "ContactLookup",
+                count = results.Count,
+                results = results,
+                tip = "Haz clic en los enlaces para contactar directamente."
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetContactInfo] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error obteniendo información de contacto: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get business hours for a specific business.
+    /// Phase 6: Intent-Based Routing - Optimized for HoursQuery intent.
+    /// </summary>
+    [Description("Get working hours and open/closed status for a business. Use this when user asks 'horario de X', 'a qué hora abre Y', 'está abierto Z'.")]
+    public async Task<string> GetBusinessHours(
+        [Description("Name of the business to get hours for")]
+        string businessName)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetBusinessHours] START - RequestId={RequestId}, BusinessName={BusinessName}",
+            requestId, businessName);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(businessName))
+            {
+                return "Por favor especifica el nombre del negocio del que necesitas el horario.";
+            }
+
+            // Search for posts with business metadata (they contain working hours)
+            var allPosts = await _postRepository.GetAllAsync();
+            var matchingPosts = allPosts
+                .Where(p => !p.IsDeleted &&
+                    (p.Content.Contains(businessName, StringComparison.OrdinalIgnoreCase) ||
+                     p.Profile?.DisplayName?.Contains(businessName, StringComparison.OrdinalIgnoreCase) == true) &&
+                    !string.IsNullOrEmpty(p.BusinessMetadata))
+                .Take(3)
+                .ToList();
+
+            if (!matchingPosts.Any())
+            {
+                // Fallback: search profiles
+                var allProfiles = await _profileRepository.GetAllAsync();
+                var matchingProfile = allProfiles
+                    .FirstOrDefault(p => !p.IsDeleted &&
+                        (p.DisplayName.Contains(businessName, StringComparison.OrdinalIgnoreCase) ||
+                         p.Handle?.Contains(businessName, StringComparison.OrdinalIgnoreCase) == true));
+
+                if (matchingProfile != null)
+                {
+                    return $"Encontré '{matchingProfile.DisplayName}' pero no tiene horarios registrados en la plataforma. Te sugiero contactarlos directamente.";
+                }
+
+                return $"No encontré información de horarios para '{businessName}'. Intenta con un nombre más específico.";
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            var results = new List<object>();
+
+            foreach (var post in matchingPosts)
+            {
+                try
+                {
+                    var metadata = post.GetBusinessLocationMetadata();
+                    if (metadata?.WorkingHours != null)
+                    {
+                        var workingHoursJson = JsonSerializer.Serialize(metadata.WorkingHours);
+                        var openStatus = WorkingHoursHelper.CalculateOpenStatus(workingHoursJson);
+
+                        results.Add(new
+                        {
+                            businessName = post.Profile?.DisplayName ?? "Negocio",
+                            handle = post.Profile?.Handle,
+                            isOpenNow = openStatus.IsOpenNow,
+                            openStatusText = openStatus.OpenStatusText,
+                            closingTime = openStatus.ClosingTime,
+                            nextOpenTime = openStatus.NextOpenTime,
+                            workingHours = metadata.WorkingHours,
+                            location = post.Location != null ? new
+                            {
+                                city = post.Location.City,
+                                state = post.Location.State,
+                                country = post.Location.Country ?? "El Salvador"
+                            } : null
+                        });
+                    }
+                }
+                catch
+                {
+                    // Skip posts with invalid metadata
+                }
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetBusinessHours] SUCCESS - RequestId={RequestId}, Found={Count}, Duration={Duration}ms",
+                requestId, results.Count, elapsed);
+
+            if (!results.Any())
+            {
+                return $"Encontré '{matchingPosts.First().Profile?.DisplayName}' pero no tiene horarios registrados correctamente.";
+            }
+
+            // Create structured results
+            var businessResults = matchingPosts
+                .Select((p, index) => MapPostToBusinessResult(p, null, index))
+                .ToList();
+            LastSearchResults = CreateSearchResultsCollection($"horario {businessName}", businessResults, (long)elapsed);
+
+            return JsonSerializer.Serialize(new
+            {
+                query = businessName,
+                intent = "HoursQuery",
+                count = results.Count,
+                results = results
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetBusinessHours] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error obteniendo horarios: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get location and directions for a specific business.
+    /// Phase 6: Intent-Based Routing - Optimized for DirectionsRequest intent.
+    /// </summary>
+    [Description("Get the address, location, and directions to a business or place. Use this when user asks 'dónde queda X', 'dirección de Y', 'cómo llego a Z'.")]
+    public async Task<string> GetDirections(
+        [Description("Name of the place or business to get directions to")]
+        string placeName)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetDirections] START - RequestId={RequestId}, PlaceName={PlaceName}",
+            requestId, placeName);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(placeName))
+            {
+                return "Por favor especifica el nombre del lugar al que quieres llegar.";
+            }
+
+            // Search for posts and profiles with location data
+            var allPosts = await _postRepository.GetAllAsync();
+            var matchingPosts = allPosts
+                .Where(p => !p.IsDeleted &&
+                    (p.Content.Contains(placeName, StringComparison.OrdinalIgnoreCase) ||
+                     p.Profile?.DisplayName?.Contains(placeName, StringComparison.OrdinalIgnoreCase) == true) &&
+                    p.Location != null)
+                .Take(3)
+                .ToList();
+
+            // Also check profiles directly
+            var allProfiles = await _profileRepository.GetAllAsync();
+            var matchingProfiles = allProfiles
+                .Where(p => !p.IsDeleted &&
+                    (p.DisplayName.Contains(placeName, StringComparison.OrdinalIgnoreCase) ||
+                     p.Handle?.Contains(placeName, StringComparison.OrdinalIgnoreCase) == true) &&
+                    p.Location != null)
+                .Take(3)
+                .ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            var results = new List<object>();
+
+            // Add from posts
+            foreach (var post in matchingPosts)
+            {
+                if (post.Location != null)
+                {
+                    var hasCoords = post.Location.Latitude.HasValue && post.Location.Longitude.HasValue;
+                    results.Add(new
+                    {
+                        name = post.Profile?.DisplayName ?? "Ubicación",
+                        handle = post.Profile?.Handle,
+                        city = post.Location.City,
+                        state = post.Location.State,
+                        country = post.Location.Country ?? "El Salvador",
+                        fullAddress = $"{post.Location.City}, {post.Location.State}, {post.Location.Country ?? "El Salvador"}".Trim(' ', ','),
+                        hasCoordinates = hasCoords,
+                        latitude = post.Location.Latitude,
+                        longitude = post.Location.Longitude,
+                        googleMapsUrl = hasCoords 
+                            ? $"https://www.google.com/maps/search/?api=1&query={post.Location.Latitude},{post.Location.Longitude}"
+                            : $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{post.Location.City ?? ""} {post.Location.State ?? ""}")}",
+                        wazeUrl = hasCoords
+                            ? $"https://waze.com/ul?ll={post.Location.Latitude},{post.Location.Longitude}&navigate=yes"
+                            : null
+                    });
+                }
+            }
+
+            // Add from profiles (avoid duplicates)
+            var existingHandles = results.Select(r => ((dynamic)r).handle?.ToString()).ToHashSet();
+            foreach (var profile in matchingProfiles.Where(p => !existingHandles.Contains(p.Handle)))
+            {
+                if (profile.Location != null)
+                {
+                    var hasCoords = profile.Location.Latitude.HasValue && profile.Location.Longitude.HasValue;
+                    results.Add(new
+                    {
+                        name = profile.DisplayName,
+                        handle = profile.Handle,
+                        city = profile.Location.City,
+                        state = profile.Location.State,
+                        country = profile.Location.Country ?? "El Salvador",
+                        fullAddress = $"{profile.Location.City}, {profile.Location.State}, {profile.Location.Country ?? "El Salvador"}".Trim(' ', ','),
+                        hasCoordinates = hasCoords,
+                        latitude = profile.Location.Latitude,
+                        longitude = profile.Location.Longitude,
+                        googleMapsUrl = hasCoords 
+                            ? $"https://www.google.com/maps/search/?api=1&query={profile.Location.Latitude},{profile.Location.Longitude}"
+                            : $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{profile.Location.City ?? ""} {profile.Location.State ?? ""}")}",
+                        wazeUrl = hasCoords
+                            ? $"https://waze.com/ul?ll={profile.Location.Latitude},{profile.Location.Longitude}&navigate=yes"
+                            : null
+                    });
+                }
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetDirections] SUCCESS - RequestId={RequestId}, Found={Count}, Duration={Duration}ms",
+                requestId, results.Count, elapsed);
+
+            if (!results.Any())
+            {
+                return $"No encontré la ubicación de '{placeName}'. Puede que no tenga dirección registrada en la plataforma.";
+            }
+
+            // Create structured results
+            var businessResults = matchingPosts
+                .Select((p, index) => MapPostToBusinessResult(p, null, index))
+                .ToList();
+            if (!businessResults.Any())
+            {
+                businessResults = matchingProfiles
+                    .Select((p, index) => MapProfileToBusinessResult(p, null, index))
+                    .ToList();
+            }
+            LastSearchResults = CreateSearchResultsCollection($"direccion {placeName}", businessResults, (long)elapsed);
+
+            // Calculate distance from user if location is set
+            object? distanceInfo = null;
+            if (_currentLocation.HasValue && results.Any())
+            {
+                var firstResult = results.First();
+                var lat = ((dynamic)firstResult).latitude;
+                var lng = ((dynamic)firstResult).longitude;
+                if (lat != null && lng != null)
+                {
+                    var distanceKm = CalculateDistanceKm(_currentLocation.Value.Latitude, _currentLocation.Value.Longitude, 
+                        (double)lat, (double)lng);
+                    distanceInfo = new
+                    {
+                        fromYourLocation = true,
+                        distanceKm = Math.Round(distanceKm, 1),
+                        distanceText = distanceKm < 1 ? $"{(int)(distanceKm * 1000)} metros" : $"{distanceKm:F1} km"
+                    };
+                }
+            }
+
+            return JsonSerializer.Serialize(new
+            {
+                query = placeName,
+                intent = "DirectionsRequest",
+                count = results.Count,
+                results = results,
+                distance = distanceInfo,
+                tip = "Haz clic en los enlaces de Google Maps o Waze para navegar."
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetDirections] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error obteniendo direcciones: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Search for government procedures and their requirements.
+    /// Phase 6: Intent-Based Routing - Optimized for ProcedureHelp intent.
+    /// </summary>
+    [Description("Search for government procedures, requirements, and steps. Use this when user asks 'cómo sacar DUI', 'requisitos para pasaporte', 'trámite de licencia'.")]
+    public async Task<string> GetProcedureInfo(
+        [Description("Name or type of procedure (e.g., 'DUI', 'pasaporte', 'licencia', 'partida de nacimiento')")]
+        string procedureName)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[ChatFunctionService.GetProcedureInfo] START - RequestId={RequestId}, ProcedureName={ProcedureName}",
+            requestId, procedureName);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(procedureName))
+            {
+                return "Por favor especifica el trámite que necesitas realizar.";
+            }
+
+            // Search for procedure-related posts (government offices typically have procedure info)
+            var allPosts = await _postRepository.GetAllAsync();
+            var matchingPosts = allPosts
+                .Where(p => !p.IsDeleted &&
+                    (p.Content.Contains(procedureName, StringComparison.OrdinalIgnoreCase) ||
+                     p.Content.Contains("requisitos", StringComparison.OrdinalIgnoreCase) ||
+                     p.Content.Contains("trámite", StringComparison.OrdinalIgnoreCase) ||
+                     p.Content.Contains("proceso", StringComparison.OrdinalIgnoreCase)) &&
+                    p.Content.Contains(procedureName, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(p => 
+                    // Prioritize posts that mention "requisitos" or "pasos"
+                    (p.Content.Contains("requisitos", StringComparison.OrdinalIgnoreCase) ? 2 : 0) +
+                    (p.Content.Contains("pasos", StringComparison.OrdinalIgnoreCase) ? 1 : 0))
+                .Take(5)
+                .ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+
+            if (!matchingPosts.Any())
+            {
+                return $"No encontré información sobre el trámite de '{procedureName}'. Prueba con términos como 'DUI', 'pasaporte', 'licencia de conducir', 'partida de nacimiento', etc.";
+            }
+
+            _logger.LogInformation("[ChatFunctionService.GetProcedureInfo] SUCCESS - RequestId={RequestId}, Found={Count}, Duration={Duration}ms",
+                requestId, matchingPosts.Count, elapsed);
+
+            // Create structured results for procedure cards
+            var procedureResults = matchingPosts
+                .Select((p, index) => new ProcedureSearchResultDto
+                {
+                    Id = p.Id,
+                    PostId = p.Id,
+                    ResultType = SearchResultType.Procedure,
+                    MatchSource = SearchMatchSource.FullText,
+                    RelevanceScore = 1.0 - (index * 0.1),
+                    DisplayOrder = index,
+                    Title = p.Profile?.DisplayName ?? "Trámite",
+                    Description = p.Content.Length > 300 ? p.Content.Substring(0, 300) + "..." : p.Content,
+                    Handle = p.Profile?.Handle,
+                    Category = "Gobierno",
+                    City = p.Location?.City,
+                    Department = p.Location?.State,
+                    Latitude = p.Location?.Latitude,
+                    Longitude = p.Location?.Longitude,
+                    WhereToGo = p.Profile?.DisplayName
+                })
+                .ToList();
+
+            // Store in LastSearchResults for UI rendering
+            LastSearchResults = new SearchResultsCollectionDto
+            {
+                Query = procedureName,
+                TotalCount = procedureResults.Count,
+                SearchTimeMs = (long)elapsed,
+                Businesses = [],
+                Events = [],
+                Procedures = procedureResults,
+                Tourism = [],
+                Products = [],
+                Services = [],
+                SuggestedActions = new List<SuggestedActionDto>
+                {
+                    new() { Label = "📍 Oficinas cercanas", Query = $"oficinas de {procedureName} cerca de mí", Type = SuggestedActionType.Location },
+                    new() { Label = "📞 Contacto", Query = $"teléfono oficina {procedureName}", Type = SuggestedActionType.Refinement }
+                }
+            };
+
+            var results = matchingPosts.Select(p => new
+            {
+                title = p.Profile?.DisplayName ?? "Procedimiento",
+                handle = p.Profile?.Handle,
+                content = p.Content,
+                location = p.Location != null ? new
+                {
+                    city = p.Location.City,
+                    state = p.Location.State,
+                    country = p.Location.Country ?? "El Salvador"
+                } : null,
+                contacts = new[]
+                {
+                    !string.IsNullOrEmpty(p.Profile?.ContactPhone) ? new { type = "phone", value = p.Profile.ContactPhone } : null,
+                    !string.IsNullOrEmpty(p.Profile?.ContactEmail) ? new { type = "email", value = p.Profile.ContactEmail } : null
+                }.Where(c => c != null).ToList()
+            }).ToList();
+
+            return JsonSerializer.Serialize(new
+            {
+                query = procedureName,
+                intent = "ProcedureHelp",
+                count = results.Count,
+                results = results,
+                tip = "Los trámites pueden cambiar. Confirma los requisitos actualizados con la institución."
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService.GetProcedureInfo] EXCEPTION - RequestId={RequestId}", requestId);
+            return $"Error buscando información del trámite: {ex.Message}";
         }
     }
 

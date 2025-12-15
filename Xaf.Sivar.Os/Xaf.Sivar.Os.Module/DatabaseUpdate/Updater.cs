@@ -1942,6 +1942,9 @@ Always be polite and positive.";
                 
                 System.Diagnostics.Debug.WriteLine($"[Updater] DemoData folder found at: {demoDataPath}");
                 
+                // Seed categories first (required for multilingual search)
+                await SeedCategoriesAsync(demoDataPath);
+                
                 // Seed restaurants
                 await SeedRestaurantsAsync(demoDataPath);
                 System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Restaurants: {_pendingEmbeddings.Count}");
@@ -1986,6 +1989,74 @@ Always be polite and positive.";
                 dir = parent?.FullName;
             }
             return null;
+        }
+        
+        /// <summary>
+        /// Seeds category definitions from DemoData/categories.json for multilingual search
+        /// </summary>
+        private async Task SeedCategoriesAsync(string demoDataPath)
+        {
+            var categoriesJsonPath = Path.Combine(demoDataPath, "categories.json");
+            if (!File.Exists(categoriesJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Categories JSON not found at: {categoriesJsonPath}. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading categories from: {categoriesJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(categoriesJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            
+            var categoryDataList = JsonSerializer.Deserialize<List<CategoryJsonData>>(jsonContent, options);
+            if (categoryDataList == null || categoryDataList.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] No categories found in JSON file.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var categoryCount = 0;
+            var sortOrder = 1;
+            
+            foreach (var categoryData in categoryDataList)
+            {
+                try
+                {
+                    // Check if category already exists by key
+                    var existingCategory = ObjectSpace.FirstOrDefault<CategoryDefinition>(c => c.Key == categoryData.Key);
+                    if (existingCategory != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Category '{categoryData.Key}' already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var category = ObjectSpace.CreateObject<CategoryDefinition>();
+                    category.Key = categoryData.Key;
+                    category.DisplayNameEn = categoryData.DisplayNameEn ?? categoryData.Key;
+                    category.DisplayNameEs = categoryData.DisplayNameEs ?? categoryData.Key;
+                    category.ParentKey = categoryData.ParentKey;
+                    category.Synonyms = categoryData.Synonyms?.ToArray() ?? Array.Empty<string>();
+                    category.Description = categoryData.Description;
+                    category.IsActive = true;
+                    category.SortOrder = sortOrder++;
+                    category.CreatedAt = now;
+                    category.UpdatedAt = now;
+                    
+                    categoryCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created category: {categoryData.Key} ({categoryData.DisplayNameEn}) with {category.Synonyms.Length} synonyms");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating category {categoryData.Key}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {categoryCount} category definitions.");
         }
         
         /// <summary>
@@ -2072,6 +2143,7 @@ Always be polite and positive.";
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     profile.IsActive = true; // Demo profiles are active for directory listings
                     profile.VisibilityLevel = VisibilityLevel.Public;
                     profile.CreatedAt = now;
@@ -2115,6 +2187,7 @@ Always be polite and positive.";
                     post.Visibility = VisibilityLevel.Public;
                     post.Language = "es";
                     post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CategoryKeys = postData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     post.CreatedAt = now;
                     post.UpdatedAt = now;
                     
@@ -2314,6 +2387,7 @@ Always be polite and positive.";
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     profile.IsActive = true; // Demo profiles are active for directory listings
                     profile.VisibilityLevel = VisibilityLevel.Public;
                     profile.CreatedAt = now;
@@ -2357,6 +2431,7 @@ Always be polite and positive.";
                     post.Visibility = VisibilityLevel.Public;
                     post.Language = "es";
                     post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CategoryKeys = postData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     post.CreatedAt = now;
                     post.UpdatedAt = now;
                     
@@ -2514,6 +2589,7 @@ Always be polite and positive.";
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     profile.IsActive = true; // Demo profiles are active for directory listings
                     profile.VisibilityLevel = VisibilityLevel.Public;
                     profile.CreatedAt = now;
@@ -2557,6 +2633,7 @@ Always be polite and positive.";
                     post.Visibility = VisibilityLevel.Public;
                     post.Language = "es";
                     post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CategoryKeys = postData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     post.CreatedAt = now;
                     post.UpdatedAt = now;
                     
@@ -2739,6 +2816,7 @@ Always be polite and positive.";
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     profile.IsActive = true; // Demo profiles are active for directory listings
                     profile.VisibilityLevel = VisibilityLevel.Public;
                     profile.CreatedAt = now;
@@ -2788,6 +2866,7 @@ Always be polite and positive.";
                     post.Visibility = VisibilityLevel.Public;
                     post.Language = "es";
                     post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CategoryKeys = postData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     post.CreatedAt = now;
                     post.UpdatedAt = now;
                     
@@ -2930,6 +3009,7 @@ Always be polite and positive.";
                     profile.Handle = profileData.Handle ?? "";
                     profile.Bio = profileData.Bio ?? "";
                     profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     profile.ProfileTypeId = businessProfileTypeId;
                     profile.IsActive = true;
                     profile.VisibilityLevel = VisibilityLevel.Public;
@@ -2974,6 +3054,7 @@ Always be polite and positive.";
                     post.Visibility = VisibilityLevel.Public;
                     post.Language = "es";
                     post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.CategoryKeys = postData.CategoryKeys?.ToArray() ?? Array.Empty<string>(); // Phase 6: Multilingual search
                     post.CreatedAt = now;
                     post.UpdatedAt = now;
                     
@@ -3059,6 +3140,12 @@ Always be polite and positive.";
         public string? Handle { get; set; }
         public string? Bio { get; set; }
         public string? Avatar { get; set; }
+        
+        /// <summary>
+        /// Normalized English category keys for multilingual search (Phase 6).
+        /// Examples: ["pizza", "restaurant"], ["bank"], ["government_office", "passport_office"]
+        /// </summary>
+        public List<string>? CategoryKeys { get; set; }
     }
     
     public class DemoPostData
@@ -3071,6 +3158,13 @@ Always be polite and positive.";
         public List<string>? ImageUrls { get; set; }
         public DemoLocationData? Location { get; set; }
         public List<string>? Tags { get; set; }
+        
+        /// <summary>
+        /// Normalized English category keys for multilingual search (Phase 6).
+        /// Examples: ["pizza", "restaurant"], ["bank"], ["government_office", "passport_office"]
+        /// </summary>
+        public List<string>? CategoryKeys { get; set; }
+        
         public DemoPricingData? PricingInfo { get; set; }
         public DemoBusinessMetadata? BusinessMetadata { get; set; }
         public DemoBusinessLocationDetails? BusinessLocationDetails { get; set; }
@@ -3143,6 +3237,19 @@ Always be polite and positive.";
         public bool? IsClosed { get; set; }
         public string? OpenTime { get; set; }
         public string? CloseTime { get; set; }
+    }
+    
+    /// <summary>
+    /// DTO for categories.json file structure - Phase 6: Multilingual Search
+    /// </summary>
+    public class CategoryJsonData
+    {
+        public string Key { get; set; } = "";
+        public string? DisplayNameEn { get; set; }
+        public string? DisplayNameEs { get; set; }
+        public string? ParentKey { get; set; }
+        public List<string>? Synonyms { get; set; }
+        public string? Description { get; set; }
     }
     
     #endregion

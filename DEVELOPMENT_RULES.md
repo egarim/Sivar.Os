@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: December 14, 2025 - Added Python Environment & Scripts section  
+> **Last Updated**: December 15, 2025 - Added Multilingual Search Architecture (English-First Query Pattern)  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -17,46 +17,52 @@
    - Special Patterns (HTML Content, MudBlazor, String Interpolation)
    - Language Selector Implementation
    - Localization Checklist & Common Errors
-6. [Service Layer Rules](#service-layer-rules)
-7. [Repository Layer Rules](#repository-layer-rules)
-8. [Controller Usage](#controller-usage)
-9. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
+6. [Multilingual Search Architecture](#multilingual-search-architecture) ⭐ **NEW** - English-First Query Pattern
+   - The Problem & Solution
+   - Entity Design: CategoryKeys Pattern
+   - CategoryDefinition Reference Table
+   - Query-Time Translation Flow
+   - Implementation Checklist
+7. [Service Layer Rules](#service-layer-rules)
+8. [Repository Layer Rules](#repository-layer-rules)
+9. [Controller Usage](#controller-usage)
+10. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
    - Storage Configuration & Hierarchical Namespace
    - CORS & Mixed Content Solutions
    - Proxy Endpoint Implementation
    - URL Generation Strategy (Dynamic vs Stored)
    - GetFileUrlAsync - The Critical Metadata Loading Fix
    - Troubleshooting Guide & Common Issues
-10. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
+11. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
     - Progressive Enhancement for AI Features
     - Background Model Preloading
     - Server-First with Client Switch Strategy
     - Transformers.js Integration Examples
     - Sentiment Analysis & Embeddings Implementation
-11. [CSS Organization & Styling](#css-organization--styling)
-12. [Logging Standards](#logging-standards)
-13. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
+12. [CSS Organization & Styling](#css-organization--styling)
+13. [Logging Standards](#logging-standards)
+14. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
     - Route Configuration Pattern
     - AllowAnonymous Implementation
     - Cookie Authentication Middleware
     - Redirect Loop Prevention
     - Common Issues & Solutions
-14. [Error Handling](#error-handling)
-15. [Testing & Debugging](#testing--debugging)
-16. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-17. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
-18. [Database Script System](#database-script-system) ⭐ **UPDATED**
+15. [Error Handling](#error-handling)
+16. [Testing & Debugging](#testing--debugging)
+17. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+18. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
+19. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-19. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
+20. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
     - Virtual Environment Setup
     - Available Scripts
     - Running Python Scripts
     - Adding New Dependencies
-20. [References](#references)
+21. [References](#references)
 
 ---
 
@@ -1414,6 +1420,306 @@ To add a third language (e.g., French):
 **Documentation:**
 - Implementation summary: `LOCALIZATION_IMPLEMENTATION_SUMMARY.md`
 - Detailed plan: `MULTI_LANGUAGE_LOCALIZATION_PLAN.md`
+
+---
+
+## Multilingual Search Architecture
+
+### ⚠️ CRITICAL: English-First Query Pattern for RAG
+
+**Problem:** Users and content can be in any language (Spanish, English, etc.), but searching `"pizzerías"` won't match content containing `"pizzeria"`, `"pizza place"`, or `"pizza restaurant"`.
+
+**Solution:** Store all **queryable metadata in English**, translate/normalize user queries to English at query time, while keeping actual content in its original language.
+
+### The Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    User Query (Any Language)                 │
+│              "busco pizzerías en San Salvador"               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│               Intent Classifier + Query Normalizer           │
+│        Extract entity: "pizzerías" → "pizza_restaurant"     │
+│        (Uses synonym lookup or LLM translation)              │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   Database Search                            │
+│        WHERE 'pizza_restaurant' = ANY(CategoryKeys)          │
+│        (All CategoryKeys are stored in English)              │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   Results (Original Language)                │
+│        Content stays in Spanish/English as created           │
+│        Display names localized using CategoryDefinition      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Principles
+
+| Principle | Description | Example |
+|-----------|-------------|---------|
+| **Store in English** | All queryable metadata uses English keys | `CategoryKeys = ["pizza_restaurant", "italian_food"]` |
+| **Query in English** | User queries normalized to English before search | "pizzerías" → "pizza_restaurant" |
+| **Display in User Language** | Use CategoryDefinition to get localized display names | Key: `pizza_restaurant` → Display: "Pizzería" (es) |
+| **Content Unchanged** | Post/Profile content stays in original language | "La mejor pizza artesanal de El Salvador..." |
+
+### Entity Design: CategoryKeys Pattern
+
+Add `CategoryKeys` to entities that need category-based search:
+
+```csharp
+// ✅ CORRECT - Post entity with CategoryKeys
+public class Post : BaseEntity
+{
+    public virtual string Content { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// English-normalized category keys for multilingual search.
+    /// Examples: "pizza_restaurant", "italian_food", "delivery"
+    /// A post can belong to multiple categories.
+    /// </summary>
+    public virtual List<string> CategoryKeys { get; set; } = new();
+    
+    // ... other properties
+}
+
+// ✅ CORRECT - Profile entity with CategoryKeys
+public class Profile : BaseEntity
+{
+    public virtual string DisplayName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// English-normalized category keys for business type search.
+    /// Examples: "restaurant", "pharmacy", "bank", "government_office"
+    /// </summary>
+    public virtual List<string> CategoryKeys { get; set; } = new();
+    
+    // ... other properties
+}
+```
+
+**PostgreSQL Query:**
+```sql
+-- Find all pizza restaurants in San Salvador
+SELECT * FROM "Sivar_Posts" 
+WHERE 'pizza_restaurant' = ANY("CategoryKeys")
+  AND "Location_City" ILIKE '%San Salvador%';
+
+-- Find all restaurants (parent category)
+SELECT * FROM "Sivar_Posts" 
+WHERE "CategoryKeys" && ARRAY['restaurant', 'pizza_restaurant', 'fast_food']::text[];
+```
+
+### CategoryDefinition Reference Table
+
+Create a reference table for category metadata (not FK-linked to avoid complexity):
+
+```csharp
+/// <summary>
+/// Reference table for category metadata.
+/// Provides synonyms for query normalization and localized display names.
+/// NOT linked via FK - just a lookup table.
+/// </summary>
+public class CategoryDefinition : BaseEntity
+{
+    /// <summary>
+    /// Primary English key (unique identifier)
+    /// Examples: "pizza_restaurant", "pharmacy", "government_office"
+    /// </summary>
+    [Required]
+    [StringLength(100)]
+    public virtual string Key { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Parent category key for hierarchy
+    /// Example: "pizza_restaurant" → ParentKey: "restaurant"
+    /// </summary>
+    [StringLength(100)]
+    public virtual string? ParentKey { get; set; }
+    
+    /// <summary>
+    /// Localized display names as JSON
+    /// Example: {"en": "Pizza Restaurant", "es": "Pizzería", "it": "Pizzeria"}
+    /// </summary>
+    public virtual string DisplayNamesJson { get; set; } = "{}";
+    
+    /// <summary>
+    /// Synonyms in multiple languages for query matching
+    /// Example: ["pizzeria", "pizzería", "pizza place", "pizza shop", "pizza joint"]
+    /// </summary>
+    public virtual List<string> Synonyms { get; set; } = new();
+    
+    /// <summary>
+    /// Icon for UI display (Material Icons name)
+    /// </summary>
+    [StringLength(50)]
+    public virtual string? Icon { get; set; }
+    
+    /// <summary>
+    /// Sort order within parent category
+    /// </summary>
+    public virtual int SortOrder { get; set; }
+}
+```
+
+**Example Data:**
+
+| Key | ParentKey | DisplayNamesJson | Synonyms |
+|-----|-----------|------------------|----------|
+| `food` | null | `{"en": "Food", "es": "Comida"}` | `["food", "comida", "alimentos"]` |
+| `restaurant` | `food` | `{"en": "Restaurant", "es": "Restaurante"}` | `["restaurant", "restaurante", "ristorante"]` |
+| `pizza_restaurant` | `restaurant` | `{"en": "Pizza Restaurant", "es": "Pizzería"}` | `["pizza", "pizzeria", "pizzería", "pizza place", "pizza shop"]` |
+| `pharmacy` | `health` | `{"en": "Pharmacy", "es": "Farmacia"}` | `["pharmacy", "farmacia", "drugstore", "botica"]` |
+| `bank` | `finance` | `{"en": "Bank", "es": "Banco"}` | `["bank", "banco", "banca"]` |
+
+### Query-Time Translation Flow
+
+**ICategoryNormalizer Service:**
+
+```csharp
+public interface ICategoryNormalizer
+{
+    /// <summary>
+    /// Normalize a user query term to English category key(s)
+    /// </summary>
+    /// <param name="term">User's search term in any language</param>
+    /// <returns>List of matching English category keys</returns>
+    Task<List<string>> NormalizeAsync(string term);
+    
+    /// <summary>
+    /// Get localized display name for a category key
+    /// </summary>
+    string GetDisplayName(string categoryKey, string culture);
+}
+
+public class CategoryNormalizer : ICategoryNormalizer
+{
+    private readonly ICategoryDefinitionRepository _repository;
+    private readonly IMemoryCache _cache;
+    
+    public async Task<List<string>> NormalizeAsync(string term)
+    {
+        var normalizedTerm = term.ToLowerInvariant().Trim();
+        
+        // Check cache first
+        var cacheKey = $"category_normalize_{normalizedTerm}";
+        if (_cache.TryGetValue(cacheKey, out List<string>? cached))
+            return cached!;
+        
+        // Find categories where term matches any synonym
+        var allCategories = await _repository.GetAllCachedAsync();
+        var matchingKeys = allCategories
+            .Where(c => c.Synonyms.Any(s => 
+                s.Equals(normalizedTerm, StringComparison.OrdinalIgnoreCase) ||
+                normalizedTerm.Contains(s, StringComparison.OrdinalIgnoreCase)))
+            .Select(c => c.Key)
+            .Distinct()
+            .ToList();
+        
+        // Cache for 1 hour
+        _cache.Set(cacheKey, matchingKeys, TimeSpan.FromHours(1));
+        
+        return matchingKeys;
+    }
+    
+    public string GetDisplayName(string categoryKey, string culture)
+    {
+        // Parse DisplayNamesJson and return localized name
+        // Fallback to English if culture not found
+    }
+}
+```
+
+**Updated FindBusinesses Function:**
+
+```csharp
+[Description("Find businesses by type and city")]
+public async Task<string> FindBusinesses(string businessType, string? city = null)
+{
+    // Step 1: Normalize user's term to English category keys
+    var categoryKeys = await _categoryNormalizer.NormalizeAsync(businessType);
+    
+    if (!categoryKeys.Any())
+    {
+        // No matching category found - fallback to content search
+        categoryKeys = new List<string> { businessType.ToLowerInvariant() };
+    }
+    
+    // Step 2: Search by CategoryKeys (always English)
+    var matchingPosts = await _postRepository.GetAllAsync();
+    var results = matchingPosts
+        .Where(p => !p.IsDeleted)
+        .Where(p => p.CategoryKeys.Any(ck => categoryKeys.Contains(ck)))
+        .Where(p => string.IsNullOrWhiteSpace(city) || 
+                    p.Location?.City?.Contains(city, StringComparison.OrdinalIgnoreCase) == true)
+        .Take(10)
+        .ToList();
+    
+    return JsonSerializer.Serialize(results);
+}
+```
+
+### Demo Data Seeding with CategoryKeys
+
+When seeding demo data, always include English CategoryKeys:
+
+```json
+{
+  "profiles": [
+    {
+      "handle": "@pizza-express-sv",
+      "displayName": "Pizza Express El Salvador",
+      "categoryKeys": ["pizza_restaurant", "fast_food", "delivery", "italian_food"],
+      "content": "Las mejores pizzas artesanales de San Salvador..."
+    },
+    {
+      "handle": "@farmacia-san-benito",
+      "displayName": "Farmacia San Benito",
+      "categoryKeys": ["pharmacy", "health", "24_hours"],
+      "content": "Farmacia 24 horas con servicio a domicilio..."
+    }
+  ]
+}
+```
+
+### Implementation Checklist
+
+When implementing multilingual search:
+
+- [ ] **Add `CategoryKeys` to entity** - `List<string>` property with `virtual` keyword
+- [ ] **Create CategoryDefinition table** - With synonyms in multiple languages
+- [ ] **Seed CategoryDefinition data** - Common categories with synonyms
+- [ ] **Create ICategoryNormalizer service** - For query-time translation
+- [ ] **Update search functions** - Use normalized CategoryKeys instead of content search
+- [ ] **Update demo data** - Include English CategoryKeys in all seeded data
+- [ ] **Cache category lookups** - Normalize calls are frequent, cache aggressively
+- [ ] **Update IntentClassifier** - Extract entities and normalize to English
+
+### Key Rules
+
+| Rule | Description |
+|------|-------------|
+| ✅ **Always store CategoryKeys in English** | `["pizza_restaurant"]` not `["pizzería"]` |
+| ✅ **Normalize queries before search** | User: "pizzerías" → Query: `pizza_restaurant` |
+| ✅ **Use synonyms for matching** | "pizza", "pizzeria", "pizzería" all → `pizza_restaurant` |
+| ✅ **Keep content in original language** | Post content stays Spanish/English as written |
+| ✅ **Localize display names** | Show "Pizzería" to Spanish users, "Pizza Restaurant" to English |
+| ❌ **Never search by content language** | Don't rely on `Content.Contains("pizzería")` |
+| ❌ **Never store keys in user's language** | Don't use `CategoryKeys = ["pizzería"]` |
+
+### Future Enhancements
+
+1. **LLM-Powered Normalization** - Use AI to translate/categorize when synonyms don't match
+2. **Auto-Categorization** - Analyze content and suggest CategoryKeys automatically
+3. **Category Hierarchy Search** - Search "food" returns all subcategories (restaurant, cafe, etc.)
+4. **User Preference Learning** - Track which categories user searches frequently
 
 ---
 

@@ -131,6 +131,12 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<ProfileBookmark> ProfileBookmarks { get; set; } = null!;
 
+    /// <summary>
+    /// Category definitions - multilingual synonyms for normalized search
+    /// Phase 6: English-First Query Pattern
+    /// </summary>
+    public DbSet<CategoryDefinition> CategoryDefinitions { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -161,6 +167,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CapabilityParameterConfiguration());
         modelBuilder.ApplyConfiguration(new QuickActionConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileBookmarkConfiguration());
+        modelBuilder.ApplyConfiguration(new CategoryDefinitionConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

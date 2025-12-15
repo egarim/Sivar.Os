@@ -41,6 +41,13 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.Tags)
             .HasColumnType("text[]")
             .IsRequired();
+        
+        // CategoryKeys - normalized English keys for multilingual search (Phase 6)
+        // Following English-First Query Pattern: stores ["pizza", "restaurant"] for pizzerias
+        // Query-time: user searches "pizzerías" → ICategoryNormalizer → ["pizza"] → CategoryKeys @> ARRAY['pizza']
+        builder.Property(p => p.CategoryKeys)
+            .HasColumnType("text[]")
+            .IsRequired();
             
         // Availability status
         builder.Property(p => p.AvailabilityStatus)
@@ -133,6 +140,12 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasIndex(p => p.Tags)
             .HasMethod("gin")
             .HasDatabaseName("IX_Posts_Tags_Gin");
+        
+        // GIN index for CategoryKeys (Phase 6: Multilingual Search)
+        // Enables fast containment queries: WHERE "CategoryKeys" @> ARRAY['pizza']
+        builder.HasIndex(p => p.CategoryKeys)
+            .HasMethod("gin")
+            .HasDatabaseName("IX_Posts_CategoryKeys_Gin");
         
         // Vector embedding configuration (Phase 5: pgvector for Semantic Search)
         // CRITICAL: ContentEmbedding MUST be IGNORED by EF Core due to EF Core 9.0 incompatibility

@@ -116,6 +116,14 @@ public class Profile : BaseEntity
     public virtual List<string> Tags { get; set; } = new();
 
     /// <summary>
+    /// Normalized English category keys for multilingual search
+    /// Following English-First Query Pattern: stores normalized keys like "pizza", "restaurant", "bank"
+    /// Populated at data entry time, matched against CategoryDefinition synonyms at query time
+    /// Stored as PostgreSQL text[] array with GIN index for fast containment queries
+    /// </summary>
+    public virtual string[] CategoryKeys { get; set; } = Array.Empty<string>();
+
+    /// <summary>
     /// Social media links stored as JSON for flexibility
     /// </summary>
     public virtual string SocialMediaLinks { get; set; } = "{}";

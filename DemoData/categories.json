@@ -1,0 +1,310 @@
+[
+  {
+    "key": "restaurant",
+    "displayNameEn": "Restaurant",
+    "displayNameEs": "Restaurante",
+    "synonyms": [
+      "restaurant", "restaurants", "restaurante", "restaurantes",
+      "dining", "eatery", "eateries", "food place", "food places",
+      "comedor", "comedores", "lugar de comida", "lugares de comida"
+    ],
+    "description": "General dining establishment"
+  },
+  {
+    "key": "pizza",
+    "displayNameEn": "Pizza Restaurant",
+    "displayNameEs": "Pizzería",
+    "parentKey": "restaurant",
+    "synonyms": [
+      "pizza", "pizzeria", "pizzerias", "pizzería", "pizzerías",
+      "pizza restaurant", "pizza place", "pizza places", "pizza joint",
+      "lugar de pizza", "restaurante de pizza"
+    ],
+    "description": "Pizza-focused restaurant"
+  },
+  {
+    "key": "cafe",
+    "displayNameEn": "Café",
+    "displayNameEs": "Cafetería",
+    "parentKey": "restaurant",
+    "synonyms": [
+      "cafe", "cafes", "café", "cafés", "cafeteria", "cafeterías", "cafetería",
+      "coffee shop", "coffee shops", "coffee house", "coffee",
+      "lugar de café", "tienda de café"
+    ],
+    "description": "Coffee and light food establishment"
+  },
+  {
+    "key": "fast_food",
+    "displayNameEn": "Fast Food",
+    "displayNameEs": "Comida Rápida",
+    "parentKey": "restaurant",
+    "synonyms": [
+      "fast food", "fastfood", "comida rápida", "comida rapida",
+      "quick service", "drive thru", "drive through",
+      "hamburger", "hamburguesa", "burger", "burgers"
+    ],
+    "description": "Quick service restaurant"
+  },
+  {
+    "key": "bakery",
+    "displayNameEn": "Bakery",
+    "displayNameEs": "Panadería",
+    "parentKey": "restaurant",
+    "synonyms": [
+      "bakery", "bakeries", "panadería", "panaderías", "panaderia",
+      "bread shop", "pastry shop", "pastelería", "pasteleria",
+      "pan", "pasteles"
+    ],
+    "description": "Bread and pastry shop"
+  },
+  {
+    "key": "bank",
+    "displayNameEn": "Bank",
+    "displayNameEs": "Banco",
+    "synonyms": [
+      "bank", "banks", "banco", "bancos",
+      "banking", "financial institution", "institución financiera",
+      "credit union", "cooperativa de crédito"
+    ],
+    "description": "Financial institution"
+  },
+  {
+    "key": "atm",
+    "displayNameEn": "ATM",
+    "displayNameEs": "Cajero Automático",
+    "parentKey": "bank",
+    "synonyms": [
+      "atm", "atms", "cajero", "cajeros", "cajero automático", "cajero automatico",
+      "cash machine", "cash point"
+    ],
+    "description": "Automated teller machine"
+  },
+  {
+    "key": "hotel",
+    "displayNameEn": "Hotel",
+    "displayNameEs": "Hotel",
+    "synonyms": [
+      "hotel", "hotels", "hoteles",
+      "lodging", "accommodation", "alojamiento", "hospedaje",
+      "motel", "inn", "posada", "hostal"
+    ],
+    "description": "Lodging establishment"
+  },
+  {
+    "key": "pharmacy",
+    "displayNameEn": "Pharmacy",
+    "displayNameEs": "Farmacia",
+    "synonyms": [
+      "pharmacy", "pharmacies", "farmacia", "farmacias",
+      "drugstore", "chemist", "medicine", "medicinas",
+      "botica"
+    ],
+    "description": "Medicine and health products store"
+  },
+  {
+    "key": "hospital",
+    "displayNameEn": "Hospital",
+    "displayNameEs": "Hospital",
+    "synonyms": [
+      "hospital", "hospitals", "hospitales",
+      "clinic", "clinica", "clínica", "clinics", "clínicas",
+      "medical center", "centro médico", "centro medico",
+      "emergency room", "sala de emergencias", "urgencias"
+    ],
+    "description": "Medical facility"
+  },
+  {
+    "key": "supermarket",
+    "displayNameEn": "Supermarket",
+    "displayNameEs": "Supermercado",
+    "synonyms": [
+      "supermarket", "supermarkets", "supermercado", "supermercados",
+      "grocery store", "grocery", "groceries", "tienda de abarrotes",
+      "market", "mercado", "food store"
+    ],
+    "description": "Grocery store"
+  },
+  {
+    "key": "gas_station",
+    "displayNameEn": "Gas Station",
+    "displayNameEs": "Gasolinera",
+    "synonyms": [
+      "gas station", "gas stations", "gasolinera", "gasolineras",
+      "petrol station", "fuel station", "estación de servicio", "estacion de servicio",
+      "gasolina", "gas", "fuel"
+    ],
+    "description": "Fuel station"
+  },
+  {
+    "key": "school",
+    "displayNameEn": "School",
+    "displayNameEs": "Escuela",
+    "synonyms": [
+      "school", "schools", "escuela", "escuelas",
+      "colegio", "colegios", "institute", "instituto", "institutos",
+      "education", "educación", "educacion"
+    ],
+    "description": "Educational institution"
+  },
+  {
+    "key": "university",
+    "displayNameEn": "University",
+    "displayNameEs": "Universidad",
+    "parentKey": "school",
+    "synonyms": [
+      "university", "universities", "universidad", "universidades",
+      "college", "colleges", "facultad", "facultades",
+      "higher education", "educación superior"
+    ],
+    "description": "Higher education institution"
+  },
+  {
+    "key": "government_office",
+    "displayNameEn": "Government Office",
+    "displayNameEs": "Oficina de Gobierno",
+    "synonyms": [
+      "government", "gobierno", "government office", "oficina de gobierno",
+      "public office", "oficina pública", "oficina publica",
+      "municipal", "municipalidad", "alcaldía", "alcaldia",
+      "ministry", "ministerio"
+    ],
+    "description": "Government administrative office"
+  },
+  {
+    "key": "dui_office",
+    "displayNameEn": "DUI Office",
+    "displayNameEs": "Oficina de DUI",
+    "parentKey": "government_office",
+    "synonyms": [
+      "dui", "dui office", "oficina de dui",
+      "identity card", "tarjeta de identidad", "documento de identidad",
+      "rnpn", "registro civil"
+    ],
+    "description": "National ID card office"
+  },
+  {
+    "key": "passport_office",
+    "displayNameEn": "Passport Office",
+    "displayNameEs": "Oficina de Pasaportes",
+    "parentKey": "government_office",
+    "synonyms": [
+      "passport", "passports", "pasaporte", "pasaportes",
+      "passport office", "oficina de pasaportes",
+      "travel document", "documento de viaje"
+    ],
+    "description": "Passport issuance office"
+  },
+  {
+    "key": "tourist_attraction",
+    "displayNameEn": "Tourist Attraction",
+    "displayNameEs": "Atracción Turística",
+    "synonyms": [
+      "tourist", "tourism", "turismo", "turístico", "turistico",
+      "attraction", "attractions", "atracción", "atracciones",
+      "sightseeing", "landmark", "landmarks", "punto de interés"
+    ],
+    "description": "Place of tourist interest"
+  },
+  {
+    "key": "beach",
+    "displayNameEn": "Beach",
+    "displayNameEs": "Playa",
+    "parentKey": "tourist_attraction",
+    "synonyms": [
+      "beach", "beaches", "playa", "playas",
+      "coast", "costa", "shore", "orilla",
+      "seaside", "oceanfront"
+    ],
+    "description": "Coastal beach area"
+  },
+  {
+    "key": "museum",
+    "displayNameEn": "Museum",
+    "displayNameEs": "Museo",
+    "parentKey": "tourist_attraction",
+    "synonyms": [
+      "museum", "museums", "museo", "museos",
+      "gallery", "galleries", "galería", "galerías",
+      "exhibition", "exhibición", "exposición"
+    ],
+    "description": "Cultural museum or gallery"
+  },
+  {
+    "key": "park",
+    "displayNameEn": "Park",
+    "displayNameEs": "Parque",
+    "synonyms": [
+      "park", "parks", "parque", "parques",
+      "garden", "gardens", "jardín", "jardines",
+      "recreation area", "área recreativa", "plaza"
+    ],
+    "description": "Public park or garden"
+  },
+  {
+    "key": "shopping",
+    "displayNameEn": "Shopping Center",
+    "displayNameEs": "Centro Comercial",
+    "synonyms": [
+      "shopping", "shopping center", "shopping mall", "mall", "malls",
+      "centro comercial", "centros comerciales",
+      "tienda", "tiendas", "store", "stores", "shop", "shops"
+    ],
+    "description": "Shopping mall or retail area"
+  },
+  {
+    "key": "gym",
+    "displayNameEn": "Gym",
+    "displayNameEs": "Gimnasio",
+    "synonyms": [
+      "gym", "gyms", "gimnasio", "gimnasios",
+      "fitness", "fitness center", "centro de fitness",
+      "workout", "exercise", "ejercicio"
+    ],
+    "description": "Fitness facility"
+  },
+  {
+    "key": "church",
+    "displayNameEn": "Church",
+    "displayNameEs": "Iglesia",
+    "synonyms": [
+      "church", "churches", "iglesia", "iglesias",
+      "temple", "templo", "cathedral", "catedral",
+      "chapel", "capilla", "worship", "culto"
+    ],
+    "description": "Religious place of worship"
+  },
+  {
+    "key": "lawyer",
+    "displayNameEn": "Lawyer",
+    "displayNameEs": "Abogado",
+    "synonyms": [
+      "lawyer", "lawyers", "abogado", "abogados",
+      "attorney", "attorneys", "legal", "legal services",
+      "law firm", "bufete", "notary", "notario"
+    ],
+    "description": "Legal services"
+  },
+  {
+    "key": "mechanic",
+    "displayNameEn": "Mechanic",
+    "displayNameEs": "Mecánico",
+    "synonyms": [
+      "mechanic", "mechanics", "mecánico", "mecánicos", "mecanico",
+      "auto repair", "car repair", "taller", "talleres",
+      "garage", "automotive"
+    ],
+    "description": "Auto repair service"
+  },
+  {
+    "key": "beauty_salon",
+    "displayNameEn": "Beauty Salon",
+    "displayNameEs": "Salón de Belleza",
+    "synonyms": [
+      "beauty salon", "salon", "salón", "salón de belleza", "salon de belleza",
+      "hair salon", "peluquería", "peluqueria", "barber", "barbería",
+      "spa", "nails", "uñas"
+    ],
+    "description": "Beauty and personal care services"
+  }
+]
