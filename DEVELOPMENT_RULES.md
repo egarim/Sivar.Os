@@ -63,6 +63,77 @@
     - Running Python Scripts
     - Adding New Dependencies
 21. [References](#references)
+22. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
+
+---
+
+## 📚 Related Documentation
+
+> **All project documentation in one place.** Use this section as your starting point for any feature or system.
+
+### 📋 Project Management
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [TODO.md](TODO.md) | **Consolidated TODO list** - All pending work across the project | ✅ Active |
+| [README.md](README.md) | Project overview and getting started | ✅ Active |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues and solutions | ✅ Active |
+
+### 🤖 Chat & AI System
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [chat3.md](chat3.md) | **Chat system phases** - 11 phases of chat improvements | ✅ Phase 11 Complete |
+| [chatplan.md](chatplan.md) | Agent framework migration to Microsoft.Agents.AI | 📋 Future |
+| [content_ranking.md](content_ranking.md) | Elo-inspired content ranking system | 📋 Pending |
+
+### 👤 Profile & Social Features
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [profileplan.md](profileplan.md) | Profile page tabbed content view | ⏳ Phase 2-4 Pending |
+| [PROFILE_SEARCH_IMPLEMENTATION_PLAN.md](PROFILE_SEARCH_IMPLEMENTATION_PLAN.md) | Profile search UI (backend complete) | 📋 Pending |
+| [COMMENT_REPLY_SYSTEM_IMPROVEMENT_PLAN.md](COMMENT_REPLY_SYSTEM_IMPROVEMENT_PLAN.md) | Instagram-style threaded replies (backend complete) | 📋 Pending |
+| [blogplan.md](blogplan.md) | Blog system as PostType | 📋 Pending |
+
+### 🔧 Infrastructure & Database
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [POSTGRESQL_OPTIMIZATION_ROADMAP.md](POSTGRESQL_OPTIMIZATION_ROADMAP.md) | PostgreSQL optimization phases (JSONB, pgvector, TimescaleDB) | ✅ Phase 7.5 Complete |
+| [LOCATION_SERVICES_IMPLEMENTATION_PLAN.md](LOCATION_SERVICES_IMPLEMENTATION_PLAN.md) | PostGIS location services | ⏳ Phase 2-5 Pending |
+| [MULTI_LANGUAGE_LOCALIZATION_PLAN.md](MULTI_LANGUAGE_LOCALIZATION_PLAN.md) | i18n localization system | ⏳ Phase 7-8 Pending |
+| [FEED_SYSTEM_IMPLEMENTATION_PLAN.md](FEED_SYSTEM_IMPLEMENTATION_PLAN.md) | Algorithmic feed with ads | 📋 Future (6-8 weeks) |
+
+### 📖 Integration Guides
+
+| Document | Purpose |
+|----------|---------|
+| [KEYCLOAK_INTEGRATION_GUIDE.md](KEYCLOAK_INTEGRATION_GUIDE.md) | Keycloak authentication setup |
+| [LEAFLET_INTEGRATION_GUIDE.md](LEAFLET_INTEGRATION_GUIDE.md) | Leaflet.js map integration |
+| [MODEL_QUANTIZATION_GUIDE.md](MODEL_QUANTIZATION_GUIDE.md) | ML model quantization for client-side |
+| [Docs/KEYCLOAK_AUTHENTICATION.md](Docs/KEYCLOAK_AUTHENTICATION.md) | Keycloak authentication details |
+| [Keycloak/IMPORT_INSTRUCTIONS.md](Keycloak/IMPORT_INSTRUCTIONS.md) | Keycloak realm import |
+
+### 📁 Folder-Specific Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [DemoData/README.md](DemoData/README.md) | Demo data seeding (115 profiles, 135 posts) |
+| [Xaf.Sivar.Os/Xaf.Sivar.Os.Module/DatabaseUpdate/README_SQL_SCRIPTS.md](Xaf.Sivar.Os/Xaf.Sivar.Os.Module/DatabaseUpdate/README_SQL_SCRIPTS.md) | SQL scripts for database updates |
+
+### Quick Reference: What to Read When
+
+| Task | Start Here |
+|------|------------|
+| **New to the project?** | `README.md` → `DEVELOPMENT_RULES.md` |
+| **What needs to be done?** | `TODO.md` |
+| **Implementing chat features?** | `chat3.md` |
+| **Working on profiles?** | `profileplan.md` → `PROFILE_SEARCH_IMPLEMENTATION_PLAN.md` |
+| **Database optimization?** | `POSTGRESQL_OPTIMIZATION_ROADMAP.md` |
+| **Adding localization?** | `MULTI_LANGUAGE_LOCALIZATION_PLAN.md` + this file's localization section |
+| **Setting up auth?** | `KEYCLOAK_INTEGRATION_GUIDE.md` |
+| **Something broken?** | `TROUBLESHOOTING.md` |
 
 ---
 
