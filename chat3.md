@@ -3197,10 +3197,52 @@ Database-driven agent configuration allowing dynamic management of multiple spec
 
 ---
 
-## Phase 11: Results Ranking & Personalization 📊
+## Phase 11: Results Ranking & Personalization ✅ IMPLEMENTED
 
 > **📌 Related Document**: See `content_ranking.md` for the complete Elo-based content ranking system.
 > This phase integrates the content ranking scores into search results with personalization.
+
+### Implementation Summary
+
+#### Files Created:
+1. **`SearchRankingFactors.cs`** (`Sivar.Os.Shared/DTOs/`)
+   - DTO with all ranking factors: semantic, fulltext, geo, rating, review, verification, recency, personalization, behavioral
+   - `RankingReason` record for "Why this result" explanations
+
+2. **`UserSearchBehavior.cs`** (`Sivar.Os.Shared/Entities/`)
+   - Tracks user preferences for personalization
+   - CategoryAffinities (JSONB), RecentInteractions, FrequentQueries, PreferredRadiusKm
+   - Helper methods: `UpdateCategoryAffinity()`, `RecordQuery()`
+
+3. **`RankingConfiguration.cs`** (`Sivar.Os.Shared/Entities/`)
+   - Database-stored ranking weights per category
+   - 12 configurable weights summing to 1.0
+   - A/B testing support with `AbTestVariant` and `AbTestTrafficPercent`
+
+4. **`IRankingService.cs`** (`Sivar.Os.Shared/Services/`)
+   - Interface with `RankResultsAsync`, `ExplainRanking`, `RecordInteractionAsync`
+   - `InteractionType` enum: Click, Call, WhatsApp, Save, etc.
+
+5. **`RankingService.cs`** (`Sivar.Os/Services/`)
+   - Full ranking computation with all 12 signals
+   - Personalization based on user behavior
+   - Spanish ranking explanations
+
+6. **`IRankingRepositories.cs`** (`Sivar.Os.Shared/Repositories/`)
+   - `IUserSearchBehaviorRepository`, `IRankingConfigurationRepository`
+
+7. **`RankingRepositories.cs`** (`Sivar.Os.Data/Repositories/`)
+   - Repository implementations
+
+8. **`RankingExplanation.razor`** (`Sivar.Os.Client/Components/AIChat/`)
+   - "¿Por qué este resultado?" expansion panel
+   - Progress bars for each ranking reason
+
+#### Files Modified:
+- **`SearchResultDtos.cs`** - Added `RankingFactors`, `IsVerified`, `IsPopular`, `RecentViews`
+- **`SivarDbContext.cs`** - Added DbSets for `UserSearchBehavior`, `RankingConfiguration`
+- **`Program.cs`** - Registered repositories and `IRankingService`
+- **`Updater.cs`** - Added `SeedRankingConfigurations()` for default + restaurant configs
 
 ### Overview
 Currently, search results are ranked by a weighted combination of semantic similarity, full-text match, and geographic proximity. This phase adds:

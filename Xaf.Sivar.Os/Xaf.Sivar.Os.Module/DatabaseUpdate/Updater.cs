@@ -130,6 +130,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists agent configurations
             
+            // Seed ranking configurations (Phase 11: Results Ranking & Personalization)
+            SeedRankingConfigurations();
+            
+            ObjectSpace.CommitChanges(); //This line persists ranking configurations
+            
             // Seed default profiles for users (runs in both DEBUG and RELEASE)
             SeedDefaultProfiles();
 
@@ -1381,6 +1386,93 @@ IMPORTANT INSTRUCTIONS:
             }
             
             System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {toolDefinitions.Length} AgentTool entries");
+        }
+        
+        /// <summary>
+        /// Seeds ranking configurations for Phase 11: Results Ranking & Personalization
+        /// Creates default global ranking weights
+        /// </summary>
+        void SeedRankingConfigurations()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedRankingConfigurations (Phase 11)...");
+            var now = DateTime.UtcNow;
+            
+            // Check if default config already exists
+            var existingConfig = ObjectSpace.GetObjectsQuery<RankingConfiguration>()
+                .FirstOrDefault(c => c.Category == null && c.AbTestVariant == null);
+            
+            if (existingConfig != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Default RankingConfiguration already exists. Skipping.");
+                return;
+            }
+            
+            // --- Create Default Global Ranking Configuration ---
+            var defaultConfig = ObjectSpace.CreateObject<RankingConfiguration>();
+            defaultConfig.DisplayName = "Configuración Global";
+            defaultConfig.Description = "Pesos de ranking predeterminados para todas las búsquedas";
+            defaultConfig.Category = null; // null = global default
+            
+            // Content relevance weights (sum ~0.50)
+            defaultConfig.SemanticWeight = 0.25;
+            defaultConfig.FullTextWeight = 0.15;
+            defaultConfig.GeoWeight = 0.10;
+            
+            // Quality signal weights (sum ~0.25)
+            defaultConfig.RatingWeight = 0.10;
+            defaultConfig.ReviewCountWeight = 0.05;
+            defaultConfig.VerifiedWeight = 0.05;
+            defaultConfig.RecencyWeight = 0.05;
+            
+            // Content ranking weight (Elo system)
+            defaultConfig.ContentRankWeight = 0.10;
+            
+            // Personalization weights (sum ~0.10)
+            defaultConfig.PersonalizationWeight = 0.05;
+            defaultConfig.CategoryPreferenceWeight = 0.05;
+            
+            // Behavioral weights (start at 0, increase as data grows)
+            defaultConfig.ClickPopularityWeight = 0.025;
+            defaultConfig.ActionRateWeight = 0.025;
+            
+            defaultConfig.IsActive = true;
+            defaultConfig.Priority = 0;
+            defaultConfig.AbTestTrafficPercent = 100;
+            defaultConfig.CreatedAt = now;
+            defaultConfig.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created default RankingConfiguration");
+            
+            // --- Create Restaurant-specific Ranking Configuration ---
+            var restaurantConfig = ObjectSpace.CreateObject<RankingConfiguration>();
+            restaurantConfig.DisplayName = "Restaurantes";
+            restaurantConfig.Description = "Pesos de ranking optimizados para búsquedas de restaurantes";
+            restaurantConfig.Category = "restaurant";
+            
+            // Higher geo weight for restaurants (people want nearby)
+            restaurantConfig.SemanticWeight = 0.20;
+            restaurantConfig.FullTextWeight = 0.10;
+            restaurantConfig.GeoWeight = 0.20; // Higher!
+            
+            // Higher rating weight for restaurants
+            restaurantConfig.RatingWeight = 0.15; // Higher!
+            restaurantConfig.ReviewCountWeight = 0.10; // Higher!
+            restaurantConfig.VerifiedWeight = 0.05;
+            restaurantConfig.RecencyWeight = 0.02;
+            
+            restaurantConfig.ContentRankWeight = 0.08;
+            restaurantConfig.PersonalizationWeight = 0.05;
+            restaurantConfig.CategoryPreferenceWeight = 0.03;
+            restaurantConfig.ClickPopularityWeight = 0.01;
+            restaurantConfig.ActionRateWeight = 0.01;
+            
+            restaurantConfig.IsActive = true;
+            restaurantConfig.Priority = 10; // Higher priority than global
+            restaurantConfig.AbTestTrafficPercent = 100;
+            restaurantConfig.CreatedAt = now;
+            restaurantConfig.UpdatedAt = now;
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created restaurant RankingConfiguration");
         }
         
         /// <summary>

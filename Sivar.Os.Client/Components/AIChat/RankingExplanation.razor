@@ -1,0 +1,67 @@
+@namespace Sivar.Os.Client.Components.AIChat
+@using Sivar.Os.Shared.DTOs
+
+<MudExpansionPanel Text="¿Por qué este resultado?" 
+                   Dense="true" 
+                   Class="ranking-explanation mt-2"
+                   Elevation="0">
+    <div class="ranking-reasons">
+        @foreach (var reason in Reasons)
+        {
+            <div class="reason-row d-flex align-center mb-2">
+                <span class="reason-icon me-2">@reason.Icon</span>
+                <span class="reason-label flex-grow-1">@reason.Label</span>
+                <div class="reason-bar-container">
+                    <MudProgressLinear Value="@reason.ScorePercent" 
+                                       Color="@GetProgressColor(reason.ScorePercent)" 
+                                       Size="Size.Small"
+                                       Class="reason-bar" />
+                </div>
+                <span class="reason-score ms-2">@reason.ScorePercent%</span>
+            </div>
+        }
+    </div>
+    
+    @if (ShowDebugInfo && Factors != null)
+    {
+        <MudDivider Class="my-2" />
+        <div class="debug-info">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Score Final: @Factors.FinalScore.ToString("F3")
+            </MudText>
+            <div class="factor-grid mt-1">
+                <span>Semántico: @Factors.SemanticScore.ToString("P0")</span>
+                <span>Texto: @Factors.FullTextScore.ToString("P0")</span>
+                <span>Geo: @Factors.GeoScore.ToString("P0")</span>
+                <span>Rating: @Factors.RatingScore.ToString("P0")</span>
+                <span>Recency: @Factors.RecencyScore.ToString("P0")</span>
+                <span>Personal: @Factors.UserAffinityScore.ToString("P0")</span>
+            </div>
+        </div>
+    }
+</MudExpansionPanel>
+
+@code {
+    /// <summary>
+    /// The full ranking factors (for debug info)
+    /// </summary>
+    [Parameter]
+    public SearchRankingFactors? Factors { get; set; }
+    
+    /// <summary>
+    /// Whether to show debug information (all factors)
+    /// </summary>
+    [Parameter]
+    public bool ShowDebugInfo { get; set; } = false;
+
+    private IEnumerable<RankingReason> Reasons => 
+        Factors?.TopReasons ?? Enumerable.Empty<RankingReason>();
+
+    private Color GetProgressColor(int percent) => percent switch
+    {
+        >= 80 => Color.Success,
+        >= 50 => Color.Primary,
+        >= 30 => Color.Warning,
+        _ => Color.Default
+    };
+}

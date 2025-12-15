@@ -1,0 +1,69 @@
+.ranking-explanation {
+    background-color: var(--mud-palette-background-grey);
+    border-radius: 8px;
+}
+
+.ranking-explanation :deep(.mud-expansion-panel-text) {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.ranking-reasons {
+    padding: 8px 0;
+}
+
+.reason-row {
+    gap: 8px;
+}
+
+.reason-icon {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.reason-label {
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-primary);
+    min-width: 120px;
+}
+
+.reason-bar-container {
+    width: 80px;
+}
+
+.reason-bar {
+    height: 6px;
+    border-radius: 3px;
+}
+
+.reason-score {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary);
+    min-width: 35px;
+    text-align: right;
+}
+
+.debug-info {
+    background-color: var(--mud-palette-surface);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.factor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* Dark mode adjustments */
+.mud-theme-dark .ranking-explanation {
+    background-color: var(--mud-palette-background);
+}
+
+.mud-theme-dark .debug-info {
+    background-color: rgba(255, 255, 255, 0.05);
+}

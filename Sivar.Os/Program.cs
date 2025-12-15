@@ -107,6 +107,9 @@ builder.Services.AddScoped<IChatBotSettingsRepository, ChatBotSettingsRepository
 builder.Services.AddScoped<IProfileBookmarkRepository, ProfileBookmarkRepository>();
 // Phase 10: Multi-Agent Configuration - Repository registration
 builder.Services.AddScoped<IAgentConfigurationRepository, AgentConfigurationRepository>();
+// Phase 11: Results Ranking & Personalization - Repository registration
+builder.Services.AddScoped<IUserSearchBehaviorRepository, UserSearchBehaviorRepository>();
+builder.Services.AddScoped<IRankingConfigurationRepository, RankingConfigurationRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -170,6 +173,7 @@ builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();
 builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
 builder.Services.AddScoped<ISearchResultService, SearchResultService>();
 builder.Services.AddScoped<IContentExtractionService, ContentExtractionService>();
+builder.Services.AddScoped<IRankingService, RankingService>(); // Phase 11: Results Ranking & Personalization
 
 // --- Sentiment Analysis Services Registration ---
 builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();

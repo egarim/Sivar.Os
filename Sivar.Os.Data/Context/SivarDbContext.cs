@@ -149,6 +149,18 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<AgentTool> AgentTools { get; set; } = null!;
 
+    /// <summary>
+    /// User search behavior tracking for personalization
+    /// Phase 11: Results Ranking & Personalization
+    /// </summary>
+    public DbSet<UserSearchBehavior> UserSearchBehaviors { get; set; } = null!;
+
+    /// <summary>
+    /// Ranking configurations (weights per category)
+    /// Phase 11: Results Ranking & Personalization
+    /// </summary>
+    public DbSet<RankingConfiguration> RankingConfigurations { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -29,6 +29,30 @@ public abstract record SearchResultBaseDto
     
     // Tags
     public string[]? Tags { get; init; }
+    
+    #region Phase 11: Ranking & Personalization
+    
+    /// <summary>
+    /// Full ranking factors (for transparency and analytics)
+    /// </summary>
+    public SearchRankingFactors? RankingFactors { get; set; }
+    
+    /// <summary>
+    /// Whether this business is verified
+    /// </summary>
+    public bool IsVerified { get; init; }
+    
+    /// <summary>
+    /// Whether this result is popular (top 10% in category)
+    /// </summary>
+    public bool IsPopular { get; init; }
+    
+    /// <summary>
+    /// Recent view count (last 7 days)
+    /// </summary>
+    public int? RecentViews { get; init; }
+    
+    #endregion
 
     /// <summary>
     /// Generated URL to navigate to this result
