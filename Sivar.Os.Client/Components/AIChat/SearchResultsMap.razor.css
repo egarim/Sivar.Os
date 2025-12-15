@@ -293,3 +293,101 @@
         font-size: 14px;
     }
 }
+
+/* ==========================================
+   User Location Marker Styles
+   ========================================== */
+
+/* User location marker container */
+::deep .user-location-marker {
+    background: none;
+    border: none;
+}
+
+::deep .user-location-dot {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+/* Pulsing animation ring */
+::deep .user-location-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background: rgba(66, 133, 244, 0.3);
+    border-radius: 50%;
+    animation: userLocationPulse 2s ease-out infinite;
+}
+
+/* Center dot */
+::deep .user-location-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background: #4285F4;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes userLocationPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+    }
+}
+
+/* User location popup */
+::deep .user-location-popup .leaflet-popup-content-wrapper {
+    background: #4285F4;
+    border-radius: 8px;
+}
+
+::deep .user-location-popup .leaflet-popup-content {
+    color: #fff;
+    font-weight: 500;
+    margin: 8px 12px;
+}
+
+::deep .user-location-popup .leaflet-popup-tip {
+    background: #4285F4;
+}
+
+/* ==========================================
+   Distance Lines Styles
+   ========================================== */
+
+/* Distance label container */
+::deep .distance-label {
+    background: none;
+    border: none;
+    pointer-events: none;
+}
+
+::deep .distance-label-text {
+    display: inline-block;
+    background: rgba(30, 30, 30, 0.9);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Distance line styling (handled in JS but can override) */
+::deep .distance-line {
+    stroke-opacity: 0.5;
+}

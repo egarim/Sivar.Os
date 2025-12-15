@@ -442,7 +442,12 @@
                 
                 @if (_showMapView)
                 {
-                    <SearchResultsMap Results="Message.StructuredResults" Height="280" />
+                    <SearchResultsMap 
+                        Results="Message.StructuredResults" 
+                        Height="280"
+                        UserLatitude="@UserLocation?.Latitude"
+                        UserLongitude="@UserLocation?.Longitude"
+                        ShowDistanceLines="true" />
                 }
             }
             
@@ -804,6 +809,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnSuggestionClick { get; set; }
+
+    /// <summary>
+    /// User's current location for map display (Phase 7)
+    /// </summary>
+    [Parameter]
+    public ChatLocationContext? UserLocation { get; set; }
 
     // Parsed results cache
     private List<BusinessResult>? _cachedResults;

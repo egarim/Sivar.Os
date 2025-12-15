@@ -724,6 +724,167 @@ window.leafletInterop = {
     },
     
     /**
+     * Add user location marker with pulsing effect
+     * @param {string} mapId - Map ID
+     * @param {number} lat - User latitude
+     * @param {number} lng - User longitude
+     * @returns {boolean} Success
+     */
+    addUserLocationMarker: function (mapId, lat, lng) {
+        try {
+            const instance = window._leafletMaps[mapId];
+            if (!instance) {
+                console.error(`[Leaflet] Map not found: ${mapId}`);
+                return false;
+            }
+
+            // Remove existing user marker if present
+            if (instance.userMarker) {
+                instance.map.removeLayer(instance.userMarker);
+            }
+
+            // Create pulsing user location icon
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: `
+                    <div class="user-location-dot">
+                        <div class="user-location-pulse"></div>
+                        <div class="user-location-center"></div>
+                    </div>
+                `,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            // Create user marker
+            instance.userMarker = L.marker([lat, lng], {
+                icon: userIcon,
+                zIndexOffset: 1000 // Ensure it's on top
+            }).addTo(instance.map);
+
+            instance.userMarker.bindPopup('<strong>📍 Tu ubicación</strong>', {
+                className: 'user-location-popup'
+            });
+
+            console.log(`[Leaflet] User location marker added at (${lat}, ${lng})`);
+            return true;
+        } catch (error) {
+            console.error(`[Leaflet] Error adding user location marker:`, error);
+            return false;
+        }
+    },
+
+    /**
+     * Draw distance lines from user location to all markers
+     * @param {string} mapId - Map ID
+     * @param {number} userLat - User latitude
+     * @param {number} userLng - User longitude
+     * @param {boolean} showLabels - Whether to show distance labels
+     * @returns {boolean} Success
+     */
+    drawDistanceLines: function (mapId, userLat, userLng, showLabels = true) {
+        try {
+            const instance = window._leafletMaps[mapId];
+            if (!instance) {
+                console.error(`[Leaflet] Map not found: ${mapId}`);
+                return false;
+            }
+
+            // Remove existing distance lines
+            if (instance.distanceLines) {
+                instance.distanceLines.forEach(line => instance.map.removeLayer(line));
+            }
+            if (instance.distanceLabels) {
+                instance.distanceLabels.forEach(label => instance.map.removeLayer(label));
+            }
+            instance.distanceLines = [];
+            instance.distanceLabels = [];
+
+            if (!instance.markers || instance.markers.length === 0) {
+                return true;
+            }
+
+            // Draw line to each marker
+            instance.markers.forEach((marker, index) => {
+                const markerPos = marker.getLatLng();
+                
+                // Calculate distance
+                const distanceKm = calculateHaversineDistance(userLat, userLng, markerPos.lat, markerPos.lng);
+                
+                // Create dashed line
+                const line = L.polyline(
+                    [[userLat, userLng], [markerPos.lat, markerPos.lng]],
+                    {
+                        color: '#4285F4',
+                        weight: 2,
+                        opacity: 0.5,
+                        dashArray: '5, 10',
+                        className: 'distance-line'
+                    }
+                ).addTo(instance.map);
+
+                instance.distanceLines.push(line);
+
+                // Add distance label at midpoint
+                if (showLabels && distanceKm < 50) { // Only show labels for reasonable distances
+                    const midLat = (userLat + markerPos.lat) / 2;
+                    const midLng = (userLng + markerPos.lng) / 2;
+                    
+                    const distanceText = distanceKm < 1 
+                        ? `${Math.round(distanceKm * 1000)} m` 
+                        : `${distanceKm.toFixed(1)} km`;
+                    
+                    const label = L.marker([midLat, midLng], {
+                        icon: L.divIcon({
+                            className: 'distance-label',
+                            html: `<span class="distance-label-text">${distanceText}</span>`,
+                            iconSize: [60, 20],
+                            iconAnchor: [30, 10]
+                        }),
+                        interactive: false
+                    }).addTo(instance.map);
+
+                    instance.distanceLabels.push(label);
+                }
+            });
+
+            console.log(`[Leaflet] Drew ${instance.distanceLines.length} distance lines`);
+            return true;
+        } catch (error) {
+            console.error(`[Leaflet] Error drawing distance lines:`, error);
+            return false;
+        }
+    },
+
+    /**
+     * Clear user location marker and distance lines
+     * @param {string} mapId - Map ID
+     */
+    clearUserLocation: function (mapId) {
+        try {
+            const instance = window._leafletMaps[mapId];
+            if (!instance) return false;
+
+            if (instance.userMarker) {
+                instance.map.removeLayer(instance.userMarker);
+                instance.userMarker = null;
+            }
+            if (instance.distanceLines) {
+                instance.distanceLines.forEach(line => instance.map.removeLayer(line));
+                instance.distanceLines = [];
+            }
+            if (instance.distanceLabels) {
+                instance.distanceLabels.forEach(label => instance.map.removeLayer(label));
+                instance.distanceLabels = [];
+            }
+            return true;
+        } catch (error) {
+            console.error(`[Leaflet] Error clearing user location:`, error);
+            return false;
+        }
+    },
+
+    /**
      * Invalidate map size - call this when the map container has resized
      * Leaflet needs this to recalculate its dimensions
      */
@@ -783,5 +944,24 @@ window.addEventListener('resize', function () {
         }, 200);
     }
 });
+
+/**
+ * Calculate Haversine distance between two points
+ * @param {number} lat1 - First latitude
+ * @param {number} lng1 - First longitude
+ * @param {number} lat2 - Second latitude
+ * @param {number} lng2 - Second longitude
+ * @returns {number} Distance in kilometers
+ */
+function calculateHaversineDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
 console.log('[Leaflet Interop] Loaded successfully');

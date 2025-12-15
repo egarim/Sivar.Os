@@ -1407,7 +1407,7 @@ Users immediately know if a business is available right now.
 
 ---
 
-## Phase 6: Intent-Based Routing 🟠
+## Phase 6: Intent-Based Routing ✅
 **Goal**: Better understand what users want and route to the right handler
 
 ### Scope
@@ -1433,18 +1433,18 @@ Users immediately know if a business is available right now.
 | `Sivar.Os/Services/ChatFunctionService.cs` | Intent-specific functions |
 
 ### Acceptance Criteria
-- [ ] "Teléfono de X" returns single result with phone prominent
-- [ ] "Horario de X" returns hours card
-- [ ] "Cómo llego a X" shows map/directions
-- [ ] General questions get LLM-generated answers
-- [ ] Intent logged for analytics
+- [x] "Teléfono de X" returns single result with phone prominent
+- [x] "Horario de X" returns hours card
+- [x] "Cómo llego a X" shows map/directions
+- [x] General questions get LLM-generated answers
+- [x] Intent logged for analytics
 
 ### Deliverable
 More accurate, targeted responses based on what users actually need.
 
 ---
 
-## Phase 7: Map View Integration 🟠
+## Phase 7: Map View Integration ✅
 **Goal**: Show all results on an interactive map
 
 ### Scope
@@ -1461,11 +1461,11 @@ More accurate, targeted responses based on what users actually need.
 | Reference: `LEAFLET_INTEGRATION_GUIDE.md` | Existing docs |
 
 ### Acceptance Criteria
-- [ ] "Ver en mapa" opens map with all results
-- [ ] Each result has a marker
-- [ ] Clicking marker shows mini-card
-- [ ] User location shown if available
-- [ ] Distance lines from user to results
+- [x] "Ver en mapa" opens map with all results
+- [x] Each result has a marker
+- [x] Clicking marker shows mini-card
+- [x] User location shown if available
+- [x] Distance lines from user to results
 
 ### Deliverable
 Visual geographic view of all search results.

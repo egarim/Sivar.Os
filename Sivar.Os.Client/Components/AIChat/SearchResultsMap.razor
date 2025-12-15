@@ -96,6 +96,21 @@
     /// </summary>
     [Parameter] public int DefaultZoom { get; set; } = 12;
 
+    /// <summary>
+    /// User's current latitude (for showing user location marker)
+    /// </summary>
+    [Parameter] public double? UserLatitude { get; set; }
+
+    /// <summary>
+    /// User's current longitude (for showing user location marker)
+    /// </summary>
+    [Parameter] public double? UserLongitude { get; set; }
+
+    /// <summary>
+    /// Whether to show distance lines from user to results
+    /// </summary>
+    [Parameter] public bool ShowDistanceLines { get; set; } = true;
+
     private readonly string _mapId = $"search-map-{Guid.NewGuid():N}";
     private bool _isLoading = true;
     private bool _isInitialized = false;
@@ -221,6 +236,20 @@
             await JS.InvokeVoidAsync("leafletInterop.addMultipleMarkers", _mapId, markers, true);
             
             Console.WriteLine($"[SearchResultsMap] Added {markers.Count} markers");
+
+            // Add user location marker if available
+            if (UserLatitude.HasValue && UserLongitude.HasValue)
+            {
+                await JS.InvokeVoidAsync("leafletInterop.addUserLocationMarker", _mapId, UserLatitude.Value, UserLongitude.Value);
+                Console.WriteLine($"[SearchResultsMap] Added user location marker at ({UserLatitude}, {UserLongitude})");
+
+                // Draw distance lines from user to results
+                if (ShowDistanceLines)
+                {
+                    await JS.InvokeVoidAsync("leafletInterop.drawDistanceLines", _mapId, UserLatitude.Value, UserLongitude.Value, true);
+                    Console.WriteLine("[SearchResultsMap] Drew distance lines to results");
+                }
+            }
         }
         catch (Exception ex)
         {

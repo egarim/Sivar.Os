@@ -1,5 +1,6 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Shared
+@using Sivar.Os.Shared.DTOs
 @inject IJSRuntime JS
 
 @* ChatMessages component *@
@@ -15,6 +16,7 @@
         {
             <ChatMessage 
                 Message="@message"
+                UserLocation="@UserLocation"
                 OnQuickAction="@OnQuickAction"
                 OnResultView="@OnResultView"
                 OnResultSave="@OnResultSave"
@@ -88,4 +90,10 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnSuggestionClick { get; set; }
+
+    /// <summary>
+    /// User's current location for map display
+    /// </summary>
+    [Parameter]
+    public ChatLocationContext? UserLocation { get; set; }
 }
