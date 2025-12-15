@@ -125,6 +125,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists chat bot settings
             
+            // Seed agent configurations (Phase 10: Multi-Agent Configuration)
+            SeedAgentConfigurations();
+            
+            ObjectSpace.CommitChanges(); //This line persists agent configurations
+            
             // Seed default profiles for users (runs in both DEBUG and RELEASE)
             SeedDefaultProfiles();
 
@@ -1250,6 +1255,132 @@ Always be polite and positive.";
             qaEventsEn.UpdatedAt = now;
 
             System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created English ChatBotSettings with QuickActions.");
+        }
+        
+        /// <summary>
+        /// Seeds agent configurations for Phase 10: Multi-Agent Configuration
+        /// Creates default "sivar-main" agent and all available tools
+        /// </summary>
+        void SeedAgentConfigurations()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedAgentConfigurations (Phase 10)...");
+            var now = DateTime.UtcNow;
+            
+            // Check if default agent already exists
+            var existingAgent = ObjectSpace.GetObjectsQuery<AgentConfiguration>()
+                .FirstOrDefault(a => a.AgentKey == "sivar-main");
+            
+            if (existingAgent != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Agent configuration 'sivar-main' already exists. Skipping.");
+                return;
+            }
+            
+            // --- Create Default Agent Configuration ---
+            var defaultAgent = ObjectSpace.CreateObject<AgentConfiguration>();
+            defaultAgent.AgentKey = "sivar-main";
+            defaultAgent.DisplayName = "Sivar Principal";
+            defaultAgent.Description = "Agente principal para todas las consultas generales en Sivar.Os";
+            defaultAgent.SystemPrompt = @"You are Sivar, a helpful AI assistant for the Sivar.Os social network platform in El Salvador.
+You can help users:
+- Search for profiles, posts, businesses, and places on the network
+- Find nearby businesses and content using GPS location
+- Get contact information (phone, email, WhatsApp) for businesses
+- Get business hours and open/closed status
+- Get directions and location information
+- Help with government procedures and requirements (DUI, pasaporte, licencia, etc.)
+- Follow and unfollow other users
+- Get information about their own profile
+
+IMPORTANT INSTRUCTIONS:
+1. Always respond in Spanish when the user writes in Spanish.
+2. When users ask for contact info, use GetContactInfo function.
+3. When users ask about hours/schedule, use GetBusinessHours function.
+4. When users ask for directions/location, use GetDirections function.
+5. When users ask about procedures/requirements, use GetProcedureInfo function.
+6. When showing links, always use RELATIVE URLs (starting with /) not absolute URLs.
+7. Be friendly, helpful, and conversational.";
+            defaultAgent.Provider = "ollama";
+            defaultAgent.ModelId = "llama3.2:latest";
+            defaultAgent.Temperature = 0.7;
+            defaultAgent.MaxTokens = 2000;
+            defaultAgent.Priority = 100;
+            defaultAgent.IsActive = true;
+            defaultAgent.Version = 1;
+            defaultAgent.AbTestWeight = 100;
+            defaultAgent.CreatedAt = now;
+            defaultAgent.UpdatedAt = now;
+            
+            // Set enabled tools as JSON array
+            var enabledTools = new List<string>
+            {
+                "SearchProfiles", "SearchPosts", "GetPostDetails", "FindBusinesses",
+                "FollowProfile", "UnfollowProfile", "GetMyProfile",
+                "SearchNearbyProfiles", "SearchNearbyPosts", "CalculateDistance",
+                "GetAddressFromCoordinates", "GetCoordinatesFromAddress", "SearchNearMe", "GetCurrentLocationStatus",
+                "GetContactInfo", "GetBusinessHours", "GetDirections", "GetProcedureInfo"
+            };
+            defaultAgent.SetEnabledTools(enabledTools);
+            
+            // Set intent patterns - matches everything as default
+            var intentPatterns = new List<string> { ".*" };
+            defaultAgent.SetIntentPatterns(intentPatterns);
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created AgentConfiguration 'sivar-main'");
+            
+            // --- Create Agent Tools Registry ---
+            var toolDefinitions = new[]
+            {
+                // Search tools
+                ("SearchProfiles", "Buscar Perfiles", "Search", "Busca perfiles por nombre, tipo, o palabras clave", 1),
+                ("SearchPosts", "Buscar Publicaciones", "Search", "Busca publicaciones por contenido", 2),
+                ("GetPostDetails", "Ver Publicación", "Search", "Obtiene detalles completos de una publicación", 3),
+                ("FindBusinesses", "Buscar Negocios", "Search", "Busca negocios por categoría y ubicación", 4),
+                
+                // Profile tools
+                ("FollowProfile", "Seguir Perfil", "Profile", "Sigue a un perfil", 10),
+                ("UnfollowProfile", "Dejar de Seguir", "Profile", "Deja de seguir a un perfil", 11),
+                ("GetMyProfile", "Mi Perfil", "Profile", "Obtiene información del perfil activo", 12),
+                
+                // Location tools
+                ("SearchNearbyProfiles", "Perfiles Cercanos", "Location", "Busca perfiles cerca de una ubicación", 20),
+                ("SearchNearbyPosts", "Publicaciones Cercanas", "Location", "Busca publicaciones cerca de una ubicación", 21),
+                ("CalculateDistance", "Calcular Distancia", "Location", "Calcula distancia entre dos puntos", 22),
+                ("GetAddressFromCoordinates", "Geocodificación Inversa", "Location", "Obtiene dirección desde coordenadas GPS", 23),
+                ("GetCoordinatesFromAddress", "Geocodificación", "Location", "Obtiene coordenadas desde una dirección", 24),
+                ("SearchNearMe", "Buscar Cerca de Mí", "Location", "Busca contenido cerca del usuario", 25),
+                ("GetCurrentLocationStatus", "Estado de Ubicación", "Location", "Verifica el estado del GPS", 26),
+                
+                // Business tools
+                ("GetContactInfo", "Información de Contacto", "Business", "Obtiene teléfono, email, WhatsApp de un negocio", 30),
+                ("GetBusinessHours", "Horarios de Atención", "Business", "Obtiene horarios de un negocio", 31),
+                ("GetDirections", "Direcciones", "Business", "Obtiene direcciones hacia un negocio", 32),
+                
+                // Government tools
+                ("GetProcedureInfo", "Información de Trámites", "Government", "Obtiene requisitos y pasos para trámites gubernamentales", 40)
+            };
+            
+            foreach (var (functionName, displayName, category, description, sortOrder) in toolDefinitions)
+            {
+                // Check if tool already exists
+                var existingTool = ObjectSpace.GetObjectsQuery<AgentTool>()
+                    .FirstOrDefault(t => t.FunctionName == functionName);
+                
+                if (existingTool != null) continue;
+                
+                var tool = ObjectSpace.CreateObject<AgentTool>();
+                tool.FunctionName = functionName;
+                tool.DisplayName = displayName;
+                tool.Category = category;
+                tool.Description = description;
+                tool.SortOrder = sortOrder;
+                tool.IsActive = true;
+                tool.IsExternalCall = category == "Location" && (functionName.Contains("Address") || functionName == "GetDirections");
+                tool.CreatedAt = now;
+                tool.UpdatedAt = now;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {toolDefinitions.Length} AgentTool entries");
         }
         
         /// <summary>
