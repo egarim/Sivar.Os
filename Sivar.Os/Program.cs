@@ -105,6 +105,8 @@ builder.Services.AddScoped<IBusinessContactInfoRepository, BusinessContactInfoRe
 builder.Services.AddScoped<IChatBotSettingsRepository, ChatBotSettingsRepository>();
 // Profile Bookmarks - Repository registration
 builder.Services.AddScoped<IProfileBookmarkRepository, ProfileBookmarkRepository>();
+// Phase 10: Multi-Agent Configuration - Repository registration
+builder.Services.AddScoped<IAgentConfigurationRepository, AgentConfigurationRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -125,69 +127,8 @@ builder.Services.AddScoped<IChatClient>(sp =>
     };
 });
 
-// Register AIAgent (Microsoft Agent Framework) for enhanced chat with function calling
-builder.Services.AddScoped<AIAgent>(sp =>
-{
-    var chatClient = sp.GetRequiredService<IChatClient>();
-    var functionService = sp.GetRequiredService<ChatFunctionService>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    
-    // Create the agent with instructions and tools
-    var tools = new List<AITool>
-    {
-        // Core search functions
-        AIFunctionFactory.Create(functionService.SearchProfiles),
-        AIFunctionFactory.Create(functionService.SearchPosts),
-        AIFunctionFactory.Create(functionService.GetPostDetails),
-        AIFunctionFactory.Create(functionService.FindBusinesses),
-        
-        // Profile management functions
-        AIFunctionFactory.Create(functionService.FollowProfile),
-        AIFunctionFactory.Create(functionService.UnfollowProfile),
-        AIFunctionFactory.Create(functionService.GetMyProfile),
-        
-        // Location-based functions (PostGIS)
-        AIFunctionFactory.Create(functionService.SearchNearbyProfiles),
-        AIFunctionFactory.Create(functionService.SearchNearbyPosts),
-        AIFunctionFactory.Create(functionService.CalculateDistance),
-        AIFunctionFactory.Create(functionService.GetAddressFromCoordinates),
-        AIFunctionFactory.Create(functionService.GetCoordinatesFromAddress),
-        AIFunctionFactory.Create(functionService.SearchNearMe),
-        AIFunctionFactory.Create(functionService.GetCurrentLocationStatus),
-        
-        // Phase 6: Intent-specific functions
-        AIFunctionFactory.Create(functionService.GetContactInfo),
-        AIFunctionFactory.Create(functionService.GetBusinessHours),
-        AIFunctionFactory.Create(functionService.GetDirections),
-        AIFunctionFactory.Create(functionService.GetProcedureInfo)
-    };
-    
-    return new ChatClientAgent(
-        chatClient,
-        instructions: @"You are Sivar, a helpful AI assistant for the Sivar.Os social network platform in El Salvador.
-You can help users:
-- Search for profiles, posts, businesses, and places on the network
-- Find nearby businesses and content using GPS location
-- Get contact information (phone, email, WhatsApp) for businesses
-- Get business hours and open/closed status
-- Get directions and location information
-- Help with government procedures and requirements (DUI, pasaporte, licencia, etc.)
-- Follow and unfollow other users
-- Get information about their own profile
-
-IMPORTANT INSTRUCTIONS:
-1. Always respond in Spanish when the user writes in Spanish.
-2. When users ask for contact info, use GetContactInfo function.
-3. When users ask about hours/schedule, use GetBusinessHours function.
-4. When users ask for directions/location, use GetDirections function.
-5. When users ask about procedures/requirements, use GetProcedureInfo function.
-6. When showing links, always use RELATIVE URLs (starting with /) not absolute URLs.
-7. Be friendly, helpful, and conversational.",
-        name: "SivarAgent",
-        description: "AI assistant for the Sivar.Os social network in El Salvador",
-        tools: tools,
-        loggerFactory: loggerFactory);
-});
+// Register IAgentFactory (Phase 10: Multi-Agent Configuration) for dynamic agent loading
+builder.Services.AddScoped<IAgentFactory, AgentFactory>();
 
 // Register IEmbeddingGenerator for VectorEmbeddingService (using OpenAI)
 builder.Services.AddScoped<IEmbeddingGenerator<string, Embedding<float>>>(sp =>

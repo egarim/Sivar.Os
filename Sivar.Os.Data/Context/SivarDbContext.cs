@@ -137,6 +137,18 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<CategoryDefinition> CategoryDefinitions { get; set; } = null!;
 
+    /// <summary>
+    /// Agent configurations - database-driven AI agent settings
+    /// Phase 10: Multi-Agent Configuration
+    /// </summary>
+    public DbSet<AgentConfiguration> AgentConfigurations { get; set; } = null!;
+
+    /// <summary>
+    /// Agent tools - registry of available functions for agents
+    /// Phase 10: Multi-Agent Configuration
+    /// </summary>
+    public DbSet<AgentTool> AgentTools { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

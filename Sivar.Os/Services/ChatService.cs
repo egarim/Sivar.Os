@@ -14,13 +14,14 @@ namespace Sivar.Os.Services;
 /// <summary>
 /// Service for managing AI chat conversations using Microsoft Agent Framework.
 /// Phase 6: Now includes intent-based routing for better query handling.
+/// Phase 10: Now uses AgentFactory for dynamic agent loading.
 /// </summary>
 public class ChatService : IChatService
 {
     private readonly IConversationRepository _conversationRepository;
     private readonly IChatMessageRepository _messageRepository;
     private readonly IProfileRepository _profileRepository;
-    private readonly AIAgent _agent;
+    private readonly IAgentFactory _agentFactory;
     private readonly ChatFunctionService _functionService;
     private readonly IIntentClassifier _intentClassifier;
     private readonly ChatServiceOptions _options;
@@ -31,7 +32,7 @@ public class ChatService : IChatService
         IConversationRepository conversationRepository,
         IChatMessageRepository messageRepository,
         IProfileRepository profileRepository,
-        AIAgent agent,
+        IAgentFactory agentFactory,
         ChatFunctionService functionService,
         IIntentClassifier intentClassifier,
         IOptions<ChatServiceOptions> options,
@@ -41,7 +42,7 @@ public class ChatService : IChatService
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
         _messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
-        _agent = agent ?? throw new ArgumentNullException(nameof(agent));
+        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
         _intentClassifier = intentClassifier ?? throw new ArgumentNullException(nameof(intentClassifier));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -234,8 +235,11 @@ public class ChatService : IChatService
 
             var aiStartTime = DateTime.UtcNow;
             
+            // Phase 10: Get agent based on intent (routes to specialized agents)
+            var agent = await _agentFactory.GetAgentForIntentAsync(dto.Content);
+            
             // Use AIAgent.RunAsync with chat history - agent already has tools configured
-            var agentResponse = await _agent.RunAsync(chatHistory);
+            var agentResponse = await agent.RunAsync(chatHistory);
             var aiElapsed = (DateTime.UtcNow - aiStartTime).TotalMilliseconds;
             
             // Extract text response from agent

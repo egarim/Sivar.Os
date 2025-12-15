@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sivar.Os.Data.Context;
@@ -12,9 +13,11 @@ using Sivar.Os.Data.Context;
 namespace Sivar.Os.Data.Migrations
 {
     [DbContext(typeof(SivarDbContext))]
-    partial class SivarDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215123632_AddAgentConfiguration")]
+    partial class AddAgentConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

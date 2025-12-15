@@ -2669,14 +2669,47 @@ Complete session-level observability for debugging issues, understanding user jo
 
 ---
 
-## Phase 10: Multi-Agent Configuration & Management 🤖
+## Phase 10: Multi-Agent Configuration & Management ✅ IMPLEMENTED
 
 ### Overview
-Currently, agent configuration (system prompts, tools, models) is hardcoded in `Program.cs`. This phase moves agent configuration to the database, allowing dynamic management of multiple specialized agents without code changes.
+Agent configuration (system prompts, tools, models) moved from hardcoded `Program.cs` to database-driven dynamic management. Supports multiple specialized agents without code changes.
+
+### Implementation Summary
+
+#### Files Created:
+1. **`AgentConfiguration.cs`** (`Sivar.Os.Shared/Entities/`)
+   - Database entity for storing agent configs
+   - Properties: AgentKey, SystemPrompt, EnabledTools (JSONB), IntentPatterns (JSONB), Provider, ModelId, Temperature, Priority
+
+2. **`AgentTool.cs`** (`Sivar.Os.Shared/Entities/`)
+   - Registry of available AI tools/functions
+   - Properties: FunctionName, DisplayName, Category, ParameterSchema, RequiredPermission
+
+3. **`IAgentConfigurationRepository.cs`** (`Sivar.Os.Shared/Repositories/`)
+   - Repository interface with intent matching support
+
+4. **`AgentConfigurationRepository.cs`** (`Sivar.Os.Data/Repositories/`)
+   - Repository implementation with regex-based intent matching
+
+5. **`IAgentFactory.cs`** (`Sivar.Os/Services/`)
+   - Factory interface for dynamic agent loading
+
+6. **`AgentFactory.cs`** (`Sivar.Os/Services/`)
+   - Builds AIAgent from database config with 5-minute caching
+   - Maps 18 tools from ChatFunctionService
+   - Intent-based routing with Priority
+
+#### Files Modified:
+- **`SivarDbContext.cs`** - Added DbSet for AgentConfigurations and AgentTools
+- **`ChatService.cs`** - Changed from AIAgent injection to IAgentFactory injection
+- **`Program.cs`** - Replaced hardcoded AIAgent with IAgentFactory/AgentFactory registration
+
+#### Migration:
+- **`AddAgentConfiguration`** - Creates tables and seeds default "sivar-main" agent with all 18 tools
 
 ### Current State Analysis
 ```csharp
-// Currently hardcoded in Program.cs
+// Previously hardcoded in Program.cs (now removed)
 builder.Services.AddScoped<AIAgent>(sp =>
 {
     return new ChatClientAgent(
