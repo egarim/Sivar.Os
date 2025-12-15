@@ -5,92 +5,137 @@
 -- =====================================================
 
 -- Enable compression on Sivar_Activities hypertable
-ALTER TABLE "Sivar_Activities" SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'UserKey',
-    timescaledb.compress_orderby = 'CreatedAt DESC'
-);
-
--- Add compression policy: compress chunks older than 30 days
-SELECT add_compression_policy(
-    'public."Sivar_Activities"',
-    INTERVAL '30 days',
-    if_not_exists => TRUE
-);
+DO $$
+BEGIN
+    -- Check if this is a hypertable before enabling compression
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Activities'
+    ) THEN
+        ALTER TABLE "Sivar_Activities" SET (
+            timescaledb.compress,
+            timescaledb.compress_segmentby = 'ActorId',
+            timescaledb.compress_orderby = 'CreatedAt DESC'
+        );
+        
+        PERFORM add_compression_policy(
+            'public."Sivar_Activities"',
+            INTERVAL '30 days',
+            if_not_exists => TRUE
+        );
+        
+        RAISE NOTICE '✅ Compression enabled on Sivar_Activities';
+    ELSE
+        RAISE NOTICE '⚠️ Sivar_Activities is not a hypertable, skipping compression';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not enable compression on Sivar_Activities: %', SQLERRM;
+END $$;
 
 -- Enable compression on Sivar_Posts hypertable
-ALTER TABLE "Sivar_Posts" SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'AuthorKey',
-    timescaledb.compress_orderby = 'CreatedAt DESC'
-);
-
--- Add compression policy: compress chunks older than 90 days
-SELECT add_compression_policy(
-    'public."Sivar_Posts"',
-    INTERVAL '90 days',
-    if_not_exists => TRUE
-);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Posts'
+    ) THEN
+        ALTER TABLE "Sivar_Posts" SET (
+            timescaledb.compress,
+            timescaledb.compress_segmentby = 'ProfileId',
+            timescaledb.compress_orderby = 'CreatedAt DESC'
+        );
+        
+        PERFORM add_compression_policy(
+            'public."Sivar_Posts"',
+            INTERVAL '90 days',
+            if_not_exists => TRUE
+        );
+        
+        RAISE NOTICE '✅ Compression enabled on Sivar_Posts';
+    ELSE
+        RAISE NOTICE '⚠️ Sivar_Posts is not a hypertable, skipping compression';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not enable compression on Sivar_Posts: %', SQLERRM;
+END $$;
 
 -- Enable compression on Sivar_ChatMessages hypertable
-ALTER TABLE "Sivar_ChatMessages" SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'ChatKey',
-    timescaledb.compress_orderby = 'CreatedAt DESC'
-);
-
--- Add compression policy: compress chunks older than 30 days
-SELECT add_compression_policy(
-    'public."Sivar_ChatMessages"',
-    INTERVAL '30 days',
-    if_not_exists => TRUE
-);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_ChatMessages'
+    ) THEN
+        ALTER TABLE "Sivar_ChatMessages" SET (
+            timescaledb.compress,
+            timescaledb.compress_segmentby = 'ChatSessionId',
+            timescaledb.compress_orderby = 'CreatedAt DESC'
+        );
+        
+        PERFORM add_compression_policy(
+            'public."Sivar_ChatMessages"',
+            INTERVAL '30 days',
+            if_not_exists => TRUE
+        );
+        
+        RAISE NOTICE '✅ Compression enabled on Sivar_ChatMessages';
+    ELSE
+        RAISE NOTICE '⚠️ Sivar_ChatMessages is not a hypertable, skipping compression';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not enable compression on Sivar_ChatMessages: %', SQLERRM;
+END $$;
 
 -- Enable compression on Sivar_Notifications hypertable
-ALTER TABLE "Sivar_Notifications" SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'UserKey',
-    timescaledb.compress_orderby = 'CreatedAt DESC'
-);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Notifications'
+    ) THEN
+        ALTER TABLE "Sivar_Notifications" SET (
+            timescaledb.compress,
+            timescaledb.compress_segmentby = 'RecipientId',
+            timescaledb.compress_orderby = 'CreatedAt DESC'
+        );
+        
+        PERFORM add_compression_policy(
+            'public."Sivar_Notifications"',
+            INTERVAL '30 days',
+            if_not_exists => TRUE
+        );
+        
+        RAISE NOTICE '✅ Compression enabled on Sivar_Notifications';
+    ELSE
+        RAISE NOTICE '⚠️ Sivar_Notifications is not a hypertable, skipping compression';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not enable compression on Sivar_Notifications: %', SQLERRM;
+END $$;
 
--- Add compression policy: compress chunks older than 30 days
-SELECT add_compression_policy(
-    'public."Sivar_Notifications"',
-    INTERVAL '30 days',
-    if_not_exists => TRUE
-);
-
--- Verify compression settings and policies
-SELECT hypertable_name,
-       compression_enabled,
-       compress_segmentby,
-       compress_orderby
-FROM timescaledb_information.hypertables
-WHERE hypertable_schema = 'public';
-
--- Show compression policy jobs
-SELECT h.hypertable_name,
-       j.job_id,
-       j.schedule_interval,
-       j.config::json->>'compress_after' as compress_after,
-       j.next_start
-FROM timescaledb_information.jobs j
-INNER JOIN timescaledb_information.hypertables h ON j.hypertable_name = h.hypertable_name
-WHERE j.proc_name = 'policy_compression'
-  AND h.hypertable_schema = 'public';
-
--- Show compression statistics (after compression has run)
-SELECT hypertable_name,
-       total_chunks,
-       number_compressed_chunks,
-       before_compression_total_bytes,
-       after_compression_total_bytes,
-       pg_size_pretty(before_compression_total_bytes) as size_before,
-       pg_size_pretty(after_compression_total_bytes) as size_after,
-       ROUND(100.0 * (before_compression_total_bytes - after_compression_total_bytes) / 
-             NULLIF(before_compression_total_bytes, 0), 2) as compression_ratio
-FROM timescaledb_information.hypertables
-WHERE hypertable_schema = 'public';
+-- Verify compression settings and policies (simplified for compatibility)
+DO $$
+DECLARE
+    hypertable_count INTEGER;
+    compression_job_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO hypertable_count
+    FROM timescaledb_information.hypertables
+    WHERE hypertable_schema = 'public';
+    
+    SELECT COUNT(*) INTO compression_job_count
+    FROM timescaledb_information.jobs
+    WHERE proc_name = 'policy_compression';
+    
+    RAISE NOTICE '📊 Found % hypertable(s) and % compression policy job(s)', hypertable_count, compression_job_count;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not verify compression settings: %', SQLERRM;
+END $$;
 
 -- =====================================================
 -- IMPORTANT NOTES:

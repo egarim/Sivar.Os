@@ -19,6 +19,16 @@
 -- =====================================================================
 DO $$
 BEGIN
+    -- Check if Posts hypertable exists
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Posts'
+    ) THEN
+        RAISE NOTICE '⚠️ Skipping sentiment aggregates - Sivar_Posts is not a hypertable';
+        RAISE NOTICE 'Run ConvertToHypertables.sql first to enable this feature';
+        RETURN;
+    END IF;
+
     -- Drop existing aggregate if it exists (for idempotency)
     IF EXISTS (
         SELECT 1 
@@ -82,6 +92,9 @@ BEGIN
     );
 
     RAISE NOTICE '✅ City-level sentiment aggregate created successfully';
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Failed to create sentiment_metrics_city_daily: %', SQLERRM;
 END $$;
 
 -- =====================================================================
@@ -89,6 +102,15 @@ END $$;
 -- =====================================================================
 DO $$
 BEGIN
+    -- Check if Posts hypertable exists
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Posts'
+    ) THEN
+        RAISE NOTICE '⚠️ Skipping country sentiment aggregate - Sivar_Posts is not a hypertable';
+        RETURN;
+    END IF;
+
     -- Drop existing aggregate if it exists (for idempotency)
     IF EXISTS (
         SELECT 1 
@@ -157,6 +179,9 @@ BEGIN
     );
 
     RAISE NOTICE '✅ Country-level sentiment aggregate created successfully';
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Failed to create sentiment_metrics_country_daily: %', SQLERRM;
 END $$;
 
 -- =====================================================================
@@ -164,13 +189,25 @@ END $$;
 -- =====================================================================
 DO $$
 BEGIN
-    -- Refresh city-level aggregate
-    CALL refresh_continuous_aggregate('sentiment_metrics_city_daily', NULL, NULL);
-    RAISE NOTICE '✅ City-level sentiment data refreshed';
+    -- Check if aggregates exist before refreshing
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.continuous_aggregates 
+        WHERE view_name = 'sentiment_metrics_city_daily'
+    ) THEN
+        CALL refresh_continuous_aggregate('sentiment_metrics_city_daily', NULL, NULL);
+        RAISE NOTICE '✅ City-level sentiment data refreshed';
+    END IF;
     
-    -- Refresh country-level aggregate
-    CALL refresh_continuous_aggregate('sentiment_metrics_country_daily', NULL, NULL);
-    RAISE NOTICE '✅ Country-level sentiment data refreshed';
+    IF EXISTS (
+        SELECT 1 FROM timescaledb_information.continuous_aggregates 
+        WHERE view_name = 'sentiment_metrics_country_daily'
+    ) THEN
+        CALL refresh_continuous_aggregate('sentiment_metrics_country_daily', NULL, NULL);
+        RAISE NOTICE '✅ Country-level sentiment data refreshed';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Failed to refresh sentiment aggregates: %', SQLERRM;
 END $$;
 
 -- =====================================================================

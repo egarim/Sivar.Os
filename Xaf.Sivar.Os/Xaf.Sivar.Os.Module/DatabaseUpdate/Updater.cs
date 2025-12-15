@@ -2647,13 +2647,17 @@ Always be polite and positive.";
         /// </summary>
         private async Task SeedGovernmentAsync(string demoDataPath)
         {
+            Console.WriteLine("========== [Updater] SeedGovernmentAsync STARTED ==========");
+            
             var governmentJsonPath = Path.Combine(demoDataPath, "Government", "government.json");
             if (!File.Exists(governmentJsonPath))
             {
+                Console.WriteLine($"[Updater] ❌ Government JSON not found at: {governmentJsonPath}. Skipping.");
                 System.Diagnostics.Debug.WriteLine($"[Updater] Government JSON not found at: {governmentJsonPath}. Skipping.");
                 return;
             }
             
+            Console.WriteLine($"[Updater] Loading government from: {governmentJsonPath}");
             System.Diagnostics.Debug.WriteLine($"[Updater] Loading government from: {governmentJsonPath}");
             
             var jsonContent = await File.ReadAllTextAsync(governmentJsonPath);
@@ -2666,8 +2670,24 @@ Always be polite and positive.";
             var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
             if (demoData == null)
             {
+                Console.WriteLine("[Updater] ❌ Failed to parse government JSON.");
                 System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse government JSON.");
                 return;
+            }
+            
+            // Log parsed data counts
+            var profilesCount = demoData.Profiles?.Count ?? 0;
+            var postsCount = demoData.Posts?.Count ?? 0;
+            Console.WriteLine($"[Updater] 📋 Parsed government.json: {profilesCount} profiles, {postsCount} posts");
+            
+            // Log first profile ID to verify correct IDs
+            if (demoData.Profiles?.Count > 0)
+            {
+                Console.WriteLine($"[Updater] 📋 First profile ID: {demoData.Profiles[0].Id}");
+            }
+            if (demoData.Posts?.Count > 0)
+            {
+                Console.WriteLine($"[Updater] 📋 First post ID: {demoData.Posts[0].Id}");
             }
             
             var now = DateTime.UtcNow;
@@ -2677,6 +2697,7 @@ Always be polite and positive.";
             var businessProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == businessProfileTypeId);
             if (businessProfileType == null)
             {
+                Console.WriteLine("[Updater] ❌ Business profile type not found. Skipping government seeding.");
                 System.Diagnostics.Debug.WriteLine("[Updater] Business profile type not found. Skipping government seeding.");
                 return;
             }
@@ -2686,12 +2707,14 @@ Always be polite and positive.";
             var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
             if (systemUser == null)
             {
+                Console.WriteLine("[Updater] ❌ System user not found. Skipping government seeding.");
                 System.Diagnostics.Debug.WriteLine("[Updater] System user not found. Skipping government seeding.");
                 return;
             }
             
             // Seed profiles
             var profileCount = 0;
+            var skippedProfiles = 0;
             foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
             {
                 try
@@ -2702,7 +2725,9 @@ Always be polite and positive.";
                     var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
                     if (existingProfile != null)
                     {
+                        Console.WriteLine($"[Updater] ⏭️ Profile {profileData.DisplayName} (ID: {profileId}) already exists. Skipping.");
                         System.Diagnostics.Debug.WriteLine($"[Updater] Profile {profileData.DisplayName} already exists. Skipping.");
+                        skippedProfiles++;
                         continue;
                     }
                     
@@ -2720,19 +2745,23 @@ Always be polite and positive.";
                     profile.UpdatedAt = now;
                     
                     profileCount++;
+                    Console.WriteLine($"[Updater] ✅ Created government profile: {profileData.DisplayName} ({profileData.Handle}) ID: {profileId}");
                     System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created profile: {profileData.DisplayName} ({profileData.Handle})");
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating profile {profileData.DisplayName}: {ex.Message}");
                 }
             }
             
             ObjectSpace.CommitChanges();
+            Console.WriteLine($"[Updater] 📊 Government profiles: {profileCount} created, {skippedProfiles} skipped");
             System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} government profiles.");
             
             // Seed posts
             var postCount = 0;
+            var skippedPosts = 0;
             foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
             {
                 try
@@ -2744,7 +2773,9 @@ Always be polite and positive.";
                     var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
                     if (existingPost != null)
                     {
+                        Console.WriteLine($"[Updater] ⏭️ Gov post {postData.Title} (ID: {postId}) already exists. Skipping.");
                         System.Diagnostics.Debug.WriteLine($"[Updater] Post {postData.Title} already exists. Skipping.");
+                        skippedPosts++;
                         continue;
                     }
                     
@@ -2830,15 +2861,19 @@ Always be polite and positive.";
                     }
                     
                     postCount++;
+                    Console.WriteLine($"[Updater] ✅ Created gov post: {postData.Title} (ID: {postId})");
                     System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created post: {postData.Title}");
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"[Updater] ❌ Error creating gov post {postData.Title}: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating post {postData.Title}: {ex.Message}");
                 }
             }
             
             ObjectSpace.CommitChanges();
+            Console.WriteLine($"[Updater] 📊 Government posts: {postCount} created, {skippedPosts} skipped");
+            Console.WriteLine("========== [Updater] SeedGovernmentAsync FINISHED ==========");
             System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} government posts.");
         }
         

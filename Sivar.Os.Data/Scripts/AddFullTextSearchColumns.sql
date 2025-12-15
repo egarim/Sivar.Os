@@ -8,8 +8,8 @@
 -- =============================================
 
 -- Add language-aware full-text search vector column
--- Uses the Language column to apply correct stemming and stop words
--- Best for searching within a specific language
+-- Uses Spanish configuration since most content is in Spanish
+-- Provides stemming and stop words for Spanish language
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -22,7 +22,7 @@ BEGIN
         ADD COLUMN "SearchVector" tsvector 
         GENERATED ALWAYS AS (
             to_tsvector(
-                COALESCE("Language", 'english')::regconfig,
+                'spanish'::regconfig,
                 COALESCE("Title", '') || ' ' || "Content"
             )
         ) STORED;

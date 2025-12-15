@@ -4,59 +4,165 @@
 -- Date: October 31, 2025
 -- =====================================================
 
--- Convert Sivar_Activities to hypertable
--- Chunk interval: 7 days (high activity volume)
-SELECT create_hypertable(
-    'public."Sivar_Activities"',
-    'CreatedAt',
-    chunk_time_interval => INTERVAL '7 days',
-    if_not_exists => TRUE
-);
+-- NOTE: TimescaleDB hypertables require the partitioning column (CreatedAt)
+-- to be part of any unique constraints. Since these tables use UUID primary keys,
+-- we need to drop and recreate the primary key constraint.
 
--- Convert Sivar_Posts to hypertable
--- Chunk interval: 30 days (moderate volume, longer queries)
-SELECT create_hypertable(
-    'public."Sivar_Posts"',
-    'CreatedAt',
-    chunk_time_interval => INTERVAL '30 days',
-    if_not_exists => TRUE
-);
+-- =====================================================
+-- 1. Convert Sivar_Activities to hypertable
+-- =====================================================
+DO $$
+BEGIN
+    -- Check if already a hypertable
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Activities'
+    ) THEN
+        -- Drop the primary key constraint
+        ALTER TABLE "Sivar_Activities" DROP CONSTRAINT IF EXISTS "PK_Sivar_Activities";
+        
+        -- Create hypertable
+        PERFORM create_hypertable(
+            'public."Sivar_Activities"',
+            'CreatedAt',
+            chunk_time_interval => INTERVAL '7 days',
+            migrate_data => TRUE
+        );
+        
+        -- Recreate primary key including CreatedAt
+        ALTER TABLE "Sivar_Activities" ADD CONSTRAINT "PK_Sivar_Activities" 
+            PRIMARY KEY ("Id", "CreatedAt");
+        
+        RAISE NOTICE '✅ Sivar_Activities converted to hypertable';
+    ELSE
+        RAISE NOTICE 'Sivar_Activities is already a hypertable';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not convert Sivar_Activities: %', SQLERRM;
+END $$;
 
--- Convert Sivar_ChatMessages to hypertable
--- Chunk interval: 7 days (high volume, recent queries)
-SELECT create_hypertable(
-    'public."Sivar_ChatMessages"',
-    'CreatedAt',
-    chunk_time_interval => INTERVAL '7 days',
-    if_not_exists => TRUE
-);
+-- =====================================================
+-- 2. Convert Sivar_Posts to hypertable
+-- =====================================================
+DO $$
+BEGIN
+    -- Check if already a hypertable
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Posts'
+    ) THEN
+        -- Drop the primary key constraint
+        ALTER TABLE "Sivar_Posts" DROP CONSTRAINT IF EXISTS "PK_Sivar_Posts";
+        
+        -- Create hypertable
+        PERFORM create_hypertable(
+            'public."Sivar_Posts"',
+            'CreatedAt',
+            chunk_time_interval => INTERVAL '30 days',
+            migrate_data => TRUE
+        );
+        
+        -- Recreate primary key including CreatedAt
+        ALTER TABLE "Sivar_Posts" ADD CONSTRAINT "PK_Sivar_Posts" 
+            PRIMARY KEY ("Id", "CreatedAt");
+        
+        RAISE NOTICE '✅ Sivar_Posts converted to hypertable';
+    ELSE
+        RAISE NOTICE 'Sivar_Posts is already a hypertable';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not convert Sivar_Posts: %', SQLERRM;
+END $$;
 
--- Convert Sivar_Notifications to hypertable
--- Chunk interval: 7 days (high volume, time-sensitive)
-SELECT create_hypertable(
-    'public."Sivar_Notifications"',
-    'CreatedAt',
-    chunk_time_interval => INTERVAL '7 days',
-    if_not_exists => TRUE
-);
+-- =====================================================
+-- 3. Convert Sivar_ChatMessages to hypertable
+-- =====================================================
+DO $$
+BEGIN
+    -- Check if already a hypertable
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_ChatMessages'
+    ) THEN
+        -- Drop the primary key constraint
+        ALTER TABLE "Sivar_ChatMessages" DROP CONSTRAINT IF EXISTS "PK_Sivar_ChatMessages";
+        
+        -- Create hypertable
+        PERFORM create_hypertable(
+            'public."Sivar_ChatMessages"',
+            'CreatedAt',
+            chunk_time_interval => INTERVAL '7 days',
+            migrate_data => TRUE
+        );
+        
+        -- Recreate primary key including CreatedAt
+        ALTER TABLE "Sivar_ChatMessages" ADD CONSTRAINT "PK_Sivar_ChatMessages" 
+            PRIMARY KEY ("Id", "CreatedAt");
+        
+        RAISE NOTICE '✅ Sivar_ChatMessages converted to hypertable';
+    ELSE
+        RAISE NOTICE 'Sivar_ChatMessages is already a hypertable';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not convert Sivar_ChatMessages: %', SQLERRM;
+END $$;
 
--- Verify hypertables were created
-SELECT hypertable_name, chunk_sizing_func, chunk_target_size
-FROM timescaledb_information.hypertables
-WHERE hypertable_schema = 'public';
+-- =====================================================
+-- 4. Convert Sivar_Notifications to hypertable
+-- =====================================================
+DO $$
+BEGIN
+    -- Check if already a hypertable
+    IF NOT EXISTS (
+        SELECT 1 FROM timescaledb_information.hypertables 
+        WHERE hypertable_name = 'Sivar_Notifications'
+    ) THEN
+        -- Drop the primary key constraint
+        ALTER TABLE "Sivar_Notifications" DROP CONSTRAINT IF EXISTS "PK_Sivar_Notifications";
+        
+        -- Create hypertable
+        PERFORM create_hypertable(
+            'public."Sivar_Notifications"',
+            'CreatedAt',
+            chunk_time_interval => INTERVAL '7 days',
+            migrate_data => TRUE
+        );
+        
+        -- Recreate primary key including CreatedAt
+        ALTER TABLE "Sivar_Notifications" ADD CONSTRAINT "PK_Sivar_Notifications" 
+            PRIMARY KEY ("Id", "CreatedAt");
+        
+        RAISE NOTICE '✅ Sivar_Notifications converted to hypertable';
+    ELSE
+        RAISE NOTICE 'Sivar_Notifications is already a hypertable';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not convert Sivar_Notifications: %', SQLERRM;
+END $$;
 
--- Show chunks for verification
-SELECT hypertable_name, chunk_name, range_start, range_end
-FROM timescaledb_information.chunks
-WHERE hypertable_schema = 'public'
-ORDER BY hypertable_name, range_start DESC
-LIMIT 20;
+-- Verify hypertables were created (simplified query for compatibility)
+DO $$
+DECLARE
+    ht_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO ht_count
+    FROM timescaledb_information.hypertables
+    WHERE hypertable_schema = 'public';
+    
+    RAISE NOTICE '📊 Found % hypertable(s) in public schema', ht_count;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Could not verify hypertables: %', SQLERRM;
+END $$;
 
 -- =====================================================
 -- IMPORTANT NOTES:
--- - This script is idempotent (if_not_exists => TRUE)
--- - CreatedAt column must exist and be NOT NULL
+-- - Primary keys are modified to include CreatedAt
+-- - This allows TimescaleDB to partition the data
+-- - EF Core queries by Id will still work (composite key lookup)
 -- - Chunk intervals optimized for each table's usage pattern
--- - Existing data will be automatically partitioned into chunks
--- - Indexes are preserved during conversion
 -- =====================================================
