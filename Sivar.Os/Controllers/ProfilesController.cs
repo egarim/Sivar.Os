@@ -1149,6 +1149,247 @@ public class ProfilesController : ControllerBase
         // In production, this would check the role claim from JWT token
         return true;
     }
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    /// <summary>
+    /// Gets ad settings and budget for a profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <returns>Profile ad settings</returns>
+    [HttpGet("{profileId}/ad-settings")]
+    [Authorize]
+    public async Task<ActionResult<ProfileAdSettingsDto>> GetAdSettings(Guid profileId)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ProfilesController.GetAdSettings] START - ProfileId={ProfileId}, RequestId={RequestId}",
+            profileId, requestId);
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromRequest();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            // Verify user owns this profile
+            var profile = await _profileService.GetProfileAsync(profileId);
+            if (profile == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            var userProfile = await _profileService.GetMyProfileAsync(keycloakId);
+            if (userProfile?.UserId != profile.UserId && !IsAdministrator())
+            {
+                return Forbid();
+            }
+
+            var settings = await _profileService.GetAdSettingsAsync(profileId);
+            if (settings == null)
+            {
+                return NotFound("Ad settings not found");
+            }
+
+            _logger.LogInformation("[ProfilesController.GetAdSettings] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+
+            return Ok(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesController.GetAdSettings] ERROR - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Updates ad settings for a profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="updateDto">Updated settings</param>
+    /// <returns>Updated ad settings</returns>
+    [HttpPut("{profileId}/ad-settings")]
+    [Authorize]
+    public async Task<ActionResult<ProfileAdSettingsDto>> UpdateAdSettings(Guid profileId, [FromBody] UpdateAdSettingsDto updateDto)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ProfilesController.UpdateAdSettings] START - ProfileId={ProfileId}, RequestId={RequestId}",
+            profileId, requestId);
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromRequest();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            // Verify user owns this profile
+            var profile = await _profileService.GetProfileAsync(profileId);
+            if (profile == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            var userProfile = await _profileService.GetMyProfileAsync(keycloakId);
+            if (userProfile?.UserId != profile.UserId && !IsAdministrator())
+            {
+                return Forbid();
+            }
+
+            // Validate settings
+            if (updateDto.MaxBidPerClick < 0.05m || updateDto.MaxBidPerClick > 5.00m)
+            {
+                return BadRequest("Max bid per click must be between $0.05 and $5.00");
+            }
+
+            if (updateDto.DailyAdLimit < 1.00m || updateDto.DailyAdLimit > 1000.00m)
+            {
+                return BadRequest("Daily ad limit must be between $1.00 and $1000.00");
+            }
+
+            if (updateDto.AdTargetRadiusKm < 0 || updateDto.AdTargetRadiusKm > 100)
+            {
+                return BadRequest("Target radius must be between 0 and 100 km");
+            }
+
+            var settings = await _profileService.UpdateAdSettingsAsync(profileId, updateDto);
+            if (settings == null)
+            {
+                return NotFound("Failed to update ad settings");
+            }
+
+            _logger.LogInformation("[ProfilesController.UpdateAdSettings] SUCCESS - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+
+            return Ok(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesController.UpdateAdSettings] ERROR - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Gets transaction history for a profile's ad budget
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="limit">Maximum number of transactions to return</param>
+    /// <returns>List of transactions</returns>
+    [HttpGet("{profileId}/ad-transactions")]
+    [Authorize]
+    public async Task<ActionResult<List<AdTransactionDto>>> GetAdTransactions(Guid profileId, [FromQuery] int limit = 50)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ProfilesController.GetAdTransactions] START - ProfileId={ProfileId}, RequestId={RequestId}",
+            profileId, requestId);
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromRequest();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            // Verify user owns this profile
+            var profile = await _profileService.GetProfileAsync(profileId);
+            if (profile == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            var userProfile = await _profileService.GetMyProfileAsync(keycloakId);
+            if (userProfile?.UserId != profile.UserId && !IsAdministrator())
+            {
+                return Forbid();
+            }
+
+            if (limit < 1 || limit > 200)
+            {
+                limit = 50;
+            }
+
+            var transactions = await _profileService.GetAdTransactionsAsync(profileId, limit);
+
+            _logger.LogInformation("[ProfilesController.GetAdTransactions] SUCCESS - ProfileId={ProfileId}, Count={Count}, RequestId={RequestId}",
+                profileId, transactions.Count, requestId);
+
+            return Ok(transactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesController.GetAdTransactions] ERROR - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Adds budget to a profile (admin only in production)
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="addBudgetDto">Amount to add</param>
+    /// <returns>Updated ad settings with new balance</returns>
+    [HttpPost("{profileId}/ad-budget")]
+    [Authorize]
+    public async Task<ActionResult<ProfileAdSettingsDto>> AddAdBudget(Guid profileId, [FromBody] AddBudgetDto addBudgetDto)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[ProfilesController.AddAdBudget] START - ProfileId={ProfileId}, Amount={Amount}, RequestId={RequestId}",
+            profileId, addBudgetDto.Amount, requestId);
+
+        try
+        {
+            var keycloakId = GetKeycloakIdFromRequest();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            // Verify user owns this profile or is admin
+            var profile = await _profileService.GetProfileAsync(profileId);
+            if (profile == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            var userProfile = await _profileService.GetMyProfileAsync(keycloakId);
+            if (userProfile?.UserId != profile.UserId && !IsAdministrator())
+            {
+                return Forbid();
+            }
+
+            if (addBudgetDto.Amount <= 0 || addBudgetDto.Amount > 10000)
+            {
+                return BadRequest("Amount must be between $0.01 and $10,000");
+            }
+
+            var settings = await _profileService.AddAdBudgetAsync(profileId, addBudgetDto.Amount, addBudgetDto.Description);
+            if (settings == null)
+            {
+                return NotFound("Failed to add budget");
+            }
+
+            _logger.LogInformation("[ProfilesController.AddAdBudget] SUCCESS - ProfileId={ProfileId}, NewBalance={Balance}, RequestId={RequestId}",
+                profileId, settings.AdBudget, requestId);
+
+            return Ok(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfilesController.AddAdBudget] ERROR - ProfileId={ProfileId}, RequestId={RequestId}",
+                profileId, requestId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
 }
 /// <summary>
 /// Request model for updating preferred language

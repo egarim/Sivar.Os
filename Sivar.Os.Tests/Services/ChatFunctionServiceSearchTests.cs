@@ -20,6 +20,9 @@ public class ChatFunctionServiceSearchTests
     private readonly Mock<IProfileFollowerRepository> _followerRepoMock;
     private readonly Mock<ILocationService> _locationServiceMock;
     private readonly Mock<ICategoryNormalizer> _categoryNormalizerMock;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
+    private readonly Mock<IProfileAdSelector> _profileAdSelectorMock;
+    private readonly Mock<IProfileAdBudgetService> _profileAdBudgetServiceMock;
     private readonly Mock<ILogger<ChatFunctionService>> _loggerMock;
     private readonly ChatFunctionService _service;
 
@@ -30,11 +33,22 @@ public class ChatFunctionServiceSearchTests
         _followerRepoMock = new Mock<IProfileFollowerRepository>();
         _locationServiceMock = new Mock<ILocationService>();
         _categoryNormalizerMock = new Mock<ICategoryNormalizer>();
+        _fileStorageServiceMock = new Mock<IFileStorageService>();
+        _profileAdSelectorMock = new Mock<IProfileAdSelector>();
+        _profileAdBudgetServiceMock = new Mock<IProfileAdBudgetService>();
         _loggerMock = new Mock<ILogger<ChatFunctionService>>();
 
         // Default mock: normalizer returns empty list (fallback to content search)
         _categoryNormalizerMock.Setup(c => c.NormalizeQueryAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<string>());
+
+        // Default mock: file storage returns placeholder URL
+        _fileStorageServiceMock.Setup(f => f.GetFileUrlAsync(It.IsAny<string>()))
+            .ReturnsAsync((string fileId) => $"/api/files/{fileId}");
+
+        // Default mock: ad selector returns empty list
+        _profileAdSelectorMock.Setup(a => a.SelectSponsoredProfilesAsync(It.IsAny<SearchAdContext>(), It.IsAny<int>()))
+            .ReturnsAsync(new List<SponsoredProfileResult>());
 
         _service = new ChatFunctionService(
             _profileRepoMock.Object,
@@ -42,6 +56,9 @@ public class ChatFunctionServiceSearchTests
             _followerRepoMock.Object,
             _locationServiceMock.Object,
             _categoryNormalizerMock.Object,
+            _fileStorageServiceMock.Object,
+            _profileAdSelectorMock.Object,
+            _profileAdBudgetServiceMock.Object,
             _loggerMock.Object);
     }
 

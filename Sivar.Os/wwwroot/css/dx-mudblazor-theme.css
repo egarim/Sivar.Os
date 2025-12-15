@@ -1,0 +1,469 @@
+/* 
+ * DxAIChat MudBlazor Theme Bridge
+ * Purpose: Map MudBlazor CSS variables to DevExpress DxAIChat styling
+ * Updated: December 15, 2025
+ * Part of: DevExpress DxAIChat Migration
+ * 
+ * DevExpress Blazor uses dxbl- prefix for CSS classes
+ */
+
+/* ============================================
+   ROOT CONTAINER - Main Chat Component
+   ============================================ */
+.sivar-ai-chat {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--mud-palette-surface, #ffffff);
+    color: var(--mud-palette-text-primary, #424242);
+    font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mud-theme-dark .sivar-ai-chat {
+    background-color: var(--mud-palette-surface, #1e1e2d);
+    color: var(--mud-palette-text-primary, #b2b0bf);
+}
+
+/* DevExpress ChatUI Root Container */
+.sivar-ai-chat .dxbl-chatui-root,
+.sivar-ai-chat .dxbl-chatui {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: transparent !important;
+}
+
+/* ============================================
+   MESSAGE AREA - Scrollable Container
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-message-list,
+.sivar-ai-chat .dxbl-chatui-messages {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+    background: transparent !important;
+}
+
+/* ============================================
+   MESSAGE BUBBLES - User Messages
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-message-user,
+.sivar-ai-chat .dxbl-chatui-bubble-user {
+    background: linear-gradient(135deg, var(--mud-palette-primary, #7e6fff) 0%, #6558cc 100%) !important;
+    color: white !important;
+    border-radius: 18px 18px 4px 18px !important;
+    padding: 12px 16px !important;
+    max-width: 80% !important;
+    margin-left: auto !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   MESSAGE BUBBLES - Assistant Messages
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-message-assistant,
+.sivar-ai-chat .dxbl-chatui-bubble-assistant {
+    background-color: var(--mud-palette-background, #f5f5f5) !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 18px 18px 18px 4px !important;
+    padding: 12px 16px !important;
+    max-width: 85% !important;
+    margin-right: auto !important;
+    margin-bottom: 12px !important;
+    color: var(--mud-palette-text-primary, #424242) !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-message-assistant,
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-bubble-assistant {
+    background-color: #27293d !important;
+    border-color: #3a3c4e !important;
+    color: var(--mud-palette-text-primary, #b2b0bf) !important;
+}
+
+/* ============================================
+   PROMPT SUGGESTIONS - Hint Bubbles
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-suggestions,
+.sivar-ai-chat .dxbl-aichat-prompt-suggestions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    background: transparent !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-suggestion,
+.sivar-ai-chat .dxbl-aichat-prompt-suggestion {
+    background: rgba(126, 111, 255, 0.1) !important;
+    border: 1px solid var(--mud-palette-primary, #7e6fff) !important;
+    border-radius: 20px !important;
+    padding: 10px 18px !important;
+    color: var(--mud-palette-primary, #7e6fff) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-suggestion:hover,
+.sivar-ai-chat .dxbl-aichat-prompt-suggestion:hover {
+    background: var(--mud-palette-primary, #7e6fff) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(126, 111, 255, 0.4) !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-suggestion,
+.mud-theme-dark .sivar-ai-chat .dxbl-aichat-prompt-suggestion {
+    background: rgba(126, 111, 255, 0.15) !important;
+}
+
+/* ============================================
+   INPUT AREA - Message Compose
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-submitarea,
+.sivar-ai-chat .dxbl-chatui-input-area {
+    background-color: var(--mud-palette-surface, #ffffff) !important;
+    border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    padding: 12px 16px !important;
+    flex-shrink: 0 !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea,
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-input-area {
+    background-color: var(--mud-palette-surface, #1e1e2d) !important;
+    border-top-color: #3a3c4e !important;
+}
+
+/* Input Field */
+.sivar-ai-chat .dxbl-chatui-submitarea input,
+.sivar-ai-chat .dxbl-chatui-submitarea textarea,
+.sivar-ai-chat .dxbl-text-edit,
+.sivar-ai-chat .dxbl-edit {
+    background-color: var(--mud-palette-background, #f5f5f5) !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 24px !important;
+    padding: 12px 16px !important;
+    color: var(--mud-palette-text-primary, #424242) !important;
+    font-size: 0.9375rem !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-submitarea input:focus,
+.sivar-ai-chat .dxbl-chatui-submitarea textarea:focus,
+.sivar-ai-chat .dxbl-text-edit:focus,
+.sivar-ai-chat .dxbl-edit:focus {
+    outline: none !important;
+    border-color: var(--mud-palette-primary, #7e6fff) !important;
+    box-shadow: 0 0 0 2px rgba(126, 111, 255, 0.2) !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea input,
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea textarea,
+.mud-theme-dark .sivar-ai-chat .dxbl-text-edit,
+.mud-theme-dark .sivar-ai-chat .dxbl-edit {
+    background-color: #27293d !important;
+    border-color: #3a3c4e !important;
+    color: var(--mud-palette-text-primary, #b2b0bf) !important;
+}
+
+/* Send Button */
+.sivar-ai-chat .dxbl-chatui-submitarea button,
+.sivar-ai-chat .dxbl-chatui-send-btn,
+.sivar-ai-chat .dxbl-btn-primary {
+    background: linear-gradient(135deg, var(--mud-palette-primary, #7e6fff) 0%, #6558cc 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    cursor: pointer !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-submitarea button:hover,
+.sivar-ai-chat .dxbl-chatui-send-btn:hover,
+.sivar-ai-chat .dxbl-btn-primary:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(126, 111, 255, 0.4) !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-submitarea button:disabled,
+.sivar-ai-chat .dxbl-chatui-send-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* ============================================
+   FULLSCREEN CONTAINER STYLES
+   ============================================ */
+.dx-chat-fullscreen {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background-color: var(--mud-palette-surface, #1e1e2d) !important;
+}
+
+.dx-chat-fullscreen .sivar-ai-chat-container {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.dx-chat-fullscreen .sivar-ai-chat {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* ============================================
+   EMPTY MESSAGE AREA - Welcome Screen
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-empty,
+.sivar-ai-chat .dxbl-aichat-empty-area {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    padding: 32px !important;
+    text-align: center !important;
+    color: var(--mud-palette-text-secondary, #757575) !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-empty,
+.mud-theme-dark .sivar-ai-chat .dxbl-aichat-empty-area {
+    color: var(--mud-palette-text-secondary, #92929f) !important;
+}
+
+/* ============================================
+   TYPING INDICATOR
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-typing {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 12px 16px !important;
+    background-color: var(--mud-palette-background, #f5f5f5) !important;
+    border-radius: 18px !important;
+    width: fit-content !important;
+    margin-bottom: 12px !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-typing {
+    background-color: #27293d !important;
+}
+
+/* ============================================
+   ERROR MESSAGES
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-message-error,
+.sivar-ai-chat .dxbl-chatui-bubble-error {
+    background-color: rgba(244, 67, 54, 0.1) !important;
+    border: 1px solid var(--mud-palette-error, #f44336) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    color: var(--mud-palette-error, #f44336) !important;
+    margin: 8px auto !important;
+    max-width: 90% !important;
+}
+
+/* ============================================
+   MARKDOWN CONTENT RENDERING
+   ============================================ */
+.sivar-ai-chat .message-content,
+.sivar-ai-chat .my-chat-content {
+    line-height: 1.6 !important;
+}
+
+.sivar-ai-chat .message-content p,
+.sivar-ai-chat .my-chat-content p {
+    margin: 0 0 0.5em 0 !important;
+}
+
+.sivar-ai-chat .message-content p:last-child,
+.sivar-ai-chat .my-chat-content p:last-child {
+    margin-bottom: 0 !important;
+}
+
+.sivar-ai-chat .message-content code,
+.sivar-ai-chat .my-chat-content code {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-family: 'Consolas', 'Monaco', monospace !important;
+    font-size: 0.875em !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .message-content code,
+.mud-theme-dark .sivar-ai-chat .my-chat-content code {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sivar-ai-chat .message-content pre,
+.sivar-ai-chat .my-chat-content pre {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 8px 0 !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .message-content pre,
+.mud-theme-dark .sivar-ai-chat .my-chat-content pre {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.sivar-ai-chat .message-content a,
+.sivar-ai-chat .my-chat-content a {
+    color: var(--mud-palette-primary, #7e6fff) !important;
+    text-decoration: none !important;
+}
+
+.sivar-ai-chat .message-content a:hover,
+.sivar-ai-chat .my-chat-content a:hover {
+    text-decoration: underline !important;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+.sivar-ai-chat ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.sivar-ai-chat ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sivar-ai-chat ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.mud-theme-dark .sivar-ai-chat ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   STRUCTURED RESULTS (Business Cards)
+   ============================================ */
+.sivar-ai-chat .structured-results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.sivar-ai-chat .results-carousel {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 8px 0;
+    scroll-snap-type: x mandatory;
+}
+
+.sivar-ai-chat .sivar-business-card {
+    flex-shrink: 0;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    max-height: 320px;
+    background-color: var(--mud-palette-surface, #ffffff);
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    scroll-snap-align: start;
+    overflow: hidden;
+}
+
+.sivar-ai-chat .sivar-business-card .card-image {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    object-fit: cover;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.sivar-ai-chat .sivar-business-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-shrink: 0;
+    max-height: 60px;
+    overflow: hidden;
+}
+
+.sivar-ai-chat .sivar-business-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--mud-palette-primary, #7e6fff);
+}
+
+.mud-theme-dark .sivar-ai-chat .sivar-business-card {
+    background-color: #27293d;
+    border-color: #3a3c4e;
+}
+
+.mud-theme-dark .sivar-ai-chat .sivar-business-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 600px) {
+    .sivar-ai-chat .dxbl-chatui-message-user,
+    .sivar-ai-chat .dxbl-chatui-bubble-user {
+        max-width: 90% !important;
+    }
+    
+    .sivar-ai-chat .dxbl-chatui-message-assistant,
+    .sivar-ai-chat .dxbl-chatui-bubble-assistant {
+        max-width: 95% !important;
+    }
+    
+    .sivar-ai-chat .dxbl-chatui-suggestions,
+    .sivar-ai-chat .dxbl-aichat-prompt-suggestions {
+        padding: 12px !important;
+        gap: 8px !important;
+    }
+    
+    .sivar-ai-chat .dxbl-chatui-suggestion,
+    .sivar-ai-chat .dxbl-aichat-prompt-suggestion {
+        padding: 8px 14px !important;
+        font-size: 0.8125rem !important;
+    }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+.sivar-ai-chat .sivar-fade-in {
+    animation: sivarFadeIn 0.3s ease;
+}
+
+@keyframes sivarFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

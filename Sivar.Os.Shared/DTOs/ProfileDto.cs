@@ -104,6 +104,11 @@ public class ProfileDto
     public Dictionary<string, string> SocialMediaLinks { get; set; } = new();
 
     /// <summary>
+    /// Preferred display mode for chat search results (Cards, List, or Grid)
+    /// </summary>
+    public ChatDisplayMode ChatDisplayMode { get; set; } = ChatDisplayMode.Cards;
+
+    /// <summary>
     /// Dynamic metadata for the profile (JSON)
     /// </summary>
     public string? Metadata { get; set; }
@@ -175,6 +180,11 @@ public class CreateProfileDto
     public Dictionary<string, string> SocialMediaLinks { get; set; } = new();
 
     /// <summary>
+    /// Preferred display mode for chat search results (Cards, List, or Grid)
+    /// </summary>
+    public ChatDisplayMode ChatDisplayMode { get; set; } = ChatDisplayMode.Cards;
+
+    /// <summary>
     /// Dynamic metadata for the profile (JSON string)
     /// </summary>
     public string? Metadata { get; set; }
@@ -183,7 +193,7 @@ public class CreateProfileDto
 /// <summary>
 /// DTO for updating an existing profile
 /// </summary>
-public class UpdateProfileDto
+ public class UpdateProfileDto
 {
     /// <summary>
     /// Display name for the profile
@@ -234,6 +244,11 @@ public class UpdateProfileDto
     /// Social media links (as key-value pairs)
     /// </summary>
     public Dictionary<string, string> SocialMediaLinks { get; set; } = new();
+
+    /// <summary>
+    /// Preferred display mode for chat search results (Cards, List, or Grid)
+    /// </summary>
+    public ChatDisplayMode? ChatDisplayMode { get; set; }
 
     /// <summary>
     /// Dynamic metadata for the profile (JSON string)
@@ -397,6 +412,11 @@ public class ActiveProfileDto
     /// Indicates if this profile is currently active
     /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// User's preferred chat display mode for search results (Cards, List, Grid)
+    /// </summary>
+    public ChatDisplayMode ChatDisplayMode { get; set; } = ChatDisplayMode.Cards;
 }
 
 /// <summary>

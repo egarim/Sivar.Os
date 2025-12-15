@@ -1,0 +1,112 @@
+@* SivarTourismCard - Card component for displaying tourism results *@
+@using Sivar.Os.Shared.DTOs
+
+<div class="sivar-tourism-card" @onclick="HandleClick">
+    <div class="card-header">
+        @if (!string.IsNullOrEmpty(Tourism.ImageUrl))
+        {
+            <img class="card-image" src="@Tourism.ImageUrl" alt="@Tourism.Title" loading="lazy" />
+        }
+        else
+        {
+            <div class="card-icon tourism">🏝️</div>
+        }
+        
+        <div class="card-title-section">
+            <h4 class="card-name">@Tourism.Title</h4>
+            @if (!string.IsNullOrEmpty(Tourism.Category))
+            {
+                <span class="card-category">@Tourism.Category</span>
+            }
+        </div>
+        
+        @if (Tourism.Rating.HasValue)
+        {
+            <span class="rating-badge">⭐ @Tourism.Rating.Value.ToString("F1")</span>
+        }
+    </div>
+    
+    @* Description *@
+    @if (!string.IsNullOrEmpty(Tourism.Description))
+    {
+        <p class="card-description">@TruncateText(Tourism.Description, 100)</p>
+    }
+    
+    @* Metadata *@
+    <div class="card-meta">
+        @if (!string.IsNullOrEmpty(Tourism.City) || !string.IsNullOrEmpty(Tourism.Department))
+        {
+            <span class="meta-item">
+                <span class="meta-icon">📍</span>
+                @(Tourism.City ?? Tourism.Department)
+                @if (Tourism.DistanceKm.HasValue)
+                {
+                    <span class="distance">(@Tourism.DistanceKm.Value.ToString("F1") km)</span>
+                }
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Tourism.TicketPrice))
+        {
+            <span class="meta-item entry-fee">🎟️ @Tourism.TicketPrice</span>
+        }
+        @if (!string.IsNullOrEmpty(Tourism.WorkingHours))
+        {
+            <span class="meta-item best-time">🕐 @Tourism.WorkingHours</span>
+        }
+    </div>
+    
+    @* Tags *@
+    @if (Tourism.Tags?.Any() == true)
+    {
+        <div class="card-highlights">
+            @foreach (var tag in Tourism.Tags.Take(3))
+            {
+                <span class="highlight-tag">@tag</span>
+            }
+        </div>
+    }
+    
+    @* Action Buttons *@
+    @if (Tourism.Actions?.Any() == true)
+    {
+        <div class="card-actions">
+            @foreach (var action in Tourism.Actions.Take(2))
+            {
+                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                        @onclick="() => HandleAction(action)" 
+                        @onclick:stopPropagation="true">
+                    @action.Label
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public TourismSearchResultDto Tourism { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<TourismSearchResultDto> OnNavigate { get; set; }
+    
+    [Parameter]
+    public EventCallback<CallToActionDto> OnAction { get; set; }
+    
+    private async Task HandleClick()
+    {
+        await OnNavigate.InvokeAsync(Tourism);
+    }
+    
+    private async Task HandleAction(CallToActionDto action)
+    {
+        await OnAction.InvokeAsync(action);
+    }
+    
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        
+        return text.Substring(0, maxLength).TrimEnd() + "...";
+    }
+}

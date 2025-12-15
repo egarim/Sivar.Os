@@ -10,6 +10,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Agents.AI;
 using MudBlazor.Services;
+using DevExpress.Blazor;
 using OpenAI;
 using Sivar.Os.Client.Pages;
 using Sivar.Os.Client.Services;
@@ -40,6 +41,15 @@ builder.Host.UseSerilog((context, configuration) =>
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
+// Configure DevExpress Blazor services (required for DxAIChat component)
+builder.Services.AddDevExpressBlazor(configure => 
+{
+    configure.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
+    configure.SizeMode = DevExpress.Blazor.SizeMode.Medium;
+});
+
+// Register DevExpress AI services (required for DxAIChat IAIAssistantFactory)
+builder.Services.AddDevExpressAI();
 // Add memory cache for rate limiting
 builder.Services.AddMemoryCache();
 
@@ -110,6 +120,8 @@ builder.Services.AddScoped<IAgentConfigurationRepository, AgentConfigurationRepo
 // Phase 11: Results Ranking & Personalization - Repository registration
 builder.Services.AddScoped<IUserSearchBehaviorRepository, UserSearchBehaviorRepository>();
 builder.Services.AddScoped<IRankingConfigurationRepository, RankingConfigurationRepository>();
+// Search Ads System - Repository registration
+builder.Services.AddScoped<IAdTransactionRepository, AdTransactionRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -174,6 +186,8 @@ builder.Services.AddScoped<IClientEmbeddingService, ClientEmbeddingService>();
 builder.Services.AddScoped<ISearchResultService, SearchResultService>();
 builder.Services.AddScoped<IContentExtractionService, ContentExtractionService>();
 builder.Services.AddScoped<IRankingService, RankingService>(); // Phase 11: Results Ranking & Personalization
+builder.Services.AddScoped<IProfileAdSelector, ProfileAdSelector>(); // Search Ads System
+builder.Services.AddScoped<IProfileAdBudgetService, ProfileAdBudgetService>(); // Search Ads System
 
 // --- Sentiment Analysis Services Registration ---
 builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();

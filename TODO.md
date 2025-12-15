@@ -164,7 +164,7 @@
 ---
 
 #### 7. Content Ranking System (content_ranking.md)
-> Elo-inspired content scoring
+> Elo-inspired content scoring + Search Ads
 - [ ] `ContentRating` entity
 - [ ] `ContentType` enum
 - [ ] Lifetime/Weekly/Monthly ratings
@@ -173,7 +173,25 @@
 - [ ] `IContentRankingService`
 - [ ] Integration with search ranking
 
-**Note**: Phase 11 creates the search ranking side; this is the content-side Elo system
+**Profile Ad Budget System (IN PROGRESS):**
+- [x] Profile entity: Ad budget fields added
+- [x] `AdTransactionType` enum created
+- [x] `AdTransaction` entity created
+- [x] `IProfileAdSelector` interface + `SearchAdContext`, `SponsoredProfileResult`
+- [x] `IProfileAdBudgetService` interface
+- [x] `ProfileAdSelector` service implementation
+- [x] `ProfileAdBudgetService` service implementation
+- [x] `IAdTransactionRepository` + `AdTransactionRepository`
+- [x] `AdTransactionConfiguration` for EF Core
+- [x] DbContext registration + DI registration
+- [ ] EF Migration for new fields/tables
+- [ ] Integration with `ChatFunctionService.SearchProfiles`
+- [ ] `SponsoredSettingsPanel.razor` UI component
+- [ ] Impression & click recording endpoints
+- [ ] Daily budget reset job (Hangfire/Timer)
+- [ ] Quality score update job
+
+**Note**: Phase 11 creates the search ranking side; this is the content-side Elo system + monetization
 
 ---
 
@@ -240,6 +258,28 @@ These are small improvements that can be completed in 1-2 hours:
 - [ ] Add pull-to-refresh on mobile - 1 hour
 - [ ] Keyboard shortcuts for chat - 1 hour
 - [ ] Dark mode improvements - 2 hours
+
+---
+
+## 🖼️ IMAGE SYSTEM IMPROVEMENTS
+
+### Thumbnails for Chat Context
+> PostAttachment entity has `ThumbnailUrl` field but it's not being generated or used
+
+**Current State:**
+- `PostAttachment.ThumbnailUrl` property exists (line 67-68 in entity)
+- Full-size images are loaded in chat PostCard results
+- No thumbnail generation on upload
+
+**TODO:**
+- [ ] Generate thumbnails on file upload (IFileStorageService)
+  - Create thumbnail variant (e.g., 400px width, ~100KB)
+  - Store thumbnail URL in `PostAttachment.ThumbnailUrl`
+- [ ] Update `MapPostToPostResultAsync` in ChatFunctionService to use ThumbnailUrl when available
+- [ ] Add fallback: use ThumbnailUrl if exists, else full Url
+- [ ] Consider WebP format for thumbnails (better compression)
+
+**Estimate**: 2-3 hours
 
 ---
 

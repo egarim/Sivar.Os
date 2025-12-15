@@ -611,6 +611,1573 @@ public class CompositeScoreWeights
 
 ---
 
+## 📢 Search Ads System
+
+> **This section integrates sponsored content (ads) with the content ranking system for search results.**
+
+### Overview: Ads vs Organic Content
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Search Results Composition                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Position 1: 🏆 Organic (Highest ranked)                            │
+│  Position 2: ⭐ Organic                                              │
+│  Position 3: 📢 SPONSORED (Ad slot #1)    ← Clearly marked          │
+│  Position 4: ⭐ Organic                                              │
+│  Position 5: ⭐ Organic                                              │
+│  Position 6: ⭐ Organic                                              │
+│  Position 7: ⭐ Organic                                              │
+│  Position 8: 📢 SPONSORED (Ad slot #2)    ← If more ads available   │
+│  Position 9: ⭐ Organic                                              │
+│  Position 10: ⭐ Organic                                             │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Transparency** | Ads always marked as "Patrocinado" / "Sponsored" |
+| **Quality Gate** | Low-quality ads can't buy top spots (quality score required) |
+| **Relevance** | Ads must match search context (category, location, keywords) |
+| **Fair Competition** | Second-price auction - pay $0.01 more than next bid |
+| **Limited Density** | Max 2 ads per 10 results (20% max) |
+| **User Experience** | Ads should feel native, not disruptive |
+
+---
+
+### Search Ad Entity
+
+```csharp
+/// <summary>
+/// Advertisement that can appear in search results
+/// </summary>
+public class SearchAd : BaseEntity
+{
+    // ========================================
+    // ADVERTISER INFO
+    // ========================================
+    
+    /// <summary>
+    /// The profile/business that owns this ad
+    /// </summary>
+    public virtual Guid AdvertiserProfileId { get; set; }
+    public virtual Profile AdvertiserProfile { get; set; } = null!;
+    
+    /// <summary>
+    /// Campaign this ad belongs to (for budget management)
+    /// </summary>
+    public virtual Guid? CampaignId { get; set; }
+    public virtual AdCampaign? Campaign { get; set; }
+    
+    // ========================================
+    // AD CONTENT
+    // ========================================
+    
+    /// <summary>
+    /// Ad headline (max 60 chars)
+    /// </summary>
+    [StringLength(60)]
+    public virtual string Headline { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Ad description (max 150 chars)
+    /// </summary>
+    [StringLength(150)]
+    public virtual string Description { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Display URL shown to users
+    /// </summary>
+    [StringLength(50)]
+    public virtual string? DisplayUrl { get; set; }
+    
+    /// <summary>
+    /// Actual destination URL when clicked
+    /// </summary>
+    [StringLength(500)]
+    public virtual string DestinationUrl { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Optional image/media
+    /// </summary>
+    [StringLength(500)]
+    public virtual string? ImageUrl { get; set; }
+    
+    /// <summary>
+    /// Call to action button text
+    /// </summary>
+    [StringLength(25)]
+    public virtual string CallToAction { get; set; } = "Ver más";
+    
+    // ========================================
+    // TARGETING
+    // ========================================
+    
+    /// <summary>
+    /// Target categories (e.g., "restaurant", "tourism")
+    /// Empty = all categories
+    /// </summary>
+    public virtual ObservableCollection<string> TargetCategories { get; set; } = new();
+    
+    /// <summary>
+    /// Target keywords (search terms that trigger this ad)
+    /// </summary>
+    public virtual ObservableCollection<string> TargetKeywords { get; set; } = new();
+    
+    /// <summary>
+    /// Target locations (department codes or coordinates)
+    /// </summary>
+    public virtual ObservableCollection<string> TargetLocations { get; set; } = new();
+    
+    /// <summary>
+    /// Target radius in km (for location-based targeting)
+    /// </summary>
+    public virtual double? TargetRadiusKm { get; set; }
+    
+    /// <summary>
+    /// Target latitude (center point for radius targeting)
+    /// </summary>
+    public virtual double? TargetLatitude { get; set; }
+    
+    /// <summary>
+    /// Target longitude (center point for radius targeting)
+    /// </summary>
+    public virtual double? TargetLongitude { get; set; }
+    
+    // ========================================
+    // BIDDING
+    // ========================================
+    
+    /// <summary>
+    /// Maximum bid per impression (CPM model)
+    /// </summary>
+    public virtual decimal MaxBidPerImpression { get; set; }
+    
+    /// <summary>
+    /// Maximum bid per click (CPC model)
+    /// </summary>
+    public virtual decimal MaxBidPerClick { get; set; }
+    
+    /// <summary>
+    /// Pricing model: CPC (pay per click) or CPM (pay per 1000 impressions)
+    /// </summary>
+    public virtual AdPricingModel PricingModel { get; set; } = AdPricingModel.CPC;
+    
+    /// <summary>
+    /// Daily budget limit
+    /// </summary>
+    public virtual decimal DailyBudget { get; set; }
+    
+    /// <summary>
+    /// Amount spent today
+    /// </summary>
+    public virtual decimal SpentToday { get; set; }
+    
+    /// <summary>
+    /// Total lifetime budget
+    /// </summary>
+    public virtual decimal? LifetimeBudget { get; set; }
+    
+    /// <summary>
+    /// Total amount spent
+    /// </summary>
+    public virtual decimal TotalSpent { get; set; }
+    
+    // ========================================
+    // QUALITY & PERFORMANCE
+    // ========================================
+    
+    /// <summary>
+    /// Quality score (0-1) based on CTR, relevance, landing page
+    /// </summary>
+    public virtual double QualityScore { get; set; } = 0.5;
+    
+    /// <summary>
+    /// Click-through rate (clicks / impressions)
+    /// </summary>
+    public virtual double ClickThroughRate { get; set; }
+    
+    /// <summary>
+    /// Total impressions
+    /// </summary>
+    public virtual long TotalImpressions { get; set; }
+    
+    /// <summary>
+    /// Total clicks
+    /// </summary>
+    public virtual long TotalClicks { get; set; }
+    
+    // ========================================
+    // STATUS
+    // ========================================
+    
+    /// <summary>
+    /// Ad status: Draft, Active, Paused, Completed, Rejected
+    /// </summary>
+    public virtual AdStatus Status { get; set; } = AdStatus.Draft;
+    
+    /// <summary>
+    /// When the ad starts running
+    /// </summary>
+    public virtual DateTimeOffset? StartDate { get; set; }
+    
+    /// <summary>
+    /// When the ad stops running
+    /// </summary>
+    public virtual DateTimeOffset? EndDate { get; set; }
+    
+    /// <summary>
+    /// Review status for content moderation
+    /// </summary>
+    public virtual AdReviewStatus ReviewStatus { get; set; } = AdReviewStatus.Pending;
+    
+    /// <summary>
+    /// Rejection reason if rejected
+    /// </summary>
+    [StringLength(500)]
+    public virtual string? RejectionReason { get; set; }
+}
+
+public enum AdPricingModel
+{
+    CPC = 1,  // Cost Per Click
+    CPM = 2   // Cost Per Mille (1000 impressions)
+}
+
+public enum AdStatus
+{
+    Draft = 0,
+    Active = 1,
+    Paused = 2,
+    Completed = 3,
+    Rejected = 4
+}
+
+public enum AdReviewStatus
+{
+    Pending = 0,
+    Approved = 1,
+    Rejected = 2
+}
+```
+
+---
+
+### Ad Campaign Entity (Budget Container)
+
+```csharp
+/// <summary>
+/// Campaign container for multiple ads with shared budget
+/// </summary>
+public class AdCampaign : BaseEntity
+{
+    public virtual Guid AdvertiserProfileId { get; set; }
+    public virtual Profile AdvertiserProfile { get; set; } = null!;
+    
+    [StringLength(100)]
+    public virtual string Name { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Total campaign budget
+    /// </summary>
+    public virtual decimal Budget { get; set; }
+    
+    /// <summary>
+    /// Amount spent from budget
+    /// </summary>
+    public virtual decimal Spent { get; set; }
+    
+    /// <summary>
+    /// Daily spend limit across all ads
+    /// </summary>
+    public virtual decimal DailyLimit { get; set; }
+    
+    /// <summary>
+    /// Amount spent today
+    /// </summary>
+    public virtual decimal SpentToday { get; set; }
+    
+    public virtual DateTimeOffset StartDate { get; set; }
+    public virtual DateTimeOffset? EndDate { get; set; }
+    
+    public virtual CampaignStatus Status { get; set; } = CampaignStatus.Draft;
+    
+    /// <summary>
+    /// Ads in this campaign
+    /// </summary>
+    public virtual ObservableCollection<SearchAd> Ads { get; set; } = new();
+}
+
+public enum CampaignStatus
+{
+    Draft = 0,
+    Active = 1,
+    Paused = 2,
+    Completed = 3,
+    OutOfBudget = 4
+}
+```
+
+---
+
+### Ad Selection Algorithm
+
+```csharp
+/// <summary>
+/// Selects which ads to show in search results
+/// </summary>
+public class SearchAdSelector
+{
+    private readonly ISearchAdRepository _adRepository;
+    private readonly ILogger<SearchAdSelector> _logger;
+    
+    /// <summary>
+    /// Select ads for a search request using auction model
+    /// </summary>
+    public async Task<List<SearchAdResult>> SelectAdsForSearchAsync(
+        SearchContext context,
+        int maxAds = 2)
+    {
+        _logger.LogInformation(
+            "[SelectAds] Query={Query}, Category={Category}, Location=({Lat},{Lng})",
+            context.Query, context.Category, context.Latitude, context.Longitude);
+        
+        // 1. Get eligible ads (matching targeting criteria)
+        var eligibleAds = await GetEligibleAdsAsync(context);
+        
+        if (!eligibleAds.Any())
+        {
+            _logger.LogInformation("[SelectAds] No eligible ads found");
+            return new List<SearchAdResult>();
+        }
+        
+        // 2. Calculate ad rank for each (Bid × QualityScore)
+        var rankedAds = eligibleAds
+            .Select(ad => new
+            {
+                Ad = ad,
+                AdRank = CalculateAdRank(ad, context),
+                RelevanceScore = CalculateRelevanceScore(ad, context)
+            })
+            .Where(x => x.AdRank > 0)
+            .OrderByDescending(x => x.AdRank)
+            .Take(maxAds)
+            .ToList();
+        
+        // 3. Calculate actual price (second-price auction)
+        var results = new List<SearchAdResult>();
+        for (int i = 0; i < rankedAds.Count; i++)
+        {
+            var current = rankedAds[i];
+            
+            // Second-price: pay just enough to beat next bidder
+            decimal actualPrice;
+            if (i + 1 < rankedAds.Count)
+            {
+                var nextBidder = rankedAds[i + 1];
+                // Price = NextAdRank / YourQualityScore + $0.01
+                actualPrice = (decimal)(nextBidder.AdRank / current.Ad.QualityScore) + 0.01m;
+            }
+            else
+            {
+                // No competition - pay minimum
+                actualPrice = 0.01m;
+            }
+            
+            results.Add(new SearchAdResult
+            {
+                Ad = current.Ad,
+                AdRank = current.AdRank,
+                RelevanceScore = current.RelevanceScore,
+                ActualPrice = Math.Min(actualPrice, current.Ad.MaxBidPerClick),
+                Position = 0 // Assigned later during interleaving
+            });
+        }
+        
+        _logger.LogInformation(
+            "[SelectAds] Selected {Count} ads from {Eligible} eligible",
+            results.Count, eligibleAds.Count);
+        
+        return results;
+    }
+    
+    /// <summary>
+    /// Get ads matching targeting criteria
+    /// </summary>
+    private async Task<List<SearchAd>> GetEligibleAdsAsync(SearchContext context)
+    {
+        var now = DateTimeOffset.UtcNow;
+        
+        return await _adRepository.Query()
+            .Where(ad => ad.Status == AdStatus.Active)
+            .Where(ad => ad.ReviewStatus == AdReviewStatus.Approved)
+            .Where(ad => ad.StartDate <= now && (ad.EndDate == null || ad.EndDate > now))
+            .Where(ad => ad.SpentToday < ad.DailyBudget)
+            .Where(ad => ad.Campaign == null || ad.Campaign.SpentToday < ad.Campaign.DailyLimit)
+            // Category targeting
+            .Where(ad => !ad.TargetCategories.Any() || 
+                        ad.TargetCategories.Contains(context.Category))
+            // Keyword targeting
+            .Where(ad => !ad.TargetKeywords.Any() || 
+                        ad.TargetKeywords.Any(k => context.Query.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            // Location targeting (simplified - full impl uses PostGIS)
+            .Where(ad => ad.TargetLatitude == null || 
+                        CalculateDistanceKm(ad.TargetLatitude.Value, ad.TargetLongitude!.Value,
+                                           context.Latitude, context.Longitude) <= ad.TargetRadiusKm)
+            .ToListAsync();
+    }
+    
+    /// <summary>
+    /// Ad Rank = MaxBid × QualityScore × RelevanceBoost
+    /// Higher rank = better ad position
+    /// </summary>
+    private double CalculateAdRank(SearchAd ad, SearchContext context)
+    {
+        var bid = (double)ad.MaxBidPerClick;
+        var qualityScore = ad.QualityScore;
+        var relevanceBoost = CalculateRelevanceScore(ad, context);
+        
+        // Minimum quality threshold
+        if (qualityScore < 0.3)
+        {
+            return 0; // Reject low-quality ads
+        }
+        
+        return bid * qualityScore * relevanceBoost;
+    }
+    
+    /// <summary>
+    /// Calculate how relevant ad is to the search context
+    /// </summary>
+    private double CalculateRelevanceScore(SearchAd ad, SearchContext context)
+    {
+        double score = 1.0;
+        
+        // Keyword match bonus
+        var keywordMatches = ad.TargetKeywords
+            .Count(k => context.Query.Contains(k, StringComparison.OrdinalIgnoreCase));
+        if (keywordMatches > 0)
+        {
+            score += 0.2 * Math.Min(keywordMatches, 3); // Max 0.6 bonus
+        }
+        
+        // Category match bonus
+        if (ad.TargetCategories.Contains(context.Category))
+        {
+            score += 0.3;
+        }
+        
+        // Location proximity bonus
+        if (ad.TargetLatitude.HasValue && context.Latitude != 0)
+        {
+            var distanceKm = CalculateDistanceKm(
+                ad.TargetLatitude.Value, ad.TargetLongitude!.Value,
+                context.Latitude, context.Longitude);
+            
+            if (distanceKm < 1) score += 0.3;
+            else if (distanceKm < 5) score += 0.2;
+            else if (distanceKm < 10) score += 0.1;
+        }
+        
+        return score;
+    }
+}
+
+public class SearchContext
+{
+    public string Query { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public Guid? UserId { get; set; }
+}
+
+public class SearchAdResult
+{
+    public SearchAd Ad { get; set; } = null!;
+    public double AdRank { get; set; }
+    public double RelevanceScore { get; set; }
+    public decimal ActualPrice { get; set; }
+    public int Position { get; set; }
+}
+```
+
+---
+
+### Result Interleaving (Organic + Ads)
+
+```csharp
+/// <summary>
+/// Combines organic results with ads at designated positions
+/// </summary>
+public class SearchResultInterleaver
+{
+    // Ad slot positions (0-indexed): positions 2 and 7
+    private readonly int[] AdSlotPositions = { 2, 7 };
+    
+    /// <summary>
+    /// Interleave organic results with ads
+    /// </summary>
+    public SearchResultsCollectionDto InterleaveResults(
+        List<BusinessSearchResultDto> organicResults,
+        List<SearchAdResult> ads)
+    {
+        var finalResults = new List<object>();
+        var organicIndex = 0;
+        var adIndex = 0;
+        var position = 0;
+        
+        while (organicIndex < organicResults.Count || adIndex < ads.Count)
+        {
+            // Check if this position should be an ad slot
+            if (adIndex < ads.Count && AdSlotPositions.Contains(position))
+            {
+                // Insert ad
+                var adResult = ads[adIndex];
+                adResult.Position = position + 1; // 1-indexed for display
+                
+                finalResults.Add(new SearchResultItemDto
+                {
+                    Type = SearchResultType.Ad,
+                    Ad = MapAdToDto(adResult),
+                    Position = position + 1
+                });
+                
+                adIndex++;
+            }
+            else if (organicIndex < organicResults.Count)
+            {
+                // Insert organic result
+                var organic = organicResults[organicIndex];
+                organic.Position = position + 1;
+                
+                finalResults.Add(new SearchResultItemDto
+                {
+                    Type = SearchResultType.Organic,
+                    Business = organic,
+                    Position = position + 1
+                });
+                
+                organicIndex++;
+            }
+            
+            position++;
+        }
+        
+        return new SearchResultsCollectionDto
+        {
+            Items = finalResults,
+            TotalOrganic = organicResults.Count,
+            TotalAds = ads.Count,
+            Query = /* from context */
+        };
+    }
+}
+
+public enum SearchResultType
+{
+    Organic = 1,
+    Ad = 2,
+    Sponsored = 3 // Same as Ad but different label
+}
+```
+
+---
+
+### Ad Impression & Click Tracking
+
+```csharp
+/// <summary>
+/// Track ad impressions and clicks for billing and quality score
+/// </summary>
+public class SearchAdTrackingService
+{
+    private readonly ISearchAdRepository _adRepository;
+    private readonly IAdEventRepository _eventRepository;
+    
+    /// <summary>
+    /// Record when ads are displayed in search results
+    /// </summary>
+    public async Task RecordImpressionsAsync(
+        List<SearchAdResult> displayedAds,
+        SearchContext context)
+    {
+        var events = displayedAds.Select(adResult => new AdImpressionEvent
+        {
+            Id = Guid.NewGuid(),
+            AdId = adResult.Ad.Id,
+            CampaignId = adResult.Ad.CampaignId,
+            UserId = context.UserId,
+            Timestamp = DateTimeOffset.UtcNow,
+            Position = adResult.Position,
+            SearchQuery = context.Query,
+            SearchCategory = context.Category,
+            ActualCost = adResult.Ad.PricingModel == AdPricingModel.CPM 
+                ? adResult.ActualPrice / 1000 // CPM = per 1000 impressions
+                : 0 // CPC = only pay on click
+        }).ToList();
+        
+        await _eventRepository.BulkInsertAsync(events);
+        
+        // Update impression counts (batch update)
+        await UpdateImpressionCountsAsync(displayedAds);
+    }
+    
+    /// <summary>
+    /// Record when user clicks an ad
+    /// </summary>
+    public async Task RecordClickAsync(
+        Guid adId,
+        Guid? userId,
+        int position,
+        decimal actualCost)
+    {
+        var clickEvent = new AdClickEvent
+        {
+            Id = Guid.NewGuid(),
+            AdId = adId,
+            UserId = userId,
+            Timestamp = DateTimeOffset.UtcNow,
+            Position = position,
+            ActualCost = actualCost
+        };
+        
+        await _eventRepository.AddAsync(clickEvent);
+        
+        // Update ad stats
+        var ad = await _adRepository.GetByIdAsync(adId);
+        if (ad != null)
+        {
+            ad.TotalClicks++;
+            ad.SpentToday += actualCost;
+            ad.TotalSpent += actualCost;
+            ad.ClickThroughRate = (double)ad.TotalClicks / Math.Max(1, ad.TotalImpressions);
+            
+            // Update campaign if applicable
+            if (ad.Campaign != null)
+            {
+                ad.Campaign.SpentToday += actualCost;
+                ad.Campaign.Spent += actualCost;
+                
+                // Check if campaign out of budget
+                if (ad.Campaign.Spent >= ad.Campaign.Budget)
+                {
+                    ad.Campaign.Status = CampaignStatus.OutOfBudget;
+                }
+            }
+            
+            await _adRepository.SaveChangesAsync();
+        }
+    }
+    
+    /// <summary>
+    /// Daily job: Update quality scores based on CTR
+    /// </summary>
+    public async Task UpdateQualityScoresAsync()
+    {
+        var ads = await _adRepository.GetActiveAdsAsync();
+        
+        foreach (var ad in ads)
+        {
+            if (ad.TotalImpressions < 100)
+            {
+                // Not enough data - use default
+                ad.QualityScore = 0.5;
+                continue;
+            }
+            
+            // Quality score based on CTR relative to average
+            // Average CTR is typically 2-3% for search ads
+            var avgCtr = 0.025;
+            var ctrRatio = ad.ClickThroughRate / avgCtr;
+            
+            // Clamp to 0.1 - 1.0 range
+            ad.QualityScore = Math.Clamp(ctrRatio * 0.5 + 0.25, 0.1, 1.0);
+        }
+        
+        await _adRepository.SaveChangesAsync();
+    }
+    
+    /// <summary>
+    /// Daily job: Reset daily spend counters
+    /// </summary>
+    public async Task ResetDailySpendAsync()
+    {
+        await _adRepository.ExecuteRawSqlAsync(
+            @"UPDATE ""SearchAds"" SET ""SpentToday"" = 0");
+        await _adRepository.ExecuteRawSqlAsync(
+            @"UPDATE ""AdCampaigns"" SET ""SpentToday"" = 0, 
+              ""Status"" = CASE WHEN ""Status"" = 4 AND ""Spent"" < ""Budget"" 
+                               THEN 1 ELSE ""Status"" END");
+    }
+}
+```
+
+---
+
+### UI Display for Ads
+
+```razor
+@* SearchAdCard.razor - Display ad in search results *@
+
+<div class="search-ad-card" data-ad-id="@Ad.Id">
+    @* Sponsored badge - ALWAYS visible *@
+    <div class="ad-badge">
+        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" />
+        <span>@Localizer["Sponsored"]</span>
+    </div>
+    
+    <div class="ad-content" @onclick="HandleAdClick">
+        @if (!string.IsNullOrEmpty(Ad.ImageUrl))
+        {
+            <div class="ad-image">
+                <img src="@Ad.ImageUrl" alt="@Ad.Headline" />
+            </div>
+        }
+        
+        <div class="ad-text">
+            <h3 class="ad-headline">@Ad.Headline</h3>
+            <p class="ad-description">@Ad.Description</p>
+            
+            @if (!string.IsNullOrEmpty(Ad.DisplayUrl))
+            {
+                <span class="ad-url">@Ad.DisplayUrl</span>
+            }
+        </div>
+        
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+            @Ad.CallToAction
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SearchAdDto Ad { get; set; } = null!;
+    [Parameter] public EventCallback<SearchAdDto> OnClick { get; set; }
+    
+    private async Task HandleAdClick()
+    {
+        await OnClick.InvokeAsync(Ad);
+        // Navigation happens in parent after tracking click
+    }
+}
+```
+
+```css
+/* SearchAdCard.razor.css */
+.search-ad-card {
+    position: relative;
+    background: linear-gradient(135deg, 
+        rgba(124, 77, 255, 0.05) 0%, 
+        rgba(124, 77, 255, 0.02) 100%);
+    border: 1px solid rgba(124, 77, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.search-ad-card:hover {
+    border-color: rgba(124, 77, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.15);
+}
+
+.ad-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(124, 77, 255, 0.15);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--mud-palette-primary);
+}
+
+.ad-content {
+    cursor: pointer;
+}
+
+.ad-headline {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--mud-palette-primary);
+    margin-bottom: 4px;
+}
+
+.ad-description {
+    font-size: 0.9rem;
+    color: var(--mud-palette-text-secondary);
+    margin-bottom: 8px;
+}
+
+.ad-url {
+    font-size: 0.8rem;
+    color: var(--mud-palette-text-disabled);
+}
+```
+
+---
+
+### Configuration
+
+```json
+// appsettings.json - Add to existing ContentRanking section
+{
+  "ContentRanking": {
+    // ... existing Elo config ...
+    
+    "SearchAds": {
+      "Enabled": true,
+      "MaxAdsPerPage": 2,
+      "AdSlotPositions": [3, 8],
+      "MinQualityScore": 0.3,
+      "MinBidPerClick": 0.05,
+      "MaxBidPerClick": 10.00,
+      "DefaultQualityScore": 0.5,
+      "QualityScoreUpdateHours": 24,
+      "FraudDetection": {
+        "MaxClicksPerUserPerAdPerDay": 3,
+        "MaxImpressionsPerUserPerAdPerHour": 10,
+        "SuspiciousClickRateThreshold": 0.15
+      }
+    }
+  }
+}
+```
+
+---
+
+## 💰 Profile Ad Budget System (Simplified)
+
+> **Simpler approach**: Every profile has ad credits. When shown as sponsored, credits are deducted. Later: add payment to top-up.
+
+### Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Profile Ad Budget Flow                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  1. Profile has AdBudget = $50.00 (credits)                         │
+│                      │                                               │
+│                      ▼                                               │
+│  2. Profile enables "Appear in Sponsored Results"                   │
+│     - Sets max bid per click: $0.25                                 │
+│     - Sets daily limit: $5.00                                       │
+│                      │                                               │
+│                      ▼                                               │
+│  3. User searches → Profile shown as sponsored                      │
+│     - Click happens → Deduct $0.25 from AdBudget                    │
+│     - AdBudget now = $49.75                                         │
+│                      │                                               │
+│                      ▼                                               │
+│  4. Budget reaches $0 → Stop showing as sponsored                   │
+│                      │                                               │
+│                      ▼                                               │
+│  5. (FUTURE) Profile owner tops up budget via payment              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Profile Entity Changes
+
+```csharp
+// Add to existing Profile entity (Sivar.Os.Shared/Entities/Profile.cs)
+
+public class Profile : BaseEntity
+{
+    // ... existing properties ...
+    
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+    
+    /// <summary>
+    /// Available ad credit balance (in local currency, e.g., USD)
+    /// </summary>
+    public virtual decimal AdBudget { get; set; } = 0;
+    
+    /// <summary>
+    /// Enable appearing as sponsored in search results
+    /// </summary>
+    public virtual bool SponsoredEnabled { get; set; } = false;
+    
+    /// <summary>
+    /// Maximum amount willing to pay per click (CPC)
+    /// </summary>
+    public virtual decimal MaxBidPerClick { get; set; } = 0.10m;
+    
+    /// <summary>
+    /// Maximum daily spend limit
+    /// </summary>
+    public virtual decimal DailyAdLimit { get; set; } = 5.00m;
+    
+    /// <summary>
+    /// Amount spent today on ads
+    /// </summary>
+    public virtual decimal AdSpentToday { get; set; } = 0;
+    
+    /// <summary>
+    /// Total amount ever spent on ads
+    /// </summary>
+    public virtual decimal TotalAdSpent { get; set; } = 0;
+    
+    /// <summary>
+    /// Target categories for ads (empty = all searches in their category)
+    /// </summary>
+    public virtual string? AdTargetCategories { get; set; } // JSON array
+    
+    /// <summary>
+    /// Target keywords for ads
+    /// </summary>
+    public virtual string? AdTargetKeywords { get; set; } // JSON array
+    
+    /// <summary>
+    /// Target radius in km (0 = no geo restriction)
+    /// </summary>
+    public virtual double AdTargetRadiusKm { get; set; } = 0;
+    
+    // ========================================
+    // AD PERFORMANCE STATS
+    // ========================================
+    
+    /// <summary>
+    /// Total sponsored impressions
+    /// </summary>
+    public virtual long SponsoredImpressions { get; set; } = 0;
+    
+    /// <summary>
+    /// Total sponsored clicks
+    /// </summary>
+    public virtual long SponsoredClicks { get; set; } = 0;
+    
+    /// <summary>
+    /// Click-through rate (clicks / impressions)
+    /// </summary>
+    public virtual double SponsoredCtr => SponsoredImpressions > 0 
+        ? (double)SponsoredClicks / SponsoredImpressions 
+        : 0;
+    
+    /// <summary>
+    /// Quality score based on CTR (affects ad position)
+    /// </summary>
+    public virtual double AdQualityScore { get; set; } = 0.5;
+}
+```
+
+### Simplified Ad Selection (Profile-Based)
+
+```csharp
+/// <summary>
+/// Select profiles to show as sponsored results
+/// </summary>
+public class ProfileAdSelector
+{
+    private readonly IProfileRepository _profileRepository;
+    private readonly ILogger<ProfileAdSelector> _logger;
+    
+    /// <summary>
+    /// Get profiles eligible for sponsored placement
+    /// </summary>
+    public async Task<List<SponsoredProfileResult>> SelectSponsoredProfilesAsync(
+        SearchContext context,
+        List<Guid> organicProfileIds, // Exclude already-shown profiles
+        int maxSponsored = 2)
+    {
+        var now = DateTimeOffset.UtcNow;
+        
+        // Get eligible sponsored profiles
+        var eligibleProfiles = await _profileRepository.Query()
+            .Where(p => p.SponsoredEnabled)
+            .Where(p => p.AdBudget > 0)
+            .Where(p => p.AdSpentToday < p.DailyAdLimit)
+            .Where(p => !p.IsDeleted)
+            .Where(p => !organicProfileIds.Contains(p.Id)) // Not already in results
+            // Category match (if profile set targeting)
+            .Where(p => string.IsNullOrEmpty(p.AdTargetCategories) || 
+                       p.AdTargetCategories.Contains(context.Category))
+            .ToListAsync();
+        
+        if (!eligibleProfiles.Any())
+        {
+            return new List<SponsoredProfileResult>();
+        }
+        
+        // Filter by location if applicable
+        if (context.Latitude != 0 && context.Longitude != 0)
+        {
+            eligibleProfiles = eligibleProfiles
+                .Where(p => p.AdTargetRadiusKm == 0 || // No geo restriction
+                           (p.Latitude.HasValue && p.Longitude.HasValue &&
+                            CalculateDistance(p.Latitude.Value, p.Longitude.Value,
+                                            context.Latitude, context.Longitude) <= p.AdTargetRadiusKm))
+                .ToList();
+        }
+        
+        // Filter by keyword match
+        if (!string.IsNullOrEmpty(context.Query))
+        {
+            eligibleProfiles = eligibleProfiles
+                .Where(p => string.IsNullOrEmpty(p.AdTargetKeywords) || // No keyword restriction
+                           MatchesKeywords(p.AdTargetKeywords, context.Query))
+                .ToList();
+        }
+        
+        // Rank by: Bid × QualityScore
+        var rankedProfiles = eligibleProfiles
+            .Select(p => new
+            {
+                Profile = p,
+                AdRank = (double)p.MaxBidPerClick * p.AdQualityScore,
+                RelevanceScore = CalculateRelevance(p, context)
+            })
+            .Where(x => x.AdRank > 0)
+            .OrderByDescending(x => x.AdRank * x.RelevanceScore)
+            .Take(maxSponsored)
+            .ToList();
+        
+        // Calculate actual price (second-price auction)
+        var results = new List<SponsoredProfileResult>();
+        for (int i = 0; i < rankedProfiles.Count; i++)
+        {
+            var current = rankedProfiles[i];
+            
+            // Second-price: pay enough to beat next bidder + $0.01
+            decimal actualPrice;
+            if (i + 1 < rankedProfiles.Count)
+            {
+                var next = rankedProfiles[i + 1];
+                actualPrice = (decimal)(next.AdRank / current.Profile.AdQualityScore) + 0.01m;
+            }
+            else
+            {
+                actualPrice = 0.01m; // Minimum price if no competition
+            }
+            
+            // Cap at their max bid
+            actualPrice = Math.Min(actualPrice, current.Profile.MaxBidPerClick);
+            
+            results.Add(new SponsoredProfileResult
+            {
+                ProfileId = current.Profile.Id,
+                Profile = current.Profile,
+                AdRank = current.AdRank,
+                ActualPricePerClick = actualPrice,
+                Position = 0 // Assigned during interleaving
+            });
+        }
+        
+        _logger.LogInformation(
+            "[ProfileAdSelector] Selected {Count} sponsored from {Eligible} eligible",
+            results.Count, eligibleProfiles.Count);
+        
+        return results;
+    }
+    
+    private bool MatchesKeywords(string keywordsJson, string query)
+    {
+        try
+        {
+            var keywords = JsonSerializer.Deserialize<List<string>>(keywordsJson) ?? new();
+            return keywords.Any(k => query.Contains(k, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return true; // On parse error, allow
+        }
+    }
+}
+
+public class SponsoredProfileResult
+{
+    public Guid ProfileId { get; set; }
+    public Profile Profile { get; set; } = null!;
+    public double AdRank { get; set; }
+    public decimal ActualPricePerClick { get; set; }
+    public int Position { get; set; }
+}
+```
+
+### Budget Deduction on Click
+
+```csharp
+/// <summary>
+/// Service to handle ad budget transactions
+/// </summary>
+public class ProfileAdBudgetService
+{
+    private readonly IProfileRepository _profileRepository;
+    private readonly IAdTransactionRepository _transactionRepository;
+    private readonly ILogger<ProfileAdBudgetService> _logger;
+    
+    /// <summary>
+    /// Record a sponsored impression (free, just for stats)
+    /// </summary>
+    public async Task RecordImpressionAsync(Guid profileId)
+    {
+        await _profileRepository.ExecuteRawSqlAsync(
+            @"UPDATE ""Sivar_Profiles"" 
+              SET ""SponsoredImpressions"" = ""SponsoredImpressions"" + 1
+              WHERE ""Id"" = {0}",
+            profileId);
+    }
+    
+    /// <summary>
+    /// Record a sponsored click and deduct budget
+    /// </summary>
+    public async Task<bool> RecordClickAsync(
+        Guid profileId, 
+        decimal amountToDeduct,
+        Guid? clickerUserId = null)
+    {
+        // Use transaction for atomic update
+        await using var transaction = await _profileRepository.BeginTransactionAsync();
+        
+        try
+        {
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null)
+            {
+                return false;
+            }
+            
+            // Check sufficient budget
+            if (profile.AdBudget < amountToDeduct)
+            {
+                _logger.LogWarning(
+                    "[AdBudget] Insufficient budget for profile {ProfileId}. Has {Budget}, needs {Amount}",
+                    profileId, profile.AdBudget, amountToDeduct);
+                return false;
+            }
+            
+            // Check daily limit
+            if (profile.AdSpentToday + amountToDeduct > profile.DailyAdLimit)
+            {
+                _logger.LogInformation(
+                    "[AdBudget] Daily limit reached for profile {ProfileId}",
+                    profileId);
+                return false;
+            }
+            
+            // Deduct budget
+            profile.AdBudget -= amountToDeduct;
+            profile.AdSpentToday += amountToDeduct;
+            profile.TotalAdSpent += amountToDeduct;
+            profile.SponsoredClicks++;
+            
+            // Recalculate CTR and quality score
+            if (profile.SponsoredImpressions > 100)
+            {
+                var ctr = (double)profile.SponsoredClicks / profile.SponsoredImpressions;
+                // Quality score: CTR relative to 2.5% average
+                profile.AdQualityScore = Math.Clamp(ctr / 0.025 * 0.5 + 0.25, 0.1, 1.0);
+            }
+            
+            await _profileRepository.SaveChangesAsync();
+            
+            // Record transaction for audit
+            await _transactionRepository.AddAsync(new AdTransaction
+            {
+                Id = Guid.NewGuid(),
+                ProfileId = profileId,
+                TransactionType = AdTransactionType.Click,
+                Amount = -amountToDeduct,
+                BalanceAfter = profile.AdBudget,
+                ClickerUserId = clickerUserId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Description = "Sponsored click"
+            });
+            
+            await transaction.CommitAsync();
+            
+            _logger.LogInformation(
+                "[AdBudget] Click recorded. Profile={ProfileId}, Deducted={Amount}, NewBalance={Balance}",
+                profileId, amountToDeduct, profile.AdBudget);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "[AdBudget] Failed to record click for profile {ProfileId}", profileId);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Add budget to profile (for future: called after payment)
+    /// </summary>
+    public async Task<decimal> AddBudgetAsync(
+        Guid profileId, 
+        decimal amount,
+        string source = "manual")
+    {
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null)
+        {
+            throw new InvalidOperationException($"Profile {profileId} not found");
+        }
+        
+        profile.AdBudget += amount;
+        await _profileRepository.SaveChangesAsync();
+        
+        // Record transaction
+        await _transactionRepository.AddAsync(new AdTransaction
+        {
+            Id = Guid.NewGuid(),
+            ProfileId = profileId,
+            TransactionType = AdTransactionType.TopUp,
+            Amount = amount,
+            BalanceAfter = profile.AdBudget,
+            Timestamp = DateTimeOffset.UtcNow,
+            Description = $"Budget top-up via {source}"
+        });
+        
+        _logger.LogInformation(
+            "[AdBudget] Budget added. Profile={ProfileId}, Added={Amount}, NewBalance={Balance}",
+            profileId, amount, profile.AdBudget);
+        
+        return profile.AdBudget;
+    }
+    
+    /// <summary>
+    /// Daily job: Reset daily spend counters
+    /// </summary>
+    public async Task ResetDailySpendAsync()
+    {
+        await _profileRepository.ExecuteRawSqlAsync(
+            @"UPDATE ""Sivar_Profiles"" SET ""AdSpentToday"" = 0 WHERE ""SponsoredEnabled"" = true");
+    }
+}
+
+/// <summary>
+/// Transaction record for ad budget changes
+/// </summary>
+public class AdTransaction : BaseEntity
+{
+    public virtual Guid ProfileId { get; set; }
+    public virtual Profile Profile { get; set; } = null!;
+    
+    public virtual AdTransactionType TransactionType { get; set; }
+    
+    /// <summary>
+    /// Positive = top-up, Negative = spend
+    /// </summary>
+    public virtual decimal Amount { get; set; }
+    
+    /// <summary>
+    /// Balance after this transaction
+    /// </summary>
+    public virtual decimal BalanceAfter { get; set; }
+    
+    /// <summary>
+    /// User who clicked (for click transactions)
+    /// </summary>
+    public virtual Guid? ClickerUserId { get; set; }
+    
+    public virtual DateTimeOffset Timestamp { get; set; }
+    
+    [StringLength(500)]
+    public virtual string? Description { get; set; }
+    
+    /// <summary>
+    /// External reference (payment ID, etc.)
+    /// </summary>
+    [StringLength(100)]
+    public virtual string? ExternalReference { get; set; }
+}
+
+public enum AdTransactionType
+{
+    TopUp = 1,      // Budget added
+    Click = 2,      // Click deduction
+    Refund = 3,     // Refund (fraud, etc.)
+    Adjustment = 4, // Manual adjustment
+    Bonus = 5       // Promotional credit
+}
+```
+
+### Sponsored Settings UI
+
+```razor
+@* SponsoredSettingsPanel.razor - In profile settings *@
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.Campaign" Class="mr-2" />
+        @Localizer["SponsoredSettings"]
+    </MudText>
+    
+    @* Current Balance *@
+    <MudAlert Severity="@(Profile.AdBudget > 0 ? Severity.Success : Severity.Warning)" 
+              Class="mb-4">
+        <MudText Typo="Typo.h5">
+            @Localizer["AdBalance"]: @Profile.AdBudget.ToString("C2")
+        </MudText>
+        @if (Profile.AdBudget <= 5)
+        {
+            <MudText Typo="Typo.caption">
+                @Localizer["LowBalanceWarning"]
+            </MudText>
+        }
+    </MudAlert>
+    
+    @* Enable/Disable Toggle *@
+    <MudSwitch @bind-Value="Profile.SponsoredEnabled" 
+               Label="@Localizer["EnableSponsored"]"
+               Color="Color.Primary"
+               Disabled="@(Profile.AdBudget <= 0)" />
+    
+    @if (Profile.SponsoredEnabled)
+    {
+        <MudDivider Class="my-4" />
+        
+        @* Bid Settings *@
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="Profile.MaxBidPerClick"
+                                 Label="@Localizer["MaxBidPerClick"]"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="$"
+                                 Min="0.01m" Max="10.00m" Step="0.05m"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="Profile.DailyAdLimit"
+                                 Label="@Localizer["DailyLimit"]"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="$"
+                                 Min="1.00m" Max="1000.00m" Step="5.00m"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+        
+        @* Targeting (Optional) *@
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="@Localizer["AdvancedTargeting"]">
+                <MudTextField @bind-Value="_targetKeywords"
+                              Label="@Localizer["TargetKeywords"]"
+                              Placeholder="pizza, restaurante, comida..."
+                              HelperText="@Localizer["TargetKeywordsHelp"]"
+                              Variant="Variant.Outlined" />
+                              
+                <MudNumericField @bind-Value="Profile.AdTargetRadiusKm"
+                                 Label="@Localizer["TargetRadius"]"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="km"
+                                 Min="0" Max="100"
+                                 HelperText="@Localizer["TargetRadiusHelp"]"
+                                 Variant="Variant.Outlined" 
+                                 Class="mt-3" />
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+        
+        @* Performance Stats *@
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["Performance"]</MudText>
+        
+        <MudGrid>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-3 text-center" Elevation="0" Style="background: var(--mud-palette-surface)">
+                    <MudText Typo="Typo.h6">@Profile.SponsoredImpressions</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["Impressions"]</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-3 text-center" Elevation="0" Style="background: var(--mud-palette-surface)">
+                    <MudText Typo="Typo.h6">@Profile.SponsoredClicks</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["Clicks"]</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-3 text-center" Elevation="0" Style="background: var(--mud-palette-surface)">
+                    <MudText Typo="Typo.h6">@((Profile.SponsoredCtr * 100).ToString("F2"))%</MudText>
+                    <MudText Typo="Typo.caption">CTR</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-3 text-center" Elevation="0" Style="background: var(--mud-palette-surface)">
+                    <MudText Typo="Typo.h6">@Profile.TotalAdSpent.ToString("C2")</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["TotalSpent"]</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+    
+    @* Top-up Button (Future: Links to payment) *@
+    <MudDivider Class="my-4" />
+    <MudButton Variant="Variant.Filled" 
+               Color="Color.Primary" 
+               StartIcon="@Icons.Material.Filled.AddCard"
+               OnClick="HandleTopUp"
+               FullWidth="true">
+        @Localizer["TopUpBalance"]
+    </MudButton>
+</MudPaper>
+
+@code {
+    [Parameter] public Profile Profile { get; set; } = null!;
+    [Parameter] public EventCallback<Profile> OnSave { get; set; }
+    
+    private string _targetKeywords = "";
+    
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Profile.AdTargetKeywords))
+        {
+            try {
+                var keywords = JsonSerializer.Deserialize<List<string>>(Profile.AdTargetKeywords);
+                _targetKeywords = string.Join(", ", keywords ?? new());
+            } catch { }
+        }
+    }
+    
+    private async Task HandleTopUp()
+    {
+        // TODO: Navigate to payment page or show payment dialog
+        // For now: Show coming soon message
+        await DialogService.ShowMessageBox(
+            Localizer["TopUpBalance"],
+            Localizer["TopUpComingSoon"]);
+    }
+}
+```
+
+### Future: Payment Integration
+
+```csharp
+/// <summary>
+/// FUTURE: Payment service for ad budget top-ups
+/// Options: Stripe, PayPal, local payment methods
+/// </summary>
+public interface IAdPaymentService
+{
+    /// <summary>
+    /// Create a checkout session for budget top-up
+    /// </summary>
+    Task<PaymentSession> CreateTopUpSessionAsync(
+        Guid profileId,
+        decimal amount,
+        string currency = "USD");
+    
+    /// <summary>
+    /// Handle webhook from payment provider
+    /// </summary>
+    Task HandlePaymentWebhookAsync(string payload, string signature);
+    
+    /// <summary>
+    /// Process successful payment (called by webhook handler)
+    /// </summary>
+    Task ProcessSuccessfulPaymentAsync(
+        Guid profileId,
+        decimal amount,
+        string paymentId);
+}
+
+// Pricing tiers example:
+// $10 → Get $10 ad credit
+// $25 → Get $27 ad credit (8% bonus)
+// $50 → Get $57 ad credit (14% bonus)
+// $100 → Get $120 ad credit (20% bonus)
+```
+
+### Summary: Profile Ad Budget vs Full Ad System
+
+| Aspect | Profile Budget (Simpler) | Full Ad System |
+|--------|-------------------------|----------------|
+| **Who can advertise** | Any profile | Creates separate ad campaigns |
+| **Ad content** | Profile itself | Custom ads (headline, image, etc.) |
+| **Setup complexity** | Toggle + set bid | Full campaign creation |
+| **Targeting** | Basic (keywords, radius) | Advanced (demographics, interests) |
+| **Billing** | Per-click from balance | Invoicing, credit cards, etc. |
+| **Best for** | Small businesses | Large advertisers |
+
+### Implementation Priority
+
+**Phase 1: Profile Budget (This Design)**
+1. Add fields to Profile entity
+2. Implement ProfileAdSelector
+3. Implement ProfileAdBudgetService
+4. Add SponsoredSettingsPanel UI
+5. Integrate with search results
+
+**Phase 2: Payment (Future)**
+1. Choose payment provider (Stripe recommended)
+2. Implement checkout flow
+3. Handle webhooks
+4. Add transaction history UI
+
+---
+
+### Files to Create for Ads
+
+| File | Purpose |
+|------|---------|
+| `Sivar.Os.Shared/Entities/SearchAd.cs` | Ad entity |
+| `Sivar.Os.Shared/Entities/AdCampaign.cs` | Campaign entity |
+| `Sivar.Os.Shared/Entities/AdImpressionEvent.cs` | Impression tracking |
+| `Sivar.Os.Shared/Entities/AdClickEvent.cs` | Click tracking |
+| `Sivar.Os.Shared/DTOs/SearchAdDto.cs` | Ad DTO for frontend |
+| `Sivar.Os.Shared/Repositories/ISearchAdRepository.cs` | Repository interface |
+| `Sivar.Os.Data/Repositories/SearchAdRepository.cs` | Repository impl |
+| `Sivar.Os/Services/SearchAdSelector.cs` | Ad selection logic |
+| `Sivar.Os/Services/SearchAdTrackingService.cs` | Impression/click tracking |
+| `Sivar.Os/Services/SearchResultInterleaver.cs` | Combine organic + ads |
+| `Sivar.Os.Client/Components/AIChat/SearchAdCard.razor` | Ad display component |
+
+---
+
+### Integration with Content Ranking
+
+The ad system works **alongside** content ranking:
+
+```
+User searches "pizzerias cerca de mi"
+            │
+            ▼
+┌───────────────────────────────────────┐
+│ 1. Hybrid Search (semantic + geo)     │
+│    → Get 20 organic results           │
+└───────────────────────────────────────┘
+            │
+            ▼
+┌───────────────────────────────────────┐
+│ 2. Content Ranking (Elo + Composite)  │
+│    → Rank organic results by quality  │
+└───────────────────────────────────────┘
+            │
+            ▼
+┌───────────────────────────────────────┐
+│ 3. Ad Selection (Auction)             │
+│    → Select 0-2 ads matching context  │
+└───────────────────────────────────────┘
+            │
+            ▼
+┌───────────────────────────────────────┐
+│ 4. Interleaving                       │
+│    → Insert ads at positions 3 & 8    │
+└───────────────────────────────────────┘
+            │
+            ▼
+┌───────────────────────────────────────┐
+│ 5. Tracking                           │
+│    → Record impressions for:          │
+│       - Organic (ContentRatingEvent)  │
+│       - Ads (AdImpressionEvent)       │
+└───────────────────────────────────────┘
+            │
+            ▼
+       Return to user
+```
+
+---
+
 ## Sponsored Content Ranking
 
 Sponsored content uses a **second-price auction** combined with quality score:

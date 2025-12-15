@@ -161,6 +161,12 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<RankingConfiguration> RankingConfigurations { get; set; } = null!;
 
+    /// <summary>
+    /// Ad transactions - audit trail for ad budget changes
+    /// Search Ads System
+    /// </summary>
+    public DbSet<AdTransaction> AdTransactions { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -192,6 +198,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new QuickActionConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileBookmarkConfiguration());
         modelBuilder.ApplyConfiguration(new CategoryDefinitionConfiguration());
+        modelBuilder.ApplyConfiguration(new AdTransactionConfiguration()); // Search Ads System
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

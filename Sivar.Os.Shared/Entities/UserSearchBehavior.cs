@@ -14,68 +14,68 @@ public class UserSearchBehavior : BaseEntity
     /// <summary>
     /// The profile this behavior belongs to
     /// </summary>
-    public Guid ProfileId { get; set; }
+    public virtual Guid ProfileId { get; set; }
     
     /// <summary>
     /// Category affinity scores (learned from interactions)
     /// Example: {"restaurant": 0.8, "tourism": 0.3, "government": 0.5}
     /// </summary>
     [Column(TypeName = "jsonb")]
-    public JsonDocument? CategoryAffinities { get; set; }
+    public virtual JsonDocument? CategoryAffinities { get; set; }
     
     /// <summary>
     /// Recently interacted post/profile IDs with timestamps
     /// Example: [{"id": "guid", "type": "post", "at": "2024-01-01T12:00:00Z"}]
     /// </summary>
     [Column(TypeName = "jsonb")]
-    public JsonDocument? RecentInteractions { get; set; }
+    public virtual JsonDocument? RecentInteractions { get; set; }
     
     /// <summary>
     /// Frequently searched terms with counts
     /// Example: {"pizza": 5, "banco": 3, "pasaporte": 2}
     /// </summary>
     [Column(TypeName = "jsonb")]
-    public JsonDocument? FrequentQueries { get; set; }
+    public virtual JsonDocument? FrequentQueries { get; set; }
     
     /// <summary>
     /// Preferred result types with affinities
     /// Example: {"business": 0.7, "procedure": 0.2, "event": 0.1}
     /// </summary>
     [Column(TypeName = "jsonb")]
-    public JsonDocument? ResultTypePreferences { get; set; }
+    public virtual JsonDocument? ResultTypePreferences { get; set; }
     
     /// <summary>
     /// Preferred price range for services/products
     /// Example: {"min": 5, "max": 50, "currency": "USD"}
     /// </summary>
     [Column(TypeName = "jsonb")]
-    public JsonDocument? PricePreferences { get; set; }
+    public virtual JsonDocument? PricePreferences { get; set; }
     
     /// <summary>
     /// Average search radius (learned from behavior)
     /// </summary>
-    public double? PreferredRadiusKm { get; set; }
+    public virtual double? PreferredRadiusKm { get; set; }
     
     /// <summary>
     /// Preferred cities/departments
     /// </summary>
     [Column(TypeName = "text[]")]
-    public string[]? PreferredLocations { get; set; }
+    public virtual string[]? PreferredLocations { get; set; }
     
     /// <summary>
     /// Total number of searches performed
     /// </summary>
-    public int TotalSearches { get; set; }
+    public virtual int TotalSearches { get; set; }
     
     /// <summary>
     /// Total number of result clicks
     /// </summary>
-    public int TotalClicks { get; set; }
+    public virtual int TotalClicks { get; set; }
     
     /// <summary>
     /// Total number of actions taken (calls, saves, etc.)
     /// </summary>
-    public int TotalActions { get; set; }
+    public virtual int TotalActions { get; set; }
     
     // Navigation property
     public virtual Profile? Profile { get; set; }

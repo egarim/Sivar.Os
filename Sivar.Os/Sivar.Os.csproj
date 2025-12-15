@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+    <PackageReference Include="DevExpress.AIIntegration.Blazor" Version="25.1.*" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
    
     <ProjectReference Include="..\Sivar.Os.Data\Sivar.Os.Data.csproj" />
@@ -16,12 +17,19 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
+	<PackageReference Include="DevExpress.ExpressApp.Blazor" Version="25.1.*-*" />
+    <!-- DevExpress AI Chat Component for Server-side processing -->
+    <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.1.*" />
+    <!-- Explicit DevExpress.Blazor to resolve version conflict -->
+    <PackageReference Include="DevExpress.Blazor" Version="25.1.*-*" />
   </ItemGroup>
 
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
+		<!-- Resolve version conflict between EF Core Design analyzer dependencies -->
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
 	
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.9.0" />

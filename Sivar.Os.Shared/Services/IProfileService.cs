@@ -61,6 +61,13 @@ public interface IProfileService
     Task<bool> SetActiveProfileAsync(string keycloakId, Guid profileId);
 
     /// <summary>
+    /// Gets a profile by ID (internal use, no visibility check)
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <returns>Profile DTO if found, null otherwise</returns>
+    Task<ProfileDto?> GetProfileAsync(Guid profileId);
+
+    /// <summary>
     /// Gets a public profile by ID
     /// </summary>
     /// <param name="profileId">Profile ID</param>
@@ -252,6 +259,42 @@ public interface IProfileService
     /// <param name="languageCode">Language code in BCP 47 format (e.g., en-US, es-ES), or null for browser default</param>
     /// <returns>True if update successful, false otherwise</returns>
     Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string keycloakId, string? languageCode);
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    /// <summary>
+    /// Gets ad settings and budget for a profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <returns>Ad settings DTO if found</returns>
+    Task<ProfileAdSettingsDto?> GetAdSettingsAsync(Guid profileId);
+
+    /// <summary>
+    /// Updates ad settings for a profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="updateDto">Updated settings</param>
+    /// <returns>Updated ad settings DTO</returns>
+    Task<ProfileAdSettingsDto?> UpdateAdSettingsAsync(Guid profileId, UpdateAdSettingsDto updateDto);
+
+    /// <summary>
+    /// Gets transaction history for a profile's ad budget
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="limit">Maximum number of transactions to return</param>
+    /// <returns>List of transactions</returns>
+    Task<List<AdTransactionDto>> GetAdTransactionsAsync(Guid profileId, int limit = 50);
+
+    /// <summary>
+    /// Adds budget to a profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="amount">Amount to add</param>
+    /// <param name="description">Description of the transaction</param>
+    /// <returns>Updated ad settings with new balance</returns>
+    Task<ProfileAdSettingsDto?> AddAdBudgetAsync(Guid profileId, decimal amount, string? description);
 }
 
 /// <summary>

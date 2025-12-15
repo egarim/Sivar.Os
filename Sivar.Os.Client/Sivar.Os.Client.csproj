@@ -15,6 +15,10 @@
     <PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.1" />
     <PackageReference Include="MudBlazor" Version="8.*" />
     <PackageReference Include="PSC.Blazor.Components.MarkdownEditor" Version="8.0.8" />
+    <!-- DevExpress AI Chat Component -->
+    <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.1.*" />
+    <PackageReference Include="DevExpress.Blazor" Version="25.1.*" />
+    <PackageReference Include="Markdig" Version="0.40.0" />
   </ItemGroup>
 
   <ItemGroup>

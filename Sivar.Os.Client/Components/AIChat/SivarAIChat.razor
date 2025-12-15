@@ -1,0 +1,832 @@
+@* SivarAIChat - DxAIChat wrapper component for Sivar.Os *@
+@* Phase 2: New DxAIChat integration with manual message processing *@
+@using DevExpress.AIIntegration.Blazor.Chat
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Client.Components.Feed
+@using Markdig
+
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject ILogger<SivarAIChat> Logger
+
+<div class="sivar-ai-chat-container @CssClass">
+    <DxAIChat @ref="_chat"
+              CssClass="sivar-ai-chat"
+              MessageSent="OnMessageSentAsync"
+              UseStreaming="true"
+              ResponseContentFormat="ResponseContentFormat.Markdown">
+        <PromptSuggestions>
+            @if (PromptSuggestionItems?.Any() == true)
+            {
+                @foreach (var suggestion in PromptSuggestionItems)
+                {
+                    <DxAIChatPromptSuggestion 
+                        Title="@suggestion.Label"
+                        Text="@(suggestion.ContextHint ?? suggestion.DefaultQuery)"
+                        PromptMessage="@(suggestion.DefaultQuery ?? suggestion.Label)" />
+                }
+            }
+            else
+            {
+                @* Default suggestions when none provided *@
+                <DxAIChatPromptSuggestion 
+                    Title="🍕 Restaurantes"
+                    Text="Encuentra los mejores lugares para comer"
+                    PromptMessage="¿Cuáles son los mejores restaurantes cerca de mí?" />
+                <DxAIChatPromptSuggestion 
+                    Title="📋 Trámites"
+                    Text="Información sobre trámites y requisitos"
+                    PromptMessage="¿Cómo puedo sacar mi DUI?" />
+                <DxAIChatPromptSuggestion 
+                    Title="🏝️ Turismo"
+                    Text="Descubre lugares turísticos"
+                    PromptMessage="¿Qué lugares puedo visitar en El Salvador?" />
+                <DxAIChatPromptSuggestion 
+                    Title="🛠️ Servicios"
+                    Text="Encuentra servicios profesionales"
+                    PromptMessage="Necesito un plomero en San Salvador" />
+            }
+        </PromptSuggestions>
+        
+        @* Message Content Template - Renders structured results as business cards *@
+        <MessageContentTemplate>
+            @{
+                var messageId = GetMessageId(context);
+                var hasStructuredResults = TryGetStructuredResults(messageId, out var results);
+            }
+            
+            @if (context.Role == ChatMessageRole.Assistant && hasStructuredResults && results != null)
+            {
+                @* Render intro text with markdown *@
+                <div class="chat-bubble chat-intro">
+                    @((MarkupString)RenderMarkdown(context.Content))
+                </div>
+                
+                @* Display mode toggle *@
+                <div class="display-mode-toggle" role="group" aria-label="Modo de visualización de resultados">
+                    <MudIconButton Icon="@Icons.Material.Filled.ViewCarousel" 
+                                   Size="Size.Small" 
+                                   Color="@(DisplayMode == ChatDisplayMode.Cards ? Color.Primary : Color.Default)"
+                                   OnClick="() => SetDisplayMode(ChatDisplayMode.Cards)"
+                                   Title="Carrusel"
+                                   aria-label="Ver resultados en carrusel"
+                                   aria-pressed="@(DisplayMode == ChatDisplayMode.Cards)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ViewList" 
+                                   Size="Size.Small"
+                                   Color="@(DisplayMode == ChatDisplayMode.List ? Color.Primary : Color.Default)"
+                                   OnClick="() => SetDisplayMode(ChatDisplayMode.List)"
+                                   Title="Lista"
+                                   aria-label="Ver resultados en lista"
+                                   aria-pressed="@(DisplayMode == ChatDisplayMode.List)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.GridView" 
+                                   Size="Size.Small"
+                                   Color="@(DisplayMode == ChatDisplayMode.Grid ? Color.Primary : Color.Default)"
+                                   OnClick="() => SetDisplayMode(ChatDisplayMode.Grid)"
+                                   Title="Cuadrícula"
+                                   aria-label="Ver resultados en cuadrícula"
+                                   aria-pressed="@(DisplayMode == ChatDisplayMode.Grid)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Map" 
+                                   Size="Size.Small"
+                                   Color="@(DisplayMode == ChatDisplayMode.Map ? Color.Primary : Color.Default)"
+                                   OnClick="() => SetDisplayMode(ChatDisplayMode.Map)"
+                                   Title="Mapa"
+                                   aria-label="Ver resultados en mapa"
+                                   aria-pressed="@(DisplayMode == ChatDisplayMode.Map)" />
+                </div>
+                
+                @* Render structured results based on display mode *@
+                <div class="structured-results-container">
+                    @if (DisplayMode == ChatDisplayMode.Map)
+                    {
+                        @* Map View - Show all results with locations on map *@
+                        <div class="results-map-container">
+                            <SearchResultsMap 
+                                Results="@results"
+                                Height="350"
+                                UserLatitude="@CurrentLocation?.Latitude"
+                                UserLongitude="@CurrentLocation?.Longitude"
+                                ShowDistanceLines="true" />
+                        </div>
+                    }
+                    else
+                    {
+                        @* Non-map views: Cards, List, Grid *@
+                        @if (results.Businesses?.Any() == true)
+                        {
+                            @if (DisplayMode == ChatDisplayMode.Cards)
+                            {
+                                <MudCarousel Class="results-carousel mud-width-full" 
+                                             Style="height: 380px;" 
+                                             ShowArrows="@(results.Businesses.Count > 1)" 
+                                             ShowBullets="@(results.Businesses.Count > 1)"
+                                             EnableSwipeGesture="true"
+                                             AutoCycle="false"
+                                             TData="object">
+                                    @foreach (var business in results.Businesses)
+                                    {
+                                        <MudCarouselItem Class="d-flex justify-center pa-2">
+                                            <SivarBusinessCard 
+                                                Business="@business"
+                                                OnNavigate="HandleNavigateToProfile"
+                                                OnSave="HandleSaveBusiness"
+                                                OnShare="HandleShareBusiness" />
+                                        </MudCarouselItem>
+                                    }
+                                </MudCarousel>
+                            }
+                            else if (DisplayMode == ChatDisplayMode.List)
+                        {
+                            <MudList T="BusinessSearchResultDto" Dense="true" Class="results-list">
+                                @foreach (var business in results.Businesses)
+                                {
+                                    <MudListItem T="BusinessSearchResultDto" OnClick="() => HandleNavigateToProfile(business)">
+                                        <div class="list-item-content">
+                                            <MudAvatar Size="Size.Small" Class="mr-2">
+                                                @if (!string.IsNullOrEmpty(business.ImageUrl))
+                                                {
+                                                    <MudImage Src="@business.ImageUrl" Alt="@business.Title" />
+                                                }
+                                                else
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Business" />
+                                                }
+                                            </MudAvatar>
+                                            <div class="list-item-text">
+                                                <MudText Typo="Typo.body2" Class="font-weight-bold">@business.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @business.Category 
+                                                    @if (business.DistanceKm.HasValue)
+                                                    {
+                                                        <span>• @business.DistanceKm.Value.ToString("F1") km</span>
+                                                    }
+                                                </MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else @* Grid mode *@
+                        {
+                            <div class="results-grid">
+                                @foreach (var business in results.Businesses)
+                                {
+                                    <SivarBusinessCard 
+                                        Business="@business"
+                                        OnNavigate="HandleNavigateToProfile"
+                                        OnSave="HandleSaveBusiness"
+                                        OnShare="HandleShareBusiness" />
+                                }
+                            </div>
+                        }
+                    }
+                    @if (results.Procedures?.Any() == true)
+                    {
+                        @if (DisplayMode == ChatDisplayMode.Cards)
+                        {
+                            <MudCarousel Class="results-carousel mud-width-full" 
+                                         Style="height: 360px;" 
+                                         ShowArrows="@(results.Procedures.Count > 1)" 
+                                         ShowBullets="@(results.Procedures.Count > 1)"
+                                         EnableSwipeGesture="true"
+                                         AutoCycle="false"
+                                         TData="object">
+                                @foreach (var procedure in results.Procedures)
+                                {
+                                    <MudCarouselItem Class="d-flex justify-center pa-2">
+                                        <SivarProcedureCard 
+                                            Procedure="@procedure"
+                                            OnNavigate="HandleNavigateToProcedure" />
+                                    </MudCarouselItem>
+                                }
+                            </MudCarousel>
+                        }
+                        else if (DisplayMode == ChatDisplayMode.List)
+                        {
+                            <MudList T="ProcedureSearchResultDto" Dense="true" Class="results-list">
+                                @foreach (var procedure in results.Procedures)
+                                {
+                                    <MudListItem T="ProcedureSearchResultDto" OnClick="() => HandleNavigateToProcedure(procedure)">
+                                        <div class="list-item-content">
+                                            <MudAvatar Size="Size.Small" Color="Color.Info" Class="mr-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Assignment" />
+                                            </MudAvatar>
+                                            <div class="list-item-text">
+                                                <MudText Typo="Typo.body2" Class="font-weight-bold">@procedure.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@(procedure.WhereToGo ?? "Trámite")</MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <div class="results-grid">
+                                @foreach (var procedure in results.Procedures)
+                                {
+                                    <SivarProcedureCard 
+                                        Procedure="@procedure"
+                                        OnNavigate="HandleNavigateToProcedure" />
+                                }
+                            </div>
+                        }
+                    }
+                    @if (results.Events?.Any() == true)
+                    {
+                        @if (DisplayMode == ChatDisplayMode.Cards)
+                        {
+                            <MudCarousel Class="results-carousel mud-width-full" 
+                                         Style="height: 380px;" 
+                                         ShowArrows="@(results.Events.Count > 1)" 
+                                         ShowBullets="@(results.Events.Count > 1)"
+                                         EnableSwipeGesture="true"
+                                         AutoCycle="false"
+                                         TData="object">
+                                @foreach (var evt in results.Events)
+                                {
+                                    <MudCarouselItem Class="d-flex justify-center pa-2">
+                                        <SivarEventCard 
+                                            Event="@evt"
+                                            OnNavigate="HandleNavigateToEvent" />
+                                    </MudCarouselItem>
+                                }
+                            </MudCarousel>
+                        }
+                        else if (DisplayMode == ChatDisplayMode.List)
+                        {
+                            <MudList T="EventSearchResultDto" Dense="true" Class="results-list">
+                                @foreach (var evt in results.Events)
+                                {
+                                    <MudListItem T="EventSearchResultDto" OnClick="() => HandleNavigateToEvent(evt)">
+                                        <div class="list-item-content">
+                                            <MudAvatar Size="Size.Small" Color="Color.Secondary" Class="mr-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Event" />
+                                            </MudAvatar>
+                                            <div class="list-item-text">
+                                                <MudText Typo="Typo.body2" Class="font-weight-bold">@evt.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@evt.EventDateFormatted</MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <div class="results-grid">
+                                @foreach (var evt in results.Events)
+                                {
+                                    <SivarEventCard 
+                                        Event="@evt"
+                                        OnNavigate="HandleNavigateToEvent" />
+                                }
+                            </div>
+                        }
+                    }
+                    @if (results.Tourism?.Any() == true)
+                    {
+                        @if (DisplayMode == ChatDisplayMode.Cards)
+                        {
+                            <MudCarousel Class="results-carousel mud-width-full" 
+                                         Style="height: 380px;" 
+                                         ShowArrows="@(results.Tourism.Count > 1)" 
+                                         ShowBullets="@(results.Tourism.Count > 1)"
+                                         EnableSwipeGesture="true"
+                                         AutoCycle="false"
+                                         TData="object">
+                                @foreach (var tourism in results.Tourism)
+                                {
+                                    <MudCarouselItem Class="d-flex justify-center pa-2">
+                                        <SivarTourismCard 
+                                            Tourism="@tourism"
+                                            OnNavigate="HandleNavigateToTourism" />
+                                    </MudCarouselItem>
+                                }
+                            </MudCarousel>
+                        }
+                        else if (DisplayMode == ChatDisplayMode.List)
+                        {
+                            <MudList T="TourismSearchResultDto" Dense="true" Class="results-list">
+                                @foreach (var tourism in results.Tourism)
+                                {
+                                    <MudListItem T="TourismSearchResultDto" OnClick="() => HandleNavigateToTourism(tourism)">
+                                        <div class="list-item-content">
+                                            <MudAvatar Size="Size.Small" Color="Color.Success" Class="mr-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Landscape" />
+                                            </MudAvatar>
+                                            <div class="list-item-text">
+                                                <MudText Typo="Typo.body2" Class="font-weight-bold">@tourism.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@(tourism.Address ?? "Lugar turístico")</MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <div class="results-grid">
+                                @foreach (var tourism in results.Tourism)
+                                {
+                                    <SivarTourismCard 
+                                        Tourism="@tourism"
+                                        OnNavigate="HandleNavigateToTourism" />
+                                }
+                            </div>
+                        }
+                    }
+                    @* Posts - rendered using PostCard component *@
+                    @if (results.Posts?.Any() == true)
+                    {
+                        <div class="post-results-section">
+                            @if (DisplayMode == ChatDisplayMode.Cards)
+                            {
+                                <MudCarousel Class="results-carousel mud-width-full" 
+                                             Style="height: auto; min-height: 380px;" 
+                                             ShowArrows="@(results.Posts.Count > 1)" 
+                                             ShowBullets="@(results.Posts.Count > 1)"
+                                             EnableSwipeGesture="true"
+                                             AutoCycle="false"
+                                             TData="object">
+                                    @foreach (var postResult in results.Posts)
+                                    {
+                                        <MudCarouselItem Class="d-flex justify-center pa-2">
+                                            <div class="post-card-wrapper">
+                                                <PostCard Post="@postResult.Post"
+                                                          OnLike="HandlePostLike"
+                                                          OnSave="HandlePostSave"
+                                                          OnShare="HandlePostShare" />
+                                            </div>
+                                        </MudCarouselItem>
+                                    }
+                                </MudCarousel>
+                            }
+                            else if (DisplayMode == ChatDisplayMode.List)
+                            {
+                                <MudList T="PostSearchResultDto" Dense="true" Class="results-list">
+                                    @foreach (var postResult in results.Posts)
+                                    {
+                                        <MudListItem T="PostSearchResultDto" OnClick="() => HandleNavigateToPost(postResult)">
+                                            <div class="list-item-content">
+                                                <MudAvatar Size="Size.Small" Color="Color.Primary" Class="mr-2">
+                                                    @if (!string.IsNullOrEmpty(postResult.Post?.Profile?.Avatar))
+                                                    {
+                                                        <MudImage Src="@postResult.Post.Profile.Avatar" Alt="@postResult.AuthorName" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudIcon Icon="@Icons.Material.Filled.Article" />
+                                                    }
+                                                </MudAvatar>
+                                                <div class="list-item-text">
+                                                    <MudText Typo="Typo.body2" Class="font-weight-bold">@postResult.AuthorName</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @(postResult.Description?.Length > 50 ? postResult.Description.Substring(0, 50) + "..." : postResult.Description)
+                                                    </MudText>
+                                                </div>
+                                            </div>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                            else @* Grid mode *@
+                            {
+                                <div class="post-results-grid">
+                                    @foreach (var postResult in results.Posts)
+                                    {
+                                        <div class="post-card-wrapper">
+                                            <PostCard Post="@postResult.Post"
+                                                      OnLike="HandlePostLike"
+                                                      OnSave="HandlePostSave"
+                                                      OnShare="HandlePostShare" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    } @* End of non-map views else block *@
+                    
+                    @* Suggested follow-up actions *@
+                    @if (results.HasSuggestions)
+                    {
+                        <div class="suggested-actions">
+                            @foreach (var action in results.SuggestedActions.Take(3))
+                            {
+                                <button class="suggested-action-btn" @onclick="() => HandleSuggestedAction(action)">
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                @* Standard message rendering with markdown *@
+                <div class="message-content">
+                    @((MarkupString)RenderMarkdown(context.Content))
+                </div>
+            }
+        </MessageContentTemplate>
+        
+        @* Empty State Template - Welcome screen *@
+        <EmptyMessageAreaTemplate>
+            <div class="empty-chat-welcome">
+                <div class="welcome-avatar">🤖</div>
+                <h3 class="welcome-title">@WelcomeTitle</h3>
+                <p class="welcome-message">@WelcomeMessage</p>
+                
+                @if (CurrentLocation != null)
+                {
+                    <div class="location-indicator">
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Primary" />
+                        <span>@CurrentLocation.City, @CurrentLocation.Country</span>
+                    </div>
+                }
+            </div>
+        </EmptyMessageAreaTemplate>
+        
+    </DxAIChat>
+</div>
+
+@code {
+    private DxAIChat? _chat;
+    private Dictionary<string, SearchResultsCollectionDto> _messageResults = new();
+    private Dictionary<int, SearchResultsCollectionDto> _contentHashResults = new(); // Index by content hash
+    private MarkdownPipeline _markdownPipeline = null!;
+    private int _messageCounter = 0;
+    
+    #region Parameters
+    
+    /// <summary>
+    /// Additional CSS class for the container
+    /// </summary>
+    [Parameter] 
+    public string CssClass { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Display mode for search results (Cards, List, or Grid)
+    /// </summary>
+    [Parameter]
+    public ChatDisplayMode DisplayMode { get; set; } = ChatDisplayMode.Cards;
+    
+    /// <summary>
+    /// Callback when user changes display mode
+    /// </summary>
+    [Parameter]
+    public EventCallback<ChatDisplayMode> OnDisplayModeChanged { get; set; }
+    
+    /// <summary>
+    /// Prompt suggestions to display (from QuickActionDto)
+    /// </summary>
+    [Parameter] 
+    public List<QuickActionDto>? PromptSuggestionItems { get; set; }
+    
+    /// <summary>
+    /// Welcome title displayed in empty state
+    /// </summary>
+    [Parameter] 
+    public string WelcomeTitle { get; set; } = "Sivar AI Assistant";
+    
+    /// <summary>
+    /// Welcome message displayed in empty state
+    /// </summary>
+    [Parameter] 
+    public string WelcomeMessage { get; set; } = "¿En qué puedo ayudarte hoy?";
+    
+    /// <summary>
+    /// Current user location context
+    /// </summary>
+    [Parameter] 
+    public ChatLocationContext? CurrentLocation { get; set; }
+    
+    /// <summary>
+    /// Callback when user sends a message - parent handles API call
+    /// </summary>
+    [Parameter] 
+    public EventCallback<MessageSentEventArgs> OnUserMessageSent { get; set; }
+    
+    /// <summary>
+    /// Callback when user saves a business result
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessSearchResultDto> OnBusinessSaved { get; set; }
+    
+    /// <summary>
+    /// Callback when user shares a business result
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessSearchResultDto> OnBusinessShared { get; set; }
+    
+    /// <summary>
+    /// Whether the chat is currently processing (shows typing indicator)
+    /// </summary>
+    [Parameter]
+    public bool IsProcessing { get; set; }
+    
+    #endregion
+    
+    #region Lifecycle
+    
+    protected override void OnInitialized()
+    {
+        // Configure Markdig pipeline with common extensions
+        _markdownPipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseAutoLinks()
+            .UseEmphasisExtras()
+            .Build();
+        
+        Logger.LogInformation("[SivarAIChat] Component initialized");
+    }
+    
+    #endregion
+    
+    #region Public Methods
+    
+    /// <summary>
+    /// Programmatically send an assistant message (response from API)
+    /// </summary>
+    public async Task SendAssistantMessageAsync(string content, SearchResultsCollectionDto? results = null)
+    {
+        if (_chat == null)
+        {
+            Logger.LogWarning("[SivarAIChat] Cannot send message - chat not initialized");
+            return;
+        }
+        
+        try
+        {
+            // Generate a message ID for result mapping
+            var messageId = $"msg_{++_messageCounter}_{Guid.NewGuid():N}";
+            
+            // Store structured results if present
+            if (results?.HasResults == true)
+            {
+                _messageResults[messageId] = results;
+                
+                // Also store by content hash for template lookup
+                var contentHash = content?.GetHashCode() ?? 0;
+                _contentHashResults[contentHash] = results;
+                
+                Logger.LogInformation("[SivarAIChat] Storing structured results for message {MessageId} (hash={Hash}): {Count} results",
+                    messageId, contentHash, results.TotalCount);
+            }
+            
+            // Add the assistant message to the chat using SendMessage
+            await _chat.SendMessage(content, Microsoft.Extensions.AI.ChatRole.Assistant);
+            StateHasChanged();
+            
+            Logger.LogInformation("[SivarAIChat] Assistant message sent: {ContentLength} chars", content.Length);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[SivarAIChat] Error sending assistant message");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Send an error message to the chat
+    /// </summary>
+    public async Task SendErrorMessageAsync(string errorMessage)
+    {
+        if (_chat == null) return;
+        
+        var content = $"⚠️ {errorMessage}";
+        await _chat.SendMessage(content, Microsoft.Extensions.AI.ChatRole.Assistant);
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Clear all messages from the chat
+    /// </summary>
+    public void ClearMessages()
+    {
+        _messageResults.Clear();
+        _contentHashResults.Clear();
+        _messageCounter = 0;
+        StateHasChanged();
+        
+        Logger.LogInformation("[SivarAIChat] Messages cleared");
+    }
+    
+    /// <summary>
+    /// Load conversation history from DTOs
+    /// </summary>
+    public async Task LoadConversationAsync(IEnumerable<ChatMessageDto> messages, 
+        Dictionary<Guid, SearchResultsCollectionDto>? resultsMap = null)
+    {
+        if (_chat == null) return;
+        
+        _messageResults.Clear();
+        _contentHashResults.Clear();
+        _messageCounter = 0;
+        
+        // Load messages using LoadMessages
+        var blazorMessages = new List<BlazorChatMessage>();
+        
+        foreach (var msg in messages.OrderBy(m => m.MessageOrder))
+        {
+            var role = msg.Role.ToLowerInvariant() switch
+            {
+                "user" => Microsoft.Extensions.AI.ChatRole.User,
+                "assistant" => Microsoft.Extensions.AI.ChatRole.Assistant,
+                "system" => Microsoft.Extensions.AI.ChatRole.System,
+                _ => Microsoft.Extensions.AI.ChatRole.User
+            };
+            
+            var messageId = $"msg_{++_messageCounter}_{msg.Id:N}";
+            
+            // Check for associated structured results
+            if (msg.Role.ToLowerInvariant() == "assistant" && resultsMap?.ContainsKey(msg.Id) == true)
+            {
+                _messageResults[messageId] = resultsMap[msg.Id];
+            }
+            
+            blazorMessages.Add(new BlazorChatMessage(role, msg.Content));
+        }
+        
+        _chat.LoadMessages(blazorMessages);
+        StateHasChanged();
+        Logger.LogInformation("[SivarAIChat] Loaded {Count} messages", messages.Count());
+    }
+    
+    #endregion
+    
+    #region Event Handlers
+    
+    private async Task OnMessageSentAsync(MessageSentEventArgs args)
+    {
+        Logger.LogInformation("[SivarAIChat] Message sent: {Content}", args.Content);
+        
+        // Delegate to parent for actual API processing
+        await OnUserMessageSent.InvokeAsync(args);
+    }
+    
+    private void HandleNavigateToProfile(BusinessSearchResultDto business)
+    {
+        if (!string.IsNullOrEmpty(business.NavigationUrl))
+        {
+            NavigationManager.NavigateTo(business.NavigationUrl);
+        }
+        else if (!string.IsNullOrEmpty(business.Handle))
+        {
+            NavigationManager.NavigateTo($"/profile/{business.Handle}");
+        }
+    }
+    
+    private async Task SetDisplayMode(ChatDisplayMode mode)
+    {
+        if (DisplayMode != mode)
+        {
+            DisplayMode = mode;
+            await OnDisplayModeChanged.InvokeAsync(mode);
+            StateHasChanged();
+            Logger.LogInformation("[SivarAIChat] Display mode changed to {Mode}", mode);
+        }
+    }
+    
+    private void HandleNavigateToProcedure(ProcedureSearchResultDto procedure)
+    {
+        if (!string.IsNullOrEmpty(procedure.NavigationUrl))
+        {
+            NavigationManager.NavigateTo(procedure.NavigationUrl);
+        }
+    }
+    
+    private void HandleNavigateToEvent(EventSearchResultDto evt)
+    {
+        if (!string.IsNullOrEmpty(evt.NavigationUrl))
+        {
+            NavigationManager.NavigateTo(evt.NavigationUrl);
+        }
+    }
+    
+    private void HandleNavigateToTourism(TourismSearchResultDto tourism)
+    {
+        if (!string.IsNullOrEmpty(tourism.NavigationUrl))
+        {
+            NavigationManager.NavigateTo(tourism.NavigationUrl);
+        }
+    }
+    
+    private async Task HandleSaveBusiness(BusinessSearchResultDto business)
+    {
+        await OnBusinessSaved.InvokeAsync(business);
+    }
+    
+    private async Task HandleShareBusiness(BusinessSearchResultDto business)
+    {
+        await OnBusinessShared.InvokeAsync(business);
+    }
+    
+    private void HandleNavigateToPost(PostSearchResultDto postResult)
+    {
+        if (postResult?.Post != null)
+        {
+            NavigationManager.NavigateTo($"/post/{postResult.Post.Id}");
+        }
+    }
+    
+    private Task HandlePostLike(PostDto post)
+    {
+        Logger.LogInformation("[SivarAIChat] Post liked: {PostId}", post?.Id);
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePostSave(PostDto post)
+    {
+        Logger.LogInformation("[SivarAIChat] Post saved: {PostId}", post?.Id);
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePostShare(PostDto post)
+    {
+        Logger.LogInformation("[SivarAIChat] Post shared: {PostId}", post?.Id);
+        return Task.CompletedTask;
+    }
+    
+    private async Task HandleSuggestedAction(SuggestedActionDto action)
+    {
+        // Trigger the suggested query as a new message
+        if (_chat != null && !string.IsNullOrEmpty(action.Query))
+        {
+            // Send as user message and then trigger the processing
+            await _chat.SendMessage(action.Query, Microsoft.Extensions.AI.ChatRole.User);
+        }
+    }
+    
+    #endregion
+    
+    #region Helper Methods
+    
+    /// <summary>
+    /// Render markdown content to HTML
+    /// </summary>
+    private string RenderMarkdown(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+        
+        try
+        {
+            return Markdown.ToHtml(content, _markdownPipeline);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[SivarAIChat] Markdown rendering failed, returning raw content");
+            return System.Net.WebUtility.HtmlEncode(content);
+        }
+    }
+    
+    /// <summary>
+    /// Get a unique message ID from the context
+    /// </summary>
+    private string GetMessageId(BlazorChatMessage context)
+    {
+        // Use content hash as identifier
+        var contentHash = context.Content?.GetHashCode() ?? 0;
+        return $"msg_hash_{contentHash}";
+    }
+    
+    /// <summary>
+    /// Try to get structured results for a message
+    /// </summary>
+    private bool TryGetStructuredResults(string messageId, out SearchResultsCollectionDto? results)
+    {
+        // Try exact match first
+        if (_messageResults.TryGetValue(messageId, out results))
+            return true;
+        
+        // Try content hash lookup (extract hash from messageId if it contains one)
+        if (messageId.StartsWith("msg_hash_") && int.TryParse(messageId.Replace("msg_hash_", ""), out var hash))
+        {
+            if (_contentHashResults.TryGetValue(hash, out results))
+            {
+                Logger.LogInformation("[SivarAIChat] Found results by content hash: {Hash}", hash);
+                return true;
+            }
+        }
+        
+        // Try to find by content hash pattern (fallback)
+        var matches = _messageResults.Keys
+            .Where(k => k.Contains(messageId) || messageId.Contains(k.Split('_').LastOrDefault() ?? ""))
+            .ToList();
+        
+        if (matches.Any())
+        {
+            results = _messageResults[matches.First()];
+            return true;
+        }
+        
+        results = null;
+        return false;
+    }
+    
+    #endregion
+}

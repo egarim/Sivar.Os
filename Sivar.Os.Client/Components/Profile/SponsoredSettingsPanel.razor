@@ -1,0 +1,393 @@
+@using MudBlazor
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Localization
+@inject IProfilesClient ProfilesClient
+@inject IStringLocalizer<SponsoredSettingsPanel> Localizer
+@inject ISnackbar Snackbar
+@inject ILogger<SponsoredSettingsPanel> Logger
+
+<MudCard Class="sponsored-settings-panel">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Campaign" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">@Localizer["Title"]</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (_isLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @if (_errorMessage != null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3" Dense="true" 
+                      CloseIcon="@Icons.Material.Filled.Close" 
+                      CloseIconClicked="@(() => _errorMessage = null)">
+                @_errorMessage
+            </MudAlert>
+        }
+
+        @if (_settings == null)
+        {
+            <MudSkeleton Animation="Animation.Wave" Height="200px" />
+        }
+        else
+        {
+            <MudStack Spacing="4">
+                <!-- Budget Display -->
+                <MudPaper Elevation="0" Class="pa-4 budget-display" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);">
+                    <MudStack>
+                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">@Localizer["AvailableBudget"]</MudText>
+                        <MudText Typo="Typo.h3" Style="color: white; font-weight: 700;">@_settings.AdBudget.ToString("C2")</MudText>
+                        <MudStack Row="true" Spacing="2" Class="mt-2">
+                            <MudChip T="string" Size="Size.Small" Style="background: rgba(255,255,255,0.2); color: white;">
+                                @Localizer["SpentToday"]: @_settings.AdSpentToday.ToString("C2")
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Style="background: rgba(255,255,255,0.2); color: white;">
+                                @Localizer["TotalSpent"]: @_settings.TotalAdSpent.ToString("C2")
+                            </MudChip>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Enable/Disable Switch -->
+                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@Localizer["EnableSponsored"]</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["EnableSponsoredDesc"]</MudText>
+                        </MudStack>
+                        <MudSwitch @bind-Value="_settings.SponsoredEnabled" 
+                                   Color="Color.Primary" 
+                                   Disabled="@(_isLoading || _settings.AdBudget <= 0)" />
+                    </MudStack>
+                    @if (_settings.AdBudget <= 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                            @Localizer["NoBudgetWarning"]
+                        </MudAlert>
+                    }
+                </MudPaper>
+
+                <!-- Bidding Settings -->
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="@Localizer["BiddingSettings"]" IsInitiallyExpanded="true">
+                        <MudStack Spacing="3">
+                            <MudNumericField @bind-Value="_settings.MaxBidPerClick"
+                                             Label="@Localizer["MaxBidPerClick"]"
+                                             Variant="Variant.Outlined"
+                                             Adornment="Adornment.Start"
+                                             AdornmentText="$"
+                                             Min="0.05m" Max="5.00m" Step="0.05m"
+                                             HelperText="@Localizer["MaxBidHelperText"]"
+                                             Disabled="@_isLoading" />
+
+                            <MudNumericField @bind-Value="_settings.DailyAdLimit"
+                                             Label="@Localizer["DailyLimit"]"
+                                             Variant="Variant.Outlined"
+                                             Adornment="Adornment.Start"
+                                             AdornmentText="$"
+                                             Min="1.00m" Max="1000.00m" Step="1.00m"
+                                             HelperText="@Localizer["DailyLimitHelperText"]"
+                                             Disabled="@_isLoading" />
+                        </MudStack>
+                    </MudExpansionPanel>
+
+                    <!-- Targeting Settings -->
+                    <MudExpansionPanel Text="@Localizer["TargetingSettings"]">
+                        <MudStack Spacing="3">
+                            <MudTextField @bind-Value="_keywordsInput"
+                                          Label="@Localizer["TargetKeywords"]"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Label"
+                                          HelperText="@Localizer["KeywordsHelperText"]"
+                                          Placeholder="@Localizer["KeywordsPlaceholder"]"
+                                          Disabled="@_isLoading" />
+
+                            <MudSlider @bind-Value="_settings.AdTargetRadiusKm"
+                                       Min="0" Max="100" Step="5"
+                                       Color="Color.Primary"
+                                       Disabled="@_isLoading">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2">@Localizer["TargetRadius"]</MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(_settings.AdTargetRadiusKm == 0 ? Localizer["NoRestriction"] : $"{_settings.AdTargetRadiusKm} km")
+                                    </MudText>
+                                </MudStack>
+                            </MudSlider>
+                        </MudStack>
+                    </MudExpansionPanel>
+
+                    <!-- Performance Stats -->
+                    <MudExpansionPanel Text="@Localizer["PerformanceStats"]">
+                        <MudSimpleTable Dense="true" Hover="true">
+                            <tbody>
+                                <tr>
+                                    <td><MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-2" />@Localizer["Impressions"]</td>
+                                    <td Style="text-align: right; font-weight: 600;">@_settings.SponsoredImpressions.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Small" Class="mr-2" />@Localizer["Clicks"]</td>
+                                    <td Style="text-align: right; font-weight: 600;">@_settings.SponsoredClicks.ToString("N0")</td>
+                                </tr>
+                                <tr>
+                                    <td><MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" Class="mr-2" />@Localizer["CTR"]</td>
+                                    <td Style="text-align: right; font-weight: 600;">@((_settings.SponsoredCtr * 100).ToString("F2"))%</td>
+                                </tr>
+                                <tr>
+                                    <td><MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Class="mr-2" />@Localizer["QualityScore"]</td>
+                                    <td Style="text-align: right;">
+                                        <MudRating ReadOnly="true" SelectedValue="@GetQualityStars()" MaxValue="5" Size="Size.Small" />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudStack>
+        }
+    </MudCardContent>
+
+    <MudCardActions>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width: 100%;">
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.History"
+                       OnClick="ShowTransactionHistory"
+                       Disabled="@_isLoading">
+                @Localizer["ViewHistory"]
+            </MudButton>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveSettingsAsync"
+                       Disabled="@_isLoading">
+                @(_isLoading ? Localizer["Saving"] : Localizer["SaveSettings"])
+            </MudButton>
+        </MudStack>
+    </MudCardActions>
+</MudCard>
+
+<!-- Transaction History Dialog -->
+<MudDialog @bind-Visible="_showHistoryDialog" Options="@_dialogOptions">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+            <MudText Typo="Typo.h6">@Localizer["TransactionHistory"]</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_transactionsLoading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_transactions == null || !_transactions.Any())
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Localizer["NoTransactions"]</MudText>
+        }
+        else
+        {
+            <MudTable Items="@_transactions" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>@Localizer["Date"]</MudTh>
+                    <MudTh>@Localizer["Type"]</MudTh>
+                    <MudTh Style="text-align: right;">@Localizer["Amount"]</MudTh>
+                    <MudTh Style="text-align: right;">@Localizer["Balance"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Timestamp.LocalDateTime.ToString("MMM dd, HH:mm")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@GetTransactionColor(context.TransactionType)">
+                            @context.TransactionTypeName
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Style="@GetAmountStyle(context.Amount)">
+                        @(context.Amount >= 0 ? "+" : "")@context.Amount.ToString("C2")
+                    </MudTd>
+                    <MudTd Style="text-align: right; font-weight: 600;">@context.BalanceAfter.ToString("C2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showHistoryDialog = false)">@Localizer["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .sponsored-settings-panel {
+        margin-bottom: 16px;
+    }
+    
+    .budget-display {
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid ProfileId { get; set; }
+
+    [Parameter]
+    public EventCallback OnSettingsSaved { get; set; }
+
+    private ProfileAdSettingsDto? _settings;
+    private List<AdTransactionDto>? _transactions;
+    private bool _isLoading = false;
+    private bool _transactionsLoading = false;
+    private bool _showHistoryDialog = false;
+    private string? _errorMessage;
+    private string _keywordsInput = string.Empty;
+
+    private DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettingsAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProfileId != Guid.Empty && (_settings == null || _settings.ProfileId != ProfileId))
+        {
+            await LoadSettingsAsync();
+        }
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        if (ProfileId == Guid.Empty) return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _settings = await ProfilesClient.GetAdSettingsAsync(ProfileId);
+            
+            // Convert keywords list to comma-separated string for input
+            if (_settings?.AdTargetKeywords != null && _settings.AdTargetKeywords.Any())
+            {
+                _keywordsInput = string.Join(", ", _settings.AdTargetKeywords);
+            }
+            else
+            {
+                _keywordsInput = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load ad settings for profile {ProfileId}", ProfileId);
+            _errorMessage = Localizer["LoadError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        if (_settings == null) return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            // Parse keywords from input
+            var keywords = string.IsNullOrWhiteSpace(_keywordsInput)
+                ? new List<string>()
+                : _keywordsInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(k => !string.IsNullOrWhiteSpace(k))
+                    .ToList();
+
+            var updateDto = new UpdateAdSettingsDto
+            {
+                SponsoredEnabled = _settings.SponsoredEnabled,
+                MaxBidPerClick = _settings.MaxBidPerClick,
+                DailyAdLimit = _settings.DailyAdLimit,
+                AdTargetKeywords = keywords,
+                AdTargetRadiusKm = _settings.AdTargetRadiusKm
+            };
+
+            _settings = await ProfilesClient.UpdateAdSettingsAsync(ProfileId, updateDto);
+            
+            Snackbar.Add(Localizer["SaveSuccess"], Severity.Success);
+            
+            if (OnSettingsSaved.HasDelegate)
+            {
+                await OnSettingsSaved.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save ad settings for profile {ProfileId}", ProfileId);
+            _errorMessage = Localizer["SaveError"];
+            Snackbar.Add(Localizer["SaveError"], Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ShowTransactionHistory()
+    {
+        _showHistoryDialog = true;
+        _transactionsLoading = true;
+
+        try
+        {
+            _transactions = await ProfilesClient.GetAdTransactionsAsync(ProfileId, 50);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load transactions for profile {ProfileId}", ProfileId);
+            Snackbar.Add(Localizer["TransactionsLoadError"], Severity.Error);
+        }
+        finally
+        {
+            _transactionsLoading = false;
+        }
+    }
+
+    private int GetQualityStars()
+    {
+        if (_settings == null) return 0;
+        // Convert quality score (0.1-1.0) to stars (1-5)
+        return Math.Max(1, (int)Math.Round(_settings.AdQualityScore * 5));
+    }
+
+    private Color GetTransactionColor(AdTransactionType type)
+    {
+        return type switch
+        {
+            AdTransactionType.TopUp => Color.Success,
+            AdTransactionType.Bonus => Color.Success,
+            AdTransactionType.Refund => Color.Info,
+            AdTransactionType.Click => Color.Warning,
+            AdTransactionType.Adjustment => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetAmountStyle(decimal amount)
+    {
+        var color = amount >= 0 ? "green" : "red";
+        return $"text-align: right; color: {color};";
+    }
+}

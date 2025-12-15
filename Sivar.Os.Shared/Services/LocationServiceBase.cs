@@ -303,11 +303,13 @@ public abstract class LocationServiceBase : ILocationService
                 Description = profile.ProfileType.Description
             },
             Avatar = profile.Avatar,
+            Location = profile.Location, // Include full Location for map coordinates
             LocationDisplay = profile.Location?.ToString() ?? string.Empty,
             IsActive = profile.IsActive,
             VisibilityLevel = profile.VisibilityLevel,
             ViewCount = profile.ViewCount,
             Tags = profile.Tags,
+            ChatDisplayMode = profile.ChatDisplayMode,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
             DistanceKm = distanceKm

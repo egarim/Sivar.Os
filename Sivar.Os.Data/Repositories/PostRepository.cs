@@ -141,8 +141,9 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
     {
         // Step 1: Use PostGIS to get post IDs ordered by distance
         // Using raw SQL because EF Core 9.0 doesn't support PostGIS types
+        // Note: EF Core SqlQueryRaw<int> requires the column to be named "Value"
         var countSql = @"
-            SELECT COUNT(*)
+            SELECT COUNT(*)::int AS ""Value""
             FROM ""Sivar_Posts""
             WHERE ""GeoLocation"" IS NOT NULL
               AND ""IsDeleted"" = FALSE
@@ -210,9 +211,9 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         int pageSize = 10,
         bool includeRelated = true)
     {
-        // Step 1: Get total count using PostGIS
+        // Step 1: Get total count using PostGIS - use alias "Value" for EF Core compatibility
         var countSql = @"
-            SELECT COUNT(*)
+            SELECT COUNT(*)::int AS ""Value""
             FROM ""Sivar_Posts""
             WHERE ""GeoLocation"" IS NOT NULL
               AND ""IsDeleted"" = FALSE
@@ -228,11 +229,11 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
         // Step 2: Get post IDs with distances, ordered by distance
         var sql = @"
-            SELECT ""Id"" as id, 
+            SELECT ""Id"", 
                    ST_Distance(
                        ""GeoLocation"",
                        ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography
-                   ) / 1000.0 AS distance_km
+                   ) / 1000.0 AS ""DistanceKm""
             FROM ""Sivar_Posts""
             WHERE ""GeoLocation"" IS NOT NULL
               AND ""IsDeleted"" = FALSE
@@ -241,7 +242,7 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
                   ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography,
                   {2} * 1000
               )
-            ORDER BY distance_km
+            ORDER BY ""DistanceKm""
             OFFSET {3} LIMIT {4}";
 
         var nearbyResults = await _context.Database

@@ -33,6 +33,39 @@
     font-size: 14px;
 }
 
+/* No locations overlay */
+.map-no-locations-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(30, 30, 30, 0.85);
+    z-index: 10;
+    border-radius: 12px;
+    color: #e0e0e0;
+    text-align: center;
+    padding: 20px;
+}
+
+.no-locations-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffb545;
+    margin-top: 8px;
+}
+
+.no-locations-text {
+    font-size: 13px;
+    color: #92929f;
+    max-width: 250px;
+}
+
 /* Selected business card overlay */
 .map-selected-card {
     position: absolute;

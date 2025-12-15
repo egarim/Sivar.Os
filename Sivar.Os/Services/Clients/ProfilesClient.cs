@@ -520,9 +520,69 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
             ViewCount = profile.ViewCount,
             Tags = profile.Tags?.ToList() ?? new List<string>(),
             SocialMediaLinks = profile.GetSocialMediaLinks(),
+            ChatDisplayMode = profile.ChatDisplayMode,
             Metadata = profile.Metadata,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
         };
+    }
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    public async Task<ProfileAdSettingsDto> GetAdSettingsAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var settings = await _profileService.GetAdSettingsAsync(profileId);
+            return settings ?? new ProfileAdSettingsDto { ProfileId = profileId };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting ad settings for profile {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    public async Task<ProfileAdSettingsDto> UpdateAdSettingsAsync(Guid profileId, UpdateAdSettingsDto updateDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var settings = await _profileService.UpdateAdSettingsAsync(profileId, updateDto);
+            return settings ?? new ProfileAdSettingsDto { ProfileId = profileId };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ad settings for profile {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    public async Task<List<AdTransactionDto>> GetAdTransactionsAsync(Guid profileId, int limit = 50, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _profileService.GetAdTransactionsAsync(profileId, limit);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting ad transactions for profile {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    public async Task<ProfileAdSettingsDto> AddAdBudgetAsync(Guid profileId, AddBudgetDto addBudgetDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var settings = await _profileService.AddAdBudgetAsync(profileId, addBudgetDto.Amount, addBudgetDto.Description);
+            return settings ?? new ProfileAdSettingsDto { ProfileId = profileId };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding budget for profile {ProfileId}", profileId);
+            throw;
+        }
     }
 }

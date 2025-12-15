@@ -267,18 +267,12 @@
     overflow-x: hidden;
 }
 
-/* Posts Grid - 2 columns on desktop, 1 on mobile */
+/* Posts Grid - single column layout for feed */
 .wireframe-landing .posts-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     width: 100%;
-}
-
-@media (max-width: 900px) {
-    .wireframe-landing .posts-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .wireframe-landing .feed-header h2 {

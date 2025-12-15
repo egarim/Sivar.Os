@@ -14,36 +14,36 @@ public class RankingConfiguration : BaseEntity
     /// Category this config applies to (null = global default)
     /// </summary>
     [StringLength(100)]
-    public string? Category { get; set; }
+    public virtual string? Category { get; set; }
     
     /// <summary>
     /// Display name for admin UI
     /// </summary>
     [StringLength(100)]
-    public string DisplayName { get; set; } = "Default";
+    public virtual string DisplayName { get; set; } = "Default";
     
     /// <summary>
     /// Description of this configuration
     /// </summary>
     [StringLength(500)]
-    public string? Description { get; set; }
+    public virtual string? Description { get; set; }
     
     #region Content Relevance Weights (should sum to ~0.50)
     
     /// <summary>
     /// Weight for semantic/vector similarity (default 0.25)
     /// </summary>
-    public double SemanticWeight { get; set; } = 0.25;
+    public virtual double SemanticWeight { get; set; } = 0.25;
     
     /// <summary>
     /// Weight for PostgreSQL full-text search (default 0.15)
     /// </summary>
-    public double FullTextWeight { get; set; } = 0.15;
+    public virtual double FullTextWeight { get; set; } = 0.15;
     
     /// <summary>
     /// Weight for geographic proximity (default 0.10)
     /// </summary>
-    public double GeoWeight { get; set; } = 0.10;
+    public virtual double GeoWeight { get; set; } = 0.10;
     
     #endregion
     
@@ -52,22 +52,22 @@ public class RankingConfiguration : BaseEntity
     /// <summary>
     /// Weight for average rating (default 0.10)
     /// </summary>
-    public double RatingWeight { get; set; } = 0.10;
+    public virtual double RatingWeight { get; set; } = 0.10;
     
     /// <summary>
     /// Weight for review count (default 0.05)
     /// </summary>
-    public double ReviewCountWeight { get; set; } = 0.05;
+    public virtual double ReviewCountWeight { get; set; } = 0.05;
     
     /// <summary>
     /// Weight for verified business boost (default 0.05)
     /// </summary>
-    public double VerifiedWeight { get; set; } = 0.05;
+    public virtual double VerifiedWeight { get; set; } = 0.05;
     
     /// <summary>
     /// Weight for content recency (default 0.05)
     /// </summary>
-    public double RecencyWeight { get; set; } = 0.05;
+    public virtual double RecencyWeight { get; set; } = 0.05;
     
     #endregion
     
@@ -76,7 +76,7 @@ public class RankingConfiguration : BaseEntity
     /// <summary>
     /// Weight for Elo-based content ranking composite score (default 0.10)
     /// </summary>
-    public double ContentRankWeight { get; set; } = 0.10;
+    public virtual double ContentRankWeight { get; set; } = 0.10;
     
     #endregion
     
@@ -85,12 +85,12 @@ public class RankingConfiguration : BaseEntity
     /// <summary>
     /// Weight for user affinity/interaction history (default 0.05)
     /// </summary>
-    public double PersonalizationWeight { get; set; } = 0.05;
+    public virtual double PersonalizationWeight { get; set; } = 0.05;
     
     /// <summary>
     /// Weight for category preference (default 0.05)
     /// </summary>
-    public double CategoryPreferenceWeight { get; set; } = 0.05;
+    public virtual double CategoryPreferenceWeight { get; set; } = 0.05;
     
     #endregion
     
@@ -99,12 +99,12 @@ public class RankingConfiguration : BaseEntity
     /// <summary>
     /// Weight for click popularity (default 0.00, enable when data sufficient)
     /// </summary>
-    public double ClickPopularityWeight { get; set; } = 0.00;
+    public virtual double ClickPopularityWeight { get; set; } = 0.00;
     
     /// <summary>
     /// Weight for action rate (default 0.00, enable when data sufficient)
     /// </summary>
-    public double ActionRateWeight { get; set; } = 0.00;
+    public virtual double ActionRateWeight { get; set; } = 0.00;
     
     #endregion
     
@@ -113,23 +113,23 @@ public class RankingConfiguration : BaseEntity
     /// <summary>
     /// Whether this configuration is active
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public virtual bool IsActive { get; set; } = true;
     
     /// <summary>
     /// Priority for matching (higher = preferred when multiple match)
     /// </summary>
-    public int Priority { get; set; } = 0;
+    public virtual int Priority { get; set; } = 0;
     
     /// <summary>
     /// A/B test variant identifier (null = production)
     /// </summary>
     [StringLength(50)]
-    public string? AbTestVariant { get; set; }
+    public virtual string? AbTestVariant { get; set; }
     
     /// <summary>
     /// A/B test traffic percentage (1-100)
     /// </summary>
-    public int AbTestTrafficPercent { get; set; } = 100;
+    public virtual int AbTestTrafficPercent { get; set; } = 100;
     
     #endregion
     

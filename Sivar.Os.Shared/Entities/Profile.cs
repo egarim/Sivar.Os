@@ -155,6 +155,11 @@ public class Profile : BaseEntity
     public virtual bool ShowContactInfo { get; set; } = true;
 
     /// <summary>
+    /// Preferred display mode for chat search results (Cards, List, or Grid)
+    /// </summary>
+    public virtual ChatDisplayMode ChatDisplayMode { get; set; } = ChatDisplayMode.Cards;
+
+    /// <summary>
     /// List of user IDs who are allowed to view this profile (when VisibilityLevel is Restricted)
     /// </summary>
     public virtual List<Guid> AllowedViewers { get; set; } = new();
@@ -405,4 +410,77 @@ public class Profile : BaseEntity
             UpdatedAt = DateTime.UtcNow;
         }
     }
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    /// <summary>
+    /// Available ad credit balance (in USD)
+    /// </summary>
+    public virtual decimal AdBudget { get; set; } = 0;
+
+    /// <summary>
+    /// Enable appearing as sponsored in search results
+    /// </summary>
+    public virtual bool SponsoredEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Maximum amount willing to pay per click (CPC) in USD
+    /// </summary>
+    public virtual decimal MaxBidPerClick { get; set; } = 0.10m;
+
+    /// <summary>
+    /// Maximum daily spend limit in USD
+    /// </summary>
+    public virtual decimal DailyAdLimit { get; set; } = 5.00m;
+
+    /// <summary>
+    /// Amount spent today on ads (reset daily)
+    /// </summary>
+    public virtual decimal AdSpentToday { get; set; } = 0;
+
+    /// <summary>
+    /// Total amount ever spent on ads
+    /// </summary>
+    public virtual decimal TotalAdSpent { get; set; } = 0;
+
+    /// <summary>
+    /// Target keywords for ads (JSON array, e.g., ["pizza", "restaurante"])
+    /// Empty = appear for all relevant searches
+    /// </summary>
+    [StringLength(1000)]
+    public virtual string? AdTargetKeywords { get; set; }
+
+    /// <summary>
+    /// Target radius in km for geo-targeting (0 = no geo restriction)
+    /// </summary>
+    public virtual double AdTargetRadiusKm { get; set; } = 0;
+
+    // ========================================
+    // AD PERFORMANCE STATS
+    // ========================================
+
+    /// <summary>
+    /// Total sponsored impressions (times shown as sponsored)
+    /// </summary>
+    public virtual long SponsoredImpressions { get; set; } = 0;
+
+    /// <summary>
+    /// Total sponsored clicks received
+    /// </summary>
+    public virtual long SponsoredClicks { get; set; } = 0;
+
+    /// <summary>
+    /// Click-through rate (clicks / impressions)
+    /// </summary>
+    public double SponsoredCtr => SponsoredImpressions > 0
+        ? (double)SponsoredClicks / SponsoredImpressions
+        : 0;
+
+    /// <summary>
+    /// Quality score based on CTR performance (0.1 to 1.0)
+    /// Higher quality = better ad position for same bid
+    /// </summary>
+    public virtual double AdQualityScore { get; set; } = 0.5;
 }

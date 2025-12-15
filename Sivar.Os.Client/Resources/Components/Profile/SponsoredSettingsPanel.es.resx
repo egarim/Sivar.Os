@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Configuración de Anuncios</value>
+  </data>
+  <data name="AvailableBudget" xml:space="preserve">
+    <value>Presupuesto Disponible</value>
+  </data>
+  <data name="SpentToday" xml:space="preserve">
+    <value>Gastado Hoy</value>
+  </data>
+  <data name="TotalSpent" xml:space="preserve">
+    <value>Total Gastado</value>
+  </data>
+  <data name="EnableSponsored" xml:space="preserve">
+    <value>Activar Anuncios Patrocinados</value>
+  </data>
+  <data name="EnableSponsoredDesc" xml:space="preserve">
+    <value>Aparecer en resultados patrocinados para alcanzar más clientes</value>
+  </data>
+  <data name="NoBudgetWarning" xml:space="preserve">
+    <value>Agregue presupuesto para activar anuncios patrocinados</value>
+  </data>
+  <data name="BiddingSettings" xml:space="preserve">
+    <value>Configuración de Ofertas</value>
+  </data>
+  <data name="MaxBidPerClick" xml:space="preserve">
+    <value>Oferta Máxima Por Clic</value>
+  </data>
+  <data name="MaxBidHelperText" xml:space="preserve">
+    <value>$0.05 - $5.00. Ofertas más altas obtienen mejor posición.</value>
+  </data>
+  <data name="DailyLimit" xml:space="preserve">
+    <value>Límite de Gasto Diario</value>
+  </data>
+  <data name="DailyLimitHelperText" xml:space="preserve">
+    <value>$1.00 - $1000.00. Máximo que gastará por día.</value>
+  </data>
+  <data name="TargetingSettings" xml:space="preserve">
+    <value>Configuración de Segmentación</value>
+  </data>
+  <data name="TargetKeywords" xml:space="preserve">
+    <value>Palabras Clave Objetivo</value>
+  </data>
+  <data name="KeywordsHelperText" xml:space="preserve">
+    <value>Deje vacío para aparecer en todas las búsquedas relevantes</value>
+  </data>
+  <data name="KeywordsPlaceholder" xml:space="preserve">
+    <value>pizza, restaurante, delivery</value>
+  </data>
+  <data name="TargetRadius" xml:space="preserve">
+    <value>Radio Objetivo</value>
+  </data>
+  <data name="NoRestriction" xml:space="preserve">
+    <value>Sin restricción</value>
+  </data>
+  <data name="PerformanceStats" xml:space="preserve">
+    <value>Estadísticas de Rendimiento</value>
+  </data>
+  <data name="Impressions" xml:space="preserve">
+    <value>Impresiones</value>
+  </data>
+  <data name="Clicks" xml:space="preserve">
+    <value>Clics</value>
+  </data>
+  <data name="CTR" xml:space="preserve">
+    <value>Tasa de Clics</value>
+  </data>
+  <data name="QualityScore" xml:space="preserve">
+    <value>Puntuación de Calidad</value>
+  </data>
+  <data name="ViewHistory" xml:space="preserve">
+    <value>Ver Historial</value>
+  </data>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Guardar Configuración</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Guardando...</value>
+  </data>
+  <data name="TransactionHistory" xml:space="preserve">
+    <value>Historial de Transacciones</value>
+  </data>
+  <data name="NoTransactions" xml:space="preserve">
+    <value>No hay transacciones aún</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Amount" xml:space="preserve">
+    <value>Monto</value>
+  </data>
+  <data name="Balance" xml:space="preserve">
+    <value>Saldo</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="LoadError" xml:space="preserve">
+    <value>Error al cargar configuración. Intente de nuevo.</value>
+  </data>
+  <data name="SaveSuccess" xml:space="preserve">
+    <value>¡Configuración guardada exitosamente!</value>
+  </data>
+  <data name="SaveError" xml:space="preserve">
+    <value>Error al guardar configuración. Intente de nuevo.</value>
+  </data>
+  <data name="TransactionsLoadError" xml:space="preserve">
+    <value>Error al cargar historial de transacciones.</value>
+  </data>
+</root>

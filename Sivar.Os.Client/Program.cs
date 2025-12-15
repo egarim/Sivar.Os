@@ -34,6 +34,13 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddMudLocalization();
 builder.Services.AddScoped<MudLocalizer, MudLocalizerService>();
 
+// Configure DevExpress Blazor services
+builder.Services.AddDevExpressBlazor(configure => 
+{
+    configure.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
+    configure.SizeMode = DevExpress.Blazor.SizeMode.Medium;
+});
+
 // Register UnauthorizedRedirectHandler so we can centrally handle 401 responses
 builder.Services.AddTransient<UnauthorizedRedirectHandler>();
 

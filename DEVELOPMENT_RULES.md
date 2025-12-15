@@ -3139,6 +3139,135 @@ Before implementing file upload in a new feature:
 - [ ] **Add CSS styles** (in `wireframe-components.css`, not component-scoped)
 - [ ] **Log all operations** (upload start, success, failures with file names)
 
+### 🖼️ Thumbnail Generation - TODO
+
+> **Status**: NOT IMPLEMENTED  
+> **Entity Field**: `PostAttachment.ThumbnailUrl` exists but is never populated
+
+#### Current State
+
+The `PostAttachment` entity has a `ThumbnailUrl` property (line 67-68) designed for storing thumbnail URLs, but:
+- ❌ No thumbnail generation on file upload
+- ❌ `ThumbnailUrl` is always null
+- ❌ Full-size images loaded everywhere (inefficient for lists, chat, cards)
+
+#### Why Thumbnails Matter
+
+| Context | Current Behavior | With Thumbnails |
+|---------|------------------|-----------------|
+| **Chat results** | Full 2MB image loaded | 100KB thumbnail |
+| **Feed cards** | Full resolution | Optimized for card size |
+| **Profile grid** | Large images | Fast-loading thumbnails |
+| **Network usage** | High bandwidth | 90%+ reduction |
+| **Page load** | Slow | Fast |
+
+#### Recommended Implementation
+
+**1. Thumbnail Generation on Upload:**
+```csharp
+// In AzureBlobStorageService.UploadFileAsync()
+public async Task<UploadResult> UploadFileAsync(Stream fileStream, string fileName, string mimeType)
+{
+    // Upload original
+    var originalBlobName = await UploadOriginalAsync(fileStream, fileName, mimeType);
+    
+    // Generate and upload thumbnail (if image)
+    string? thumbnailBlobName = null;
+    if (IsImageMimeType(mimeType))
+    {
+        thumbnailBlobName = await GenerateAndUploadThumbnailAsync(
+            fileStream, 
+            fileName, 
+            targetWidth: 400,  // Max width
+            quality: 80        // JPEG quality
+        );
+    }
+    
+    return new UploadResult(originalBlobName, thumbnailBlobName);
+}
+```
+
+**2. Use SkiaSharp or ImageSharp for Resizing:**
+```csharp
+// Using SkiaSharp (cross-platform, fast)
+private async Task<Stream> ResizeImageAsync(Stream original, int maxWidth, int quality)
+{
+    using var inputStream = new SKManagedStream(original);
+    using var original = SKBitmap.Decode(inputStream);
+    
+    var ratio = (float)maxWidth / original.Width;
+    var newHeight = (int)(original.Height * ratio);
+    
+    using var resized = original.Resize(new SKImageInfo(maxWidth, newHeight), SKFilterQuality.Medium);
+    using var image = SKImage.FromBitmap(resized);
+    using var data = image.Encode(SKEncodedImageFormat.Webp, quality);
+    
+    return data.AsStream();
+}
+```
+
+**3. Storage Pattern:**
+```
+Original:  posts/{fileId}_{filename}.jpg      → PostAttachment.Url
+Thumbnail: posts/thumbs/{fileId}_{filename}.webp → PostAttachment.ThumbnailUrl
+```
+
+**4. Update ChatFunctionService to Use Thumbnails:**
+```csharp
+// In MapPostToPostResultAsync
+private async Task<PostSearchResultDto> MapPostToPostResultAsync(Post post)
+{
+    foreach (var attachment in post.Attachments)
+    {
+        // Prefer thumbnail for chat context
+        attachment.FilePath = !string.IsNullOrEmpty(attachment.ThumbnailUrl) 
+            ? attachment.ThumbnailUrl 
+            : await _fileStorageService.GetFileUrlAsync(attachment.FileId);
+    }
+    // ...
+}
+```
+
+#### Implementation Checklist
+
+- [ ] Add SkiaSharp or ImageSharp NuGet package
+- [ ] Create `GenerateThumbnailAsync()` method in `AzureBlobStorageService`
+- [ ] Update `UploadFileAsync()` to generate thumbnails for images
+- [ ] Store thumbnail blob name in `PostAttachment.ThumbnailUrl`
+- [ ] Add `GetThumbnailUrlAsync()` method for URL generation
+- [ ] Update `ChatFunctionService.MapPostToPostResultAsync()` to use thumbnails
+- [ ] Consider WebP format for better compression
+- [ ] Add thumbnail size configuration to `appsettings.json`
+- [ ] Handle GIF thumbnails (static first frame or skip)
+
+#### Thumbnail Configuration (Proposed)
+
+```json
+{
+  "AzureBlobStorage": {
+    "ConnectionString": "UseDevelopmentStorage=true",
+    "BaseUrl": "https://localhost:7165",
+    "UseHierarchicalNamespace": true,
+    "Thumbnails": {
+      "Enabled": true,
+      "MaxWidth": 400,
+      "Quality": 80,
+      "Format": "webp",
+      "Folder": "thumbs"
+    }
+  }
+}
+```
+
+#### Estimate
+
+**Time**: 2-3 hours
+- 30 min: Add image processing package and resize logic
+- 30 min: Update upload service to generate thumbnails
+- 30 min: Store thumbnail URL in database
+- 30 min: Update ChatFunctionService to use thumbnails
+- 30 min: Testing and edge cases (GIFs, small images, errors)
+
 ### Debugging File Upload Issues - Complete Guide
 
 #### Step 1: Check Blob Storage

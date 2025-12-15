@@ -126,4 +126,12 @@ public class BaseRepository<T> : IBaseRepository<T> where T : BaseEntity
     {
         return _dbSet.AsQueryable();
     }
+
+    /// <summary>
+    /// Gets a queryable for advanced queries (public method)
+    /// </summary>
+    public virtual IQueryable<T> Query()
+    {
+        return _dbSet.AsQueryable();
+    }
 }

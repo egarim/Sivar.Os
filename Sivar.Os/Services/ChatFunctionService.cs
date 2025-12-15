@@ -13,6 +13,7 @@ namespace Sivar.Os.Services;
 /// Service that provides AI-callable functions for social platform actions.
 /// Includes PostGIS-powered spatial search for nearby profiles and posts.
 /// Phase 2: Now captures structured search results for card-based UI rendering.
+/// Search Ads: Integrates sponsored profile results with organic search.
 /// </summary>
 public class ChatFunctionService
 {
@@ -21,6 +22,9 @@ public class ChatFunctionService
     private readonly IProfileFollowerRepository _followerRepository;
     private readonly ILocationService _locationService;
     private readonly ICategoryNormalizer _categoryNormalizer;
+    private readonly IFileStorageService _fileStorageService;
+    private readonly IProfileAdSelector _profileAdSelector;
+    private readonly IProfileAdBudgetService _profileAdBudgetService;
     private readonly ILogger<ChatFunctionService> _logger;
     private Guid _currentProfileId; // Set before each AI call
     private (double Latitude, double Longitude)? _currentLocation; // Optional user location context
@@ -46,6 +50,9 @@ public class ChatFunctionService
         IProfileFollowerRepository followerRepository,
         ILocationService locationService,
         ICategoryNormalizer categoryNormalizer,
+        IFileStorageService fileStorageService,
+        IProfileAdSelector profileAdSelector,
+        IProfileAdBudgetService profileAdBudgetService,
         ILogger<ChatFunctionService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
@@ -53,6 +60,9 @@ public class ChatFunctionService
         _followerRepository = followerRepository ?? throw new ArgumentNullException(nameof(followerRepository));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _categoryNormalizer = categoryNormalizer ?? throw new ArgumentNullException(nameof(categoryNormalizer));
+        _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
+        _profileAdSelector = profileAdSelector ?? throw new ArgumentNullException(nameof(profileAdSelector));
+        _profileAdBudgetService = profileAdBudgetService ?? throw new ArgumentNullException(nameof(profileAdBudgetService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -362,7 +372,7 @@ public class ChatFunctionService
                 return $"No posts found matching {string.Join(" in ", searchCriteria)}. Try broader search terms or check if locations are registered on the platform.";
             }
 
-            // Phase 2: Populate structured results for card rendering
+            // Phase 2: Populate structured results for card rendering with PostCard
             var postsWithDistance = _currentLocation.HasValue
                 ? filteredPosts
                     .Select(p => (Post: p, Distance: p.Location?.Latitude.HasValue == true && p.Location?.Longitude.HasValue == true
@@ -378,13 +388,24 @@ public class ChatFunctionService
                     .Select(p => (Post: p, Distance: (double?)null))
                     .ToList();
 
-            var businessResults = postsWithDistance
-                .Select((x, index) => MapPostToBusinessResult(x.Post, x.Distance, index))
-                .ToList();
+            // Map to PostSearchResultDto for rendering with PostCard component (async to resolve file URLs)
+            var postResults = new List<PostSearchResultDto>();
+            var index = 0;
+            foreach (var (post, distance) in postsWithDistance)
+            {
+                var result = await MapPostToPostResultAsync(post, distance, index++);
+                postResults.Add(result);
+            }
             
             var combinedQuery = string.Join(" ", new[] { query, city, country }.Where(s => !string.IsNullOrWhiteSpace(s)));
-            LastSearchResults = CreateSearchResultsCollection(combinedQuery, businessResults, (long)elapsed);
-            _logger.LogInformation("[ChatFunctionService.SearchPosts] Phase 2: LastSearchResults populated with {Count} business results", businessResults.Count);
+            LastSearchResults = new SearchResultsCollectionDto
+            {
+                Query = combinedQuery,
+                TotalCount = postResults.Count,
+                SearchTimeMs = (long)elapsed,
+                Posts = postResults
+            };
+            _logger.LogInformation("[ChatFunctionService.SearchPosts] Phase 2: LastSearchResults populated with {Count} post results", postResults.Count);
 
             return JsonSerializer.Serialize(new
             {
@@ -862,6 +883,20 @@ public class ChatFunctionService
             var businessResults = matchingPostEntities
                 .Select((p, index) => MapPostToBusinessResult(p, null, index))
                 .ToList();
+            
+            // Search Ads: Get sponsored profiles and interleave with organic results
+            var sponsoredResults = await GetSponsoredProfileResultsAsync(
+                businessType, 
+                categoryKeys, 
+                city, 
+                matchingPostEntities.Select(p => p.ProfileId).ToList());
+            
+            if (sponsoredResults.Any())
+            {
+                businessResults = InterleaveWithSponsoredResults(businessResults, sponsoredResults);
+                _logger.LogInformation("[ChatFunctionService.FindBusinesses] Interleaved {SponsoredCount} sponsored results with {OrganicCount} organic results",
+                    sponsoredResults.Count, matchingPostEntities.Count);
+            }
             
             var combinedQuery = string.Join(" ", new[] { businessType, city, country }.Where(s => !string.IsNullOrWhiteSpace(s)));
             LastSearchResults = CreateSearchResultsCollection(combinedQuery, businessResults, (long)elapsed);
@@ -1951,6 +1986,111 @@ public class ChatFunctionService
     }
 
     /// <summary>
+    /// Maps a Post entity to a PostSearchResultDto for rendering with PostCard component
+    /// </summary>
+    private async Task<PostSearchResultDto> MapPostToPostResultAsync(Post post, double? distanceKm = null, int displayOrder = 0)
+    {
+        // Map attachments with resolved file URLs
+        var attachmentDtos = new List<PostAttachmentDto>();
+        if (post.Attachments != null)
+        {
+            foreach (var a in post.Attachments)
+            {
+                string filePath;
+                if (!string.IsNullOrEmpty(a.FileId))
+                {
+                    try
+                    {
+                        filePath = await _fileStorageService.GetFileUrlAsync(a.FileId);
+                    }
+                    catch
+                    {
+                        // Fallback to stored URL if file service fails
+                        filePath = a.Url ?? $"/api/file-error/{a.FileId}";
+                    }
+                }
+                else
+                {
+                    filePath = a.Url ?? string.Empty;
+                }
+
+                attachmentDtos.Add(new PostAttachmentDto
+                {
+                    Id = a.Id,
+                    FileId = a.FileId,
+                    FilePath = filePath,
+                    MimeType = a.MimeType ?? string.Empty,
+                    OriginalFilename = a.OriginalFileName ?? string.Empty,
+                    AltText = a.Description
+                });
+            }
+        }
+
+        // Map Post entity to PostDto for the PostCard component
+        var postDto = new PostDto
+        {
+            Id = post.Id,
+            Content = post.Content,
+            PostType = post.PostType,
+            Visibility = post.Visibility,
+            CreatedAt = post.CreatedAt,
+            UpdatedAt = post.UpdatedAt,
+            CommentCount = post.Comments?.Count ?? 0,
+            DistanceKm = distanceKm,
+            BusinessMetadata = post.BusinessMetadata,
+            Profile = post.Profile != null ? new ProfileDto
+            {
+                Id = post.Profile.Id,
+                DisplayName = post.Profile.DisplayName,
+                Handle = post.Profile.Handle,
+                Avatar = post.Profile.Avatar,
+                ProfileType = post.Profile.ProfileType != null ? new ProfileTypeDto
+                {
+                    Id = post.Profile.ProfileType.Id,
+                    Name = post.Profile.ProfileType.Name
+                } : null
+            } : null!,
+            Location = post.Location != null ? new LocationDto
+            {
+                City = post.Location.City,
+                State = post.Location.State,
+                Country = post.Location.Country,
+                Latitude = post.Location.Latitude,
+                Longitude = post.Location.Longitude
+            } : null,
+            Attachments = attachmentDtos,
+            Tags = post.Tags?.ToList()
+        };
+
+        // Get image URL from first resolved attachment
+        var imageUrl = attachmentDtos.FirstOrDefault()?.FilePath;
+
+        return new PostSearchResultDto
+        {
+            Id = post.Id,
+            ResultType = SearchResultType.Post,
+            MatchSource = SearchMatchSource.FullText,
+            RelevanceScore = 1.0 - (distanceKm ?? 0) / 100,
+            DisplayOrder = displayOrder,
+            Title = post.Profile?.DisplayName ?? "Post",
+            Description = post.Content?.Length > 150 ? post.Content.Substring(0, 150) + "..." : post.Content,
+            Handle = post.Profile?.Handle,
+            Category = post.PostType.ToString(),
+            ImageUrl = imageUrl,
+            City = post.Location?.City,
+            Department = post.Location?.State,
+            Latitude = post.Location?.Latitude,
+            Longitude = post.Location?.Longitude,
+            DistanceKm = distanceKm,
+            Post = postDto,
+            AuthorName = post.Profile?.DisplayName,
+            AuthorHandle = post.Profile?.Handle,
+            PostType = post.PostType.ToString(),
+            AttachmentCount = post.Attachments?.Count ?? 0
+        };
+    }
+
+    /// <summary>
     /// Maps a PostDto (from location service) to a BusinessSearchResultDto for structured card rendering
     /// </summary>
     private BusinessSearchResultDto MapPostDtoToBusinessResult(PostDto post, int displayOrder = 0)
@@ -2158,4 +2298,122 @@ public class ChatFunctionService
         
         return suggestions.Take(4).ToList();
     }
+
+    #region Search Ads System - Sponsored Profile Integration
+
+    /// <summary>
+    /// Gets sponsored profile results for a search query
+    /// Uses the ProfileAdSelector to run the auction
+    /// </summary>
+    private async Task<List<BusinessSearchResultDto>> GetSponsoredProfileResultsAsync(
+        string query,
+        IEnumerable<string> categoryKeys,
+        string? city,
+        List<Guid> organicProfileIds)
+    {
+        try
+        {
+            // Build search context for ad selection
+            var context = new SearchAdContext
+            {
+                Query = query,
+                Category = categoryKeys.FirstOrDefault(),
+                OrganicProfileIds = organicProfileIds,
+                Latitude = _currentLocation?.Latitude ?? 0,
+                Longitude = _currentLocation?.Longitude ?? 0
+            };
+
+            // Get sponsored profiles via auction
+            var sponsoredProfiles = await _profileAdSelector.SelectSponsoredProfilesAsync(context, maxSponsored: 2);
+
+            if (!sponsoredProfiles.Any())
+                return new List<BusinessSearchResultDto>();
+
+            // Record impressions for selected sponsored profiles
+            foreach (var sponsored in sponsoredProfiles)
+            {
+                await _profileAdBudgetService.RecordImpressionAsync(
+                    sponsored.ProfileId,
+                    query,
+                    sponsored.Position);
+            }
+
+            // Map to BusinessSearchResultDto with IsSponsored flag
+            return sponsoredProfiles.Select((s, index) => MapSponsoredProfileToBusinessResult(s, index)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatFunctionService] Error getting sponsored profiles for query: {Query}", query);
+            return new List<BusinessSearchResultDto>();
+        }
+    }
+
+    /// <summary>
+    /// Maps a SponsoredProfileResult to BusinessSearchResultDto
+    /// </summary>
+    private BusinessSearchResultDto MapSponsoredProfileToBusinessResult(SponsoredProfileResult sponsored, int index)
+    {
+        var profile = sponsored.Profile;
+        
+        return new BusinessSearchResultDto
+        {
+            Id = profile.Id,
+            ProfileId = profile.Id,
+            ResultType = SearchResultType.Business,
+            MatchSource = SearchMatchSource.Sponsored,
+            RelevanceScore = sponsored.AdRank,
+            DisplayOrder = index,
+            Title = profile.DisplayName,
+            Description = profile.Bio?.Length > 150 ? profile.Bio.Substring(0, 150) + "..." : profile.Bio,
+            Handle = profile.Handle,
+            Category = profile.ProfileType?.Name ?? "Business",
+            ImageUrl = profile.Avatar,
+            City = profile.Location?.City,
+            Department = profile.Location?.State,
+            Latitude = profile.Location?.Latitude,
+            Longitude = profile.Location?.Longitude,
+            DistanceKm = null,
+            Tags = profile.Tags?.ToArray(),
+            IsSponsored = true,
+            SponsoredCostPerClick = sponsored.ActualPricePerClick
+        };
+    }
+
+    /// <summary>
+    /// Interleaves sponsored results with organic results at strategic positions
+    /// Positions 3 and 8 are used for sponsored results (1-indexed)
+    /// </summary>
+    private List<BusinessSearchResultDto> InterleaveWithSponsoredResults(
+        List<BusinessSearchResultDto> organic,
+        List<BusinessSearchResultDto> sponsored)
+    {
+        if (!sponsored.Any())
+            return organic;
+
+        var result = new List<BusinessSearchResultDto>(organic);
+        
+        // Insert sponsored results at positions 3 and 8 (0-indexed: 2 and 7)
+        var insertPositions = new[] { 2, 7 };
+        var sponsoredIndex = 0;
+
+        foreach (var position in insertPositions)
+        {
+            if (sponsoredIndex >= sponsored.Count)
+                break;
+
+            var actualPosition = Math.Min(position, result.Count);
+            result.Insert(actualPosition, sponsored[sponsoredIndex]);
+            sponsoredIndex++;
+        }
+
+        // Reassign display order
+        for (int i = 0; i < result.Count; i++)
+        {
+            result[i] = result[i] with { DisplayOrder = i };
+        }
+
+        return result;
+    }
+
+    #endregion
 }

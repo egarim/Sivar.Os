@@ -11,6 +11,12 @@ namespace Sivar.Os.Shared.Repositories;
 public interface IBaseRepository<T> where T : BaseEntity
 {
     /// <summary>
+    /// Gets a queryable for advanced queries
+    /// </summary>
+    /// <returns>IQueryable of entity type T</returns>
+    IQueryable<T> Query();
+
+    /// <summary>
     /// Gets all entities of type T (excludes soft deleted)
     /// </summary>
     /// <returns>Collection of entities</returns>

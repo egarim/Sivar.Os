@@ -42,4 +42,28 @@ public interface IProfilesClient
 
     // Language preference
     Task<bool> UpdatePreferredLanguageAsync(Guid profileId, string? languageCode, CancellationToken cancellationToken = default);
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    /// <summary>
+    /// Gets ad settings and budget for a profile
+    /// </summary>
+    Task<ProfileAdSettingsDto> GetAdSettingsAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates ad settings for a profile
+    /// </summary>
+    Task<ProfileAdSettingsDto> UpdateAdSettingsAsync(Guid profileId, UpdateAdSettingsDto updateDto, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets transaction history for a profile's ad budget
+    /// </summary>
+    Task<List<AdTransactionDto>> GetAdTransactionsAsync(Guid profileId, int limit = 50, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds budget to a profile
+    /// </summary>
+    Task<ProfileAdSettingsDto> AddAdBudgetAsync(Guid profileId, AddBudgetDto addBudgetDto, CancellationToken cancellationToken = default);
 }

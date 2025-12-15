@@ -1,0 +1,231 @@
+@* SivarBusinessCard - Card component for displaying business search results *@
+@* Extracted from ChatMessage.razor for DxAIChat integration *@
+@using Sivar.Os.Shared.DTOs
+
+<div class="sivar-business-card @(Business.RelevanceScore > 0.7 ? "high-relevance" : "")" @onclick="HandleClick">
+    <div class="card-header">
+        @if (!string.IsNullOrEmpty(Business.ImageUrl))
+        {
+            <img class="card-image" 
+                 src="@Business.ImageUrl" 
+                 alt="@Business.Title" 
+                 loading="lazy"
+                 style="width: 48px; height: 48px; min-width: 48px; max-width: 48px; max-height: 48px; object-fit: cover; border-radius: 10px; flex-shrink: 0;" />
+        }
+        else
+        {
+            <div class="card-icon">@GetCategoryIcon()</div>
+        }
+        
+        <div class="card-title-section">
+            <h4 class="card-name">@Business.Title</h4>
+            @if (!string.IsNullOrEmpty(Business.Category))
+            {
+                <span class="card-category">@Business.Category</span>
+            }
+        </div>
+        
+        @* Quick Actions *@
+        <div class="card-quick-actions">
+            <button class="quick-action-btn @(IsSaved ? "saved" : "")" 
+                    @onclick="HandleSave" 
+                    @onclick:stopPropagation="true"
+                    title="@(IsSaved ? "Quitar de guardados" : "Guardar")">
+                <MudIcon Icon="@(IsSaved ? Icons.Material.Filled.Bookmark : Icons.Material.Outlined.BookmarkBorder)" 
+                         Size="Size.Small" />
+            </button>
+            <button class="quick-action-btn" 
+                    @onclick="HandleShare" 
+                    @onclick:stopPropagation="true"
+                    title="Compartir">
+                <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
+            </button>
+        </div>
+        
+        @if (Business.RelevanceScore > 0.7)
+        {
+            <span class="relevance-badge high">⭐</span>
+        }
+    </div>
+    
+    @* Open Status Badge *@
+    @if (Business.IsOpenNow.HasValue)
+    {
+        <div class="open-status-badge @(Business.IsOpenNow.Value ? "open" : "closed")">
+            <span class="status-dot">@(Business.IsOpenNow.Value ? "🟢" : "🔴")</span>
+            <span class="status-text">@Business.OpenStatusText</span>
+        </div>
+    }
+    
+    @* Description *@
+    @if (!string.IsNullOrEmpty(Business.Description))
+    {
+        <p class="card-description">@TruncateText(Business.Description, 80)</p>
+    }
+    
+    @* Metadata Row *@
+    <div class="card-meta">
+        @if (!string.IsNullOrEmpty(Business.City))
+        {
+            <span class="meta-item">
+                <span class="meta-icon">📍</span>
+                @Business.City
+                @if (Business.DistanceKm.HasValue)
+                {
+                    <span class="distance">(@Business.DistanceKm.Value.ToString("F1") km)</span>
+                }
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Business.PriceRange))
+        {
+            <span class="meta-item price-range">@Business.PriceRange</span>
+        }
+        @if (Business.Rating.HasValue)
+        {
+            <span class="meta-item rating">⭐ @Business.Rating.Value.ToString("F1")</span>
+        }
+    </div>
+    
+    @* Contact Actions *@
+    @if (Business.Contacts?.Any() == true)
+    {
+        <div class="card-contacts">
+            @foreach (var contact in Business.Contacts.Take(3))
+            {
+                <a class="contact-btn" href="@GetContactHref(contact)" target="_blank" 
+                   @onclick:stopPropagation="true" title="@contact.TypeKey">
+                    <span class="contact-icon">@GetContactIcon(contact.TypeKey)</span>
+                </a>
+            }
+        </div>
+    }
+    
+    @* Action Buttons *@
+    @if (Business.Actions?.Any() == true)
+    {
+        <div class="card-actions">
+            @foreach (var action in Business.Actions.Take(2))
+            {
+                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                        @onclick="() => HandleAction(action)" 
+                        @onclick:stopPropagation="true">
+                    @action.Label
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// The business search result to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public BusinessSearchResultDto Business { get; set; } = null!;
+    
+    /// <summary>
+    /// Whether this business is saved/bookmarked
+    /// </summary>
+    [Parameter]
+    public bool IsSaved { get; set; }
+    
+    /// <summary>
+    /// Navigate to the business profile
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessSearchResultDto> OnNavigate { get; set; }
+    
+    /// <summary>
+    /// Save/bookmark the business
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessSearchResultDto> OnSave { get; set; }
+    
+    /// <summary>
+    /// Share the business
+    /// </summary>
+    [Parameter]
+    public EventCallback<BusinessSearchResultDto> OnShare { get; set; }
+    
+    /// <summary>
+    /// Handle a custom action from the business
+    /// </summary>
+    [Parameter]
+    public EventCallback<CallToActionDto> OnAction { get; set; }
+    
+    private async Task HandleClick()
+    {
+        await OnNavigate.InvokeAsync(Business);
+    }
+    
+    private async Task HandleSave()
+    {
+        await OnSave.InvokeAsync(Business);
+    }
+    
+    private async Task HandleShare()
+    {
+        await OnShare.InvokeAsync(Business);
+    }
+    
+    private async Task HandleAction(CallToActionDto action)
+    {
+        await OnAction.InvokeAsync(action);
+    }
+    
+    private string GetCategoryIcon()
+    {
+        return Business.Category?.ToLowerInvariant() switch
+        {
+            "restaurante" or "restaurant" or "restaurants" => "🍽️",
+            "cafetería" or "cafe" or "coffee" => "☕",
+            "hotel" or "alojamiento" => "🏨",
+            "tienda" or "store" or "shop" => "🛒",
+            "salud" or "health" or "clinic" => "🏥",
+            "educación" or "education" => "🎓",
+            "entretenimiento" or "entertainment" => "🎭",
+            "deporte" or "sports" or "gym" => "🏋️",
+            "belleza" or "beauty" or "spa" => "💅",
+            "automotriz" or "auto" or "car" => "🚗",
+            "tecnología" or "tech" => "💻",
+            "finanzas" or "finance" or "bank" => "🏦",
+            "legal" or "abogado" or "lawyer" => "⚖️",
+            "turismo" or "tourism" => "🏝️",
+            _ => "🏢"
+        };
+    }
+    
+    private string GetContactIcon(string? contactTypeKey)
+    {
+        return contactTypeKey?.ToLowerInvariant() switch
+        {
+            "phone" or "teléfono" => "📞",
+            "whatsapp" => "💬",
+            "email" or "correo" => "📧",
+            "website" or "web" => "🌐",
+            "facebook" => "📘",
+            "instagram" => "📷",
+            "twitter" or "x" => "🐦",
+            _ => "📌"
+        };
+    }
+    
+    private string GetContactHref(ContactDisplayDto contact)
+    {
+        return contact.TypeKey?.ToLowerInvariant() switch
+        {
+            "phone" or "teléfono" => $"tel:{contact.Value}",
+            "whatsapp" => $"https://wa.me/{contact.Value?.Replace("+", "").Replace(" ", "") ?? ""}",
+            "email" or "correo" => $"mailto:{contact.Value}",
+            _ => contact.Url ?? contact.Value ?? "#"
+        };
+    }
+    
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        
+        return text.Substring(0, maxLength).TrimEnd() + "...";
+    }
+}

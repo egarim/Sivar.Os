@@ -20,6 +20,7 @@ public class ProfileService : IProfileService
     private readonly IProfileMetadataValidator _metadataValidator;
     private readonly IFileStorageService _fileStorageService;
     private readonly ILocationService _locationService;
+    private readonly IProfileAdBudgetService _adBudgetService;
     private readonly ILogger<ProfileService> _logger;
 
     public ProfileService(
@@ -29,6 +30,7 @@ public class ProfileService : IProfileService
         IProfileMetadataValidator metadataValidator,
         IFileStorageService fileStorageService,
         ILocationService locationService,
+        IProfileAdBudgetService adBudgetService,
         ILogger<ProfileService> logger)
     {
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
@@ -37,6 +39,7 @@ public class ProfileService : IProfileService
         _metadataValidator = metadataValidator ?? throw new ArgumentNullException(nameof(metadataValidator));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _adBudgetService = adBudgetService ?? throw new ArgumentNullException(nameof(adBudgetService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -530,6 +533,18 @@ public class ProfileService : IProfileService
 
         _logger.LogInformation("[SetActiveProfileAsync] ========== END ==========");
         return true;
+    }
+
+    /// <summary>
+    /// Gets a profile by ID (internal use, no visibility check)
+    /// </summary>
+    public async Task<ProfileDto?> GetProfileAsync(Guid profileId)
+    {
+        var profile = await _profileRepository.GetWithRelatedDataAsync(profileId);
+        if (profile == null)
+            return null;
+
+        return await MapToProfileDtoAsync(profile);
     }
 
     /// <summary>
@@ -1099,6 +1114,12 @@ public class ProfileService : IProfileService
         profile.VisibilityLevel = visibilityLevel;
         profile.Tags = updateDto.Tags ?? new List<string>();
         profile.Metadata = updateDto.Metadata ?? "{}";
+        
+        // Update chat display mode if provided
+        if (updateDto.ChatDisplayMode.HasValue)
+        {
+            profile.ChatDisplayMode = updateDto.ChatDisplayMode.Value;
+        }
 
         // Update social media links if provided
         if (updateDto.SocialMediaLinks?.Any() == true)
@@ -1245,6 +1266,7 @@ public class ProfileService : IProfileService
             ViewCount = profile.ViewCount,
             Tags = profile.Tags,
             SocialMediaLinks = profile.GetSocialMediaLinks(),
+            ChatDisplayMode = profile.ChatDisplayMode,
             Metadata = profile.Metadata,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
@@ -1590,5 +1612,167 @@ public class ProfileService : IProfileService
             _logger.LogError(ex, "[UpdatePreferredLanguageAsync] Error updating preferred language for ProfileId: {ProfileId}", profileId);
             return false;
         }
+    }
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    /// <inheritdoc />
+    public async Task<ProfileAdSettingsDto?> GetAdSettingsAsync(Guid profileId)
+    {
+        try
+        {
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null)
+            {
+                _logger.LogWarning("[GetAdSettingsAsync] Profile not found: {ProfileId}", profileId);
+                return null;
+            }
+
+            return MapToAdSettingsDto(profile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GetAdSettingsAsync] Error getting ad settings for ProfileId: {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<ProfileAdSettingsDto?> UpdateAdSettingsAsync(Guid profileId, UpdateAdSettingsDto updateDto)
+    {
+        try
+        {
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null)
+            {
+                _logger.LogWarning("[UpdateAdSettingsAsync] Profile not found: {ProfileId}", profileId);
+                return null;
+            }
+
+            // Update ad settings
+            profile.SponsoredEnabled = updateDto.SponsoredEnabled;
+            profile.MaxBidPerClick = updateDto.MaxBidPerClick;
+            profile.DailyAdLimit = updateDto.DailyAdLimit;
+            profile.AdTargetRadiusKm = updateDto.AdTargetRadiusKm;
+            
+            // Store keywords as JSON array
+            if (updateDto.AdTargetKeywords != null && updateDto.AdTargetKeywords.Any())
+            {
+                profile.AdTargetKeywords = JsonSerializer.Serialize(updateDto.AdTargetKeywords);
+            }
+            else
+            {
+                profile.AdTargetKeywords = null;
+            }
+
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            await _profileRepository.UpdateAsync(profile);
+            await _profileRepository.SaveChangesAsync();
+
+            _logger.LogInformation("[UpdateAdSettingsAsync] Successfully updated ad settings for ProfileId: {ProfileId}", profileId);
+
+            return MapToAdSettingsDto(profile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UpdateAdSettingsAsync] Error updating ad settings for ProfileId: {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AdTransactionDto>> GetAdTransactionsAsync(Guid profileId, int limit = 50)
+    {
+        try
+        {
+            var transactions = await _adBudgetService.GetTransactionHistoryAsync(profileId, limit);
+            
+            return transactions.Select(t => new AdTransactionDto
+            {
+                Id = t.Id,
+                TransactionType = t.TransactionType,
+                Amount = t.Amount,
+                BalanceAfter = t.BalanceAfter,
+                Timestamp = t.Timestamp,
+                Description = t.Description
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GetAdTransactionsAsync] Error getting transactions for ProfileId: {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<ProfileAdSettingsDto?> AddAdBudgetAsync(Guid profileId, decimal amount, string? description)
+    {
+        try
+        {
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null)
+            {
+                _logger.LogWarning("[AddAdBudgetAsync] Profile not found: {ProfileId}", profileId);
+                return null;
+            }
+
+            await _adBudgetService.AddBudgetAsync(
+                profileId, 
+                amount, 
+                AdTransactionType.TopUp, 
+                description ?? "Manual top-up", 
+                null);
+
+            // Refresh profile to get updated budget
+            profile = await _profileRepository.GetByIdAsync(profileId);
+
+            _logger.LogInformation("[AddAdBudgetAsync] Successfully added {Amount} to ProfileId: {ProfileId}", amount, profileId);
+
+            return MapToAdSettingsDto(profile!);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AddAdBudgetAsync] Error adding budget for ProfileId: {ProfileId}", profileId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Maps a Profile entity to ProfileAdSettingsDto
+    /// </summary>
+    private ProfileAdSettingsDto MapToAdSettingsDto(Profile profile)
+    {
+        var keywords = new List<string>();
+        if (!string.IsNullOrEmpty(profile.AdTargetKeywords))
+        {
+            try
+            {
+                keywords = JsonSerializer.Deserialize<List<string>>(profile.AdTargetKeywords) ?? new List<string>();
+            }
+            catch
+            {
+                // If parsing fails, treat as empty
+            }
+        }
+
+        return new ProfileAdSettingsDto
+        {
+            ProfileId = profile.Id,
+            AdBudget = profile.AdBudget,
+            SponsoredEnabled = profile.SponsoredEnabled,
+            MaxBidPerClick = profile.MaxBidPerClick,
+            DailyAdLimit = profile.DailyAdLimit,
+            AdSpentToday = profile.AdSpentToday,
+            TotalAdSpent = profile.TotalAdSpent,
+            AdTargetKeywords = keywords,
+            AdTargetRadiusKm = profile.AdTargetRadiusKm,
+            SponsoredImpressions = profile.SponsoredImpressions,
+            SponsoredClicks = profile.SponsoredClicks,
+            SponsoredCtr = profile.SponsoredCtr,
+            AdQualityScore = profile.AdQualityScore
+        };
     }
 }

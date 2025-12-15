@@ -69,5 +69,10 @@ public enum SearchMatchSource
     /// <summary>
     /// Hybrid match (multiple sources)
     /// </summary>
-    Hybrid = 5
+    Hybrid = 5,
+    
+    /// <summary>
+    /// Sponsored/promoted result from ad auction
+    /// </summary>
+    Sponsored = 6
 }

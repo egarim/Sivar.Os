@@ -159,4 +159,28 @@ public class ProfilesClient : BaseClient, IProfilesClient
         var response = await PutAsync<object>($"api/profiles/my/{profileId}/language", request, cancellationToken);
         return response != null;
     }
+
+    // ========================================
+    // AD BUDGET & SPONSORED SETTINGS
+    // ========================================
+
+    public async Task<ProfileAdSettingsDto> GetAdSettingsAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<ProfileAdSettingsDto>($"api/profiles/{profileId}/ad-settings", cancellationToken);
+    }
+
+    public async Task<ProfileAdSettingsDto> UpdateAdSettingsAsync(Guid profileId, UpdateAdSettingsDto updateDto, CancellationToken cancellationToken = default)
+    {
+        return await PutAsync<ProfileAdSettingsDto>($"api/profiles/{profileId}/ad-settings", updateDto, cancellationToken);
+    }
+
+    public async Task<List<AdTransactionDto>> GetAdTransactionsAsync(Guid profileId, int limit = 50, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<List<AdTransactionDto>>($"api/profiles/{profileId}/ad-transactions?limit={limit}", cancellationToken);
+    }
+
+    public async Task<ProfileAdSettingsDto> AddAdBudgetAsync(Guid profileId, AddBudgetDto addBudgetDto, CancellationToken cancellationToken = default)
+    {
+        return await PostAsync<ProfileAdSettingsDto>($"api/profiles/{profileId}/ad-budget", addBudgetDto, cancellationToken);
+    }
 }

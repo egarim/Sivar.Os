@@ -19,6 +19,14 @@
             <span>Cargando mapa...</span>
         </div>
     }
+    @if (_noLocationsFound)
+    {
+        <div class="map-no-locations-overlay">
+            <MudIcon Icon="@Icons.Material.Filled.LocationOff" Size="Size.Large" Color="Color.Warning" />
+            <span class="no-locations-title">Sin ubicaciones disponibles</span>
+            <span class="no-locations-text">Los resultados no tienen coordenadas GPS registradas</span>
+        </div>
+    }
     <div id="@_mapId" class="search-results-map" style="height: @(Height)px;"></div>
     
     @if (_selectedBusiness != null)
@@ -114,6 +122,7 @@
     private readonly string _mapId = $"search-map-{Guid.NewGuid():N}";
     private bool _isLoading = true;
     private bool _isInitialized = false;
+    private bool _noLocationsFound = false;
     private DotNetObjectReference<SearchResultsMap>? _dotNetRef;
     private BusinessSearchResultDto? _selectedBusiness;
     private List<BusinessSearchResultDto> _businessesWithLocation = new();
@@ -210,19 +219,46 @@
 
         try
         {
+            // Log all result counts for debugging
+            Console.WriteLine($"[SearchResultsMap] Results: Businesses={Results.Businesses?.Count ?? 0}, Events={Results.Events?.Count ?? 0}, Tourism={Results.Tourism?.Count ?? 0}, Procedures={Results.Procedures?.Count ?? 0}");
+            
             // Get all businesses with valid coordinates
-            _businessesWithLocation = Results.Businesses
+            _businessesWithLocation = (Results.Businesses ?? [])
                 .Where(b => b.Latitude.HasValue && b.Longitude.HasValue)
                 .ToList();
 
-            if (_businessesWithLocation.Count == 0)
+            Console.WriteLine($"[SearchResultsMap] Businesses with coordinates: {_businessesWithLocation.Count}");
+            
+            // Log businesses that don't have coordinates for debugging
+            var businessesWithoutLocation = (Results.Businesses ?? [])
+                .Where(b => !b.Latitude.HasValue || !b.Longitude.HasValue)
+                .ToList();
+            if (businessesWithoutLocation.Any())
             {
-                Console.WriteLine("[SearchResultsMap] No businesses with location data");
-                return;
+                Console.WriteLine($"[SearchResultsMap] Businesses WITHOUT coordinates: {businessesWithoutLocation.Count}");
+                foreach (var b in businessesWithoutLocation.Take(3))
+                {
+                    Console.WriteLine($"  - {b.Title}: Lat={b.Latitude}, Lng={b.Longitude}");
+                }
             }
 
-            // Create marker data for JS
-            var markers = _businessesWithLocation.Select((b, index) => new
+            // Also get events with location
+            var eventsWithLocation = (Results.Events ?? [])
+                .Where(e => e.Latitude.HasValue && e.Longitude.HasValue)
+                .ToList();
+            Console.WriteLine($"[SearchResultsMap] Events with coordinates: {eventsWithLocation.Count}");
+
+            // Also get tourism spots with location
+            var tourismWithLocation = (Results.Tourism ?? [])
+                .Where(t => t.Latitude.HasValue && t.Longitude.HasValue)
+                .ToList();
+            Console.WriteLine($"[SearchResultsMap] Tourism with coordinates: {tourismWithLocation.Count}");
+
+            // Create combined marker list
+            var allMarkers = new List<object>();
+            
+            // Add business markers
+            allMarkers.AddRange(_businessesWithLocation.Select((b, index) => new
             {
                 id = b.Id.ToString(),
                 lat = b.Latitude!.Value,
@@ -230,12 +266,48 @@
                 title = b.Title,
                 popup = BuildPopupHtml(b),
                 iconType = GetIconType(b),
-                onClick = true
-            }).ToList();
+                onClick = true,
+                resultType = "business"
+            }));
 
-            await JS.InvokeVoidAsync("leafletInterop.addMultipleMarkers", _mapId, markers, true);
+            // Add event markers
+            allMarkers.AddRange(eventsWithLocation.Select((e, index) => new
+            {
+                id = e.Id.ToString(),
+                lat = e.Latitude!.Value,
+                lng = e.Longitude!.Value,
+                title = e.Title,
+                popup = $"<strong>{e.Title}</strong><br/>{e.EventDateFormatted}<br/>{e.Venue ?? ""}",
+                iconType = "event",
+                onClick = true,
+                resultType = "event"
+            }));
+
+            // Add tourism markers
+            allMarkers.AddRange(tourismWithLocation.Select((t, index) => new
+            {
+                id = t.Id.ToString(),
+                lat = t.Latitude!.Value,
+                lng = t.Longitude!.Value,
+                title = t.Title,
+                popup = $"<strong>{t.Title}</strong><br/>{t.Address ?? ""}<br/>⭐ {t.Rating?.ToString("F1") ?? "N/A"}",
+                iconType = "tourism",
+                onClick = true,
+                resultType = "tourism"
+            }));
+
+            if (allMarkers.Count == 0)
+            {
+                Console.WriteLine("[SearchResultsMap] No results with location data found!");
+                _noLocationsFound = true;
+                StateHasChanged();
+                return;
+            }
             
-            Console.WriteLine($"[SearchResultsMap] Added {markers.Count} markers");
+            _noLocationsFound = false;
+
+            Console.WriteLine($"[SearchResultsMap] Adding {allMarkers.Count} total markers to map");
+            await JS.InvokeVoidAsync("leafletInterop.addMultipleMarkers", _mapId, allMarkers, true);
 
             // Add user location marker if available
             if (UserLatitude.HasValue && UserLongitude.HasValue)
@@ -259,18 +331,35 @@
 
     private (double lat, double lng) CalculateCenter()
     {
-        if (Results?.Businesses == null || !Results.Businesses.Any())
+        // Collect all coordinates from all result types
+        var allCoords = new List<(double lat, double lng)>();
+        
+        if (Results?.Businesses != null)
+        {
+            allCoords.AddRange(Results.Businesses
+                .Where(b => b.Latitude.HasValue && b.Longitude.HasValue)
+                .Select(b => (b.Latitude!.Value, b.Longitude!.Value)));
+        }
+        
+        if (Results?.Events != null)
+        {
+            allCoords.AddRange(Results.Events
+                .Where(e => e.Latitude.HasValue && e.Longitude.HasValue)
+                .Select(e => (e.Latitude!.Value, e.Longitude!.Value)));
+        }
+        
+        if (Results?.Tourism != null)
+        {
+            allCoords.AddRange(Results.Tourism
+                .Where(t => t.Latitude.HasValue && t.Longitude.HasValue)
+                .Select(t => (t.Latitude!.Value, t.Longitude!.Value)));
+        }
+
+        if (!allCoords.Any())
             return (DefaultLatitude, DefaultLongitude);
 
-        var withCoords = Results.Businesses
-            .Where(b => b.Latitude.HasValue && b.Longitude.HasValue)
-            .ToList();
-
-        if (!withCoords.Any())
-            return (DefaultLatitude, DefaultLongitude);
-
-        var avgLat = withCoords.Average(b => b.Latitude!.Value);
-        var avgLng = withCoords.Average(b => b.Longitude!.Value);
+        var avgLat = allCoords.Average(c => c.lat);
+        var avgLng = allCoords.Average(c => c.lng);
 
         return (avgLat, avgLng);
     }

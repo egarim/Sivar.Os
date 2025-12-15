@@ -1,0 +1,140 @@
+@* SivarProcedureCard - Card component for displaying procedure/tramite results *@
+@using Sivar.Os.Shared.DTOs
+
+<div class="sivar-procedure-card @(IsExpanded ? "expanded" : "")" @onclick="HandleClick">
+    <div class="card-header">
+        <div class="card-icon procedure">📋</div>
+        <div class="card-title-section">
+            <h4 class="card-name">@Procedure.Title</h4>
+            <span class="card-category">Trámite</span>
+        </div>
+        @if (Procedure.IsOnlineAvailable)
+        {
+            <span class="online-badge">🌐 En línea</span>
+        }
+    </div>
+    
+    @* Summary: Time and Cost at a glance *@
+    <div class="procedure-summary">
+        @if (!string.IsNullOrEmpty(Procedure.ProcessingTime))
+        {
+            <span class="summary-item">⏱️ @Procedure.ProcessingTime</span>
+        }
+        @if (!string.IsNullOrEmpty(Procedure.Cost))
+        {
+            <span class="summary-item cost">💰 @Procedure.Cost</span>
+        }
+    </div>
+    
+    @* Location & Hours *@
+    <div class="procedure-location-info">
+        @if (!string.IsNullOrEmpty(Procedure.WhereToGo) || !string.IsNullOrEmpty(Procedure.Address))
+        {
+            <div class="location-row">
+                <span class="icon">📍</span>
+                <span>@(Procedure.WhereToGo ?? Procedure.Address)</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Procedure.WorkingHours))
+        {
+            <div class="location-row">
+                <span class="icon">🕐</span>
+                <span>@Procedure.WorkingHours</span>
+            </div>
+        }
+    </div>
+    
+    @* Expandable Requirements Section *@
+    @if (HasRequirements || HasSteps)
+    {
+        <button class="expand-toggle" @onclick="ToggleExpand" @onclick:stopPropagation="true">
+            <MudIcon Icon="@(IsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" 
+                     Size="Size.Small" />
+            @if (HasRequirements)
+            {
+                <span>Ver requisitos (@RequirementCount documentos)</span>
+            }
+            else if (HasSteps)
+            {
+                <span>Ver pasos</span>
+            }
+        </button>
+        
+        @if (IsExpanded)
+        {
+            <div class="expanded-content">
+                @if (Procedure.Documents?.Any() == true)
+                {
+                    <div class="requirements-section">
+                        <h5>Documentos requeridos:</h5>
+                        <ul>
+                            @foreach (var doc in Procedure.Documents)
+                            {
+                                <li>@doc</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @if (Procedure.Steps?.Any() == true)
+                {
+                    <div class="steps-section">
+                        <h5>Pasos a seguir:</h5>
+                        <ol>
+                            @foreach (var step in Procedure.Steps)
+                            {
+                                <li>@step</li>
+                            }
+                        </ol>
+                    </div>
+                }
+            </div>
+        }
+    }
+    
+    @* Action Buttons *@
+    @if (Procedure.Actions?.Any() == true)
+    {
+        <div class="card-actions">
+            @foreach (var action in Procedure.Actions.Take(2))
+            {
+                <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
+                        @onclick="() => HandleAction(action)" 
+                        @onclick:stopPropagation="true">
+                    @action.Label
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcedureSearchResultDto Procedure { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<ProcedureSearchResultDto> OnNavigate { get; set; }
+    
+    [Parameter]
+    public EventCallback<CallToActionDto> OnAction { get; set; }
+    
+    private bool IsExpanded { get; set; }
+    
+    private bool HasRequirements => Procedure.Documents?.Any() == true || Procedure.Requirements?.Any() == true;
+    private bool HasSteps => Procedure.Steps?.Any() == true;
+    private int RequirementCount => Procedure.DocumentCount;
+    
+    private async Task HandleClick()
+    {
+        await OnNavigate.InvokeAsync(Procedure);
+    }
+    
+    private void ToggleExpand()
+    {
+        IsExpanded = !IsExpanded;
+    }
+    
+    private async Task HandleAction(CallToActionDto action)
+    {
+        await OnAction.InvokeAsync(action);
+    }
+}

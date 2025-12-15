@@ -6,6 +6,8 @@
 @using Sivar.Os.Shared
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using DevExpress.AIIntegration.Blazor.Chat
 @using Conversation = Sivar.Os.Client.Pages.Conversation
 @using ChatMessage = Sivar.Os.Client.Pages.ChatMessage
 @inject IStringLocalizer<MainLayout> Localizer
@@ -42,6 +44,11 @@
                            Color="@(_aiChatVisible ? Color.Primary : Color.Inherit)" 
                            OnClick="@ToggleAIChat"
                            Title="Toggle AI Assistant" />
+            @* Toggle between old and new DxAIChat implementation *@
+            <MudIconButton Icon="@(_useDxChat ? Icons.Material.Filled.AutoAwesome : Icons.Material.Outlined.AutoAwesome)" 
+                           Color="@(_useDxChat ? Color.Secondary : Color.Inherit)" 
+                           OnClick="@(() => _useDxChat = !_useDxChat)"
+                           Title="@(_useDxChat ? "Using DevExpress Chat (click for classic)" : "Using Classic Chat (click for DevExpress)")" />
         </MudAppBar>
 
         <!-- Left Drawer - Navigation -->
@@ -57,69 +64,131 @@
         <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important;" : "padding-top: 48px;")">
             @if (_aiChatVisible)
             {
-                <!-- AI Chat takes over the entire content area -->
-                <div class="ai-chat-fullscreen-container">
-                    <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
-                        <Sivar.Os.Client.Components.AIChat.ChatHistory 
-                            IsOpen="@_historyOpen"
-                            Conversations="@_conversations"
-                            CurrentConversationId="@_currentConversationId.ToString()"
-                            OnClose="@(() => _historyOpen = !_historyOpen)"
-                            OnNewConversation="@NewConversation"
-                            OnConversationSelect="@SelectConversationById" />
+                @if (_useDxChat)
+                {
+                    <!-- NEW: DevExpress DxAIChat Implementation -->
+                    <div class="ai-chat-fullscreen-container">
+                        <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
+                            <Sivar.Os.Client.Components.AIChat.ChatHistory 
+                                IsOpen="@_historyOpen"
+                                Conversations="@_conversations"
+                                CurrentConversationId="@_currentConversationId.ToString()"
+                                OnClose="@(() => _historyOpen = !_historyOpen)"
+                                OnNewConversation="@NewConversation"
+                                OnConversationSelect="@SelectConversationById" />
 
-                        <div class="chat-main-container">
-                            <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
-                                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
-                                    OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
-                                <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
-                                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
-                                </MudAvatar>
-                                <div class="ml-2">
-                                    <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
-                                    <MudText Typo="Typo.caption" Style="opacity: 0.7;">Always here to help you explore</MudText>
-                                </div>
-                                <MudSpacer />
-                                @* Phase 0: Location Indicator *@
-                                <MudButton Variant="Variant.Text" 
-                                           Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.LocationOn"
-                                           Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
-                                           OnClick="@ShowLocationPromptAsync"
-                                           Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
-                                    @(_chatLocation?.City ?? "Ubicación")
-                                </MudButton>
-                                @* Phase 8: Saved Results Button *@
-                                <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
-                                               Color="Color.Inherit" 
-                                               OnClick="@(() => _savedPanelOpen = true)"
-                                               Title="Mis guardados" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
-                                    OnClick="@ToggleAIChat" />
-                            </MudAppBar>
+                            <div class="chat-main-container dx-chat-container">
+                                <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                                        OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
+                                    <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+                                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                                    </MudAvatar>
+                                    <div class="ml-2">
+                                        <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+                                        <MudText Typo="Typo.caption" Style="opacity: 0.7;">DevExpress DxAIChat Mode</MudText>
+                                    </div>
+                                    <MudSpacer />
+                                    <MudButton Variant="Variant.Text" 
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.LocationOn"
+                                               Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                                               OnClick="@ShowLocationPromptAsync"
+                                               Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+                                        @(_chatLocation?.City ?? "Ubicación")
+                                    </MudButton>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                                                   Color="Color.Inherit" 
+                                                   OnClick="@(() => _savedPanelOpen = true)"
+                                                   Title="Mis guardados" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
+                                        OnClick="@ToggleAIChat" />
+                                </MudAppBar>
 
-                            <Sivar.Os.Client.Components.AIChat.ChatMessages 
-                                Messages="@_chatMessages"
-                                IsTyping="@_isTyping"
-                                UserLocation="@_chatLocation"
-                                OnQuickAction="@HandleQuickAction"
-                                OnResultView="@(() => {})"
-                                OnResultSave="@(() => {})"
-                                OnResultFollow="@(() => {})"
-                                OnSuggestionClick="@HandleSuggestionClick" />
-
-                            <Sivar.Os.Client.Components.AIChat.ChatInput 
-                                InputText="@_chatInput"
-                                InputTextChanged="@((text) => _chatInput = text)"
-                                OnSend="@SendChat" />
-                                
-                            @* Phase 8: Saved Results Panel *@
-                            <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
-                                IsOpen="@_savedPanelOpen"
-                                IsOpenChanged="@((val) => _savedPanelOpen = val)" />
+                                <!-- DxAIChat Component -->
+                                <SivarAIChat @ref="_sivarAIChat"
+                                    CssClass="dx-chat-fullscreen"
+                                    PromptSuggestionItems="@_dxQuickActionItems"
+                                    WelcomeTitle="Sivar AI Assistant"
+                                    WelcomeMessage="@ChatSettings.GetWelcomeMessage()"
+                                    CurrentLocation="@_chatLocation"
+                                    IsProcessing="@_isTyping"
+                                    DisplayMode="@(_currentProfile?.ChatDisplayMode ?? ChatDisplayMode.Cards)"
+                                    OnDisplayModeChanged="@HandleDisplayModeChanged"
+                                    OnUserMessageSent="@HandleDxChatMessageSent"
+                                    OnBusinessSaved="@HandleDxBusinessSaved"
+                                    OnBusinessShared="@HandleDxBusinessShared" />
+                                    
+                                <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
+                                    IsOpen="@_savedPanelOpen"
+                                    IsOpenChanged="@((val) => _savedPanelOpen = val)" />
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <!-- OLD: Classic Custom Chat Implementation -->
+                    <div class="ai-chat-fullscreen-container">
+                        <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
+                            <Sivar.Os.Client.Components.AIChat.ChatHistory 
+                                IsOpen="@_historyOpen"
+                                Conversations="@_conversations"
+                                CurrentConversationId="@_currentConversationId.ToString()"
+                                OnClose="@(() => _historyOpen = !_historyOpen)"
+                                OnNewConversation="@NewConversation"
+                                OnConversationSelect="@SelectConversationById" />
+
+                            <div class="chat-main-container">
+                                <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                                        OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
+                                    <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+                                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                                    </MudAvatar>
+                                    <div class="ml-2">
+                                        <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+                                        <MudText Typo="Typo.caption" Style="opacity: 0.7;">Always here to help you explore</MudText>
+                                    </div>
+                                    <MudSpacer />
+                                    <MudButton Variant="Variant.Text" 
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.LocationOn"
+                                               Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                                               OnClick="@ShowLocationPromptAsync"
+                                               Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+                                        @(_chatLocation?.City ?? "Ubicación")
+                                    </MudButton>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                                                   Color="Color.Inherit" 
+                                                   OnClick="@(() => _savedPanelOpen = true)"
+                                                   Title="Mis guardados" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
+                                        OnClick="@ToggleAIChat" />
+                                </MudAppBar>
+
+                                <Sivar.Os.Client.Components.AIChat.ChatMessages 
+                                    Messages="@_chatMessages"
+                                    IsTyping="@_isTyping"
+                                    UserLocation="@_chatLocation"
+                                    OnQuickAction="@HandleQuickAction"
+                                    OnResultView="@(() => {})"
+                                    OnResultSave="@(() => {})"
+                                    OnResultFollow="@(() => {})"
+                                    OnSuggestionClick="@HandleSuggestionClick" />
+
+                                <Sivar.Os.Client.Components.AIChat.ChatInput 
+                                    InputText="@_chatInput"
+                                    InputTextChanged="@((text) => _chatInput = text)"
+                                    OnSend="@SendChat" />
+                                    
+                                <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
+                                    IsOpen="@_savedPanelOpen"
+                                    IsOpenChanged="@((val) => _savedPanelOpen = val)" />
+                            </div>
+                        </div>
+                    </div>
+                }
             }
             else
             {
@@ -159,6 +228,24 @@
         height: 100%;
         min-height: 0; /* Important for flex children */
         overflow: hidden;
+    }
+
+    /* DxAIChat Container Styles */
+    .ai-chat-panel-fullscreen .chat-main-container.dx-chat-container {
+        background: var(--mud-palette-background, #1a1a27);
+    }
+
+    .ai-chat-panel-fullscreen .dx-chat-fullscreen {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .ai-chat-panel-fullscreen .dx-chat-fullscreen .dxbl-ai-chat {
+        height: 100%;
+        flex: 1;
     }
 
     /* Chat Header Styles */
@@ -649,6 +736,11 @@
     private bool _isTyping;
     private bool _isLoadingConversations;
 
+    // NEW: DxAIChat Integration State
+    private bool _useDxChat = true; // Toggle between old and new chat UI
+    private SivarAIChat? _sivarAIChat;
+    private List<QuickActionDto>? _dxQuickActionItems;
+
     // Phase 0: Location-Aware Chat
     private ChatLocationContext? _chatLocation;
     [Inject] private ChatLocationService ChatLocationService { get; set; } = null!;
@@ -728,6 +820,9 @@
             // Phase 0.5: Load chat settings from database
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Loading chat settings - InitId={InitId}", initId);
             await ChatSettings.LoadSettingsAsync();
+            
+            // Initialize DxChat quick actions
+            InitializeDxQuickActions();
             
             // Get current user's profile
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching active profile - InitId={InitId}", initId);
@@ -1416,6 +1511,165 @@
     {
         await ShowLocationPromptAsync();
     }
+
+    #region DxAIChat Integration Methods
+
+    /// <summary>
+    /// Handle message sent from the DxAIChat component
+    /// </summary>
+    private async Task HandleDxChatMessageSent(MessageSentEventArgs args)
+    {
+        var chatId = Guid.NewGuid().ToString()[..8];
+        Logger.LogInformation("[MainLayout.HandleDxChatMessageSent] START - ChatId={ChatId}, Content={Content}", 
+            chatId, args.Content?.Length > 50 ? args.Content[..50] + "..." : args.Content);
+
+        if (string.IsNullOrWhiteSpace(args.Content))
+        {
+            Logger.LogWarning("[MainLayout.HandleDxChatMessageSent] EMPTY_CONTENT - ChatId={ChatId}", chatId);
+            return;
+        }
+
+        _isTyping = true;
+        StateHasChanged();
+
+        try
+        {
+            // Ensure we have a profile
+            if (_currentProfile == null)
+            {
+                _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+                if (_currentProfile == null)
+                {
+                    await _sivarAIChat?.SendErrorMessageAsync("Para usar el chat, primero necesitas crear un perfil.")!;
+                    return;
+                }
+            }
+
+            // Ensure conversation exists
+            if (_currentConversationId == Guid.Empty)
+            {
+                await CreateNewConversationAsync();
+            }
+
+            // Call the backend API
+            var sendMessageDto = new SendMessageDto
+            {
+                ConversationId = _currentConversationId,
+                Content = args.Content,
+                Location = _chatLocation
+            };
+
+            Logger.LogInformation("[MainLayout.HandleDxChatMessageSent] Calling API - ConversationId={ConversationId}", 
+                _currentConversationId);
+
+            var response = await SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
+
+            if (response?.AssistantMessage?.Content == null)
+            {
+                throw new InvalidOperationException("Received null response from AI");
+            }
+
+            // Send the assistant response to DxAIChat
+            if (_sivarAIChat != null)
+            {
+                await _sivarAIChat.SendAssistantMessageAsync(
+                    response.AssistantMessage.Content,
+                    response.HasStructuredResults ? response.SearchResults : null);
+            }
+
+            Logger.LogInformation("[MainLayout.HandleDxChatMessageSent] SUCCESS - ChatId={ChatId}", chatId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout.HandleDxChatMessageSent] FAILED - ChatId={ChatId}", chatId);
+            await _sivarAIChat?.SendErrorMessageAsync($"Error: {ex.Message}")!;
+        }
+        finally
+        {
+            _isTyping = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Handle business save from DxAIChat cards
+    /// </summary>
+    private async Task HandleDxBusinessSaved(BusinessSearchResultDto business)
+    {
+        Logger.LogInformation("[MainLayout.HandleDxBusinessSaved] Saving business: {Title}", business.Title);
+        // TODO: Implement save functionality
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handle business share from DxAIChat cards
+    /// </summary>
+    private async Task HandleDxBusinessShared(BusinessSearchResultDto business)
+    {
+        Logger.LogInformation("[MainLayout.HandleDxBusinessShared] Sharing business: {Title}", business.Title);
+        // TODO: Implement share functionality via JS interop
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.share", new
+            {
+                title = business.Title,
+                text = business.Description,
+                url = business.NavigationUrl
+            });
+        }
+        catch
+        {
+            // Share API not available, fallback to copy to clipboard
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", business.NavigationUrl);
+        }
+    }
+
+    /// <summary>
+    /// Handle display mode change from DxAIChat - updates profile preference
+    /// </summary>
+    private async Task HandleDisplayModeChanged(ChatDisplayMode newMode)
+    {
+        Logger.LogInformation("[MainLayout.HandleDisplayModeChanged] Mode changed to {Mode}", newMode);
+        
+        if (_currentProfile == null)
+        {
+            Logger.LogWarning("[MainLayout.HandleDisplayModeChanged] No active profile to update");
+            return;
+        }
+        
+        try
+        {
+            // Update local state
+            _currentProfile.ChatDisplayMode = newMode;
+            
+            // Persist to server
+            var updateDto = new UpdateProfileDto { ChatDisplayMode = newMode };
+            await SivarClient.Profiles.UpdateProfileAsync(_currentProfile.Id, updateDto);
+            
+            Logger.LogInformation("[MainLayout.HandleDisplayModeChanged] Profile {ProfileId} display mode saved as {Mode}", 
+                _currentProfile.Id, newMode);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout.HandleDisplayModeChanged] Failed to save display mode preference");
+        }
+    }
+
+    /// <summary>
+    /// Initialize DxChat quick actions from settings
+    /// </summary>
+    private void InitializeDxQuickActions()
+    {
+        _dxQuickActionItems = ChatSettings.GetQuickActionItems()
+            .Where(qa => qa.IsActive)
+            .OrderBy(qa => qa.SortOrder)
+            .ToList();
+        
+        Logger.LogInformation("[MainLayout.InitializeDxQuickActions] Loaded {Count} quick actions", 
+            _dxQuickActionItems.Count);
+    }
+
+    #endregion
 
     public async ValueTask DisposeAsync()
     {

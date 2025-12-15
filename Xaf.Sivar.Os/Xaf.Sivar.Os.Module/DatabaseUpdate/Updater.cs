@@ -150,6 +150,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists demo contact info
             
+            // Seed ad budget for sponsored profiles (Search Ads System)
+            SeedAdBudgets();
+            
+            ObjectSpace.CommitChanges(); //This line persists ad budgets
+            
             // Apply content embeddings via raw SQL (EF Core ignores ContentEmbedding property)
             // This must be called AFTER CommitChanges so posts exist in the database
             ApplyPendingEmbeddingsViaSql();
@@ -2018,6 +2023,100 @@ IMPORTANT INSTRUCTIONS:
             }
             
             System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded contacts for {seededCount} business profiles.");
+        }
+        
+        /// <summary>
+        /// Seeds ad budgets for demo business profiles to enable sponsored results
+        /// Gives some profiles ad credits to appear as sponsored in search results
+        /// </summary>
+        void SeedAdBudgets()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedAdBudgets...");
+            var now = DateTime.UtcNow;
+            
+            // Check if ad budgets already seeded (look for any profile with budget > 0)
+            var existingSponsored = ObjectSpace.FirstOrDefault<Profile>(p => p.AdBudget > 0 && !p.IsDeleted);
+            if (existingSponsored != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Ad budgets already seeded. Skipping.");
+                return;
+            }
+            
+            // Business profile type ID
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            
+            // Get business profiles to give ad budgets
+            var businessProfiles = ObjectSpace.GetObjectsQuery<Profile>()
+                .Where(p => !p.IsDeleted && p.ProfileTypeId == businessProfileTypeId)
+                .ToList();
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Found {businessProfiles.Count} business profiles for ad budget seeding.");
+            
+            if (businessProfiles.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] No business profiles found. Skipping ad budget seeding.");
+                return;
+            }
+            
+            var random = new Random(123); // Fixed seed for reproducible demo data
+            var seededCount = 0;
+            
+            // Give ~40% of businesses some ad budget
+            foreach (var profile in businessProfiles)
+            {
+                // 40% chance of being a sponsored profile
+                if (random.NextDouble() > 0.4)
+                    continue;
+                
+                // Enable sponsored
+                profile.SponsoredEnabled = true;
+                
+                // Random budget between $25 and $200
+                profile.AdBudget = (decimal)(random.NextDouble() * 175 + 25);
+                profile.AdBudget = Math.Round(profile.AdBudget, 2);
+                
+                // Max bid per click: $0.10 to $0.50
+                profile.MaxBidPerClick = (decimal)(random.NextDouble() * 0.4 + 0.1);
+                profile.MaxBidPerClick = Math.Round(profile.MaxBidPerClick, 2);
+                
+                // Daily limit: $5 to $25
+                profile.DailyAdLimit = (decimal)(random.NextDouble() * 20 + 5);
+                profile.DailyAdLimit = Math.Round(profile.DailyAdLimit, 2);
+                
+                // Quality score: 0.5 to 1.0 (new advertisers start mid-range)
+                profile.AdQualityScore = random.NextDouble() * 0.5 + 0.5;
+                
+                // Target radius: 5-25 km for local businesses
+                profile.AdTargetRadiusKm = random.Next(5, 26);
+                
+                // Set target keywords based on category keys
+                if (profile.CategoryKeys != null && profile.CategoryKeys.Length > 0)
+                {
+                    profile.AdTargetKeywords = JsonSerializer.Serialize(profile.CategoryKeys.Take(5).ToList());
+                }
+                
+                seededCount++;
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Updater] ✓ Ad budget for {profile.Handle}: ${profile.AdBudget:F2} budget, ${profile.MaxBidPerClick:F2}/click, {profile.AdTargetRadiusKm}km radius");
+            }
+            
+            // Also seed a few AdTransaction records as bonus credits
+            if (seededCount > 0)
+            {
+                var sponsoredProfiles = businessProfiles.Where(p => p.SponsoredEnabled).Take(5).ToList();
+                foreach (var profile in sponsoredProfiles)
+                {
+                    var transaction = ObjectSpace.CreateObject<AdTransaction>();
+                    transaction.ProfileId = profile.Id;
+                    transaction.TransactionType = AdTransactionType.Bonus;
+                    transaction.Amount = profile.AdBudget;
+                    transaction.BalanceAfter = profile.AdBudget;
+                    transaction.Description = "Welcome bonus - Demo ad credits";
+                    transaction.Timestamp = DateTimeOffset.UtcNow;
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded ad budgets for {seededCount} business profiles.");
         }
         
         /// <summary>

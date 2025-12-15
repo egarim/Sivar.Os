@@ -30,6 +30,21 @@ public abstract record SearchResultBaseDto
     // Tags
     public string[]? Tags { get; init; }
     
+    #region Search Ads System
+    
+    /// <summary>
+    /// Whether this result is a sponsored/promoted result
+    /// </summary>
+    public bool IsSponsored { get; set; }
+    
+    /// <summary>
+    /// Actual cost per click for sponsored results (for tracking)
+    /// Not exposed to UI - used for click tracking
+    /// </summary>
+    public decimal SponsoredCostPerClick { get; set; }
+    
+    #endregion
+    
     #region Phase 11: Ranking & Personalization
     
     /// <summary>
@@ -442,6 +457,60 @@ public record ServiceSearchResultDto : SearchResultBaseDto
 }
 
 /// <summary>
+/// DTO for post search results - contains a PostDto for direct rendering
+/// </summary>
+public record PostSearchResultDto : SearchResultBaseDto
+{
+    /// <summary>
+    /// The full PostDto for rendering with PostCard component
+    /// </summary>
+    public PostDto Post { get; init; } = null!;
+
+    /// <summary>
+    /// Author display name
+    /// </summary>
+    public string? AuthorName { get; init; }
+
+    /// <summary>
+    /// Author handle
+    /// </summary>
+    public string? AuthorHandle { get; init; }
+
+    /// <summary>
+    /// Post type (General, Blog, BusinessLocation, etc.)
+    /// </summary>
+    public string? PostType { get; init; }
+
+    /// <summary>
+    /// Number of attachments
+    /// </summary>
+    public int AttachmentCount { get; init; }
+
+    /// <summary>
+    /// Navigation URL to the post
+    /// </summary>
+    public new string NavigationUrl => $"/post/{Post.Id}";
+
+    /// <summary>
+    /// Call-to-action buttons for this result
+    /// </summary>
+    public IReadOnlyList<CallToActionDto> Actions => GenerateActions();
+
+    private List<CallToActionDto> GenerateActions()
+    {
+        var actions = new List<CallToActionDto>
+        {
+            new() { Label = "Ver Post", Url = NavigationUrl, Icon = "article", IsPrimary = true }
+        };
+
+        if (!string.IsNullOrEmpty(AuthorHandle))
+            actions.Add(new() { Label = "Ver Perfil", Url = $"/{AuthorHandle.TrimStart('@')}", Icon = "person" });
+
+        return actions;
+    }
+}
+
+/// <summary>
 /// DTO for call-to-action buttons on search result cards
 /// </summary>
 public record CallToActionDto
@@ -562,6 +631,11 @@ public record SearchResultsCollectionDto
     /// Service results
     /// </summary>
     public IReadOnlyList<ServiceSearchResultDto> Services { get; init; } = [];
+
+    /// <summary>
+    /// Post results - rendered with PostCard component
+    /// </summary>
+    public IReadOnlyList<PostSearchResultDto> Posts { get; init; } = [];
 
     /// <summary>
     /// Whether any results were found
