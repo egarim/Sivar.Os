@@ -89,6 +89,11 @@
                                            Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
                                     @(_chatLocation?.City ?? "Ubicación")
                                 </MudButton>
+                                @* Phase 8: Saved Results Button *@
+                                <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                                               Color="Color.Inherit" 
+                                               OnClick="@(() => _savedPanelOpen = true)"
+                                               Title="Mis guardados" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
                                     OnClick="@ToggleAIChat" />
                             </MudAppBar>
@@ -107,6 +112,11 @@
                                 InputText="@_chatInput"
                                 InputTextChanged="@((text) => _chatInput = text)"
                                 OnSend="@SendChat" />
+                                
+                            @* Phase 8: Saved Results Panel *@
+                            <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
+                                IsOpen="@_savedPanelOpen"
+                                IsOpenChanged="@((val) => _savedPanelOpen = val)" />
                         </div>
                     </div>
                 </div>
@@ -629,6 +639,7 @@
 
     // AI Chat State
     private bool _historyOpen;
+    private bool _savedPanelOpen;
     private string _chatInput = string.Empty;
     private Guid _currentConversationId = Guid.Empty;
     private ActiveProfileDto? _currentProfile;

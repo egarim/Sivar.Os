@@ -1,0 +1,203 @@
+@using Sivar.Os.Shared.Services
+@using Sivar.Os.Shared.Entities
+@inject IProfileBookmarkService BookmarkService
+@inject NavigationManager NavigationManager
+
+@* SavedResultsPanel - View saved/bookmarked results in chat *@
+
+<MudDrawer @bind-Open="@IsOpen" 
+           Anchor="Anchor.Right" 
+           Variant="DrawerVariant.Temporary"
+           Width="340px"
+           Elevation="1"
+           Class="saved-results-drawer">
+    <div class="saved-panel-header">
+        <div class="header-title">
+            <MudIcon Icon="@Icons.Material.Filled.Bookmark" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Class="ml-2">Mis Guardados</MudText>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                       Size="Size.Small" 
+                       OnClick="@(() => IsOpenChanged.InvokeAsync(false))" />
+    </div>
+    
+    <MudDivider />
+    
+    <div class="saved-panel-content">
+        @if (_isLoading)
+        {
+            <div class="loading-container">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                <MudText Typo="Typo.caption" Class="mt-2">Cargando guardados...</MudText>
+            </div>
+        }
+        else if (!_bookmarks.Any())
+        {
+            <div class="empty-state">
+                <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Large" Style="opacity: 0.5;" />
+                <MudText Typo="Typo.body2" Class="mt-2" Style="opacity: 0.7;">No tienes nada guardado aún</MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.5;">Usa el ícono 📌 en las tarjetas de resultados para guardar</MudText>
+            </div>
+        }
+        else
+        {
+            <div class="bookmark-list">
+                @foreach (var bookmark in _bookmarks)
+                {
+                    <div class="bookmark-item" @onclick="() => NavigateToPost(bookmark.PostId)">
+                        <div class="bookmark-content">
+                            <div class="bookmark-header">
+                                @if (!string.IsNullOrEmpty(bookmark.Post?.Profile?.Avatar))
+                                {
+                                    <MudAvatar Size="Size.Small" Class="bookmark-avatar">
+                                        <MudImage Src="@bookmark.Post.Profile.Avatar" Alt="@bookmark.Post.Profile.DisplayName" />
+                                    </MudAvatar>
+                                }
+                                else
+                                {
+                                    <MudAvatar Size="Size.Small" Color="Color.Primary" Class="bookmark-avatar">
+                                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                                    </MudAvatar>
+                                }
+                                <div class="bookmark-info">
+                                    <MudText Typo="Typo.body2" Class="bookmark-title">
+                                        @(bookmark.Post?.Profile?.DisplayName ?? "Negocio guardado")
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Class="bookmark-category">
+                                        @(bookmark.Post?.Profile?.ProfileType?.Name ?? "Negocio")
+                                    </MudText>
+                                </div>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(bookmark.Note))
+                            {
+                                <div class="bookmark-note">
+                                    <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption">@bookmark.Note</MudText>
+                                </div>
+                            }
+                            
+                            <div class="bookmark-meta">
+                                <MudText Typo="Typo.caption" Style="opacity: 0.6;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Style="font-size: 12px; vertical-align: middle;" />
+                                    @FormatDate(bookmark.CreatedAt)
+                                </MudText>
+                            </div>
+                        </div>
+                        
+                        <MudIconButton Icon="@Icons.Material.Filled.BookmarkRemove" 
+                                       Size="Size.Small" 
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemoveBookmark(bookmark.PostId))"
+                                       OnClick:StopPropagation="true"
+                                       Title="Quitar de guardados" />
+                    </div>
+                }
+            </div>
+            
+            @if (_totalCount > _bookmarks.Count)
+            {
+                <div class="load-more">
+                    <MudButton Variant="Variant.Text" 
+                               Color="Color.Primary" 
+                               Size="Size.Small"
+                               OnClick="@LoadMoreAsync">
+                        Cargar más (@(_totalCount - _bookmarks.Count) restantes)
+                    </MudButton>
+                </div>
+            }
+        }
+    </div>
+</MudDrawer>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private List<ProfileBookmark> _bookmarks = new();
+    private bool _isLoading = true;
+    private int _page = 1;
+    private int _pageSize = 20;
+    private int _totalCount = 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && !_bookmarks.Any())
+        {
+            await LoadBookmarksAsync();
+        }
+    }
+
+    private async Task LoadBookmarksAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await BookmarkService.GetPaginatedAsync(_page, _pageSize);
+            _bookmarks = result.Items.ToList();
+            _totalCount = result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SavedResultsPanel] Error loading bookmarks: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        _page++;
+        try
+        {
+            var result = await BookmarkService.GetPaginatedAsync(_page, _pageSize);
+            _bookmarks.AddRange(result.Items);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SavedResultsPanel] Error loading more bookmarks: {ex.Message}");
+            _page--;
+        }
+    }
+
+    private async Task RemoveBookmark(Guid postId)
+    {
+        try
+        {
+            await BookmarkService.RemoveBookmarkAsync(postId);
+            _bookmarks.RemoveAll(b => b.PostId == postId);
+            _totalCount--;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SavedResultsPanel] Error removing bookmark: {ex.Message}");
+        }
+    }
+
+    private void NavigateToPost(Guid postId)
+    {
+        NavigationManager.NavigateTo($"/post/{postId}");
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - date;
+
+        if (diff.TotalMinutes < 1) return "Ahora";
+        if (diff.TotalMinutes < 60) return $"Hace {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24) return $"Hace {(int)diff.TotalHours} h";
+        if (diff.TotalDays < 7) return $"Hace {(int)diff.TotalDays} días";
+        return date.ToString("dd MMM yyyy");
+    }
+}

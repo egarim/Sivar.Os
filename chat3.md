@@ -1472,7 +1472,7 @@ Visual geographic view of all search results.
 
 ---
 
-## Phase 8: Saved Results & Favorites 🟢
+## Phase 8: Saved Results & Favorites ✅
 **Goal**: Let users save results for later
 
 ### Scope
@@ -1489,11 +1489,11 @@ Visual geographic view of all search results.
 | New: `Sivar.Os.Client/Components/AIChat/SavedResultsPanel.razor` | View saved items |
 
 ### Acceptance Criteria
-- [ ] "📌 Guardar" button on every result card
-- [ ] Saved items persist to database
-- [ ] "Mis guardados" accessible from chat
-- [ ] Can unsave items
-- [ ] Saved items show last updated date
+- [x] "📌 Guardar" button on every result card
+- [x] Saved items persist to database
+- [x] "Mis guardados" accessible from chat
+- [x] Can unsave items
+- [x] Saved items show last updated date
 
 ### Deliverable
 Users can bookmark businesses and procedures for future reference.
