@@ -108,7 +108,9 @@
             {
                 <button class="card-btn @(action.IsPrimary ? "primary" : "secondary")" 
                         @onclick="() => HandleAction(action)" 
-                        @onclick:stopPropagation="true">
+                        @onclick:stopPropagation="true"
+                        @onclick:preventDefault="false"
+                        style="position: relative; z-index: 100;">
                     @action.Label
                 </button>
             }
@@ -170,6 +172,7 @@
     
     private async Task HandleAction(CallToActionDto action)
     {
+        Console.WriteLine($"[SivarBusinessCard] HandleAction called: {action?.Label} -> {action?.Url}");
         await OnAction.InvokeAsync(action);
     }
     

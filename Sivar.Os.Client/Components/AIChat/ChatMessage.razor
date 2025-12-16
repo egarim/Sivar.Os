@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject IProfileBookmarkService BookmarkService
+@inject ILogger<ChatMessage> Logger
 
 @* ChatMessage component *@
 
@@ -1046,15 +1047,24 @@
 
     private void HandleAction(CallToActionDto action)
     {
-        if (string.IsNullOrEmpty(action.Url)) return;
+        Logger.LogInformation("[ChatMessage] HandleAction called: Label={Label}, Url={Url}, IsExternal={IsExternal}", 
+            action?.Label, action?.Url, action?.IsExternal);
+        
+        if (action == null || string.IsNullOrEmpty(action.Url))
+        {
+            Logger.LogWarning("[ChatMessage] HandleAction: Action or URL is null/empty");
+            return;
+        }
 
         if (action.IsExternal)
         {
             // External links - would need JS interop for new tab
+            Logger.LogInformation("[ChatMessage] Navigating externally to: {Url}", action.Url);
             NavigationManager.NavigateTo(action.Url, forceLoad: true);
         }
         else
         {
+            Logger.LogInformation("[ChatMessage] Navigating internally to: {Url}", action.Url);
             NavigationManager.NavigateTo(action.Url);
         }
     }

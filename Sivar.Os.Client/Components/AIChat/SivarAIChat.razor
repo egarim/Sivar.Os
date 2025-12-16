@@ -131,7 +131,8 @@
                                                 Business="@business"
                                                 OnNavigate="HandleNavigateToProfile"
                                                 OnSave="HandleSaveBusiness"
-                                                OnShare="HandleShareBusiness" />
+                                                OnShare="HandleShareBusiness"
+                                                OnAction="HandleCardAction" />
                                         </MudCarouselItem>
                                     }
                                 </MudCarousel>
@@ -177,7 +178,8 @@
                                         Business="@business"
                                         OnNavigate="HandleNavigateToProfile"
                                         OnSave="HandleSaveBusiness"
-                                        OnShare="HandleShareBusiness" />
+                                        OnShare="HandleShareBusiness"
+                                        OnAction="HandleCardAction" />
                                 }
                             </div>
                         }
@@ -198,7 +200,8 @@
                                     <MudCarouselItem Class="d-flex justify-center pa-2">
                                         <SivarProcedureCard 
                                             Procedure="@procedure"
-                                            OnNavigate="HandleNavigateToProcedure" />
+                                            OnNavigate="HandleNavigateToProcedure"
+                                            OnAction="HandleCardAction" />
                                     </MudCarouselItem>
                                 }
                             </MudCarousel>
@@ -229,7 +232,8 @@
                                 {
                                     <SivarProcedureCard 
                                         Procedure="@procedure"
-                                        OnNavigate="HandleNavigateToProcedure" />
+                                        OnNavigate="HandleNavigateToProcedure"
+                                        OnAction="HandleCardAction" />
                                 }
                             </div>
                         }
@@ -250,7 +254,8 @@
                                     <MudCarouselItem Class="d-flex justify-center pa-2">
                                         <SivarEventCard 
                                             Event="@evt"
-                                            OnNavigate="HandleNavigateToEvent" />
+                                            OnNavigate="HandleNavigateToEvent"
+                                            OnAction="HandleCardAction" />
                                     </MudCarouselItem>
                                 }
                             </MudCarousel>
@@ -281,7 +286,8 @@
                                 {
                                     <SivarEventCard 
                                         Event="@evt"
-                                        OnNavigate="HandleNavigateToEvent" />
+                                        OnNavigate="HandleNavigateToEvent"
+                                        OnAction="HandleCardAction" />
                                 }
                             </div>
                         }
@@ -302,7 +308,8 @@
                                     <MudCarouselItem Class="d-flex justify-center pa-2">
                                         <SivarTourismCard 
                                             Tourism="@tourism"
-                                            OnNavigate="HandleNavigateToTourism" />
+                                            OnNavigate="HandleNavigateToTourism"
+                                            OnAction="HandleCardAction" />
                                     </MudCarouselItem>
                                 }
                             </MudCarousel>
@@ -333,7 +340,8 @@
                                 {
                                     <SivarTourismCard 
                                         Tourism="@tourism"
-                                        OnNavigate="HandleNavigateToTourism" />
+                                        OnNavigate="HandleNavigateToTourism"
+                                        OnAction="HandleCardAction" />
                                 }
                             </div>
                         }
@@ -723,6 +731,33 @@
     private async Task HandleShareBusiness(BusinessSearchResultDto business)
     {
         await OnBusinessShared.InvokeAsync(business);
+    }
+    
+    /// <summary>
+    /// Handle call-to-action button clicks from cards
+    /// </summary>
+    private void HandleCardAction(CallToActionDto action)
+    {
+        if (action == null || string.IsNullOrEmpty(action.Url))
+            return;
+        
+        Logger.LogInformation("[SivarAIChat] Card action clicked: {Label} -> {Url}", action.Label, action.Url);
+        
+        if (action.IsExternal)
+        {
+            // External links open in a new tab
+            _ = JS.InvokeVoidAsync("open", action.Url, "_blank");
+        }
+        else if (action.Url.StartsWith("tel:") || action.Url.StartsWith("mailto:"))
+        {
+            // Phone and email links use browser default behavior
+            NavigationManager.NavigateTo(action.Url, forceLoad: true);
+        }
+        else
+        {
+            // Internal links navigate within the app
+            NavigationManager.NavigateTo(action.Url);
+        }
     }
     
     private void HandleNavigateToPost(PostSearchResultDto postResult)
