@@ -44,11 +44,6 @@
                            Color="@(_aiChatVisible ? Color.Primary : Color.Inherit)" 
                            OnClick="@ToggleAIChat"
                            Title="Toggle AI Assistant" />
-            @* Toggle between old and new DxAIChat implementation *@
-            <MudIconButton Icon="@(_useDxChat ? Icons.Material.Filled.AutoAwesome : Icons.Material.Outlined.AutoAwesome)" 
-                           Color="@(_useDxChat ? Color.Secondary : Color.Inherit)" 
-                           OnClick="@(() => _useDxChat = !_useDxChat)"
-                           Title="@(_useDxChat ? "Using DevExpress Chat (click for classic)" : "Using Classic Chat (click for DevExpress)")" />
         </MudAppBar>
 
         <!-- Left Drawer - Navigation -->
@@ -64,131 +59,65 @@
         <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important;" : "padding-top: 48px;")">
             @if (_aiChatVisible)
             {
-                @if (_useDxChat)
-                {
-                    <!-- NEW: DevExpress DxAIChat Implementation -->
-                    <div class="ai-chat-fullscreen-container">
-                        <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
-                            <Sivar.Os.Client.Components.AIChat.ChatHistory 
-                                IsOpen="@_historyOpen"
-                                Conversations="@_conversations"
-                                CurrentConversationId="@_currentConversationId.ToString()"
-                                OnClose="@(() => _historyOpen = !_historyOpen)"
-                                OnNewConversation="@NewConversation"
-                                OnConversationSelect="@SelectConversationById" />
+                <!-- DevExpress DxAIChat Implementation -->
+                <div class="ai-chat-fullscreen-container">
+                    <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
+                        <Sivar.Os.Client.Components.AIChat.ChatHistory 
+                            IsOpen="@_historyOpen"
+                            Conversations="@_conversations"
+                            CurrentConversationId="@_currentConversationId.ToString()"
+                            OnClose="@(() => _historyOpen = !_historyOpen)"
+                            OnNewConversation="@NewConversation"
+                            OnConversationSelect="@SelectConversationById" />
 
-                            <div class="chat-main-container dx-chat-container">
-                                <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
-                                        OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
-                                    <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
-                                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
-                                    </MudAvatar>
-                                    <div class="ml-2">
-                                        <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
-                                        <MudText Typo="Typo.caption" Style="opacity: 0.7;">DevExpress DxAIChat Mode</MudText>
-                                    </div>
-                                    <MudSpacer />
-                                    <MudButton Variant="Variant.Text" 
-                                               Size="Size.Small"
-                                               StartIcon="@Icons.Material.Filled.LocationOn"
-                                               Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
-                                               OnClick="@ShowLocationPromptAsync"
-                                               Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
-                                        @(_chatLocation?.City ?? "Ubicación")
-                                    </MudButton>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
-                                                   Color="Color.Inherit" 
-                                                   OnClick="@(() => _savedPanelOpen = true)"
-                                                   Title="Mis guardados" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
-                                        OnClick="@ToggleAIChat" />
-                                </MudAppBar>
+                        <div class="chat-main-container dx-chat-container">
+                            <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                                    OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
+                                <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+                                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                                </MudAvatar>
+                                <div class="ml-2">
+                                    <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.7;">Siempre aquí para ayudarte</MudText>
+                                </div>
+                                <MudSpacer />
+                                <MudButton Variant="Variant.Text" 
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.LocationOn"
+                                           Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                                           OnClick="@ShowLocationPromptAsync"
+                                           Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+                                    @(_chatLocation?.City ?? "Ubicación")
+                                </MudButton>
+                                <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                                               Color="Color.Inherit" 
+                                               OnClick="@(() => _savedPanelOpen = true)"
+                                               Title="Mis guardados" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
+                                    OnClick="@ToggleAIChat" />
+                            </MudAppBar>
 
-                                <!-- DxAIChat Component -->
-                                <SivarAIChat @ref="_sivarAIChat"
-                                    CssClass="dx-chat-fullscreen"
-                                    PromptSuggestionItems="@_dxQuickActionItems"
-                                    WelcomeTitle="Sivar AI Assistant"
-                                    WelcomeMessage="@ChatSettings.GetWelcomeMessage()"
-                                    CurrentLocation="@_chatLocation"
-                                    IsProcessing="@_isTyping"
-                                    DisplayMode="@(_currentProfile?.ChatDisplayMode ?? ChatDisplayMode.Cards)"
-                                    OnDisplayModeChanged="@HandleDisplayModeChanged"
-                                    OnUserMessageSent="@HandleDxChatMessageSent"
-                                    OnBusinessSaved="@HandleDxBusinessSaved"
-                                    OnBusinessShared="@HandleDxBusinessShared" />
-                                    
-                                <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
-                                    IsOpen="@_savedPanelOpen"
-                                    IsOpenChanged="@((val) => _savedPanelOpen = val)" />
-                            </div>
+                            <!-- DxAIChat Component -->
+                            <SivarAIChat @ref="_sivarAIChat"
+                                CssClass="dx-chat-fullscreen"
+                                PromptSuggestionItems="@_dxQuickActionItems"
+                                WelcomeTitle="Sivar AI Assistant"
+                                WelcomeMessage="@ChatSettings.GetWelcomeMessage()"
+                                CurrentLocation="@_chatLocation"
+                                IsProcessing="@_isTyping"
+                                DisplayMode="@(_currentProfile?.ChatDisplayMode ?? ChatDisplayMode.Cards)"
+                                OnDisplayModeChanged="@HandleDisplayModeChanged"
+                                OnUserMessageSent="@HandleDxChatMessageSent"
+                                OnBusinessSaved="@HandleDxBusinessSaved"
+                                OnBusinessShared="@HandleDxBusinessShared" />
+                                
+                            <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
+                                IsOpen="@_savedPanelOpen"
+                                IsOpenChanged="@((val) => _savedPanelOpen = val)" />
                         </div>
                     </div>
-                }
-                else
-                {
-                    <!-- OLD: Classic Custom Chat Implementation -->
-                    <div class="ai-chat-fullscreen-container">
-                        <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
-                            <Sivar.Os.Client.Components.AIChat.ChatHistory 
-                                IsOpen="@_historyOpen"
-                                Conversations="@_conversations"
-                                CurrentConversationId="@_currentConversationId.ToString()"
-                                OnClose="@(() => _historyOpen = !_historyOpen)"
-                                OnNewConversation="@NewConversation"
-                                OnConversationSelect="@SelectConversationById" />
-
-                            <div class="chat-main-container">
-                                <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
-                                        OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
-                                    <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
-                                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
-                                    </MudAvatar>
-                                    <div class="ml-2">
-                                        <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
-                                        <MudText Typo="Typo.caption" Style="opacity: 0.7;">Always here to help you explore</MudText>
-                                    </div>
-                                    <MudSpacer />
-                                    <MudButton Variant="Variant.Text" 
-                                               Size="Size.Small"
-                                               StartIcon="@Icons.Material.Filled.LocationOn"
-                                               Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
-                                               OnClick="@ShowLocationPromptAsync"
-                                               Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
-                                        @(_chatLocation?.City ?? "Ubicación")
-                                    </MudButton>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
-                                                   Color="Color.Inherit" 
-                                                   OnClick="@(() => _savedPanelOpen = true)"
-                                                   Title="Mis guardados" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" 
-                                        OnClick="@ToggleAIChat" />
-                                </MudAppBar>
-
-                                <Sivar.Os.Client.Components.AIChat.ChatMessages 
-                                    Messages="@_chatMessages"
-                                    IsTyping="@_isTyping"
-                                    UserLocation="@_chatLocation"
-                                    OnQuickAction="@HandleQuickAction"
-                                    OnResultView="@(() => {})"
-                                    OnResultSave="@(() => {})"
-                                    OnResultFollow="@(() => {})"
-                                    OnSuggestionClick="@HandleSuggestionClick" />
-
-                                <Sivar.Os.Client.Components.AIChat.ChatInput 
-                                    InputText="@_chatInput"
-                                    InputTextChanged="@((text) => _chatInput = text)"
-                                    OnSend="@SendChat" />
-                                    
-                                <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
-                                    IsOpen="@_savedPanelOpen"
-                                    IsOpenChanged="@((val) => _savedPanelOpen = val)" />
-                            </div>
-                        </div>
-                    </div>
-                }
+                </div>
             }
             else
             {
@@ -727,17 +656,13 @@
     // AI Chat State
     private bool _historyOpen;
     private bool _savedPanelOpen;
-    private string _chatInput = string.Empty;
     private Guid _currentConversationId = Guid.Empty;
     private ActiveProfileDto? _currentProfile;
-    private List<ChatMessage> _chatMessages = new();
     private List<Conversation> _conversations = new();
-    private Dictionary<Guid, List<ChatMessage>> _conversationMessages = new();
     private bool _isTyping;
     private bool _isLoadingConversations;
 
-    // NEW: DxAIChat Integration State
-    private bool _useDxChat = true; // Toggle between old and new chat UI
+    // DxAIChat Integration State
     private SivarAIChat? _sivarAIChat;
     private List<QuickActionDto>? _dxQuickActionItems;
 
@@ -889,20 +814,7 @@
         
         Logger.LogInformation("[MainLayout.CreateLocalWelcomeConversation] Created - ConversationId={ConversationId}", _currentConversationId);
         
-        // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
-        // Phase 0.6: Use QuickActionItems (relational) - stores full DTO for DefaultQuery support
-        var quickActionItems = ChatSettings.GetQuickActionItems()
-            .Where(qa => qa.IsActive)
-            .OrderBy(qa => qa.SortOrder)
-            .ToList();
-        
-        var welcomeMessage = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
-        {
-            QuickActionItems = quickActionItems
-        };
-        
-        _chatMessages = new List<ChatMessage> { welcomeMessage };
-        _conversationMessages[_currentConversationId] = _chatMessages;
+        // DxAIChat will display its own welcome message via WelcomeTitle and WelcomeMessage properties
     }
 
     private void ToggleLeftDrawer()
@@ -968,14 +880,17 @@
         Logger.LogInformation("[MainLayout.CreateNewConversationAsync] Force reloading chat settings - CreateId={CreateId}", createId);
         await ChatSettings.LoadSettingsAsync(forceReload: true);
         
+        // Clear the current DxAIChat messages
+        _sivarAIChat?.ClearMessages();
+        
         if (_currentProfile == null)
         {
             Logger.LogWarning("[MainLayout.CreateNewConversationAsync] No profile, using local mode - CreateId={CreateId}", createId);
             // Fallback to local mode
             var localConversation = new Conversation($"Conversation {_conversations.Count + 1}");
             _conversations.Insert(0, localConversation);
-            _conversationMessages[localConversation.GuidId] = new List<ChatMessage>();
-            await LoadConversationAsync(localConversation.GuidId);
+            _currentConversationId = localConversation.GuidId;
+            StateHasChanged();
             return;
         }
 
@@ -995,9 +910,13 @@
             Logger.LogInformation("[MainLayout.CreateNewConversationAsync] SUCCESS - ConversationId={ConversationId}, CreateId={CreateId}", 
                 conversationDto?.Id, createId);
             
-            var conversation = MapConversationFromDto(conversationDto);
-            _conversations.Insert(0, conversation);
-            await LoadConversationAsync(conversation.GuidId);
+            if (conversationDto != null)
+            {
+                var conversation = MapConversationFromDto(conversationDto);
+                _conversations.Insert(0, conversation);
+                _currentConversationId = conversation.GuidId;
+            }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1005,8 +924,8 @@
             // Fallback to local
             var localConversation = new Conversation($"Conversation {_conversations.Count + 1}");
             _conversations.Insert(0, localConversation);
-            _conversationMessages[localConversation.GuidId] = new List<ChatMessage>();
-            await LoadConversationAsync(localConversation.GuidId);
+            _currentConversationId = localConversation.GuidId;
+            StateHasChanged();
         }
     }
 
@@ -1034,8 +953,6 @@
             return;
         }
 
-        _conversationMessages[_currentConversationId] = _chatMessages;
-        
         _ = LoadConversationAsync(conversation.GuidId);
     }
 
@@ -1047,318 +964,51 @@
         
         _currentConversationId = conversationId;
         
-        // Check if we already have messages cached
-        if (_conversationMessages.TryGetValue(conversationId, out var cachedMessages) && cachedMessages.Any())
-        {
-            Logger.LogInformation("[MainLayout.LoadConversationAsync] Using cached messages - Count={Count}, LoadId={LoadId}", 
-                cachedMessages.Count, loadId);
-            _chatMessages = cachedMessages;
-            UpdateConversationPreview(conversationId);
-            await ScrollChatToBottom();
-            StateHasChanged();
-            return;
-        }
-
-        // Try to load from backend
-        if (_currentProfile != null)
+        // Load messages from backend and populate DxAIChat
+        if (_currentProfile != null && _sivarAIChat != null)
         {
             try
             {
                 Logger.LogInformation("[MainLayout.LoadConversationAsync] Fetching from backend - ConversationId={ConversationId}, LoadId={LoadId}", 
                     conversationId, loadId);
                 var conversationWithMessages = await SivarClient.Chat.GetConversationAsync(conversationId);
-                Logger.LogInformation("[MainLayout.LoadConversationAsync] Backend returned - MessageCount={Count}, LoadId={LoadId}", 
-                    conversationWithMessages?.Messages?.Count ?? 0, loadId);
                 
-                // Map backend messages to UI ChatMessage objects
                 if (conversationWithMessages?.Messages != null && conversationWithMessages.Messages.Any())
                 {
-                    var loadedMessages = new List<ChatMessage>();
-                    foreach (var msg in conversationWithMessages.Messages.OrderBy(m => m.MessageOrder))
-                    {
-                        var role = msg.Role == "user" ? "user" : "ai";
-                        loadedMessages.Add(new ChatMessage(role, msg.Content));
-                    }
-                    _conversationMessages[conversationId] = loadedMessages;
-                    _chatMessages = loadedMessages;
+                    // Load messages into DxAIChat using the existing method
+                    await _sivarAIChat.LoadConversationAsync(conversationWithMessages.Messages);
                     
                     Logger.LogInformation("[MainLayout.LoadConversationAsync] Loaded {Count} messages from backend - LoadId={LoadId}", 
-                        loadedMessages.Count, loadId);
-                    
-                    UpdateConversationPreview(conversationId);
-                    await ScrollChatToBottom();
-                    StateHasChanged();
-                    return;
+                        conversationWithMessages.Messages.Count, loadId);
+                }
+                else
+                {
+                    // Clear chat for new conversation
+                    _sivarAIChat.ClearMessages();
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "[MainLayout.LoadConversationAsync] Backend fetch failed - ConversationId={ConversationId}, LoadId={LoadId}, Error={Error}", 
-                    conversationId, loadId, ex.Message);
+                Logger.LogWarning(ex, "[MainLayout.LoadConversationAsync] Backend fetch failed - ConversationId={ConversationId}, LoadId={LoadId}", 
+                    conversationId, loadId);
+                _sivarAIChat.ClearMessages();
             }
         }
-        else
-        {
-            Logger.LogInformation("[MainLayout.LoadConversationAsync] No profile, skipping backend fetch - LoadId={LoadId}", loadId);
-        }
 
-        // Initialize with welcome message if no messages
-        if (!_conversationMessages.ContainsKey(conversationId))
-        {
-            Logger.LogInformation("[MainLayout.LoadConversationAsync] Creating new message list - ConversationId={ConversationId}, LoadId={LoadId}", 
-                conversationId, loadId);
-            _conversationMessages[conversationId] = new List<ChatMessage>();
-        }
-
-        _chatMessages = _conversationMessages[conversationId];
-        if (!_chatMessages.Any())
-        {
-            Logger.LogInformation("[MainLayout.LoadConversationAsync] Adding welcome message - ConversationId={ConversationId}, LoadId={LoadId}", 
-                conversationId, loadId);
-            // Phase 0.5: Use ChatSettingsService for configurable welcome message and quick actions
-            // Phase 0.6: Use QuickActionItems (relational) - stores full DTO for DefaultQuery support
-            var quickActionItems = ChatSettings.GetQuickActionItems()
-                .Where(qa => qa.IsActive)
-                .OrderBy(qa => qa.SortOrder)
-                .ToList();
-            
-            var welcome = new ChatMessage("ai", ChatSettings.GetWelcomeMessage(), "welcome")
-            {
-                QuickActionItems = quickActionItems
-            };
-            _chatMessages.Add(welcome);
-        }
-
-        Logger.LogInformation("[MainLayout.LoadConversationAsync] COMPLETE - ConversationId={ConversationId}, MessageCount={Count}, LoadId={LoadId}", 
-            conversationId, _chatMessages.Count, loadId);
+        Logger.LogInformation("[MainLayout.LoadConversationAsync] COMPLETE - ConversationId={ConversationId}, LoadId={LoadId}", 
+            conversationId, loadId);
         
-        UpdateConversationPreview(conversationId);
-        await ScrollChatToBottom();
         StateHasChanged();
-    }
-
-    private void AddMessage(Guid conversationId, ChatMessage message)
-    {
-        if (!_conversationMessages.ContainsKey(conversationId))
-        {
-            _conversationMessages[conversationId] = new List<ChatMessage>();
-        }
-
-        _conversationMessages[conversationId].Add(message);
-
-        if (_currentConversationId == conversationId)
-        {
-            _chatMessages = _conversationMessages[conversationId];
-        }
     }
 
     private void UpdateConversationPreview(Guid conversationId)
     {
+        // No longer needed - DxAIChat manages its own message state
+        // This method is kept for backwards compatibility with conversation list updates
         var conversation = _conversations.FirstOrDefault(c => c.GuidId == conversationId);
         if (conversation is null) return;
-
-        if (_conversationMessages.TryGetValue(conversationId, out var messages) && messages.Any())
-        {
-            var last = messages.Last();
-            var previewText = !string.IsNullOrWhiteSpace(last.Text) ? last.Text : "View results";
-            conversation.Preview = previewText.Length > 60 ? $"{previewText[..57]}..." : previewText;
-            conversation.LastUpdated = last.Time;
-            conversation.MessageCount = messages.Count;
-            conversation.ResultCount = messages.Count(m => m.MessageType == "result-card");
-
-            if (conversation.Title.StartsWith("Conversation ") && messages.Count > 2)
-            {
-                var firstUserMessage = messages.FirstOrDefault(m => m.Sender == "user");
-                if (firstUserMessage != null)
-                {
-                    var titleText = firstUserMessage.Text.Length > 30 ? $"{firstUserMessage.Text[..27]}..." : firstUserMessage.Text;
-                    conversation.Title = titleText;
-                }
-            }
-        }
-    }
-
-    private async Task SendChat()
-    {
-        var chatId = Guid.NewGuid().ToString()[..8];
-        Logger.LogInformation("[MainLayout.SendChat] START - ChatId={ChatId}, ConversationId={ConversationId}, InputLength={Length}, HasProfile={HasProfile}", 
-            chatId, _currentConversationId, _chatInput?.Length ?? 0, _currentProfile != null);
         
-        if (string.IsNullOrWhiteSpace(_chatInput))
-        {
-            Logger.LogWarning("[MainLayout.SendChat] EMPTY_INPUT - ChatId={ChatId}", chatId);
-            return;
-        }
-
-        // Check if we need to create a real conversation (user has no profile or conversation is local-only)
-        if (_currentProfile == null)
-        {
-            Logger.LogWarning("[MainLayout.SendChat] NO_PROFILE - ChatId={ChatId}, attempting to fetch profile", chatId);
-            // Try to refresh the profile one more time
-            try
-            {
-                _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
-                Logger.LogInformation("[MainLayout.SendChat] Profile refresh result - HasProfile={HasProfile}", _currentProfile != null);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "[MainLayout.SendChat] Failed to refresh profile");
-            }
-            
-            if (_currentProfile == null)
-            {
-                Logger.LogError("[MainLayout.SendChat] PROFILE_REQUIRED - User must create a profile to use chat");
-                var errorMessage = new ChatMessage("ai", "Para usar el chat, primero necesitas crear un perfil. Ve a tu perfil y crea uno nuevo.");
-                AddMessage(_currentConversationId, errorMessage);
-                StateHasChanged();
-                return;
-            }
-        }
-
-        // Ensure conversation exists in database (may be local-only from welcome screen)
-        var existingConversation = _conversations.FirstOrDefault(c => c.GuidId == _currentConversationId);
-        if (existingConversation != null && !existingConversation.IsPersisted)
-        {
-            Logger.LogInformation("[MainLayout.SendChat] Creating DB conversation for local conversation - ChatId={ChatId}", chatId);
-            try
-            {
-                var createDto = new CreateConversationDto
-                {
-                    ProfileId = _currentProfile.Id,
-                    Title = existingConversation.Title ?? "Welcome"
-                };
-                var conversationDto = await SivarClient.Chat.CreateConversationAsync(createDto);
-                
-                // Update the messages dictionary with new conversation ID
-                var oldGuidId = existingConversation.GuidId;
-                if (_conversationMessages.TryGetValue(oldGuidId, out var messages))
-                {
-                    _conversationMessages.Remove(oldGuidId);
-                    _conversationMessages[conversationDto.Id] = messages;
-                }
-                
-                // Update the conversation object
-                existingConversation.GuidId = conversationDto.Id;
-                existingConversation.Id = conversationDto.Id.ToString();
-                existingConversation.IsPersisted = true;
-                _currentConversationId = conversationDto.Id;
-                
-                Logger.LogInformation("[MainLayout.SendChat] DB conversation created - NewConversationId={NewId}", conversationDto.Id);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "[MainLayout.SendChat] Failed to create DB conversation - ChatId={ChatId}", chatId);
-                var errorMessage = new ChatMessage("ai", $"Error al crear la conversación: {ex.Message}");
-                AddMessage(_currentConversationId, errorMessage);
-                StateHasChanged();
-                return;
-            }
-        }
-
-        var userMessage = new ChatMessage("user", _chatInput);
-        AddMessage(_currentConversationId, userMessage);
-        await JS.InvokeVoidAsync("console.log", "[SendChat] User message added");
-
-        var userQuery = _chatInput;
-        _chatInput = string.Empty;
-        _isTyping = true;
-        await JS.InvokeVoidAsync("console.log", $"[SendChat] TYPING_START - IsTyping={_isTyping}");
-        await InvokeAsync(StateHasChanged);
-        await JS.InvokeVoidAsync("console.log", "[SendChat] StateHasChanged called");
-        await Task.Delay(100); // Allow UI to render typing indicator
-        await ScrollChatToBottom();
-        await JS.InvokeVoidAsync("console.log", "[SendChat] Calling API...");
-
-        try
-        {
-            // Call the real AI backend with location context (Phase 0)
-            var sendMessageDto = new SendMessageDto
-            {
-                ConversationId = _currentConversationId,
-                Content = userQuery,
-                Location = _chatLocation // Include location for proximity-aware searches
-            };
-
-            Logger.LogInformation("[MainLayout.SendChat] Calling API - ChatId={ChatId}, ConversationId={ConversationId}, Query={Query}, HasLocation={HasLocation}", 
-                chatId, _currentConversationId, userQuery.Length > 50 ? userQuery[..50] + "..." : userQuery, _chatLocation != null);
-            
-            var startTime = DateTime.UtcNow;
-            
-            // Run API call and minimum delay in parallel - ensures typing indicator shows for at least 500ms
-            var apiTask = SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
-            var minDelayTask = Task.Delay(500);
-            await Task.WhenAll(apiTask, minDelayTask);
-            var response = apiTask.Result;
-            
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            
-            Logger.LogInformation("[MainLayout.SendChat] API response received - ChatId={ChatId}, Duration={Duration}ms, ResponseLength={Length}", 
-                chatId, elapsed, response?.AssistantMessage?.Content?.Length ?? 0);
-            
-            if (response?.AssistantMessage?.Content == null)
-            {
-                Logger.LogWarning("[MainLayout.SendChat] NULL_RESPONSE - ChatId={ChatId}", chatId);
-                throw new InvalidOperationException("Received null response from AI");
-            }
-            
-            // Map the response to UI ChatMessage
-            var aiMessage = new ChatMessage("ai", response.AssistantMessage.Content);
-            
-            // Attach structured results if available
-            if (response.HasStructuredResults && response.SearchResults != null)
-            {
-                aiMessage.StructuredResults = response.SearchResults;
-                Logger.LogInformation("[MainLayout.SendChat] Attached {Count} structured results - ChatId={ChatId}", 
-                    response.SearchResults.TotalCount, chatId);
-            }
-            
-            AddMessage(_currentConversationId, aiMessage);
-            
-            Logger.LogInformation("[MainLayout.SendChat] SUCCESS - ChatId={ChatId}, HasStructuredResults={HasResults}, ResponsePreview={Preview}", 
-                chatId, response.HasStructuredResults, response.AssistantMessage.Content.Length > 100 ? response.AssistantMessage.Content[..100] + "..." : response.AssistantMessage.Content);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "[MainLayout.SendChat] FAILED - ChatId={ChatId}, Error={Error}, StackTrace={StackTrace}", 
-                chatId, ex.Message, ex.StackTrace);
-            var errorMessage = new ChatMessage("ai", $"I'm sorry, I encountered an error: {ex.Message}");
-            AddMessage(_currentConversationId, errorMessage);
-        }
-        finally
-        {
-            _isTyping = false;
-        }
-
-        UpdateConversationPreview(_currentConversationId);
-        StateHasChanged();
-        await ScrollChatToBottom();
-    }
-
-    private void HandleQuickAction(string action)
-    {
-        _chatInput = action;
-        _ = SendChat();
-    }
-    
-    /// <summary>
-    /// Handle suggestion chip click - sends pre-filled query
-    /// </summary>
-    private void HandleSuggestionClick(string query)
-    {
-        _chatInput = query;
-        _ = SendChat();
-    }
-
-    private async Task ScrollChatToBottom()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("eval", "document.getElementById('chatMessages')?.scrollTo(0, document.getElementById('chatMessages').scrollHeight)");
-        }
-        catch
-        {
-            // ignore when DOM is unavailable
-        }
+        conversation.LastUpdated = DateTime.UtcNow;
     }
 
     // DTO to UI Model Mappers
@@ -1369,15 +1019,6 @@
             Preview = "Start chatting...",
             LastUpdated = dto.LastMessageAt,
             MessageCount = dto.MessageCount
-        };
-    }
-
-    private static ChatMessage MapChatMessageFromDto(ChatMessageDto dto)
-    {
-        var sender = dto.Role.ToLowerInvariant() == "user" ? "user" : "ai";
-        return new ChatMessage(sender, dto.Content)
-        {
-            Time = dto.CreatedAt
         };
     }
 
