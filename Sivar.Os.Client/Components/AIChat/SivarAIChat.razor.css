@@ -77,6 +77,7 @@
     overflow: hidden;
     background-color: var(--mud-palette-surface, #1e1e2d);
     border-radius: 0;
+    position: relative;
 }
 
 /* Force DxAIChat to fill container with no extra space */
@@ -85,11 +86,23 @@
     min-height: 400px !important;
     display: flex !important;
     flex-direction: column !important;
+    overflow: hidden !important;
 }
 
-/* Hide any decorative SVG elements at the bottom */
-.sivar-ai-chat-container ::deep svg:not(.mud-icon-root svg):not([class*="Icon"]) {
+/* Hide any decorative SVG elements - they create wavy lines at bottom */
+.sivar-ai-chat-container ::deep svg:not(.mud-icon-root svg):not(button svg) {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+}
+
+/* But ensure button icons remain visible */
+.sivar-ai-chat-container ::deep button svg {
+    display: inline-block !important;
+    visibility: visible !important;
+    height: 20px !important;
+    width: 20px !important;
 }
 
 /* Structured Results Container */

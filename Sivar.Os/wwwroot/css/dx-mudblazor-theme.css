@@ -647,13 +647,56 @@
    HIDE DEVEXPRESS DECORATIVE ELEMENTS
    Remove the wavy blue lines at the bottom
    ============================================ */
+
+/* Hide ALL SVG elements in the chat except MudBlazor icons */
+.sivar-ai-chat svg,
+.dxbl-aichat-root svg,
+.dxbl-ai-chat svg,
+[class*="dxbl-aichat"] svg,
+[class*="dxbl-chatui"] svg {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+}
+
+/* But keep MudBlazor icons visible */
+.mud-icon-root svg,
+.mud-button svg,
+.mud-icon-button svg,
+button svg.mud-icon-root {
+    display: inline-block !important;
+    visibility: visible !important;
+    height: auto !important;
+    width: auto !important;
+    opacity: 1 !important;
+    position: static !important;
+}
+
+/* Keep send button icon visible */
+.sivar-ai-chat .dxbl-chatui-submitarea button svg,
+.sivar-ai-chat .dxbl-chatui-send-btn svg,
+.sivar-ai-chat .dxbl-btn-primary svg,
+.sivar-ai-chat [class*="submit"] button svg,
+.sivar-ai-chat button[type="submit"] svg {
+    display: inline-block !important;
+    visibility: visible !important;
+    height: 20px !important;
+    width: 20px !important;
+    opacity: 1 !important;
+    position: static !important;
+    fill: white !important;
+}
+
+/* Hide decoration classes */
 .dxbl-aichat-decoration,
 .dxbl-chatui-decoration,
 [class*="dxbl"][class*="decoration"],
 [class*="dxbl"][class*="wave"],
-.sivar-ai-chat svg:not(.mud-icon-root svg),
-.dxbl-aichat-root > svg,
-.dxbl-aichat-root > div > svg {
+[class*="dxbl"][class*="background-image"] {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -664,11 +707,21 @@
 .sivar-ai-chat .dxbl-chatui-submitarea,
 .sivar-ai-chat .dxbl-aichat-submit-area {
     margin-bottom: 0 !important;
-    padding-bottom: 12px !important;
+    padding-bottom: 16px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    background: var(--mud-palette-surface, #1e1e2d) !important;
 }
 
 /* Hide any element after the submit area */
 .sivar-ai-chat .dxbl-chatui-submitarea ~ *,
 .sivar-ai-chat .dxbl-aichat-submit-area ~ * {
     display: none !important;
+}
+
+/* Force the chat root to clip any overflow decorations */
+.dxbl-aichat-root,
+.dxbl-ai-chat,
+.sivar-ai-chat {
+    overflow: hidden !important;
 }
