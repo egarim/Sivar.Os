@@ -926,7 +926,8 @@
 
     private void SelectConversationById(string conversationId)
     {
-        Logger.LogInformation("[MainLayout.SelectConversationById] Selected - ConversationId={ConversationId}", conversationId);
+        Logger.LogInformation("[MainLayout.SelectConversationById] Selected - ConversationId={ConversationId}, CurrentId={CurrentId}", 
+            conversationId, _currentConversationId);
         
         if (!Guid.TryParse(conversationId, out var guidId))
         {
@@ -935,13 +936,19 @@
         }
         
         var conversation = _conversations.FirstOrDefault(c => c.GuidId == guidId);
-        if (conversation == null || conversation.GuidId == _currentConversationId)
+        if (conversation == null)
         {
-            Logger.LogInformation("[MainLayout.SelectConversationById] No change needed - NotFound={NotFound}, SameAsCurrent={Same}", 
-                conversation == null, conversation?.GuidId == _currentConversationId);
+            Logger.LogWarning("[MainLayout.SelectConversationById] Conversation not found - ConversationId={ConversationId}", conversationId);
+            return;
+        }
+        
+        if (conversation.GuidId == _currentConversationId)
+        {
+            Logger.LogInformation("[MainLayout.SelectConversationById] Same conversation, no change needed");
             return;
         }
 
+        Logger.LogInformation("[MainLayout.SelectConversationById] Loading conversation - GuidId={GuidId}", conversation.GuidId);
         _ = LoadConversationAsync(conversation.GuidId);
     }
 
