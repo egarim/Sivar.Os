@@ -26,6 +26,23 @@
         <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
     </MudNavMenu>
 
+    <div class="nav-menu-actions">
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
+                       Color="Color.Inherit" 
+                       Title="Notifications"
+                       Class="nav-action-btn" />
+        <MudIconButton Icon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Filled.DarkMode)" 
+                       Color="Color.Inherit" 
+                       OnClick="@ToggleTheme"
+                       Title="Toggle Theme"
+                       Class="nav-action-btn" />
+        <MudIconButton Icon="@Icons.Material.Filled.SmartToy" 
+                       Color="@(_layout?.IsAIChatVisible == true ? Color.Primary : Color.Inherit)" 
+                       OnClick="@ToggleAIChat"
+                       Title="Toggle AI Assistant"
+                       Class="nav-action-btn" />
+    </div>
+
     <div class="nav-menu-spacer"></div>
 
     <div class="nav-menu-logout">
@@ -55,6 +72,20 @@
 
     .nav-menu-items {
         padding: 8px 8px 0 8px;
+    }
+
+    .nav-menu-actions {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 16px 8px 16px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+        margin-top: 8px;
+    }
+
+    .nav-action-btn {
+        width: 40px;
+        height: 40px;
     }
 
     .nav-menu-spacer {
@@ -152,6 +183,9 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
 *@
 
 @code {
+    [CascadingParameter]
+    private MainLayout? _layout { get; set; }
+
     private bool _isAuthenticated = false;
     private bool _isLoading = true;
     private string _userName = string.Empty;
@@ -384,6 +418,16 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         {
             Console.WriteLine($"[NavMenu] Error creating profile: {ex.Message}");
         }
+    }
+
+    private void ToggleTheme()
+    {
+        _layout?.ToggleDarkMode();
+    }
+
+    private void ToggleAIChat()
+    {
+        _layout?.ToggleAIChat();
     }
 
     public async ValueTask DisposeAsync()
