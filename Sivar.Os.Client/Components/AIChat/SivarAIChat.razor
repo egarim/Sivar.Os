@@ -618,7 +618,16 @@
         _messageResults.Clear();
         _contentHashResults.Clear();
         _messageCounter = 0;
-        StateHasChanged();
+        
+        // Also clear the DxAIChat component by loading an empty list
+        if (_chat != null)
+        {
+            InvokeAsync(() =>
+            {
+                _chat.LoadMessages(new List<BlazorChatMessage>());
+                StateHasChanged();
+            });
+        }
         
         Logger.LogInformation("[SivarAIChat] Messages cleared");
     }
@@ -629,7 +638,13 @@
     public async Task LoadConversationAsync(IEnumerable<ChatMessageDto> messages, 
         Dictionary<Guid, SearchResultsCollectionDto>? resultsMap = null)
     {
-        if (_chat == null) return;
+        if (_chat == null) 
+        {
+            Logger.LogWarning("[SivarAIChat] Cannot load conversation - chat not initialized");
+            return;
+        }
+        
+        Logger.LogInformation("[SivarAIChat] LoadConversationAsync START - {Count} messages to load", messages.Count());
         
         _messageResults.Clear();
         _contentHashResults.Clear();
@@ -657,11 +672,19 @@
             }
             
             blazorMessages.Add(new BlazorChatMessage(role, msg.Content));
+            Logger.LogDebug("[SivarAIChat] Added message: Role={Role}, Content={ContentPreview}...", 
+                role, msg.Content?.Substring(0, Math.Min(50, msg.Content?.Length ?? 0)));
         }
         
-        _chat.LoadMessages(blazorMessages);
-        StateHasChanged();
-        Logger.LogInformation("[SivarAIChat] Loaded {Count} messages", messages.Count());
+        // Use InvokeAsync to ensure we're on the render thread when updating the DxAIChat component
+        await InvokeAsync(() =>
+        {
+            Logger.LogInformation("[SivarAIChat] Calling _chat.LoadMessages with {Count} messages", blazorMessages.Count);
+            _chat.LoadMessages(blazorMessages);
+            StateHasChanged();
+        });
+        
+        Logger.LogInformation("[SivarAIChat] LoadConversationAsync COMPLETE - Loaded {Count} messages", messages.Count());
     }
     
     #endregion
