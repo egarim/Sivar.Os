@@ -1,9 +1,8 @@
 @using Sivar.Os.Client.Pages
-@inject IJSRuntime JS
 
 @* ConversationItem component *@
 
-<div class="conversation-item @(IsActive ? "active" : "")" @onclick="HandleClick">
+<div class="conversation-item @(IsActive ? "active" : "")" @onclick="OnClick">
     <div class="conversation-item-header">
         <div class="conversation-title">@Conversation.Title</div>
         <div class="conversation-time">@TimeAgo</div>
@@ -42,12 +41,6 @@
     /// </summary>
     [Parameter]
     public EventCallback OnClick { get; set; }
-
-    private async Task HandleClick()
-    {
-        await JS.InvokeVoidAsync("console.log", $"[ConversationItem] Clicked: {Conversation.Title}, Id: {Conversation.Id}, IsActive: {IsActive}");
-        await OnClick.InvokeAsync();
-    }
 
     private string TimeAgo
     {

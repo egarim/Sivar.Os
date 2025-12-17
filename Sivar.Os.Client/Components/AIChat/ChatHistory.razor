@@ -1,6 +1,5 @@
 @using Sivar.Os.Client.Pages
 @using Sivar.Os.Client.Components.Shared
-@inject IJSRuntime JS
 
 @* ChatHistory component *@
 
@@ -22,7 +21,7 @@
                 <ConversationItem 
                     Conversation="@conversation"
                     IsActive="@(conversation.Id == CurrentConversationId)"
-                    OnClick="@(() => HandleConversationClick(conversation.Id))" />
+                    OnClick="@(() => OnConversationSelect.InvokeAsync(conversation.Id))" />
             }
         }
     </div>
@@ -64,10 +63,4 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnConversationSelect { get; set; }
-
-    private async Task HandleConversationClick(string conversationId)
-    {
-        await JS.InvokeVoidAsync("console.log", $"[ChatHistory] Conversation clicked: {conversationId}, CurrentId: {CurrentConversationId}");
-        await OnConversationSelect.InvokeAsync(conversationId);
-    }
 }
