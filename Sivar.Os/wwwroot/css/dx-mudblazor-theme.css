@@ -642,3 +642,33 @@
     background: transparent !important;
     background-image: none !important;
 }
+
+/* ============================================
+   HIDE DEVEXPRESS DECORATIVE ELEMENTS
+   Remove the wavy blue lines at the bottom
+   ============================================ */
+.dxbl-aichat-decoration,
+.dxbl-chatui-decoration,
+[class*="dxbl"][class*="decoration"],
+[class*="dxbl"][class*="wave"],
+.sivar-ai-chat svg:not(.mud-icon-root svg),
+.dxbl-aichat-root > svg,
+.dxbl-aichat-root > div > svg {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    opacity: 0 !important;
+}
+
+/* Ensure submit area is at the very bottom with no extra space */
+.sivar-ai-chat .dxbl-chatui-submitarea,
+.sivar-ai-chat .dxbl-aichat-submit-area {
+    margin-bottom: 0 !important;
+    padding-bottom: 12px !important;
+}
+
+/* Hide any element after the submit area */
+.sivar-ai-chat .dxbl-chatui-submitarea ~ *,
+.sivar-ai-chat .dxbl-aichat-submit-area ~ * {
+    display: none !important;
+}

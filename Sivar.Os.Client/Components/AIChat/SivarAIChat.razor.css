@@ -79,10 +79,17 @@
     border-radius: 0;
 }
 
-/* Force DxAIChat to fill container */
+/* Force DxAIChat to fill container with no extra space */
 .sivar-ai-chat-container ::deep .sivar-ai-chat {
     height: 100% !important;
     min-height: 400px !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Hide any decorative SVG elements at the bottom */
+.sivar-ai-chat-container ::deep svg:not(.mud-icon-root svg):not([class*="Icon"]) {
+    display: none !important;
 }
 
 /* Structured Results Container */
