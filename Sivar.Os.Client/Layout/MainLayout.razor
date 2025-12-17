@@ -39,7 +39,7 @@
         <MudDrawer @bind-Open="_leftDrawerOpen" 
                    ClipMode="DrawerClipMode.Always" 
                    Elevation="2"
-                   Variant="@_drawerVariant"
+                   Variant="@(_aiChatVisible ? DrawerVariant.Temporary : _drawerVariant)"
                    Breakpoint="Breakpoint.Md">
             <NavMenu />
         </MudDrawer>
@@ -50,19 +50,9 @@
             {
                 <!-- DevExpress DxAIChat Implementation -->
                 <div class="ai-chat-fullscreen-container">
-                    <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
-                        <Sivar.Os.Client.Components.AIChat.ChatHistory 
-                            IsOpen="@_historyOpen"
-                            Conversations="@_conversations"
-                            CurrentConversationId="@_currentConversationId.ToString()"
-                            OnClose="@(() => _historyOpen = !_historyOpen)"
-                            OnNewConversation="@NewConversation"
-                            OnConversationSelect="@SelectConversationById" />
-
+                    <div class="ai-chat-panel-fullscreen">
                         <div class="chat-main-container dx-chat-container">
                             <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
-                                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
-                                    OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
                                 <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
                                     <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
                                 </MudAvatar>
@@ -129,6 +119,23 @@
         background: var(--mud-palette-surface, #1e1e2d);
         display: flex;
         flex-direction: column;
+    }
+
+    /* Responsive drawer width for chat mode */
+    ::deep .mud-drawer {
+        width: 280px !important;
+    }
+
+    @@media (max-width: 600px) {
+        ::deep .mud-drawer {
+            width: 240px !important;
+        }
+    }
+
+    @@media (max-width: 400px) {
+        ::deep .mud-drawer {
+            width: 200px !important;
+        }
     }
 
     .ai-chat-panel-fullscreen {
