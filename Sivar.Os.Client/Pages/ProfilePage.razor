@@ -174,15 +174,13 @@
     }
 
     .profile-page .posts-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
+        flex-direction: column;
         gap: 12px;
     }
 
-    @@media (max-width: 900px) {
-        .profile-page .posts-grid {
-            grid-template-columns: 1fr;
-        }
+    .profile-page .posts-grid .post-card {
+        width: 100%;
     }
 
     /* Action Buttons */
