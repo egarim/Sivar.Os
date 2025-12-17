@@ -45,14 +45,24 @@
         </MudDrawer>
 
         <!-- Main Content -->
-        <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important; height: calc(100vh - 48px); position: relative; overflow: hidden;" : "padding-top: 48px;")">
+        <MudMainContent Style="@(_aiChatVisible ? "padding: 0 !important;" : "padding-top: 48px;")">
             @if (_aiChatVisible)
             {
                 <!-- DevExpress DxAIChat Implementation -->
                 <div class="ai-chat-fullscreen-container">
-                    <div class="ai-chat-panel-fullscreen">
+                    <div class="ai-chat-panel-fullscreen @(_historyOpen ? "with-history" : "")">
+                        <Sivar.Os.Client.Components.AIChat.ChatHistory 
+                            IsOpen="@_historyOpen"
+                            Conversations="@_conversations"
+                            CurrentConversationId="@_currentConversationId.ToString()"
+                            OnClose="@(() => _historyOpen = !_historyOpen)"
+                            OnNewConversation="@NewConversation"
+                            OnConversationSelect="@SelectConversationById" />
+
                         <div class="chat-main-container dx-chat-container">
                             <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                                    OnClick="@(() => _historyOpen = !_historyOpen)" Title="Toggle conversation history" />
                                 <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
                                     <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
                                 </MudAvatar>
@@ -108,49 +118,17 @@
 </CascadingValue>
 
 <style>
-    /* Ensure MudLayout takes full viewport when chat is active */
-    .mud-layout {
-        min-height: 100vh;
-        overflow: hidden;
-    }
-    
-    /* Full-screen AI Chat container - respects drawer space */
+    /* Full-screen AI Chat container */
     .ai-chat-fullscreen-container {
-        position: absolute;
-        top: 0;
+        position: fixed;
+        top: 48px; /* Match MudAppBar Dense height */
         left: 0;
         right: 0;
         bottom: 0;
+        z-index: 1200;
         background: var(--mud-palette-surface, #1e1e2d);
         display: flex;
         flex-direction: column;
-        overflow: hidden;
-    }
-
-    /* Hide any potential bottom bar elements */
-    .ai-chat-fullscreen-container::after,
-    .ai-chat-fullscreen-container::before,
-    .ai-chat-panel-fullscreen::after,
-    .ai-chat-panel-fullscreen::before,
-    .chat-main-container::after,
-    .chat-main-container::before {
-        display: none !important;
-        content: none !important;
-    }
-
-    /* Remove any gradient from DevExpress elements */
-    .dx-chat-fullscreen *,
-    .sivar-ai-chat-container *,
-    [class*="dxbl-aichat"] * {
-        background-image: none !important;
-    }
-    
-    /* Specifically prevent gradients on any "footer" or "bar" elements */
-    [class*="footer"],
-    [class*="branding"],
-    [class*="bar"]:not(.mud-appbar):not([class*="toolbar"]) {
-        background: transparent !important;
-        background-image: none !important;
     }
 
     .ai-chat-panel-fullscreen {
@@ -683,8 +661,6 @@
     [Inject] private IDialogService DialogService { get; set; } = null!;
 
     public bool IsAIChatVisible => _aiChatVisible;
-    
-    // Expose conversations for NavMenu in Chat Mode
     public List<Conversation> ChatConversations => _conversations;
     public string CurrentConversationId => _currentConversationId.ToString();
 
@@ -879,9 +855,14 @@
         _ = ToggleAIChatAsync();
     }
 
-    public void ToggleDarkMode()
+    private void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
+    }
+
+    public void ToggleDarkMode()
+    {
+        DarkModeToggle();
     }
 
     // AI Chat Methods
@@ -952,8 +933,7 @@
 
     public void SelectConversationById(string conversationId)
     {
-        Logger.LogInformation("[MainLayout.SelectConversationById] Selected - ConversationId={ConversationId}, CurrentId={CurrentId}", 
-            conversationId, _currentConversationId);
+        Logger.LogInformation("[MainLayout.SelectConversationById] Selected - ConversationId={ConversationId}", conversationId);
         
         if (!Guid.TryParse(conversationId, out var guidId))
         {
@@ -962,19 +942,13 @@
         }
         
         var conversation = _conversations.FirstOrDefault(c => c.GuidId == guidId);
-        if (conversation == null)
+        if (conversation == null || conversation.GuidId == _currentConversationId)
         {
-            Logger.LogWarning("[MainLayout.SelectConversationById] Conversation not found - ConversationId={ConversationId}", conversationId);
-            return;
-        }
-        
-        if (conversation.GuidId == _currentConversationId)
-        {
-            Logger.LogInformation("[MainLayout.SelectConversationById] Same conversation, no change needed");
+            Logger.LogInformation("[MainLayout.SelectConversationById] No change needed - NotFound={NotFound}, SameAsCurrent={Same}", 
+                conversation == null, conversation?.GuidId == _currentConversationId);
             return;
         }
 
-        Logger.LogInformation("[MainLayout.SelectConversationById] Loading conversation - GuidId={GuidId}", conversation.GuidId);
         _ = LoadConversationAsync(conversation.GuidId);
     }
 

@@ -19,7 +19,7 @@
     background-color: var(--mud-palette-surface, #ffffff);
     color: var(--mud-palette-text-primary, #424242);
     font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-    border-radius: 0;
+    border-radius: 8px;
     overflow: hidden;
 }
 
@@ -35,27 +35,6 @@
     display: flex !important;
     flex-direction: column !important;
     background: transparent !important;
-}
-
-/* Remove any DevExpress bottom bar/gradient */
-.sivar-ai-chat .dxbl-chatui-root::after,
-.sivar-ai-chat .dxbl-chatui::after,
-.sivar-ai-chat .dxbl-ai-chat::after,
-.sivar-ai-chat::after,
-.sivar-ai-chat .dxbl-chatui-root::before,
-.sivar-ai-chat .dxbl-chatui::before,
-.sivar-ai-chat .dxbl-ai-chat::before,
-.sivar-ai-chat::before {
-    display: none !important;
-    content: none !important;
-}
-
-/* Remove any DevExpress branding/footer bar */
-.sivar-ai-chat [class*="footer"],
-.sivar-ai-chat [class*="branding"],
-.sivar-ai-chat [class*="gradient-bar"],
-.sivar-ai-chat [class*="bottom-bar"] {
-    display: none !important;
 }
 
 /* ============================================
@@ -151,95 +130,47 @@
    ============================================ */
 .sivar-ai-chat .dxbl-chatui-submitarea,
 .sivar-ai-chat .dxbl-chatui-input-area {
-    background-color: transparent !important;
-    border-top: none !important;
-    padding: 16px 20px 20px !important;
+    background-color: var(--mud-palette-surface, #ffffff) !important;
+    border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    padding: 12px 16px !important;
     flex-shrink: 0 !important;
 }
 
 .mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea,
 .mud-theme-dark .sivar-ai-chat .dxbl-chatui-input-area {
-    background-color: transparent !important;
-    border-top: none !important;
+    background-color: var(--mud-palette-surface, #1e1e2d) !important;
+    border-top-color: #3a3c4e !important;
 }
 
-/* Remove nested container borders and backgrounds */
-.sivar-ai-chat .dxbl-chatui-submitarea > *,
-.sivar-ai-chat .dxbl-chatui-input-area > * {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-/* The actual input wrapper - make it seamless */
-.sivar-ai-chat .dxbl-memo,
-.sivar-ai-chat .dxbl-text-edit-container,
-.sivar-ai-chat .dxbl-editbox {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-}
-
-/* Input Field - Modern floating style */
+/* Input Field */
 .sivar-ai-chat .dxbl-chatui-submitarea input,
 .sivar-ai-chat .dxbl-chatui-submitarea textarea,
 .sivar-ai-chat .dxbl-text-edit,
-.sivar-ai-chat .dxbl-edit,
-.sivar-ai-chat .dxbl-memo-input {
+.sivar-ai-chat .dxbl-edit {
     background-color: var(--mud-palette-background, #f5f5f5) !important;
-    border: 2px solid transparent !important;
-    border-radius: 28px !important;
-    padding: 14px 20px !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 24px !important;
+    padding: 12px 16px !important;
     color: var(--mud-palette-text-primary, #424242) !important;
     font-size: 0.9375rem !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 .sivar-ai-chat .dxbl-chatui-submitarea input:focus,
 .sivar-ai-chat .dxbl-chatui-submitarea textarea:focus,
 .sivar-ai-chat .dxbl-text-edit:focus,
-.sivar-ai-chat .dxbl-edit:focus,
-.sivar-ai-chat .dxbl-memo-input:focus {
+.sivar-ai-chat .dxbl-edit:focus {
     outline: none !important;
     border-color: var(--mud-palette-primary, #7e6fff) !important;
-    box-shadow: 0 4px 16px rgba(126, 111, 255, 0.2) !important;
+    box-shadow: 0 0 0 2px rgba(126, 111, 255, 0.2) !important;
 }
 
 .mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea input,
 .mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea textarea,
 .mud-theme-dark .sivar-ai-chat .dxbl-text-edit,
-.mud-theme-dark .sivar-ai-chat .dxbl-edit,
-.mud-theme-dark .sivar-ai-chat .dxbl-memo-input {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
+.mud-theme-dark .sivar-ai-chat .dxbl-edit {
+    background-color: #27293d !important;
+    border-color: #3a3c4e !important;
     color: var(--mud-palette-text-primary, #b2b0bf) !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3) !important;
-}
-
-.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea input:focus,
-.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea textarea:focus,
-.mud-theme-dark .sivar-ai-chat .dxbl-text-edit:focus,
-.mud-theme-dark .sivar-ai-chat .dxbl-edit:focus,
-.mud-theme-dark .sivar-ai-chat .dxbl-memo-input:focus {
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    border-color: var(--mud-palette-primary, #7e6fff) !important;
-    box-shadow: 0 4px 20px rgba(126, 111, 255, 0.3) !important;
-}
-
-/* Input placeholder styling */
-.sivar-ai-chat .dxbl-chatui-submitarea input::placeholder,
-.sivar-ai-chat .dxbl-chatui-submitarea textarea::placeholder,
-.sivar-ai-chat .dxbl-memo-input::placeholder {
-    color: var(--mud-palette-text-disabled, #9e9e9e) !important;
-    opacity: 0.7 !important;
-}
-
-.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea input::placeholder,
-.mud-theme-dark .sivar-ai-chat .dxbl-chatui-submitarea textarea::placeholder,
-.mud-theme-dark .sivar-ai-chat .dxbl-memo-input::placeholder {
-    color: rgba(255, 255, 255, 0.4) !important;
 }
 
 /* Send Button */
@@ -535,140 +466,4 @@
 @keyframes sivarFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
-}
-/* ============================================
-   ADDITIONAL INPUT AREA CLEANUP
-   Remove all nested boxes from DxAIChat input area
-   ============================================ */
-
-/* Remove all borders and backgrounds from wrapper elements */
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-input-group,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-text-edit-input-container,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-text-edit-wrapper,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-editbox-container,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-form-group,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-editor,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-memo-container,
-.sivar-ai-chat .dxbl-aichat-submit-area,
-.sivar-ai-chat .dxbl-aichat-submit-area > *,
-.sivar-ai-chat [class*="dxbl-aichat-input"],
-.sivar-ai-chat [class*="dxbl-chatui-input"] {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-/* Make the submit area flex container for clean layout */
-.sivar-ai-chat .dxbl-aichat-submit-area,
-.sivar-ai-chat .dxbl-chatui-submitarea {
-    display: flex !important;
-    align-items: flex-end !important;
-    gap: 12px !important;
-    padding: 16px 20px 20px !important;
-}
-
-/* Style the main flex container if present */
-.sivar-ai-chat .dxbl-chatui-submitarea > .dxbl-input-group,
-.sivar-ai-chat .dxbl-aichat-submit-area > .dxbl-input-group {
-    flex: 1 !important;
-    display: flex !important;
-    align-items: flex-end !important;
-    gap: 12px !important;
-}
-
-/* Ensure the textarea/input takes full width */
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-memo,
-.sivar-ai-chat .dxbl-chatui-submitarea .dxbl-textbox,
-.sivar-ai-chat .dxbl-aichat-submit-area .dxbl-memo,
-.sivar-ai-chat .dxbl-aichat-submit-area .dxbl-textbox {
-    flex: 1 !important;
-}
-
-/* ============================================
-   DEVEXPRESS THEME OVERRIDES
-   Hide any DevExpress branding/footer elements
-   ============================================ */
-.dxbl-aichat-footer,
-.dxbl-chatui-footer,
-.dxbl-aichat-branding,
-.dxbl-chatui-branding,
-[class*="dxbl"][class*="footer"],
-[class*="dxbl"][class*="branding"],
-[class*="dxbl-aichat-footer"],
-[class*="dxbl-chatui-footer"] {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-}
-
-/* Remove any gradient decorations from DevExpress */
-.dxbl-ai-chat::after,
-.dxbl-ai-chat::before,
-.dxbl-chatui::after,
-.dxbl-chatui::before,
-.dxbl-aichat-root::after,
-.dxbl-aichat-root::before {
-    display: none !important;
-    content: none !important;
-}
-
-/* Remove all pseudo-elements from DevExpress components that might show gradients */
-.sivar-ai-chat::before,
-.sivar-ai-chat::after,
-.sivar-ai-chat *::before,
-.sivar-ai-chat *::after,
-.dxbl-aichat-root::before,
-.dxbl-aichat-root::after,
-.dxbl-aichat-root *::before,
-.dxbl-aichat-root *::after {
-    background: none !important;
-    background-image: none !important;
-}
-
-/* Prevent any bottom decorative bars */
-.sivar-ai-chat > *:last-child,
-.dxbl-aichat-root > *:last-child {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* Reset any potential gradient backgrounds in DX components */
-[class*="dxbl-aichat"][style*="gradient"],
-[class*="dxbl-chatui"][style*="gradient"] {
-    background: transparent !important;
-    background-image: none !important;
-}
-
-/* ============================================
-   HIDE DEVEXPRESS DECORATIVE ELEMENTS
-   Remove the wavy blue lines at the bottom
-   ============================================ */
-.dxbl-aichat-decoration,
-.dxbl-chatui-decoration,
-[class*="dxbl"][class*="decoration"],
-[class*="dxbl"][class*="wave"],
-.sivar-ai-chat svg:not(.mud-icon-root svg),
-.dxbl-aichat-root > svg,
-.dxbl-aichat-root > div > svg {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    opacity: 0 !important;
-}
-
-/* Ensure submit area is at the very bottom with no extra space */
-.sivar-ai-chat .dxbl-chatui-submitarea,
-.sivar-ai-chat .dxbl-aichat-submit-area {
-    margin-bottom: 0 !important;
-    padding-bottom: 12px !important;
-}
-
-/* Hide any element after the submit area */
-.sivar-ai-chat .dxbl-chatui-submitarea ~ *,
-.sivar-ai-chat .dxbl-aichat-submit-area ~ * {
-    display: none !important;
 }
