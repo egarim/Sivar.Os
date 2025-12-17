@@ -6,6 +6,7 @@
 @using Sivar.Os.Client.Services
 @using Sivar.Os.Shared
 @using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Client.Pages
 @inject IStringLocalizer<NavMenu> Localizer
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
@@ -14,34 +15,87 @@
 @implements IAsyncDisposable
 
 <div class="nav-menu-container">
-    <div class="nav-menu-profile">
-        <ProfileSwitcher ActiveProfile="@_activeProfile"
-                         UserProfiles="@_userProfiles"
-                         OnProfileChanged="@HandleProfileChanged"
-                         OnCreateProfile="@HandleCreateProfile" />
-    </div>
+    @if (_layout?.IsAIChatVisible == true)
+    {
+        @* Chat Mode - Show Home button, New Chat, and conversation list *@
+        <div class="nav-menu-chat-mode">
+            <MudButton Variant="Variant.Text" 
+                       StartIcon="@Icons.Material.Filled.Home" 
+                       FullWidth="true" 
+                       OnClick="@ExitChatMode"
+                       Class="nav-chat-home-btn"
+                       Color="Color.Primary">
+                🏠 Home
+            </MudButton>
+            
+            <MudDivider Class="my-2" />
+            
+            <MudButton Variant="Variant.Filled" 
+                       StartIcon="@Icons.Material.Filled.Add" 
+                       FullWidth="true" 
+                       OnClick="@HandleNewConversation"
+                       Class="nav-new-chat-btn"
+                       Color="Color.Primary">
+                New Conversation
+            </MudButton>
+            
+            <MudDivider Class="my-2" />
+            
+            <div class="nav-conversations-list">
+                @if (_layout?.ChatConversations?.Any() != true)
+                {
+                    <div class="nav-empty-conversations">
+                        <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Style="opacity: 0.5;" />
+                        <MudText Typo="Typo.body2" Style="opacity: 0.7; text-align: center;">No conversations yet</MudText>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.5; text-align: center;">Start chatting!</MudText>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var conversation in _layout.ChatConversations)
+                    {
+                        <MudNavLink OnClick="@(() => HandleConversationSelect(conversation.Id))"
+                                    Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                                    Class="@(conversation.Id == _layout.CurrentConversationId ? "nav-conversation-active" : "")">
+                            @(string.IsNullOrEmpty(conversation.Title) ? "New Chat" : TruncateTitle(conversation.Title, 25))
+                        </MudNavLink>
+                    }
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        @* Social Media Mode - Normal navigation *@
+        <div class="nav-menu-profile">
+            <ProfileSwitcher ActiveProfile="@_activeProfile"
+                             UserProfiles="@_userProfiles"
+                             OnProfileChanged="@HandleProfileChanged"
+                             OnCreateProfile="@HandleCreateProfile" />
+        </div>
 
-    <MudNavMenu Class="nav-menu-items">
-        <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
-        <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
-    </MudNavMenu>
+        <MudNavMenu Class="nav-menu-items">
+            <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
+            <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
+        </MudNavMenu>
 
-    <div class="nav-menu-actions">
-        <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
-                       Color="Color.Inherit" 
-                       Title="Notifications"
-                       Class="nav-action-btn" />
-        <MudIconButton Icon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Filled.DarkMode)" 
-                       Color="Color.Inherit" 
-                       OnClick="@ToggleTheme"
-                       Title="Toggle Theme"
-                       Class="nav-action-btn" />
-        <MudIconButton Icon="@Icons.Material.Filled.SmartToy" 
-                       Color="@(_layout?.IsAIChatVisible == true ? Color.Primary : Color.Inherit)" 
-                       OnClick="@ToggleAIChat"
-                       Title="Toggle AI Assistant"
-                       Class="nav-action-btn" />
-    </div>
+        <div class="nav-menu-actions">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
+                           Color="Color.Inherit" 
+                           Title="Notifications"
+                           Class="nav-action-btn" />
+            <MudIconButton Icon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Filled.DarkMode)" 
+                           Color="Color.Inherit" 
+                           OnClick="@ToggleTheme"
+                           Title="Toggle Theme"
+                           Class="nav-action-btn" />
+            <MudIconButton Icon="@Icons.Material.Filled.SmartToy" 
+                           Color="@(_layout?.IsAIChatVisible == true ? Color.Primary : Color.Inherit)" 
+                           OnClick="@ToggleAIChat"
+                           Title="Toggle AI Assistant"
+                           Class="nav-action-btn" />
+        </div>
+    }
 
     <div class="nav-menu-spacer"></div>
 
@@ -140,6 +194,57 @@
         .nav-menu-logout {
             padding: 0 10px 12px 10px;
         }
+    }
+
+    /* Chat Mode Styles */
+    .nav-menu-chat-mode {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .nav-chat-home-btn {
+        justify-content: flex-start;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .nav-new-chat-btn {
+        margin-top: 8px;
+    }
+
+    .nav-conversations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: calc(100vh - 300px);
+        overflow-y: auto;
+        padding: 8px 0;
+    }
+
+    .nav-conversations-list .mud-nav-link {
+        padding: 10px 12px;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+
+    .nav-conversations-list .mud-nav-link:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .nav-conversation-active {
+        background-color: var(--mud-palette-primary-darken) !important;
+        color: var(--mud-palette-primary-text) !important;
+    }
+
+    .nav-empty-conversations {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+        gap: 8px;
     }
 </style>
 
@@ -428,6 +533,29 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     private void ToggleAIChat()
     {
         _layout?.ToggleAIChat();
+    }
+
+    // Chat Mode Methods
+    private void ExitChatMode()
+    {
+        // Close chat and return to social media mode
+        _layout?.ToggleAIChat();
+    }
+
+    private void HandleNewConversation()
+    {
+        _layout?.NewConversation();
+    }
+
+    private void HandleConversationSelect(string conversationId)
+    {
+        _layout?.SelectConversationById(conversationId);
+    }
+
+    private static string TruncateTitle(string title, int maxLength)
+    {
+        if (string.IsNullOrEmpty(title)) return "New Chat";
+        return title.Length <= maxLength ? title : title[..(maxLength - 3)] + "...";
     }
 
     public async ValueTask DisposeAsync()

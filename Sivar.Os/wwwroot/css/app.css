@@ -40,6 +40,15 @@
     /* padding-top is set via inline style in MainLayout.razor */
 }
 
+/* Ensure html and body take full viewport with no extra space */
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: var(--mud-palette-background, #1a1a27);
+}
+
 /* Hide scroll to top button on Home page */
 .mud-scroll-to-top {
     display: none !important;

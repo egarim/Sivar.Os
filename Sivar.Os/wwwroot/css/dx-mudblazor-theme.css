@@ -19,7 +19,7 @@
     background-color: var(--mud-palette-surface, #ffffff);
     color: var(--mud-palette-text-primary, #424242);
     font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -35,6 +35,27 @@
     display: flex !important;
     flex-direction: column !important;
     background: transparent !important;
+}
+
+/* Remove any DevExpress bottom bar/gradient */
+.sivar-ai-chat .dxbl-chatui-root::after,
+.sivar-ai-chat .dxbl-chatui::after,
+.sivar-ai-chat .dxbl-ai-chat::after,
+.sivar-ai-chat::after,
+.sivar-ai-chat .dxbl-chatui-root::before,
+.sivar-ai-chat .dxbl-chatui::before,
+.sivar-ai-chat .dxbl-ai-chat::before,
+.sivar-ai-chat::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Remove any DevExpress branding/footer bar */
+.sivar-ai-chat [class*="footer"],
+.sivar-ai-chat [class*="branding"],
+.sivar-ai-chat [class*="gradient-bar"],
+.sivar-ai-chat [class*="bottom-bar"] {
+    display: none !important;
 }
 
 /* ============================================
@@ -564,4 +585,60 @@
 .sivar-ai-chat .dxbl-aichat-submit-area .dxbl-memo,
 .sivar-ai-chat .dxbl-aichat-submit-area .dxbl-textbox {
     flex: 1 !important;
+}
+
+/* ============================================
+   DEVEXPRESS THEME OVERRIDES
+   Hide any DevExpress branding/footer elements
+   ============================================ */
+.dxbl-aichat-footer,
+.dxbl-chatui-footer,
+.dxbl-aichat-branding,
+.dxbl-chatui-branding,
+[class*="dxbl"][class*="footer"],
+[class*="dxbl"][class*="branding"],
+[class*="dxbl-aichat-footer"],
+[class*="dxbl-chatui-footer"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Remove any gradient decorations from DevExpress */
+.dxbl-ai-chat::after,
+.dxbl-ai-chat::before,
+.dxbl-chatui::after,
+.dxbl-chatui::before,
+.dxbl-aichat-root::after,
+.dxbl-aichat-root::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Remove all pseudo-elements from DevExpress components that might show gradients */
+.sivar-ai-chat::before,
+.sivar-ai-chat::after,
+.sivar-ai-chat *::before,
+.sivar-ai-chat *::after,
+.dxbl-aichat-root::before,
+.dxbl-aichat-root::after,
+.dxbl-aichat-root *::before,
+.dxbl-aichat-root *::after {
+    background: none !important;
+    background-image: none !important;
+}
+
+/* Prevent any bottom decorative bars */
+.sivar-ai-chat > *:last-child,
+.dxbl-aichat-root > *:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Reset any potential gradient backgrounds in DX components */
+[class*="dxbl-aichat"][style*="gradient"],
+[class*="dxbl-chatui"][style*="gradient"] {
+    background: transparent !important;
+    background-image: none !important;
 }

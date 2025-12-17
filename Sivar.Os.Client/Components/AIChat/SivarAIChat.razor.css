@@ -76,7 +76,7 @@
     min-height: 450px;
     overflow: hidden;
     background-color: var(--mud-palette-surface, #1e1e2d);
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 /* Force DxAIChat to fill container */
