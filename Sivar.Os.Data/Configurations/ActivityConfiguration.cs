@@ -6,6 +6,8 @@ namespace Sivar.Os.Data.Configurations;
 
 /// <summary>
 /// Entity Framework configuration for Activity entity
+/// Note: This table is a TimescaleDB hypertable partitioned by CreatedAt.
+/// Composite primary key (Id, CreatedAt) is REQUIRED for TimescaleDB unique constraints.
 /// </summary>
 public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
 {
@@ -14,8 +16,9 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
         // Table configuration
         builder.ToTable("Sivar_Activities");
 
-        // Primary key
-        builder.HasKey(a => a.Id);
+        // Composite primary key - REQUIRED for TimescaleDB hypertable
+        // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
+        builder.HasKey(a => new { a.Id, a.CreatedAt });
 
         // Indexes for common queries
         builder.HasIndex(a => a.ActorId)

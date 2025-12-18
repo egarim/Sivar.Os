@@ -660,6 +660,61 @@ public class Category : BaseEntity
 - `List<T>` and `ICollection<T>` don't implement this
 - `ObservableCollection<T>` does implement it
 
+### ⚠️ TimescaleDB Hypertable Entities - Composite Primary Keys Required
+
+**CRITICAL:** If an entity's table is converted to a TimescaleDB hypertable, the EF Core configuration **MUST use a composite primary key** that includes `CreatedAt`.
+
+#### Why This Is Required
+
+TimescaleDB hypertables are partitioned by a time column (we use `CreatedAt`). PostgreSQL requires that **all unique constraints on a partitioned table must include the partitioning column**.
+
+```
+TS103: cannot create a unique index without the column "CreatedAt" (used in partitioning)
+```
+
+#### Hypertable Entities (4 Tables)
+
+| Entity | Table Name | Partition Interval |
+|--------|------------|-------------------|
+| `Activity` | `Sivar_Activities` | 7 days |
+| `Post` | `Sivar_Posts` | 30 days |
+| `ChatMessage` | `Sivar_ChatMessages` | 7 days |
+| `Notification` | `Sivar_Notifications` | 7 days |
+
+#### ✅ CORRECT - Composite Primary Key for Hypertables
+
+```csharp
+// In Configuration file (e.g., ActivityConfiguration.cs)
+public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
+{
+    public void Configure(EntityTypeBuilder<Activity> builder)
+    {
+        builder.ToTable("Sivar_Activities");
+
+        // ✅ Composite primary key - REQUIRED for TimescaleDB hypertable
+        builder.HasKey(a => new { a.Id, a.CreatedAt });
+        
+        // ... rest of configuration
+    }
+}
+```
+
+#### ❌ WRONG - Single Column Primary Key
+
+```csharp
+// ❌ This will fail with TS103 error!
+builder.HasKey(a => a.Id);  
+```
+
+#### Hypertable Entity Checklist
+
+When creating a new entity that will be a hypertable:
+
+- [ ] Use `builder.HasKey(x => new { x.Id, x.CreatedAt })` in EF configuration
+- [ ] Add hypertable conversion to `ConvertToHypertables.sql`
+- [ ] Document in this section that it's a hypertable
+- [ ] Consider partition interval based on data volume (7 days for high volume, 30 days for low)
+
 ### Testing After Entity Changes
 
 After creating or modifying an entity:

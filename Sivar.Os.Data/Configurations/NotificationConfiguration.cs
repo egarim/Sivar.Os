@@ -6,6 +6,8 @@ namespace Sivar.Os.Data.Configurations;
 
 /// <summary>
 /// Entity Framework configuration for Notification entity
+/// Note: This table is a TimescaleDB hypertable partitioned by CreatedAt.
+/// Composite primary key (Id, CreatedAt) is REQUIRED for TimescaleDB unique constraints.
 /// </summary>
 public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
@@ -14,8 +16,9 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         // Table name
         builder.ToTable("Sivar_Notifications");
 
-        // Primary key
-        builder.HasKey(n => n.Id);
+        // Composite primary key - REQUIRED for TimescaleDB hypertable
+        // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
+        builder.HasKey(n => new { n.Id, n.CreatedAt });
 
         // Properties
         builder.Property(n => n.Id)

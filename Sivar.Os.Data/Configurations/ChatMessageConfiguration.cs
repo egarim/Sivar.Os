@@ -7,6 +7,8 @@ namespace Sivar.Os.Data.Configurations;
 
 /// <summary>
 /// Entity Framework configuration for ChatMessage entity
+/// Note: This table is a TimescaleDB hypertable partitioned by CreatedAt.
+/// Composite primary key (Id, CreatedAt) is REQUIRED for TimescaleDB unique constraints.
 /// </summary>
 public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
 {
@@ -15,8 +17,9 @@ public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
         // Table name
         builder.ToTable("Sivar_ChatMessages");
 
-        // Primary key
-        builder.HasKey(m => m.Id);
+        // Composite primary key - REQUIRED for TimescaleDB hypertable
+        // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
+        builder.HasKey(m => new { m.Id, m.CreatedAt });
 
         // Properties
         builder.Property(m => m.Id)

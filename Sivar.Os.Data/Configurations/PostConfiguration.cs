@@ -6,6 +6,8 @@ namespace Sivar.Os.Data.Configurations;
 
 /// <summary>
 /// Entity Framework configuration for Post entity
+/// Note: This table is a TimescaleDB hypertable partitioned by CreatedAt.
+/// Composite primary key (Id, CreatedAt) is REQUIRED for TimescaleDB unique constraints.
 /// </summary>
 public class PostConfiguration : IEntityTypeConfiguration<Post>
 {
@@ -13,8 +15,9 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
     {
         builder.ToTable("Sivar_Posts");
         
-        // Primary key
-        builder.HasKey(p => p.Id);
+        // Composite primary key - REQUIRED for TimescaleDB hypertable
+        // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
+        builder.HasKey(p => new { p.Id, p.CreatedAt });
         
         // Content and title
         builder.Property(p => p.Title)
