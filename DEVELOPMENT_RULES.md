@@ -694,9 +694,32 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
         // ✅ Composite primary key - REQUIRED for TimescaleDB hypertable
         builder.HasKey(a => new { a.Id, a.CreatedAt });
         
+        // ✅ Alternate key on Id - allows single-column FK references
+        builder.HasAlternateKey(a => a.Id);
+        
         // ... rest of configuration
     }
 }
+```
+
+#### ✅ CORRECT - Referencing Hypertable Entities with Foreign Keys
+
+When another entity needs to reference a hypertable entity, use `HasPrincipalKey` to target the alternate key:
+
+```csharp
+// In SearchResultConfiguration.cs - referencing ChatMessage hypertable
+builder.HasOne(sr => sr.ChatMessage)
+    .WithMany(cm => cm.SearchResults)
+    .HasForeignKey(sr => sr.ChatMessageId)
+    .HasPrincipalKey(cm => cm.Id)  // ✅ Use alternate key, not composite PK
+    .OnDelete(DeleteBehavior.Cascade);
+
+// In CommentConfiguration.cs - referencing Post hypertable
+builder.HasOne(c => c.Post)
+    .WithMany(p => p.Comments)
+    .HasForeignKey(c => c.PostId)
+    .HasPrincipalKey(p => p.Id)  // ✅ Use alternate key, not composite PK
+    .OnDelete(DeleteBehavior.Cascade);
 ```
 
 #### ❌ WRONG - Single Column Primary Key
@@ -706,11 +729,34 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
 builder.HasKey(a => a.Id);  
 ```
 
+#### ❌ WRONG - Missing HasPrincipalKey for FK to Hypertable
+
+```csharp
+// ❌ This will fail with "cannot target primary key {Id, CreatedAt}" error!
+builder.HasOne(sr => sr.ChatMessage)
+    .WithMany(cm => cm.SearchResults)
+    .HasForeignKey(sr => sr.ChatMessageId)  // Guid FK can't reference composite PK
+    .OnDelete(DeleteBehavior.Cascade);
+```
+
+#### Entities Referencing Hypertables
+
+| Hypertable Entity | Referenced By | FK Property |
+|-------------------|---------------|-------------|
+| `ChatMessage` | SearchResult | `ChatMessageId` |
+| `Post` | Comment | `PostId` |
+| `Post` | Reaction | `PostId` |
+| `Post` | PostAttachment | `PostId` |
+| `Post` | ProfileBookmark | `PostId` |
+| `Post` | SearchResult | `PostId` |
+
 #### Hypertable Entity Checklist
 
 When creating a new entity that will be a hypertable:
 
 - [ ] Use `builder.HasKey(x => new { x.Id, x.CreatedAt })` in EF configuration
+- [ ] Add `builder.HasAlternateKey(x => x.Id)` to allow single-column FK references
+- [ ] Update any referencing entities to use `.HasPrincipalKey(x => x.Id)`
 - [ ] Add hypertable conversion to `ConvertToHypertables.sql`
 - [ ] Document in this section that it's a hypertable
 - [ ] Consider partition interval based on data volume (7 days for high volume, 30 days for low)

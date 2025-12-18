@@ -19,6 +19,11 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
         builder.HasKey(p => new { p.Id, p.CreatedAt });
         
+        // Alternate key on Id - allows other entities to reference Post with single-column FK
+        // Required because composite PK (Id, CreatedAt) can't be referenced by single Guid FK
+        // Used by: Comment, Reaction, PostAttachment, ProfileBookmark, SearchResult
+        builder.HasAlternateKey(p => p.Id);
+        
         // Content and title
         builder.Property(p => p.Title)
             .HasMaxLength(200);

@@ -46,9 +46,12 @@ public class PostAttachmentConfiguration : IEntityTypeConfiguration<PostAttachme
             .HasMaxLength(2000);
         
         // Relationships
+        // Note: Post has composite PK (Id, CreatedAt) for TimescaleDB hypertable
+        // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(pa => pa.Post)
             .WithMany(p => p.Attachments)
             .HasForeignKey(pa => pa.PostId)
+            .HasPrincipalKey(p => p.Id)
             .OnDelete(DeleteBehavior.Cascade);
         
         // Indexes

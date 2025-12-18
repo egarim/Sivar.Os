@@ -138,14 +138,20 @@ public class SearchResultConfiguration : IEntityTypeConfiguration<SearchResult>
             .HasDefaultValue(false);
 
         // Relationships
+        // Note: ChatMessage has composite PK (Id, CreatedAt) for TimescaleDB hypertable
+        // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(sr => sr.ChatMessage)
             .WithMany(cm => cm.SearchResults)
             .HasForeignKey(sr => sr.ChatMessageId)
+            .HasPrincipalKey(cm => cm.Id)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Note: Post has composite PK (Id, CreatedAt) for TimescaleDB hypertable
+        // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(sr => sr.Post)
             .WithMany()
             .HasForeignKey(sr => sr.PostId)
+            .HasPrincipalKey(p => p.Id)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(sr => sr.Profile)

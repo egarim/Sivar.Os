@@ -21,6 +21,10 @@ public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
         // TimescaleDB requires partitioning column (CreatedAt) in all unique constraints
         builder.HasKey(m => new { m.Id, m.CreatedAt });
 
+        // Alternate key on Id - allows other entities to reference ChatMessage with single-column FK
+        // Required because composite PK (Id, CreatedAt) can't be referenced by single Guid FK
+        builder.HasAlternateKey(m => m.Id);
+
         // Properties
         builder.Property(m => m.Id)
             .IsRequired()

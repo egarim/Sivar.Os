@@ -26,10 +26,13 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
             .WithMany()
             .HasForeignKey(c => c.ProfileId)
             .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete loops
-            
+        
+        // Note: Post has composite PK (Id, CreatedAt) for TimescaleDB hypertable
+        // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(c => c.Post)
             .WithMany(p => p.Comments)
             .HasForeignKey(c => c.PostId)
+            .HasPrincipalKey(p => p.Id)
             .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(c => c.ParentComment)

@@ -25,10 +25,13 @@ public class ReactionConfiguration : IEntityTypeConfiguration<Reaction>
             .WithMany()
             .HasForeignKey(r => r.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
-            
+        
+        // Note: Post has composite PK (Id, CreatedAt) for TimescaleDB hypertable
+        // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(r => r.Post)
             .WithMany(p => p.Reactions)
             .HasForeignKey(r => r.PostId)
+            .HasPrincipalKey(p => p.Id)
             .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(r => r.Comment)
