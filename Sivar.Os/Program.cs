@@ -12,6 +12,8 @@ using Microsoft.Agents.AI;
 using MudBlazor.Services;
 using DevExpress.Blazor;
 using OpenAI;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Sivar.Os.Client.Pages;
 using Sivar.Os.Client.Services;
 using Sivar.Os.Client.Components.ProfileSwitcher;
@@ -37,6 +39,16 @@ builder.Host.UseSerilog((context, configuration) =>
         .Enrich.WithEnvironmentName()
         .Enrich.WithMachineName()
         .Enrich.WithThreadId());
+
+// Configure OpenTelemetry for AI Chat tracing
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddSource("Microsoft.Extensions.AI") // Traces from AI chat client
+            .AddSource("SivarChat") // Custom traces
+            .AddConsoleExporter(); // Output to console for now
+    });
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -660,6 +672,7 @@ static IChatClient GetChatClientOpenAiImp(string ApiKey, string ModelId)
         .GetChatClient(ModelId)
         .AsIChatClient()
         .AsBuilder()
+        .UseOpenTelemetry(sourceName: "SivarChat", configure: c => c.EnableSensitiveData = true)
         .Build();
 }
 
@@ -667,5 +680,6 @@ static IChatClient GetChatClientOllamaImp(string endpoint, string modelId)
 {
     return new OllamaChatClient(endpoint, modelId: modelId)
      .AsBuilder()
+        .UseOpenTelemetry(sourceName: "SivarChat", configure: c => c.EnableSensitiveData = true)
         .Build();
 }
