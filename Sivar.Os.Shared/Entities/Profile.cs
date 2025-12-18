@@ -483,4 +483,90 @@ public class Profile : BaseEntity
     /// Higher quality = better ad position for same bid
     /// </summary>
     public virtual double AdQualityScore { get; set; } = 0.5;
+
+    // ========================================
+    // AI CHAT TOKEN ALLOWANCE
+    // ========================================
+
+    /// <summary>
+    /// Token allowance period type: Daily, Weekly, BiWeekly, Monthly
+    /// </summary>
+    public virtual TokenAllowancePeriod TokenAllowancePeriod { get; set; } = TokenAllowancePeriod.Monthly;
+
+    /// <summary>
+    /// Maximum tokens allowed per period (default: 100,000 tokens)
+    /// </summary>
+    public virtual int TokenAllowanceLimit { get; set; } = 100000;
+
+    /// <summary>
+    /// Tokens used in current period
+    /// </summary>
+    public virtual int TokensUsedThisPeriod { get; set; } = 0;
+
+    /// <summary>
+    /// When the current allowance period started (for reset calculation)
+    /// </summary>
+    public virtual DateTime TokenPeriodStartedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Total tokens used all-time (lifetime tracking)
+    /// </summary>
+    public virtual long TotalTokensUsed { get; set; } = 0;
+
+    /// <summary>
+    /// Gets the remaining token allowance for the current period
+    /// </summary>
+    public int TokensRemaining => Math.Max(0, TokenAllowanceLimit - TokensUsedThisPeriod);
+
+    /// <summary>
+    /// Gets when the current allowance period will reset
+    /// </summary>
+    public DateTime TokenAllowanceResetsAt => TokenPeriodStartedAt.AddDays((int)TokenAllowancePeriod);
+
+    /// <summary>
+    /// Checks if the token allowance period needs to be reset and resets if necessary
+    /// </summary>
+    /// <returns>True if the period was reset, false otherwise</returns>
+    public bool CheckAndResetTokenPeriodIfNeeded()
+    {
+        if (DateTime.UtcNow >= TokenAllowanceResetsAt)
+        {
+            TokensUsedThisPeriod = 0;
+            TokenPeriodStartedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Records token usage for this profile
+    /// </summary>
+    /// <param name="tokensUsed">Number of tokens used</param>
+    /// <returns>True if usage was recorded, false if allowance exceeded</returns>
+    public bool RecordTokenUsage(int tokensUsed)
+    {
+        // First check if period needs reset
+        CheckAndResetTokenPeriodIfNeeded();
+
+        // Check if we have enough allowance
+        if (TokensRemaining < tokensUsed)
+            return false;
+
+        TokensUsedThisPeriod += tokensUsed;
+        TotalTokensUsed += tokensUsed;
+        UpdatedAt = DateTime.UtcNow;
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if the profile has sufficient token allowance
+    /// </summary>
+    /// <param name="estimatedTokens">Estimated tokens needed (optional)</param>
+    /// <returns>True if there is remaining allowance</returns>
+    public bool HasTokenAllowance(int estimatedTokens = 1)
+    {
+        CheckAndResetTokenPeriodIfNeeded();
+        return TokensRemaining >= estimatedTokens;
+    }
 }

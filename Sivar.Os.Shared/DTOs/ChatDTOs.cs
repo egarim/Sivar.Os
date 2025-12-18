@@ -179,6 +179,35 @@ public record ChatResponseDto
     /// Whether this response contains structured search results
     /// </summary>
     public bool HasStructuredResults => SearchResults?.HasResults == true;
+
+    // ========================================
+    // TOKEN USAGE INFORMATION
+    // ========================================
+
+    /// <summary>
+    /// Number of tokens used in the input/prompt
+    /// </summary>
+    public int? InputTokens { get; init; }
+
+    /// <summary>
+    /// Number of tokens used in the output/response
+    /// </summary>
+    public int? OutputTokens { get; init; }
+
+    /// <summary>
+    /// Total tokens used for this interaction
+    /// </summary>
+    public int? TotalTokens { get; init; }
+
+    /// <summary>
+    /// Remaining tokens in the user's current allowance period
+    /// </summary>
+    public int? TokensRemaining { get; init; }
+
+    /// <summary>
+    /// When the token allowance period will reset
+    /// </summary>
+    public DateTime? AllowanceResetsAt { get; init; }
 }
 
 /// <summary>

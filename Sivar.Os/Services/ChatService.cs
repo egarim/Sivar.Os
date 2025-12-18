@@ -15,12 +15,14 @@ namespace Sivar.Os.Services;
 /// Service for managing AI chat conversations using Microsoft Agent Framework.
 /// Phase 6: Now includes intent-based routing for better query handling.
 /// Phase 10: Now uses AgentFactory for dynamic agent loading.
+/// Phase 11: Token allowance tracking and enforcement.
 /// </summary>
 public class ChatService : IChatService
 {
     private readonly IConversationRepository _conversationRepository;
     private readonly IChatMessageRepository _messageRepository;
     private readonly IProfileRepository _profileRepository;
+    private readonly IChatTokenUsageRepository _tokenUsageRepository;
     private readonly IAgentFactory _agentFactory;
     private readonly ChatFunctionService _functionService;
     private readonly IIntentClassifier _intentClassifier;
@@ -32,6 +34,7 @@ public class ChatService : IChatService
         IConversationRepository conversationRepository,
         IChatMessageRepository messageRepository,
         IProfileRepository profileRepository,
+        IChatTokenUsageRepository tokenUsageRepository,
         IAgentFactory agentFactory,
         ChatFunctionService functionService,
         IIntentClassifier intentClassifier,
@@ -42,6 +45,7 @@ public class ChatService : IChatService
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
         _messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+        _tokenUsageRepository = tokenUsageRepository ?? throw new ArgumentNullException(nameof(tokenUsageRepository));
         _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
         _intentClassifier = intentClassifier ?? throw new ArgumentNullException(nameof(intentClassifier));
@@ -168,6 +172,27 @@ public class ChatService : IChatService
                 throw new UnauthorizedAccessException("Conversation does not belong to this profile");
             }
 
+            // Phase 11: Token Allowance Check - Get profile and verify token allowance
+            var profile = await _profileRepository.GetByIdAsync(profileId);
+            if (profile == null)
+            {
+                _logger.LogWarning("[ChatService.SendMessageAsync] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}", 
+                    profileId, requestId);
+                throw new InvalidOperationException($"Profile {profileId} not found");
+            }
+
+            // Check and reset token period if needed, then verify allowance
+            profile.CheckAndResetTokenPeriodIfNeeded();
+            if (!profile.HasTokenAllowance())
+            {
+                _logger.LogWarning("[ChatService.SendMessageAsync] TOKEN_ALLOWANCE_EXCEEDED - ProfileId={ProfileId}, Limit={Limit}, Used={Used}, ResetsAt={ResetsAt}, RequestId={RequestId}", 
+                    profileId, profile.TokenAllowanceLimit, profile.TokensUsedThisPeriod, profile.TokenAllowanceResetsAt, requestId);
+                throw new InvalidOperationException($"Token allowance exceeded. Your allowance of {profile.TokenAllowanceLimit:N0} tokens resets on {profile.TokenAllowanceResetsAt:g} UTC.");
+            }
+
+            _logger.LogInformation("[ChatService.SendMessageAsync] Token allowance verified - ProfileId={ProfileId}, Remaining={Remaining}, RequestId={RequestId}", 
+                profileId, profile.TokensRemaining, requestId);
+
             _logger.LogInformation("[ChatService.SendMessageAsync] Conversation verified - ConversationId={ConversationId}, RequestId={RequestId}", 
                 conversation.Id, requestId);
 
@@ -242,6 +267,50 @@ public class ChatService : IChatService
             var agentResponse = await agent.RunAsync(chatHistory);
             var aiElapsed = (DateTime.UtcNow - aiStartTime).TotalMilliseconds;
             
+            // Phase 11: Extract token usage from agent response
+            var inputTokens = (int)(agentResponse.Usage?.InputTokenCount ?? 0);
+            var outputTokens = (int)(agentResponse.Usage?.OutputTokenCount ?? 0);
+            var totalTokens = (int)(agentResponse.Usage?.TotalTokenCount ?? (inputTokens + outputTokens));
+            
+            _logger.LogInformation("[ChatService.SendMessageAsync] Token usage - Input={InputTokens}, Output={OutputTokens}, Total={TotalTokens}, RequestId={RequestId}", 
+                inputTokens, outputTokens, totalTokens, requestId);
+
+            // Phase 11: Record token usage and update profile allowance
+            if (totalTokens > 0)
+            {
+                // Update profile token usage
+                profile.TokensUsedThisPeriod += totalTokens;
+                profile.TotalTokensUsed += totalTokens;
+                profile.UpdatedAt = DateTime.UtcNow;
+                await _profileRepository.UpdateAsync(profile);
+                await _profileRepository.SaveChangesAsync();
+
+                // Determine model name based on provider
+                var modelName = _options.Provider.Equals("openai", StringComparison.OrdinalIgnoreCase) 
+                    ? _options.OpenAI.ModelId 
+                    : _options.Ollama.ModelId;
+
+                // Create audit record
+                var tokenUsageRecord = new ChatTokenUsage
+                {
+                    ProfileId = profileId,
+                    ConversationId = dto.ConversationId,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ModelName = modelName,
+                    Intent = intentClassification.Intent.ToString(),
+                    MessagePreview = dto.Content.Length > 100 ? dto.Content.Substring(0, 100) : dto.Content,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _tokenUsageRepository.AddAsync(tokenUsageRecord);
+                await _tokenUsageRepository.SaveChangesAsync();
+
+                _logger.LogInformation("[ChatService.SendMessageAsync] Token usage recorded - ProfileId={ProfileId}, TotalUsedThisPeriod={Used}, Remaining={Remaining}, RequestId={RequestId}", 
+                    profileId, profile.TokensUsedThisPeriod, profile.TokensRemaining, requestId);
+            }
+
             // Extract text response from agent
             var responseText = agentResponse.ToString() ?? string.Empty;
             
@@ -315,7 +384,13 @@ public class ChatService : IChatService
                 UserMessage = MapMessageToDto(savedUserMessage),
                 AssistantMessage = MapMessageToDto(savedAssistantMessage),
                 ConversationId = dto.ConversationId,
-                SearchResults = structuredResults
+                SearchResults = structuredResults,
+                // Phase 11: Token usage information
+                InputTokens = inputTokens > 0 ? inputTokens : null,
+                OutputTokens = outputTokens > 0 ? outputTokens : null,
+                TotalTokens = totalTokens > 0 ? totalTokens : null,
+                TokensRemaining = profile.TokensRemaining,
+                AllowanceResetsAt = profile.TokenAllowanceResetsAt
             };
         }
         catch (Exception ex)
