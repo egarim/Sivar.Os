@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: December 15, 2025 - Added Multilingual Search Architecture (English-First Query Pattern)  
+> **Last Updated**: December 18, 2025 - Added XAF Admin Backend & Database Migrations section  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -51,19 +51,24 @@
 16. [Testing & Debugging](#testing--debugging)
 17. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
 18. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
-19. [Database Script System](#database-script-system) ⭐ **UPDATED**
+19. [XAF Admin Backend & Database Migrations](#xaf-admin-backend--database-migrations) ⭐ **NEW**
+    - XAF is the Admin Backend
+    - Navigation Structure (7 Groups)
+    - NO EF Core Migrations - XAF Updater.cs Handles Everything
+    - Adding a New Entity Checklist
+20. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-20. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
+21. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
     - Virtual Environment Setup
     - Available Scripts
     - Running Python Scripts
     - Adding New Dependencies
-21. [References](#references)
-22. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
+22. [References](#references)
+23. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
 
 ---
 
@@ -663,6 +668,90 @@ After creating or modifying an entity:
 2. **Run XAF application** - The error appears at runtime during database update
 3. **Check Updater.cs execution** - Errors occur during `UpdateDatabaseAfterUpdateSchemaAsync()`
 4. **Look for specific error message** - Apply the fix from the table above
+
+---
+
+## XAF Admin Backend & Database Migrations
+
+### 🎯 XAF is the Admin Backend
+
+The **Xaf.Sivar.Os** project is the **admin backend application** for managing all Sivar.Os entities. It provides:
+
+- **Full CRUD operations** for all entities (Users, Profiles, Posts, AI Chat, etc.)
+- **Role-based access control** for admin users
+- **Data auditing and reporting** via DevExpress dashboards
+- **Direct database management** without needing to build custom admin UIs
+
+### Navigation Structure
+
+Entities are organized into **7 navigation groups** in the XAF admin panel:
+
+| Navigation Group | Entities |
+|------------------|----------|
+| **Users & Profiles** | User, Profile, ProfileType, ProfileFollower, ProfileBookmark, ProfileEmotionSummary |
+| **Content** | Post, PostAttachment, Comment, Reaction, CategoryDefinition |
+| **AI Chat** | Conversation, ChatMessage, SavedResult, ChatTokenUsage |
+| **AI Configuration** | ChatBotSettings, AgentCapability, CapabilityParameter, QuickAction, AgentConfiguration, AgentTool |
+| **Business** | BusinessContactInfo, ContactType, AdTransaction |
+| **Search & Ranking** | SearchResult, UserSearchBehavior, RankingConfiguration |
+| **System** | Activity, Notification |
+
+### ⚠️ NO EF Core Migrations - XAF Updater.cs Handles Everything
+
+**CRITICAL:** This project does **NOT** use EF Core migrations (`dotnet ef migrations add`). Instead, we use XAF's `Updater.cs` for all database schema management.
+
+#### Why No EF Migrations?
+
+1. **XAF handles schema updates automatically** - When you run the XAF application, it detects entity changes and updates the database schema
+2. **Updater.cs seeds data** - All demo data, configurations, and SQL scripts are seeded via `UpdateDatabaseAfterUpdateSchemaAsync()`
+3. **Shared DbContext** - Both the Blazor app and XAF app use the same `SivarDbContext`, so XAF manages the schema for both
+4. **Simpler workflow** - No migration files to manage, no merge conflicts on migration snapshots
+
+#### Database Update Workflow
+
+```
+1. Add/Modify entity in Sivar.Os.Shared/Entities/
+2. Update EF Configuration in Sivar.Os.Data/Configurations/ (if needed)
+3. Run XAF application (Xaf.Sivar.Os.Blazor.Server)
+4. XAF detects changes and updates database schema automatically
+5. Updater.cs runs seeding logic if applicable
+```
+
+#### Updater.cs Location
+
+```
+Xaf.Sivar.Os/
+└── Xaf.Sivar.Os.Module/
+    └── DatabaseUpdate/
+        └── Updater.cs    ← All database seeding happens here
+```
+
+#### What Updater.cs Handles
+
+| Feature | Description |
+|---------|-------------|
+| **Schema Updates** | XAF's `UpdateDatabaseAfterUpdateSchema()` runs automatically |
+| **Role Seeding** | Creates Admin and Default roles |
+| **ProfileType Seeding** | Creates Personal, Business, Organization profile types |
+| **Demo Data** | Seeds restaurants, entertainment, government, services, tourism data |
+| **Agent Capabilities** | Seeds AI agent functions and parameters |
+| **ChatBot Settings** | Seeds default chat configurations per culture |
+| **SQL Scripts** | Executes TimescaleDB, PostGIS, and pgvector scripts |
+| **Contact Types** | Seeds phone, messaging, social contact types |
+| **Ad Budgets** | Seeds sponsored content budgets for demo businesses |
+
+#### Adding a New Entity Checklist
+
+When creating a new entity:
+
+- [ ] Create entity class in `Sivar.Os.Shared/Entities/` following [XAF Entity Rules](#xaf-entity-rules---devexpress-orm-compatibility)
+- [ ] Create EF Configuration in `Sivar.Os.Data/Configurations/`
+- [ ] Add `DbSet<T>` to `SivarDbContext`
+- [ ] Add to `Module.cs` → `AdditionalExportedTypes.Add(typeof(YourEntity))`
+- [ ] Add to `Module.cs` → `ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(YourEntity), NavGroup...)`
+- [ ] Run XAF app to update database schema
+- [ ] (Optional) Add seeding logic to `Updater.cs`
+- [ ] ❌ **DO NOT** run `dotnet ef migrations add`
 
 ---
 

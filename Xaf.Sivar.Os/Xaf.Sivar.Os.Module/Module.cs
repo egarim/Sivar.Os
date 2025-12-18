@@ -18,33 +18,70 @@ using System.ComponentModel;
 namespace Xaf.Sivar.Os.Module
 {
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.ModuleBase.
+    /// <summary>
+    /// XAF Admin Backend Module - Provides administration UI for all Sivar.Os entities.
+    /// This is the admin dashboard for managing users, content, AI chat, and system configuration.
+    /// </summary>
     public sealed class OsModule : ModuleBase
     {
+        // Navigation Group Constants
+        private const string NavGroupUsers = "Users & Profiles";
+        private const string NavGroupContent = "Content";
+        private const string NavGroupAIChat = "AI Chat";
+        private const string NavGroupAIConfig = "AI Configuration";
+        private const string NavGroupBusiness = "Business";
+        private const string NavGroupSearch = "Search & Ranking";
+        private const string NavGroupSystem = "System";
+
         public OsModule()
         {
             //
-            // OsModule
+            // OsModule - Admin Backend for Sivar.Os
             //
-
-            AdditionalExportedTypes.Add(typeof(BusinessContactInfo));
-            AdditionalExportedTypes.Add(typeof(ChatBotSettings));
-            AdditionalExportedTypes.Add(typeof(AgentCapability));
-            AdditionalExportedTypes.Add(typeof(CapabilityParameter));
-            AdditionalExportedTypes.Add(typeof(QuickAction));
-            AdditionalExportedTypes.Add(typeof(Activity));
-            AdditionalExportedTypes.Add(typeof(Post));
+            // Entity Registration by Navigation Group:
+            //
+            // === Users & Profiles ===
             AdditionalExportedTypes.Add(typeof(User));
             AdditionalExportedTypes.Add(typeof(Profile));
             AdditionalExportedTypes.Add(typeof(ProfileType));
             AdditionalExportedTypes.Add(typeof(ProfileFollower));
+            AdditionalExportedTypes.Add(typeof(ProfileBookmark));
+            AdditionalExportedTypes.Add(typeof(ProfileEmotionSummary));
+
+            // === Content ===
             AdditionalExportedTypes.Add(typeof(Post));
             AdditionalExportedTypes.Add(typeof(PostAttachment));
             AdditionalExportedTypes.Add(typeof(Comment));
             AdditionalExportedTypes.Add(typeof(Reaction));
-            AdditionalExportedTypes.Add(typeof(Notification));
+            AdditionalExportedTypes.Add(typeof(CategoryDefinition));
+
+            // === AI Chat ===
             AdditionalExportedTypes.Add(typeof(Conversation));
             AdditionalExportedTypes.Add(typeof(ChatMessage));
             AdditionalExportedTypes.Add(typeof(SavedResult));
+            AdditionalExportedTypes.Add(typeof(ChatTokenUsage));
+
+            // === AI Configuration ===
+            AdditionalExportedTypes.Add(typeof(ChatBotSettings));
+            AdditionalExportedTypes.Add(typeof(AgentCapability));
+            AdditionalExportedTypes.Add(typeof(CapabilityParameter));
+            AdditionalExportedTypes.Add(typeof(QuickAction));
+            AdditionalExportedTypes.Add(typeof(AgentConfiguration));
+            AdditionalExportedTypes.Add(typeof(AgentTool));
+
+            // === Business ===
+            AdditionalExportedTypes.Add(typeof(BusinessContactInfo));
+            AdditionalExportedTypes.Add(typeof(ContactType));
+            AdditionalExportedTypes.Add(typeof(AdTransaction));
+
+            // === Search & Ranking ===
+            AdditionalExportedTypes.Add(typeof(SearchResult));
+            AdditionalExportedTypes.Add(typeof(UserSearchBehavior));
+            AdditionalExportedTypes.Add(typeof(RankingConfiguration));
+
+            // === System ===
+            AdditionalExportedTypes.Add(typeof(Activity));
+            AdditionalExportedTypes.Add(typeof(Notification));
 
             AdditionalExportedTypes.Add(typeof(Xaf.Sivar.Os.Module.BusinessObjects.ApplicationUser));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRole));
@@ -92,13 +129,20 @@ namespace Xaf.Sivar.Os.Module
         {
             base.Setup(moduleManager);
         }
-        private void ConfigureTypeWithDefaultClassOptions(ITypesInfo typesInfo, Type type, Action<ITypeInfo>? additionalConfig = null)
+        private void ConfigureTypeWithDefaultClassOptions(ITypesInfo typesInfo, Type type, string? navigationGroup = null, Action<ITypeInfo>? additionalConfig = null)
         {
             var typeInfo = typesInfo.FindTypeInfo(type);
             if (typeInfo != null)
             {
                 typeInfo.AddAttribute(new DefaultClassOptionsAttribute());
                 typeInfo.AddAttribute(new ModelDefaultAttribute("IsCloneable", "True"));
+                
+                // Add navigation group if specified
+                if (!string.IsNullOrEmpty(navigationGroup))
+                {
+                    typeInfo.AddAttribute(new NavigationItemAttribute(navigationGroup));
+                }
+                
                 additionalConfig?.Invoke(typeInfo);
             }
         }
@@ -111,28 +155,65 @@ namespace Xaf.Sivar.Os.Module
                 "Notification_SivarOs"
             );
 
-            // Configure DefaultClassOptions for Sivar.Os entities
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Post));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(User));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Profile));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileType), typeInfo =>
+            // ============================================
+            // Navigation Group: Users & Profiles
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(User), NavGroupUsers);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Profile), NavGroupUsers);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileType), NavGroupUsers, typeInfo =>
             {
                 typeInfo.Members.FirstOrDefault(m => m.Name == nameof(ProfileType.FeatureFlags))?.AddAttribute(new FieldSizeAttribute(FieldSizeAttribute.Unlimited));
             });
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileFollower));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(PostAttachment));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Comment));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Reaction));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Notification));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Conversation));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatMessage));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SavedResult));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Activity));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessContactInfo));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatBotSettings));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AgentCapability));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(CapabilityParameter));
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(QuickAction));
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileFollower), NavGroupUsers);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileBookmark), NavGroupUsers);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ProfileEmotionSummary), NavGroupUsers);
+
+            // ============================================
+            // Navigation Group: Content
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Post), NavGroupContent);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(PostAttachment), NavGroupContent);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Comment), NavGroupContent);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Reaction), NavGroupContent);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(CategoryDefinition), NavGroupContent);
+
+            // ============================================
+            // Navigation Group: AI Chat
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Conversation), NavGroupAIChat);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatMessage), NavGroupAIChat);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SavedResult), NavGroupAIChat);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatTokenUsage), NavGroupAIChat);
+
+            // ============================================
+            // Navigation Group: AI Configuration
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatBotSettings), NavGroupAIConfig);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AgentCapability), NavGroupAIConfig);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(CapabilityParameter), NavGroupAIConfig);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(QuickAction), NavGroupAIConfig);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AgentConfiguration), NavGroupAIConfig);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AgentTool), NavGroupAIConfig);
+
+            // ============================================
+            // Navigation Group: Business
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessContactInfo), NavGroupBusiness);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ContactType), NavGroupBusiness);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AdTransaction), NavGroupBusiness);
+
+            // ============================================
+            // Navigation Group: Search & Ranking
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SearchResult), NavGroupSearch);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(UserSearchBehavior), NavGroupSearch);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(RankingConfiguration), NavGroupSearch);
+
+            // ============================================
+            // Navigation Group: System
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Activity), NavGroupSystem);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Notification), NavGroupSystem);
         }
     }
 }
