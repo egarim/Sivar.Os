@@ -566,9 +566,13 @@ public class ProfileService : IProfileService
     /// <summary>
     /// Gets a profile by identifier (GUID or handle)
     /// Tries to parse as GUID first, then falls back to handle search
+    /// If viewerKeycloakId is provided and matches the profile owner, visibility restrictions are bypassed
     /// </summary>
-    public async Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier)
+    public async Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier, string? viewerKeycloakId = null)
     {
+        _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] START - Identifier: {Identifier}, ViewerKeycloakId: {ViewerKeycloakId}", 
+            identifier, viewerKeycloakId ?? "NULL");
+
         if (string.IsNullOrWhiteSpace(identifier))
             return null;
 
@@ -576,22 +580,98 @@ public class ProfileService : IProfileService
         if (Guid.TryParse(identifier, out var profileId))
         {
             _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Identifier is GUID: {ProfileId}", profileId);
-            return await GetPublicProfileAsync(profileId);
+            return await GetProfileByIdWithOwnerCheckAsync(profileId, viewerKeycloakId);
         }
 
         // Not a GUID, treat as handle (e.g., "jose-ojeda")
         _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Identifier is handle: {Handle}", identifier);
         var profile = await _profileRepository.GetByHandleAsync(identifier);
         
-        if (profile == null || profile.VisibilityLevel != VisibilityLevel.Public)
+        if (profile == null)
         {
-            _logger.LogWarning("[ProfileService.GetProfileByIdentifierAsync] Profile not found or not public for handle: {Handle}", identifier);
+            _logger.LogWarning("[ProfileService.GetProfileByIdentifierAsync] Profile not found for handle: {Handle}", identifier);
             return null;
         }
 
-        // Increment view count
-        await _profileRepository.IncrementViewCountAsync(profile.Id);
-        await _profileRepository.SaveChangesAsync();
+        _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Profile loaded - Id: {ProfileId}, Handle: {Handle}, VisibilityLevel: {VisibilityLevel}, UserLoaded: {UserLoaded}", 
+            profile.Id, profile.Handle, profile.VisibilityLevel, profile.User != null);
+
+        // Check if this is the owner viewing their own profile
+        bool isOwner = false;
+        if (!string.IsNullOrEmpty(viewerKeycloakId) && profile.User != null)
+        {
+            _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Checking ownership - ProfileUserKeycloakId: {ProfileUserKeycloakId}, ViewerKeycloakId: {ViewerKeycloakId}", 
+                profile.User.KeycloakId, viewerKeycloakId);
+            isOwner = profile.User.KeycloakId == viewerKeycloakId;
+        }
+        else if (!string.IsNullOrEmpty(viewerKeycloakId))
+        {
+            // Load the user to check ownership
+            _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] User not loaded, fetching with related data");
+            var profileWithUser = await _profileRepository.GetWithRelatedDataAsync(profile.Id);
+            if (profileWithUser?.User != null)
+            {
+                _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Loaded user - ProfileUserKeycloakId: {ProfileUserKeycloakId}, ViewerKeycloakId: {ViewerKeycloakId}", 
+                    profileWithUser.User.KeycloakId, viewerKeycloakId);
+                isOwner = profileWithUser.User.KeycloakId == viewerKeycloakId;
+            }
+            else
+            {
+                _logger.LogWarning("[ProfileService.GetProfileByIdentifierAsync] Could not load user for profile: {ProfileId}", profile.Id);
+            }
+        }
+
+        _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Ownership check result - IsOwner: {IsOwner}, VisibilityLevel: {VisibilityLevel}", 
+            isOwner, profile.VisibilityLevel);
+
+        if (!isOwner && profile.VisibilityLevel != VisibilityLevel.Public)
+        {
+            _logger.LogWarning("[ProfileService.GetProfileByIdentifierAsync] Access denied - Profile not public and viewer is not owner. Handle: {Handle}", identifier);
+            return null;
+        }
+
+        _logger.LogInformation("[ProfileService.GetProfileByIdentifierAsync] Access granted - Handle: {Handle}, IsOwner: {IsOwner}", identifier, isOwner);
+
+        // Increment view count (only if not the owner)
+        if (!isOwner)
+        {
+            await _profileRepository.IncrementViewCountAsync(profile.Id);
+            await _profileRepository.SaveChangesAsync();
+        }
+
+        return await MapToProfileDtoAsync(profile);
+    }
+
+    /// <summary>
+    /// Gets a profile by ID with optional owner check to bypass visibility restrictions
+    /// </summary>
+    private async Task<ProfileDto?> GetProfileByIdWithOwnerCheckAsync(Guid profileId, string? viewerKeycloakId)
+    {
+        var profile = await _profileRepository.GetWithRelatedDataAsync(profileId);
+        
+        if (profile == null)
+        {
+            _logger.LogWarning("[ProfileService.GetProfileByIdWithOwnerCheckAsync] Profile not found: {ProfileId}", profileId);
+            return null;
+        }
+
+        // Check if this is the owner viewing their own profile
+        bool isOwner = !string.IsNullOrEmpty(viewerKeycloakId) && profile.User?.KeycloakId == viewerKeycloakId;
+
+        if (!isOwner && profile.VisibilityLevel != VisibilityLevel.Public)
+        {
+            _logger.LogWarning("[ProfileService.GetProfileByIdWithOwnerCheckAsync] Profile not public: {ProfileId}", profileId);
+            return null;
+        }
+
+        _logger.LogInformation("[ProfileService.GetProfileByIdWithOwnerCheckAsync] Profile found - Id: {ProfileId}, IsOwner: {IsOwner}", profileId, isOwner);
+
+        // Increment view count (only if not the owner)
+        if (!isOwner)
+        {
+            await _profileRepository.IncrementViewCountAsync(profile.Id);
+            await _profileRepository.SaveChangesAsync();
+        }
 
         return await MapToProfileDtoAsync(profile);
     }

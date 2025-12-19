@@ -79,6 +79,7 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
 
     /// <summary>
     /// Gets a profile by its unique handle (URL-friendly identifier)
+    /// Returns the profile regardless of visibility level - visibility check should be done by the caller
     /// </summary>
     public async Task<Profile?> GetByHandleAsync(string handle)
     {
@@ -86,11 +87,10 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
             return null;
 
         // Search for profiles with matching Handle (case-insensitive for safety)
-        // Only return public profiles for security
+        // Visibility check is done by the service layer to allow owners to view their own profiles
         return await _dbSet
             .Include(p => p.User)
             .Include(p => p.ProfileType)
-            .Where(p => p.VisibilityLevel == VisibilityLevel.Public)
             .FirstOrDefaultAsync(p => p.Handle.ToLower() == handle.ToLower());
     }
 

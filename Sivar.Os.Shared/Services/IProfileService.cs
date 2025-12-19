@@ -77,10 +77,12 @@ public interface IProfileService
     /// <summary>
     /// Gets a profile by identifier (GUID or DisplayName slug)
     /// Tries to parse as GUID first, then falls back to DisplayName slug search
+    /// If viewerKeycloakId is provided and matches the profile owner, visibility restrictions are bypassed
     /// </summary>
     /// <param name="identifier">Profile ID (GUID) or slug (e.g., "jose-ojeda")</param>
-    /// <returns>Profile DTO if found and public, null otherwise</returns>
-    Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier);
+    /// <param name="viewerKeycloakId">Optional KeycloakId of the viewer to check ownership</param>
+    /// <returns>Profile DTO if found and accessible, null otherwise</returns>
+    Task<ProfileDto?> GetProfileByIdentifierAsync(string identifier, string? viewerKeycloakId = null);
 
     /// <summary>
     /// Gets public profiles with pagination

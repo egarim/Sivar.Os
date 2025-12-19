@@ -86,12 +86,17 @@ public class ProfilesClient : BaseRepositoryClient, IProfilesClient
 
         try
         {
-            _logger.LogInformation("[ProfilesClient.GetProfileByIdentifierAsync] Fetching profile by identifier: {Identifier}", identifier);
-            var profile = await _profileService.GetProfileByIdentifierAsync(identifier);
+            // Get the current user's keycloakId to check ownership
+            var keycloakId = GetKeycloakIdFromContext();
+            _logger.LogInformation("[ProfilesClient.GetProfileByIdentifierAsync] Fetching profile - Identifier: {Identifier}, ViewerKeycloakId: {KeycloakId}", 
+                identifier, keycloakId ?? "NULL");
+            
+            var profile = await _profileService.GetProfileByIdentifierAsync(identifier, keycloakId);
             
             if (profile == null)
             {
-                _logger.LogWarning("[ProfilesClient.GetProfileByIdentifierAsync] Profile not found for identifier: {Identifier}", identifier);
+                _logger.LogWarning("[ProfilesClient.GetProfileByIdentifierAsync] Profile not found for identifier: {Identifier}, ViewerKeycloakId: {KeycloakId}", 
+                    identifier, keycloakId ?? "NULL");
                 return new ProfileDto();
             }
 
