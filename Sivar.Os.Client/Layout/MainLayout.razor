@@ -668,6 +668,7 @@
     [Inject] private IDialogService DialogService { get; set; } = null!;
 
     public bool IsAIChatVisible => _aiChatVisible;
+    public bool IsDarkMode => _isDarkMode;
     public List<Conversation> ChatConversations => _conversations;
     public string CurrentConversationId => _currentConversationId.ToString();
 
@@ -864,11 +865,15 @@
 
     private void DarkModeToggle()
     {
+        Logger.LogInformation("[MainLayout.DarkModeToggle] Before toggle: IsDarkMode={IsDarkMode}", _isDarkMode);
         _isDarkMode = !_isDarkMode;
+        Logger.LogInformation("[MainLayout.DarkModeToggle] After toggle: IsDarkMode={IsDarkMode}", _isDarkMode);
+        StateHasChanged();
     }
 
     public void ToggleDarkMode()
     {
+        Logger.LogInformation("[MainLayout.ToggleDarkMode] Called");
         DarkModeToggle();
     }
 

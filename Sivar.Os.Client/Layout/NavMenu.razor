@@ -85,12 +85,16 @@
             <MudNavLink @onclick="@ToggleAIChat" Icon="@Icons.Material.Filled.SmartToy">@Localizer["Chat"]</MudNavLink>
         </MudNavMenu>
 
-        <div class="nav-menu-actions">
-            <MudIconButton Icon="@(_layout?.DarkLightModeButtonIcon ?? Icons.Material.Filled.DarkMode)" 
-                           Color="Color.Inherit" 
-                           OnClick="@ToggleTheme"
-                           Title="Toggle Theme"
-                           Class="nav-action-btn" />
+        <div class="nav-theme-toggle">
+            <MudIcon Icon="@Icons.Material.Filled.LightMode" Size="Size.Small" Class="@($"theme-icon-light {(!(_layout?.IsDarkMode ?? true) ? "active" : "")}")" />
+            <MudSwitch T="bool" 
+                       Value="@(_layout?.IsDarkMode ?? true)" 
+                       ValueChanged="@OnThemeToggleChanged"
+                       Color="Color.Primary"
+                       Class="theme-switch"
+                       ThumbIcon="@(_layout?.IsDarkMode ?? true ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
+                       ThumbIconColor="@(_layout?.IsDarkMode ?? true ? Color.Primary : Color.Warning)" />
+            <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small" Class="@($"theme-icon-dark {(_layout?.IsDarkMode ?? true ? "active" : "")}")" />
         </div>
     }
 
@@ -125,18 +129,43 @@
         padding: 8px 8px 0 8px;
     }
 
-    .nav-menu-actions {
+    .nav-theme-toggle {
         display: flex;
+        align-items: center;
         justify-content: center;
         gap: 8px;
-        padding: 16px 16px 8px 16px;
-        border-top: 1px solid var(--mud-palette-lines-default);
+        padding: 12px 16px;
         margin-top: 8px;
     }
 
-    .nav-action-btn {
-        width: 40px;
-        height: 40px;
+    .theme-icon-light {
+        color: var(--mud-palette-text-secondary);
+        opacity: 0.5;
+        transition: opacity 0.2s, color 0.2s;
+    }
+
+    .theme-icon-light.active {
+        color: var(--mud-palette-warning);
+        opacity: 1;
+    }
+
+    .theme-icon-dark {
+        color: var(--mud-palette-text-secondary);
+        opacity: 0.5;
+        transition: opacity 0.2s, color 0.2s;
+    }
+
+    .theme-icon-dark.active {
+        color: var(--mud-palette-primary);
+        opacity: 1;
+    }
+
+    .theme-switch {
+        margin: 0;
+    }
+
+    .theme-switch .mud-switch-thumb {
+        background-color: var(--mud-palette-surface) !important;
     }
 
     .nav-menu-spacer {
@@ -616,7 +645,21 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
 
     private void ToggleTheme()
     {
+        Console.WriteLine($"[NavMenu.ToggleTheme] Current IsDarkMode: {_layout?.IsDarkMode}");
         _layout?.ToggleDarkMode();
+        Console.WriteLine($"[NavMenu.ToggleTheme] After toggle IsDarkMode: {_layout?.IsDarkMode}");
+        StateHasChanged();
+    }
+
+    private void OnThemeToggleChanged(bool newValue)
+    {
+        Console.WriteLine($"[NavMenu.OnThemeToggleChanged] Switch changed to: {newValue}, Current IsDarkMode: {_layout?.IsDarkMode}");
+        if (_layout != null && _layout.IsDarkMode != newValue)
+        {
+            Console.WriteLine($"[NavMenu.OnThemeToggleChanged] Toggling theme...");
+            _layout.ToggleDarkMode();
+            StateHasChanged();
+        }
     }
 
     private void ToggleAIChat()
