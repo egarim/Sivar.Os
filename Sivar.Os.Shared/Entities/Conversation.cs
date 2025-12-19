@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Sivar.Os.Shared.Entities;
@@ -32,11 +33,38 @@ public class Conversation : BaseEntity
 
     /// <summary>
     /// Collection of messages in this conversation
+    /// Uses ObservableCollection for XAF/EF Core change tracking compatibility
     /// </summary>
-    public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
+    public virtual ICollection<ChatMessage> Messages { get; set; } = new ObservableCollection<ChatMessage>();
 
     /// <summary>
     /// Collection of saved results from this conversation
+    /// Uses ObservableCollection for XAF/EF Core change tracking compatibility
     /// </summary>
-    public virtual ICollection<SavedResult> SavedResults { get; set; } = new List<SavedResult>();
+    public virtual ICollection<SavedResult> SavedResults { get; set; } = new ObservableCollection<SavedResult>();
+
+    // ========================================
+    // Token Usage & Cost Totals (denormalized for performance)
+    // Updated incrementally when ChatTokenUsage is saved
+    // ========================================
+
+    /// <summary>
+    /// Total input tokens consumed in this conversation
+    /// </summary>
+    public virtual int TotalInputTokens { get; set; }
+
+    /// <summary>
+    /// Total output tokens consumed in this conversation
+    /// </summary>
+    public virtual int TotalOutputTokens { get; set; }
+
+    /// <summary>
+    /// Total tokens (input + output) consumed in this conversation
+    /// </summary>
+    public virtual int TotalTokens { get; set; }
+
+    /// <summary>
+    /// Total estimated cost in USD for this conversation
+    /// </summary>
+    public virtual decimal TotalCost { get; set; }
 }

@@ -46,6 +46,24 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
             .IsRequired()
             .HasDefaultValue(false);
 
+        // Token usage and cost totals (denormalized for performance)
+        builder.Property(c => c.TotalInputTokens)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.TotalOutputTokens)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.TotalTokens)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.TotalCost)
+            .IsRequired()
+            .HasDefaultValue(0m)
+            .HasPrecision(18, 6);
+
         // Relationships
         builder.HasOne(c => c.Profile)
             .WithMany()

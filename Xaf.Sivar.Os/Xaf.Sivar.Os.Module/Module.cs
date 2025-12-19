@@ -60,6 +60,7 @@ namespace Xaf.Sivar.Os.Module
             AdditionalExportedTypes.Add(typeof(ChatMessage));
             AdditionalExportedTypes.Add(typeof(SavedResult));
             AdditionalExportedTypes.Add(typeof(ChatTokenUsage));
+            AdditionalExportedTypes.Add(typeof(AiModelPricing));
 
             // === AI Configuration ===
             AdditionalExportedTypes.Add(typeof(ChatBotSettings));
@@ -180,10 +181,32 @@ namespace Xaf.Sivar.Os.Module
             // ============================================
             // Navigation Group: AI Chat
             // ============================================
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Conversation), NavGroupAIChat);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Conversation), NavGroupAIChat, typeInfo =>
+            {
+                // Format TotalCost as currency with 6 decimal places for micro-costs
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(Conversation.TotalCost))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+            });
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatMessage), NavGroupAIChat);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(SavedResult), NavGroupAIChat);
-            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatTokenUsage), NavGroupAIChat);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ChatTokenUsage), NavGroupAIChat, typeInfo =>
+            {
+                // Format EstimatedCost as currency with 6 decimal places for micro-costs
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(ChatTokenUsage.EstimatedCost))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+            });
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AiModelPricing), NavGroupAIChat, typeInfo =>
+            {
+                // Format all cost fields as currency with 6 decimal places
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(AiModelPricing.InputCostPer1M))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(AiModelPricing.OutputCostPer1M))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(AiModelPricing.BatchInputCostPer1M))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+                typeInfo.Members.FirstOrDefault(m => m.Name == nameof(AiModelPricing.BatchOutputCostPer1M))
+                    ?.AddAttribute(new ModelDefaultAttribute("DisplayFormat", "{0:$0.000000}"));
+            });
 
             // ============================================
             // Navigation Group: AI Configuration

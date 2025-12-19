@@ -28,6 +28,7 @@ public class ChatService : IChatService
     private readonly IIntentClassifier _intentClassifier;
     private readonly ChatServiceOptions _options;
     private readonly ISearchResultService _searchResultService;
+    private readonly IAiCostService _aiCostService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
@@ -40,6 +41,7 @@ public class ChatService : IChatService
         IIntentClassifier intentClassifier,
         IOptions<ChatServiceOptions> options,
         ISearchResultService searchResultService,
+        IAiCostService aiCostService,
         ILogger<ChatService> logger)
     {
         _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
@@ -51,6 +53,7 @@ public class ChatService : IChatService
         _intentClassifier = intentClassifier ?? throw new ArgumentNullException(nameof(intentClassifier));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _searchResultService = searchResultService ?? throw new ArgumentNullException(nameof(searchResultService));
+        _aiCostService = aiCostService ?? throw new ArgumentNullException(nameof(aiCostService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -290,7 +293,21 @@ public class ChatService : IChatService
                     ? _options.OpenAI.ModelId 
                     : _options.Ollama.ModelId;
 
-                // Create audit record
+                // Calculate estimated cost for this interaction
+                decimal? estimatedCost = null;
+                try
+                {
+                    var costResult = await _aiCostService.CalculateCostAsync(modelName, inputTokens, outputTokens);
+                    estimatedCost = costResult.TotalCost;
+                    _logger.LogDebug("[ChatService] Cost calculated - Model={Model}, Input={Input}, Output={Output}, Cost=${Cost:F6}",
+                        modelName, inputTokens, outputTokens, estimatedCost);
+                }
+                catch (Exception costEx)
+                {
+                    _logger.LogWarning(costEx, "[ChatService] Failed to calculate cost for model {Model}", modelName);
+                }
+
+                // Create audit record with cost
                 var tokenUsageRecord = new ChatTokenUsage
                 {
                     ProfileId = profileId,
@@ -301,11 +318,21 @@ public class ChatService : IChatService
                     ModelName = modelName,
                     Intent = intentClassification.Intent.ToString(),
                     MessagePreview = dto.Content.Length > 100 ? dto.Content.Substring(0, 100) : dto.Content,
+                    EstimatedCost = estimatedCost,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
                 await _tokenUsageRepository.AddAsync(tokenUsageRecord);
                 await _tokenUsageRepository.SaveChangesAsync();
+
+                // Update conversation totals (denormalized for performance)
+                conversation.TotalInputTokens += inputTokens;
+                conversation.TotalOutputTokens += outputTokens;
+                conversation.TotalTokens += totalTokens;
+                conversation.TotalCost += estimatedCost ?? 0m;
+                conversation.UpdatedAt = DateTime.UtcNow;
+                await _conversationRepository.UpdateAsync(conversation);
+                await _conversationRepository.SaveChangesAsync();
 
                 _logger.LogInformation("[ChatService.SendMessageAsync] Token usage recorded - ProfileId={ProfileId}, TotalUsedThisPeriod={Used}, Remaining={Remaining}, RequestId={RequestId}", 
                     profileId, profile.TokensUsedThisPeriod, profile.TokensRemaining, requestId);

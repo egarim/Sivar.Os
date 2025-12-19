@@ -135,6 +135,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists ranking configurations
             
+            // Seed AI model pricing data (for cost tracking)
+            SeedAiModelPricing();
+            
+            ObjectSpace.CommitChanges(); //This line persists AI model pricing
+            
             // Seed default profiles for users (runs in both DEBUG and RELEASE)
             SeedDefaultProfiles();
 
@@ -1478,6 +1483,92 @@ IMPORTANT INSTRUCTIONS:
             restaurantConfig.UpdatedAt = now;
             
             System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created restaurant RankingConfiguration");
+        }
+        
+        /// <summary>
+        /// Seeds AI model pricing data for cost tracking
+        /// Creates pricing entries for OpenAI and Ollama models with tier classifications
+        /// </summary>
+        void SeedAiModelPricing()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedAiModelPricing...");
+            var now = DateTime.UtcNow;
+            
+            // Check if pricing data already exists
+            var existingPricing = ObjectSpace.GetObjectsQuery<AiModelPricing>()
+                .FirstOrDefault();
+            
+            if (existingPricing != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] AI model pricing already exists. Skipping.");
+                return;
+            }
+            
+            var pricingData = new[]
+            {
+                // ========================================
+                // OPENAI CHAT MODELS
+                // ========================================
+                
+                // 💚 LOW TIER - Budget-friendly, < $1/1M tokens
+                new { ModelId = "gpt-4o-mini", DisplayName = "GPT-4o Mini", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.Low, InputCost = 0.15m, OutputCost = 0.60m, BatchInput = (decimal?)0.075m, BatchOutput = (decimal?)0.30m, IsDefault = true, ContextWindow = (int?)128000, MaxOutput = (int?)16384, EmbedDim = (int?)null, SortOrder = 1, Notes = "⭐ Best cost/performance ratio - RECOMMENDED for most use cases" },
+                new { ModelId = "gpt-4.1-nano", DisplayName = "GPT-4.1 Nano", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.Low, InputCost = 0.10m, OutputCost = 0.40m, BatchInput = (decimal?)0.025m, BatchOutput = (decimal?)0.10m, IsDefault = false, ContextWindow = (int?)1000000, MaxOutput = (int?)32768, EmbedDim = (int?)null, SortOrder = 2, Notes = "Ultra-cheap for simple tasks, largest context window" },
+                new { ModelId = "gpt-3.5-turbo", DisplayName = "GPT-3.5 Turbo", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.Low, InputCost = 0.50m, OutputCost = 1.50m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)16385, MaxOutput = (int?)4096, EmbedDim = (int?)null, SortOrder = 10, Notes = "Legacy model, still reliable for simple tasks" },
+
+                // 💛 MEDIUM TIER - Balanced, $1-5/1M tokens
+                new { ModelId = "gpt-4.1-mini", DisplayName = "GPT-4.1 Mini", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.Medium, InputCost = 0.40m, OutputCost = 1.60m, BatchInput = (decimal?)0.10m, BatchOutput = (decimal?)0.40m, IsDefault = false, ContextWindow = (int?)1000000, MaxOutput = (int?)32768, EmbedDim = (int?)null, SortOrder = 3, Notes = "Newer model with 1M token context window" },
+                new { ModelId = "o4-mini", DisplayName = "O4 Mini Reasoning", Provider = "OpenAI", ModelType = AiModelType.Reasoning, Tier = AiModelTier.Medium, InputCost = 1.10m, OutputCost = 4.40m, BatchInput = (decimal?)0.275m, BatchOutput = (decimal?)1.10m, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 4, Notes = "Cost-efficient reasoning model for complex tasks" },
+
+                // 🔶 HIGH TIER - Premium quality, $5-20/1M tokens
+                new { ModelId = "gpt-4o", DisplayName = "GPT-4o", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.High, InputCost = 2.50m, OutputCost = 10.00m, BatchInput = (decimal?)1.25m, BatchOutput = (decimal?)5.00m, IsDefault = false, ContextWindow = (int?)128000, MaxOutput = (int?)16384, EmbedDim = (int?)null, SortOrder = 5, Notes = "High quality reasoning and complex tasks" },
+                new { ModelId = "gpt-4.1", DisplayName = "GPT-4.1", Provider = "OpenAI", ModelType = AiModelType.Chat, Tier = AiModelTier.High, InputCost = 2.00m, OutputCost = 8.00m, BatchInput = (decimal?)0.50m, BatchOutput = (decimal?)2.00m, IsDefault = false, ContextWindow = (int?)1000000, MaxOutput = (int?)32768, EmbedDim = (int?)null, SortOrder = 6, Notes = "Latest flagship with 1M context window" },
+                new { ModelId = "o3", DisplayName = "O3 Reasoning", Provider = "OpenAI", ModelType = AiModelType.Reasoning, Tier = AiModelTier.High, InputCost = 2.00m, OutputCost = 8.00m, BatchInput = (decimal?)0.50m, BatchOutput = (decimal?)2.00m, IsDefault = true, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 7, Notes = "Advanced reasoning for complex problem-solving" },
+
+                // 💎 PREMIUM TIER - Enterprise, > $20/1M tokens
+                new { ModelId = "o1", DisplayName = "O1 Reasoning", Provider = "OpenAI", ModelType = AiModelType.Reasoning, Tier = AiModelTier.Premium, InputCost = 15.00m, OutputCost = 60.00m, BatchInput = (decimal?)7.50m, BatchOutput = (decimal?)30.00m, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 8, Notes = "Premium reasoning for most complex tasks" },
+                new { ModelId = "o1-pro", DisplayName = "O1 Pro Reasoning", Provider = "OpenAI", ModelType = AiModelType.Reasoning, Tier = AiModelTier.Premium, InputCost = 150.00m, OutputCost = 600.00m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 9, Notes = "Enterprise-grade reasoning, highest quality" },
+
+                // ========================================
+                // OPENAI EMBEDDING MODELS
+                // ========================================
+                new { ModelId = "text-embedding-3-small", DisplayName = "Text Embedding 3 Small", Provider = "OpenAI", ModelType = AiModelType.Embedding, Tier = AiModelTier.Low, InputCost = 0.02m, OutputCost = 0m, BatchInput = (decimal?)0.01m, BatchOutput = (decimal?)null, IsDefault = true, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)1536, SortOrder = 1, Notes = "⭐ Best cost/performance for semantic search - RECOMMENDED" },
+                new { ModelId = "text-embedding-3-large", DisplayName = "Text Embedding 3 Large", Provider = "OpenAI", ModelType = AiModelType.Embedding, Tier = AiModelTier.Medium, InputCost = 0.13m, OutputCost = 0m, BatchInput = (decimal?)0.065m, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)3072, SortOrder = 2, Notes = "Higher quality embeddings, 3072 dimensions" },
+                new { ModelId = "text-embedding-ada-002", DisplayName = "Text Embedding Ada 002", Provider = "OpenAI", ModelType = AiModelType.Embedding, Tier = AiModelTier.Low, InputCost = 0.10m, OutputCost = 0m, BatchInput = (decimal?)0.05m, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)1536, SortOrder = 3, Notes = "Legacy embedding model, still supported" },
+
+                // ========================================
+                // LOCAL MODELS (FREE)
+                // ========================================
+                new { ModelId = "llama3.2", DisplayName = "Llama 3.2 (Ollama)", Provider = "Ollama", ModelType = AiModelType.Local, Tier = AiModelTier.Free, InputCost = 0m, OutputCost = 0m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = true, ContextWindow = (int?)128000, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 1, Notes = "🆓 Free local model - only infrastructure/compute costs" },
+                new { ModelId = "llama3.1", DisplayName = "Llama 3.1 (Ollama)", Provider = "Ollama", ModelType = AiModelType.Local, Tier = AiModelTier.Free, InputCost = 0m, OutputCost = 0m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)128000, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 2, Notes = "🆓 Free local model - previous version" },
+                new { ModelId = "mistral", DisplayName = "Mistral (Ollama)", Provider = "Ollama", ModelType = AiModelType.Local, Tier = AiModelTier.Free, InputCost = 0m, OutputCost = 0m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)32000, MaxOutput = (int?)null, EmbedDim = (int?)null, SortOrder = 3, Notes = "🆓 Free local model - efficient for its size" },
+                new { ModelId = "nomic-embed-text", DisplayName = "Nomic Embed Text (Ollama)", Provider = "Ollama", ModelType = AiModelType.Local, Tier = AiModelTier.Free, InputCost = 0m, OutputCost = 0m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)768, SortOrder = 4, Notes = "🆓 Free local embedding model" },
+                new { ModelId = "mxbai-embed-large", DisplayName = "MXBai Embed Large (Ollama)", Provider = "Ollama", ModelType = AiModelType.Local, Tier = AiModelTier.Free, InputCost = 0m, OutputCost = 0m, BatchInput = (decimal?)null, BatchOutput = (decimal?)null, IsDefault = false, ContextWindow = (int?)null, MaxOutput = (int?)null, EmbedDim = (int?)1024, SortOrder = 5, Notes = "🆓 Free local embedding model - higher quality" }
+            };
+
+            foreach (var data in pricingData)
+            {
+                var pricing = ObjectSpace.CreateObject<AiModelPricing>();
+                pricing.ModelId = data.ModelId;
+                pricing.DisplayName = data.DisplayName;
+                pricing.Provider = data.Provider;
+                pricing.ModelType = data.ModelType;
+                pricing.Tier = data.Tier;
+                pricing.InputCostPer1M = data.InputCost;
+                pricing.OutputCostPer1M = data.OutputCost;
+                pricing.BatchInputCostPer1M = data.BatchInput;
+                pricing.BatchOutputCostPer1M = data.BatchOutput;
+                pricing.IsActive = true;
+                pricing.IsDefault = data.IsDefault;
+                pricing.ContextWindowSize = data.ContextWindow;
+                pricing.MaxOutputTokens = data.MaxOutput;
+                pricing.EmbeddingDimensions = data.EmbedDim;
+                pricing.SortOrder = data.SortOrder;
+                pricing.Notes = data.Notes;
+                pricing.PricingUpdatedAt = now;
+                pricing.CreatedAt = now;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded {pricingData.Length} AI model pricing records");
         }
         
         /// <summary>

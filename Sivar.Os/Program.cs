@@ -119,6 +119,7 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ISavedResultRepository, SavedResultRepository>();
 builder.Services.AddScoped<IChatTokenUsageRepository, ChatTokenUsageRepository>();
+builder.Services.AddScoped<IAiModelPricingRepository, AiModelPricingRepository>(); // AI Cost Tracking
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<AnalyticsRepository>(); // Phase 7: Continuous Aggregates
 // Phase 1: Contact Actions - Repository registration
@@ -201,6 +202,7 @@ builder.Services.AddScoped<IContentExtractionService, ContentExtractionService>(
 builder.Services.AddScoped<IRankingService, RankingService>(); // Phase 11: Results Ranking & Personalization
 builder.Services.AddScoped<IProfileAdSelector, ProfileAdSelector>(); // Search Ads System
 builder.Services.AddScoped<IProfileAdBudgetService, ProfileAdBudgetService>(); // Search Ads System
+builder.Services.AddScoped<IAiCostService, AiCostService>(); // AI Cost Tracking
 
 // --- Sentiment Analysis Services Registration ---
 builder.Services.AddScoped<IClientSentimentAnalysisService, ClientSentimentAnalysisService>();

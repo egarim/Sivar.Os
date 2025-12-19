@@ -43,8 +43,15 @@ namespace Xaf.Sivar.Os.Win
 #else
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                
-                e.Updater.Update();
+                try
+                {
+                    e.Updater.Update();
+                }
+                catch (Exception ex) when (ex.Message.Contains("cannot drop index") || ex.Message.Contains("2BP01"))
+                {
+                    // Ignore constraint errors on subsequent runs - schema is already up to date
+                    System.Diagnostics.Debug.WriteLine($"[XAF] Schema already up to date, ignoring constraint error: {ex.Message}");
+                }
                 e.Handled = true;
             }
             else

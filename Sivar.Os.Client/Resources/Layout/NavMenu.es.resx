@@ -70,6 +70,11 @@
     <comment>Elemento del menú de navegación Buscar</comment>
   </data>
   
+  <data name="Chat" xml:space="preserve">
+    <value>Chat</value>
+    <comment>Elemento del menú de navegación Chat/Asistente IA</comment>
+  </data>
+  
   <data name="Counter" xml:space="preserve">
     <value>Contador</value>
     <comment>Elemento del menú de navegación Contador</comment>

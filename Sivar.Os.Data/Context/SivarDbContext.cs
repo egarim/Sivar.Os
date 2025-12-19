@@ -86,6 +86,11 @@ public class SivarDbContext : DbContext
     public DbSet<ChatTokenUsage> ChatTokenUsages { get; set; } = null!;
 
     /// <summary>
+    /// AI model pricing for cost calculation and tracking
+    /// </summary>
+    public DbSet<AiModelPricing> AiModelPricings { get; set; } = null!;
+
+    /// <summary>
     /// Structured search results from AI chat
     /// </summary>
     public DbSet<SearchResult> SearchResults { get; set; } = null!;
@@ -193,6 +198,7 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ChatMessageConfiguration());
         modelBuilder.ApplyConfiguration(new SavedResultConfiguration());
         modelBuilder.ApplyConfiguration(new ChatTokenUsageConfiguration());
+        modelBuilder.ApplyConfiguration(new AiModelPricingConfiguration());
         modelBuilder.ApplyConfiguration(new SearchResultConfiguration());
         modelBuilder.ApplyConfiguration(new ActivityConfiguration());
         modelBuilder.ApplyConfiguration(new ProfileEmotionSummaryConfiguration());
