@@ -1,6 +1,9 @@
 @using Sivar.Os.Client.Pages
 @using Microsoft.Extensions.Localization
+@using MudBlazor
 @inject IStringLocalizer<ProfileMain> Localizer
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <div class="profile-main">
     <MudAvatar Size="Size.Large" Class="profile-avatar" Style="width: 72px; height: 72px; font-size: 28px;">
@@ -17,8 +20,48 @@
                 OnFollowClick="OnFollowClick"
                 OnMessageClick="OnMessageClick" />
         }
+        @if (ShowEditButton)
+        {
+            <div class="profile-edit-actions">
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Default" 
+                           StartIcon="@Icons.Material.Filled.Settings"
+                           Size="Size.Small"
+                           OnClick="NavigateToSettings"
+                           Class="edit-profile-btn">
+                    @Localizer["EditProfile"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Default" 
+                           StartIcon="@Icons.Material.Filled.Share"
+                           Size="Size.Small"
+                           OnClick="ShareProfile"
+                           Class="share-profile-btn">
+                    @Localizer["Share"]
+                </MudButton>
+            </div>
+        }
     </div>
 </div>
+
+<style>
+    .profile-edit-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .edit-profile-btn, .share-profile-btn {
+        font-size: 13px;
+        text-transform: none;
+        border-radius: 20px;
+        padding: 6px 16px;
+    }
+
+    .edit-profile-btn:hover, .share-profile-btn:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+</style>
 
 @code {
     [Parameter]
@@ -40,6 +83,9 @@
     public bool ShowActions { get; set; } = true;
 
     [Parameter]
+    public bool ShowEditButton { get; set; } = false;
+
+    [Parameter]
     public EventCallback OnFollowClick { get; set; }
 
     [Parameter]
@@ -50,6 +96,32 @@
         if (string.IsNullOrEmpty(FollowButtonText))
         {
             FollowButtonText = Localizer["DefaultFollowText"];
+        }
+    }
+
+    private void NavigateToSettings()
+    {
+        NavigationManager.NavigateTo("/profile/settings");
+    }
+
+    private async Task ShareProfile()
+    {
+        var profileUrl = NavigationManager.Uri;
+        var shareData = new
+        {
+            title = DisplayName,
+            text = $"Check out {DisplayName}'s profile",
+            url = profileUrl
+        };
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.share", shareData);
+        }
+        catch
+        {
+            // Fallback: copy to clipboard if Web Share API not available
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", profileUrl);
         }
     }
 }
