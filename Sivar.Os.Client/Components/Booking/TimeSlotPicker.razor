@@ -1,0 +1,169 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<TimeSlotPicker> Localizer
+
+<div class="time-slot-picker">
+    <div class="date-selector mb-4">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["SelectDate"]</MudText>
+        <MudDatePicker @bind-Date="SelectedDateNullable"
+                       Label="@Localizer["Date"]"
+                       Variant="Variant.Outlined"
+                       MinDate="DateTime.Today"
+                       MaxDate="DateTime.Today.AddDays(MaxAdvanceDays)"
+                       DateFormat="dddd, MMMM d, yyyy"
+                       Margin="Margin.Dense" />
+    </div>
+    
+    @if (IsLoading)
+    {
+        <div class="loading-slots">
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Class="ml-2">@Localizer["LoadingSlots"]</MudText>
+        </div>
+    }
+    else if (AvailableSlots == null || !AvailableSlots.Any())
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            @Localizer["NoSlotsAvailable"]
+        </MudAlert>
+    }
+    else
+    {
+        <div class="slots-container">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["AvailableTimes"]</MudText>
+            <div class="time-slots-grid">
+                @foreach (var slot in AvailableSlots)
+                {
+                    var isSelected = SelectedSlot?.StartTime == slot.StartTime;
+                    <MudButton Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                               Color="@(isSelected ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               Class="time-slot-btn"
+                               OnClick="() => SelectSlot(slot)">
+                        @slot.StartTime.ToString("h:mm tt")
+                    </MudButton>
+                }
+            </div>
+        </div>
+    }
+    
+    @if (SelectedSlot != null)
+    {
+        <div class="selected-slot-summary mt-4">
+            <MudAlert Severity="Severity.Success" Dense="true">
+                <div class="d-flex align-center justify-space-between">
+                    <div>
+                        <MudText Typo="Typo.body2">
+                            <strong>@Localizer["Selected"]:</strong> 
+                            @SelectedDate.ToString("MMM d") @@ @SelectedSlot.StartTime.ToString("h:mm tt") - @SelectedSlot.EndTime.ToString("h:mm tt")
+                        </MudText>
+                        @if (SelectedSlot.Price.HasValue)
+                        {
+                            <MudText Typo="Typo.caption">
+                                @Localizer["Price"]: @FormatPrice(SelectedSlot.Price.Value, SelectedSlot.Currency)
+                            </MudText>
+                        }
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                   Size="Size.Small"
+                                   OnClick="ClearSelection" />
+                </div>
+            </MudAlert>
+        </div>
+    }
+</div>
+
+<style>
+    .time-slot-picker {
+        padding: 16px 0;
+    }
+    
+    .loading-slots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    
+    .time-slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 8px;
+    }
+    
+    .time-slot-btn {
+        min-width: 80px;
+        font-size: 13px;
+    }
+    
+    .selected-slot-summary {
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public DateOnly SelectedDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    
+    [Parameter]
+    public EventCallback<DateOnly> SelectedDateChanged { get; set; }
+    
+    [Parameter]
+    public List<AvailableTimeSlotDto>? AvailableSlots { get; set; }
+    
+    [Parameter]
+    public AvailableTimeSlotDto? SelectedSlot { get; set; }
+    
+    [Parameter]
+    public EventCallback<AvailableTimeSlotDto?> SelectedSlotChanged { get; set; }
+    
+    [Parameter]
+    public bool IsLoading { get; set; }
+    
+    [Parameter]
+    public int MaxAdvanceDays { get; set; } = 30;
+    
+    private DateTime? SelectedDateNullable
+    {
+        get => SelectedDate.ToDateTime(TimeOnly.MinValue);
+        set
+        {
+            if (value.HasValue)
+            {
+                var newDate = DateOnly.FromDateTime(value.Value);
+                if (newDate != SelectedDate)
+                {
+                    SelectedDate = newDate;
+                    _ = SelectedDateChanged.InvokeAsync(newDate);
+                    // Clear slot selection when date changes
+                    _ = ClearSelection();
+                }
+            }
+        }
+    }
+    
+    private async Task SelectSlot(AvailableTimeSlotDto slot)
+    {
+        SelectedSlot = slot;
+        await SelectedSlotChanged.InvokeAsync(slot);
+    }
+    
+    private async Task ClearSelection()
+    {
+        SelectedSlot = null;
+        await SelectedSlotChanged.InvokeAsync(null);
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+}

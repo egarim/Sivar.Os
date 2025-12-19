@@ -30,6 +30,8 @@ namespace Xaf.Sivar.Os.Module
         private const string NavGroupAIChat = "AI Chat";
         private const string NavGroupAIConfig = "AI Configuration";
         private const string NavGroupBusiness = "Business";
+        private const string NavGroupBookings = "Bookings";
+        private const string NavGroupScheduling = "Scheduling";
         private const string NavGroupSearch = "Search & Ranking";
         private const string NavGroupSystem = "System";
 
@@ -74,6 +76,19 @@ namespace Xaf.Sivar.Os.Module
             AdditionalExportedTypes.Add(typeof(BusinessContactInfo));
             AdditionalExportedTypes.Add(typeof(ContactType));
             AdditionalExportedTypes.Add(typeof(AdTransaction));
+
+            // === Bookings (Resource Booking System) ===
+            AdditionalExportedTypes.Add(typeof(BookableResource));
+            AdditionalExportedTypes.Add(typeof(ResourceService));
+            AdditionalExportedTypes.Add(typeof(ResourceAvailability));
+            AdditionalExportedTypes.Add(typeof(ResourceException));
+            AdditionalExportedTypes.Add(typeof(ResourceBooking));
+
+            // === Scheduling (Events & Calendar) ===
+            AdditionalExportedTypes.Add(typeof(ScheduleEvent));
+            AdditionalExportedTypes.Add(typeof(EventAttendee));
+            AdditionalExportedTypes.Add(typeof(EventReminder));
+            AdditionalExportedTypes.Add(typeof(RecurrenceRule));
 
             // === Search & Ranking ===
             AdditionalExportedTypes.Add(typeof(SearchResult));
@@ -224,6 +239,23 @@ namespace Xaf.Sivar.Os.Module
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessContactInfo), NavGroupBusiness);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ContactType), NavGroupBusiness);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(AdTransaction), NavGroupBusiness);
+
+            // ============================================
+            // Navigation Group: Bookings (Resource Booking System)
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BookableResource), NavGroupBookings);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ResourceService), NavGroupBookings);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ResourceAvailability), NavGroupBookings);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ResourceException), NavGroupBookings);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ResourceBooking), NavGroupBookings);
+
+            // ============================================
+            // Navigation Group: Scheduling (Events & Calendar)
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(ScheduleEvent), NavGroupScheduling);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(EventAttendee), NavGroupScheduling);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(EventReminder), NavGroupScheduling);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(RecurrenceRule), NavGroupScheduling);
 
             // ============================================
             // Navigation Group: Search & Ranking

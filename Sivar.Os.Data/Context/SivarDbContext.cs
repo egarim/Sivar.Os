@@ -177,6 +177,60 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<AdTransaction> AdTransactions { get; set; } = null!;
 
+    /// <summary>
+    /// Schedule events - calendar events and appointments
+    /// Event/Appointment Scheduling System
+    /// </summary>
+    public DbSet<ScheduleEvent> ScheduleEvents { get; set; } = null!;
+
+    /// <summary>
+    /// Event attendees - people attending events
+    /// Event/Appointment Scheduling System
+    /// </summary>
+    public DbSet<EventAttendee> EventAttendees { get; set; } = null!;
+
+    /// <summary>
+    /// Event reminders - notifications for upcoming events
+    /// Event/Appointment Scheduling System
+    /// </summary>
+    public DbSet<EventReminder> EventReminders { get; set; } = null!;
+
+    /// <summary>
+    /// Recurrence rules - patterns for repeating events
+    /// Event/Appointment Scheduling System
+    /// </summary>
+    public DbSet<RecurrenceRule> RecurrenceRules { get; set; } = null!;
+
+    /// <summary>
+    /// Bookable resources - people, tables, rooms, equipment that can be booked
+    /// Resource Booking System
+    /// </summary>
+    public DbSet<BookableResource> BookableResources { get; set; } = null!;
+
+    /// <summary>
+    /// Resource services - specific services offered by a resource (e.g., haircut, massage)
+    /// Resource Booking System
+    /// </summary>
+    public DbSet<ResourceService> ResourceServices { get; set; } = null!;
+
+    /// <summary>
+    /// Resource availability - weekly schedule for when resources are available
+    /// Resource Booking System
+    /// </summary>
+    public DbSet<ResourceAvailability> ResourceAvailabilities { get; set; } = null!;
+
+    /// <summary>
+    /// Resource exceptions - holidays, special hours, blocked dates
+    /// Resource Booking System
+    /// </summary>
+    public DbSet<ResourceException> ResourceExceptions { get; set; } = null!;
+
+    /// <summary>
+    /// Resource bookings - customer reservations/appointments
+    /// Resource Booking System
+    /// </summary>
+    public DbSet<ResourceBooking> ResourceBookings { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -211,6 +265,19 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ProfileBookmarkConfiguration());
         modelBuilder.ApplyConfiguration(new CategoryDefinitionConfiguration());
         modelBuilder.ApplyConfiguration(new AdTransactionConfiguration()); // Search Ads System
+        
+        // Event/Appointment Scheduling System
+        modelBuilder.ApplyConfiguration(new ScheduleEventConfiguration());
+        modelBuilder.ApplyConfiguration(new EventAttendeeConfiguration());
+        modelBuilder.ApplyConfiguration(new EventReminderConfiguration());
+        modelBuilder.ApplyConfiguration(new RecurrenceRuleConfiguration());
+
+        // Resource Booking System
+        modelBuilder.ApplyConfiguration(new BookableResourceConfiguration());
+        modelBuilder.ApplyConfiguration(new ResourceServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new ResourceAvailabilityConfiguration());
+        modelBuilder.ApplyConfiguration(new ResourceExceptionConfiguration());
+        modelBuilder.ApplyConfiguration(new ResourceBookingConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

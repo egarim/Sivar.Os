@@ -1,0 +1,339 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<MyBookings> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<div class="my-bookings">
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="@Localizer["Upcoming"]" Icon="@Icons.Material.Filled.Upcoming">
+            @if (IsLoadingUpcoming)
+            {
+                <div class="d-flex justify-center pa-8">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (UpcomingBookings == null || !UpcomingBookings.Any())
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="ma-4">
+                    @Localizer["NoUpcomingBookings"]
+                </MudAlert>
+            }
+            else
+            {
+                <div class="bookings-list">
+                    @foreach (var booking in UpcomingBookings)
+                    {
+                        <BookingCard Booking="@booking" 
+                                     ShowActions="true"
+                                     OnCancel="() => CancelBooking(booking)"
+                                     OnReschedule="() => RescheduleBooking(booking)" />
+                    }
+                </div>
+            }
+        </MudTabPanel>
+        
+        <MudTabPanel Text="@Localizer["History"]" Icon="@Icons.Material.Filled.History">
+            @if (IsLoadingHistory)
+            {
+                <div class="d-flex justify-center pa-8">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (BookingHistory == null || !BookingHistory.Bookings.Any())
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="ma-4">
+                    @Localizer["NoBookingHistory"]
+                </MudAlert>
+            }
+            else
+            {
+                <div class="bookings-list">
+                    @foreach (var booking in BookingHistory.Bookings)
+                    {
+                        <BookingCard Booking="@booking" 
+                                     ShowActions="false"
+                                     ShowReviewButton="@(booking.Status == BookingStatus.Completed)"
+                                     OnReview="() => ReviewBooking(booking)" />
+                    }
+                </div>
+                
+                @if (BookingHistory.TotalCount > BookingHistory.PageSize)
+                {
+                    <div class="d-flex justify-center mt-4">
+                        <MudPagination Count="@((int)Math.Ceiling((double)BookingHistory.TotalCount / BookingHistory.PageSize))"
+                                       Selected="@CurrentHistoryPage"
+                                       SelectedChanged="OnHistoryPageChanged" />
+                    </div>
+                }
+            }
+        </MudTabPanel>
+    </MudTabs>
+</div>
+
+@* Cancel Booking Dialog *@
+<MudDialog @bind-Visible="ShowCancelDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Localizer["CancelBooking"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            @Localizer["CancelBookingConfirmation"]
+        </MudText>
+        <MudTextField @bind-Value="CancellationReason"
+                      Label="@Localizer["Reason"]"
+                      Placeholder="@Localizer["ReasonPlaceholder"]"
+                      Variant="Variant.Outlined"
+                      Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => ShowCancelDialog = false">@Localizer["Keep"]</MudButton>
+        <MudButton Color="Color.Error" 
+                   Variant="Variant.Filled" 
+                   OnClick="ConfirmCancel"
+                   Disabled="@IsCancelling">
+            @if (IsCancelling)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["CancelBooking"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Review Dialog *@
+<MudDialog @bind-Visible="ShowReviewDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Localizer["LeaveReview"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="review-form">
+            <MudText Typo="Typo.body2" Class="mb-2">@Localizer["HowWasExperience"]</MudText>
+            <MudRating @bind-SelectedValue="ReviewRating" MaxValue="5" Size="Size.Large" Class="mb-4" />
+            
+            <MudTextField @bind-Value="ReviewText"
+                          Label="@Localizer["Review"]"
+                          Placeholder="@Localizer["ReviewPlaceholder"]"
+                          Variant="Variant.Outlined"
+                          Lines="3" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => ShowReviewDialog = false">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SubmitReview"
+                   Disabled="@(IsSubmittingReview || ReviewRating == 0)">
+            @if (IsSubmittingReview)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["SubmitReview"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .my-bookings {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .bookings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .review-form {
+        min-width: 300px;
+    }
+</style>
+
+@code {
+    private List<ResourceBookingSummaryDto>? UpcomingBookings { get; set; }
+    private BookingListResponseDto? BookingHistory { get; set; }
+    
+    private bool IsLoadingUpcoming { get; set; }
+    private bool IsLoadingHistory { get; set; }
+    private int CurrentHistoryPage { get; set; } = 1;
+    
+    // Cancel dialog
+    private bool ShowCancelDialog { get; set; }
+    private ResourceBookingSummaryDto? BookingToCancel { get; set; }
+    private string? CancellationReason { get; set; }
+    private bool IsCancelling { get; set; }
+    
+    // Review dialog
+    private bool ShowReviewDialog { get; set; }
+    private ResourceBookingSummaryDto? BookingToReview { get; set; }
+    private int ReviewRating { get; set; }
+    private string? ReviewText { get; set; }
+    private bool IsSubmittingReview { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadUpcomingBookings(),
+            LoadBookingHistory()
+        );
+    }
+    
+    private async Task LoadUpcomingBookings()
+    {
+        IsLoadingUpcoming = true;
+        StateHasChanged();
+        
+        try
+        {
+            UpcomingBookings = await BookingsClient.GetMyUpcomingBookingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingBookings"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingUpcoming = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadBookingHistory()
+    {
+        IsLoadingHistory = true;
+        StateHasChanged();
+        
+        try
+        {
+            BookingHistory = await BookingsClient.GetMyBookingHistoryAsync(CurrentHistoryPage);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingHistory"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingHistory = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task OnHistoryPageChanged(int page)
+    {
+        CurrentHistoryPage = page;
+        await LoadBookingHistory();
+    }
+    
+    private void CancelBooking(ResourceBookingSummaryDto booking)
+    {
+        BookingToCancel = booking;
+        CancellationReason = null;
+        ShowCancelDialog = true;
+    }
+    
+    private async Task ConfirmCancel()
+    {
+        if (BookingToCancel == null) return;
+        
+        IsCancelling = true;
+        StateHasChanged();
+        
+        try
+        {
+            var result = await BookingsClient.CancelBookingAsync(
+                BookingToCancel.Id, 
+                new CancelBookingDto { Reason = CancellationReason });
+            
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["BookingCancelled"], Severity.Success);
+                ShowCancelDialog = false;
+                await LoadUpcomingBookings();
+            }
+            else
+            {
+                Snackbar.Add(Localizer["CancelFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["CancelError"], Severity.Error);
+        }
+        finally
+        {
+            IsCancelling = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void RescheduleBooking(ResourceBookingSummaryDto booking)
+    {
+        // TODO: Implement reschedule dialog
+        Snackbar.Add(Localizer["RescheduleComingSoon"], Severity.Info);
+    }
+    
+    private void ReviewBooking(ResourceBookingSummaryDto booking)
+    {
+        BookingToReview = booking;
+        ReviewRating = 0;
+        ReviewText = null;
+        ShowReviewDialog = true;
+    }
+    
+    private async Task SubmitReview()
+    {
+        if (BookingToReview == null || ReviewRating == 0) return;
+        
+        IsSubmittingReview = true;
+        StateHasChanged();
+        
+        try
+        {
+            var result = await BookingsClient.SubmitReviewAsync(
+                BookingToReview.Id,
+                new SubmitBookingReviewDto
+                {
+                    Rating = ReviewRating,
+                    Review = ReviewText
+                });
+            
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["ReviewSubmitted"], Severity.Success);
+                ShowReviewDialog = false;
+                await LoadBookingHistory();
+            }
+            else
+            {
+                Snackbar.Add(Localizer["ReviewFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ReviewError"], Severity.Error);
+        }
+        finally
+        {
+            IsSubmittingReview = false;
+            StateHasChanged();
+        }
+    }
+}
+
+@* Loading state component *@
+@code {
+    private RenderFragment LoadingState => @<div class="loading-state pa-8 d-flex flex-column align-center">
+        <MudProgressCircular Indeterminate="true" />
+        <MudText Typo="Typo.body2" Class="mt-2">@Localizer["Loading"]</MudText>
+    </div>;
+    
+    private RenderFragment<string> EmptyBookingsState => (message) => @<div class="empty-state pa-8 d-flex flex-column align-center">
+        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Default" />
+        <MudText Typo="Typo.body1" Class="mt-2 text-secondary">@message</MudText>
+    </div>;
+}

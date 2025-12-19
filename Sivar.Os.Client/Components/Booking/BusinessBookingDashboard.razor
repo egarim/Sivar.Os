@@ -1,0 +1,588 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<BusinessBookingDashboard> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<div class="business-booking-dashboard">
+    @* Stats Overview *@
+    <div class="stats-row mb-4">
+        @if (Stats != null)
+        {
+            <MudPaper Class="stat-card" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Today" Color="Color.Primary" Size="Size.Medium" />
+                <div class="stat-content">
+                    <MudText Typo="Typo.h4">@Stats.TodayBookings</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["TodayBookings"]</MudText>
+                </div>
+            </MudPaper>
+            
+            <MudPaper Class="stat-card" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Size="Size.Medium" />
+                <div class="stat-content">
+                    <MudText Typo="Typo.h4">@Stats.PendingConfirmations</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["PendingApproval"]</MudText>
+                </div>
+            </MudPaper>
+            
+            <MudPaper Class="stat-card" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Success" Size="Size.Medium" />
+                <div class="stat-content">
+                    <MudText Typo="Typo.h4">@Stats.UpcomingBookings</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["UpcomingBookings"]</MudText>
+                </div>
+            </MudPaper>
+            
+            <MudPaper Class="stat-card" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Medium" />
+                <div class="stat-content">
+                    <MudText Typo="Typo.h4">@Stats.ThisMonthRevenue.ToString("C0")</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["Revenue"]</MudText>
+                </div>
+            </MudPaper>
+        }
+        else
+        {
+            @for (int i = 0; i < 4; i++)
+            {
+                <MudPaper Class="stat-card" Elevation="1">
+                    <MudSkeleton SkeletonType="SkeletonType.Circle" Width="40px" Height="40px" />
+                    <div class="stat-content">
+                        <MudSkeleton Width="60px" Height="32px" />
+                        <MudSkeleton Width="80px" Height="16px" />
+                    </div>
+                </MudPaper>
+            }
+        }
+    </div>
+    
+    @* Today's Bookings *@
+    <MudPaper Class="section-card mb-4" Elevation="1">
+        <div class="section-header">
+            <MudText Typo="Typo.h6">@Localizer["TodaysSchedule"]</MudText>
+            <MudButton Variant="Variant.Text" 
+                       Size="Size.Small"
+                       EndIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadTodayBookings">
+                @Localizer["Refresh"]
+            </MudButton>
+        </div>
+        
+        <MudDivider />
+        
+        <div class="section-content">
+            @if (IsLoadingToday)
+            {
+                <div class="loading-state">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                </div>
+            }
+            else if (TodayBookings == null || !TodayBookings.Any())
+            {
+                <div class="empty-state">
+                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.body1" Class="text-secondary mt-2">@Localizer["NoBookingsToday"]</MudText>
+                </div>
+            }
+            else
+            {
+                <MudTimeline TimelinePosition="TimelinePosition.Start">
+                    @foreach (var booking in TodayBookings.OrderBy(b => b.StartTime))
+                    {
+                        <MudTimelineItem Color="@GetStatusColor(booking.Status)" Size="Size.Small">
+                            <ItemContent>
+                                <div class="timeline-booking">
+                                    <div class="timeline-time">
+                                        <MudText Typo="Typo.body2" Class="font-weight-bold">
+                                            @booking.StartTime.ToString("h:mm tt")
+                                        </MudText>
+                                    </div>
+                                    <div class="timeline-details">
+                                        <MudText Typo="Typo.body2">@booking.ResourceName</MudText>
+                                        <MudText Typo="Typo.caption" Class="text-secondary">
+                                            @booking.CustomerName - @(booking.ServiceName ?? Localizer["GeneralBooking"])
+                                        </MudText>
+                                    </div>
+                                    <div class="timeline-actions">
+                                        @if (booking.Status == BookingStatus.Pending)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Check" 
+                                                           Color="Color.Success" 
+                                                           Size="Size.Small"
+                                                           OnClick="() => ConfirmBooking(booking)" />
+                                        }
+                                        @if (booking.Status == BookingStatus.Confirmed)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Login" 
+                                                           Color="Color.Primary" 
+                                                           Size="Size.Small"
+                                                           Title="@Localizer["CheckIn"]"
+                                                           OnClick="() => CheckInBooking(booking)" />
+                                        }
+                                        @if (booking.Status == BookingStatus.InProgress)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" 
+                                                           Color="Color.Success" 
+                                                           Size="Size.Small"
+                                                           Title="@Localizer["Complete"]"
+                                                           OnClick="() => CompleteBooking(booking)" />
+                                        }
+                                    </div>
+                                </div>
+                            </ItemContent>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
+        </div>
+    </MudPaper>
+    
+    @* All Bookings with Filters *@
+    <MudPaper Class="section-card" Elevation="1">
+        <div class="section-header">
+            <MudText Typo="Typo.h6">@Localizer["AllBookings"]</MudText>
+        </div>
+        
+        <MudDivider />
+        
+        <div class="filters-row pa-3">
+            <MudSelect T="BookingStatus?" @bind-Value="FilterStatus"
+                       Label="@Localizer["Status"]"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Clearable="true"
+                       Class="filter-select">
+                @foreach (BookingStatus status in Enum.GetValues<BookingStatus>())
+                {
+                    <MudSelectItem T="BookingStatus?" Value="@status">@status.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+            
+            <MudDateRangePicker @bind-DateRange="DateRange"
+                                Label="@Localizer["DateRange"]"
+                                Variant="Variant.Outlined"
+                                Margin="Margin.Dense"
+                                Clearable="true"
+                                Class="filter-date" />
+            
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       OnClick="ApplyFilters">
+                @Localizer["Apply"]
+            </MudButton>
+        </div>
+        
+        <MudDivider />
+        
+        <div class="section-content">
+            @if (IsLoadingBookings)
+            {
+                <div class="loading-state">
+                    <MudProgressCircular Indeterminate="true" />
+                </div>
+            }
+            else if (Bookings == null || !Bookings.Bookings.Any())
+            {
+                <div class="empty-state">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.body1" Class="text-secondary mt-2">@Localizer["NoBookingsFound"]</MudText>
+                </div>
+            }
+            else
+            {
+                <MudTable Items="@Bookings.Bookings" Hover="true" Dense="true" Class="bookings-table">
+                    <HeaderContent>
+                        <MudTh>@Localizer["DateTime"]</MudTh>
+                        <MudTh>@Localizer["Customer"]</MudTh>
+                        <MudTh>@Localizer["Resource"]</MudTh>
+                        <MudTh>@Localizer["Service"]</MudTh>
+                        <MudTh>@Localizer["Status"]</MudTh>
+                        <MudTh>@Localizer["Actions"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudText Typo="Typo.body2">@context.StartTime.ToString("MMM d, yyyy")</MudText>
+                            <MudText Typo="Typo.caption">@context.StartTime.ToString("h:mm tt")</MudText>
+                        </MudTd>
+                        <MudTd>@context.CustomerName</MudTd>
+                        <MudTd>@context.ResourceName</MudTd>
+                        <MudTd>@(context.ServiceName ?? "-")</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                @context.Status.ToString()
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                                @if (context.Status == BookingStatus.Pending)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Check" 
+                                                 OnClick="() => ConfirmBooking(context)">
+                                        @Localizer["Confirm"]
+                                    </MudMenuItem>
+                                }
+                                @if (context.Status == BookingStatus.Confirmed)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Login" 
+                                                 OnClick="() => CheckInBooking(context)">
+                                        @Localizer["CheckIn"]
+                                    </MudMenuItem>
+                                }
+                                @if (context.Status == BookingStatus.InProgress)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.CheckCircle" 
+                                                 OnClick="() => CompleteBooking(context)">
+                                        @Localizer["Complete"]
+                                    </MudMenuItem>
+                                }
+                                @if (context.Status == BookingStatus.Pending || context.Status == BookingStatus.Confirmed)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Cancel" 
+                                                 OnClick="() => CancelBooking(context)">
+                                        @Localizer["Cancel"]
+                                    </MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.PersonOff" 
+                                                 OnClick="() => MarkNoShow(context)">
+                                        @Localizer["NoShow"]
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+                
+                @if (Bookings.TotalCount > Bookings.PageSize)
+                {
+                    <div class="d-flex justify-center pa-3">
+                        <MudPagination Count="@((int)Math.Ceiling((double)Bookings.TotalCount / Bookings.PageSize))"
+                                       Selected="@CurrentPage"
+                                       SelectedChanged="OnPageChanged" />
+                    </div>
+                }
+            }
+        </div>
+    </MudPaper>
+</div>
+
+<style>
+    .business-booking-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+    }
+    
+    .stat-content {
+        flex: 1;
+    }
+    
+    .section-card {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+    }
+    
+    .section-content {
+        padding: 16px;
+    }
+    
+    .loading-state, .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+    }
+    
+    .filters-row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-select {
+        min-width: 150px;
+    }
+    
+    .filter-date {
+        min-width: 250px;
+    }
+    
+    .timeline-booking {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .timeline-time {
+        min-width: 70px;
+    }
+    
+    .timeline-details {
+        flex: 1;
+    }
+    
+    .timeline-actions {
+        display: flex;
+        gap: 4px;
+    }
+</style>
+
+@code {
+    private BusinessBookingStatsDto? Stats { get; set; }
+    private List<ResourceBookingDto>? TodayBookings { get; set; }
+    private BookingListResponseDto? Bookings { get; set; }
+    
+    private bool IsLoadingStats { get; set; }
+    private bool IsLoadingToday { get; set; }
+    private bool IsLoadingBookings { get; set; }
+    
+    // Filters
+    private BookingStatus? FilterStatus { get; set; }
+    private DateRange? DateRange { get; set; }
+    private int CurrentPage { get; set; } = 1;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadStats(),
+            LoadTodayBookings(),
+            LoadBookings()
+        );
+    }
+    
+    private async Task LoadStats()
+    {
+        IsLoadingStats = true;
+        try
+        {
+            Stats = await BookingsClient.GetBusinessStatsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingStats"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingStats = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadTodayBookings()
+    {
+        IsLoadingToday = true;
+        StateHasChanged();
+        
+        try
+        {
+            TodayBookings = await BookingsClient.GetTodayBookingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingToday"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingToday = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadBookings()
+    {
+        IsLoadingBookings = true;
+        StateHasChanged();
+        
+        try
+        {
+            var query = new BookingQueryDto
+            {
+                Status = FilterStatus,
+                FromDate = DateRange?.Start,
+                ToDate = DateRange?.End,
+                Page = CurrentPage,
+                PageSize = 20
+            };
+            
+            Bookings = await BookingsClient.GetBusinessBookingsAsync(query);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingBookings"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingBookings = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ApplyFilters()
+    {
+        CurrentPage = 1;
+        await LoadBookings();
+    }
+    
+    private async Task OnPageChanged(int page)
+    {
+        CurrentPage = page;
+        await LoadBookings();
+    }
+    
+    private async Task ConfirmBooking(ResourceBookingDto booking)
+    {
+        try
+        {
+            var result = await BookingsClient.ConfirmBookingAsync(booking.Id);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["BookingConfirmed"], Severity.Success);
+                await RefreshData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task ConfirmBooking(ResourceBookingSummaryDto booking)
+    {
+        try
+        {
+            var result = await BookingsClient.ConfirmBookingAsync(booking.Id);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["BookingConfirmed"], Severity.Success);
+                await RefreshData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task CheckInBooking(ResourceBookingSummaryDto booking) => await CheckInBookingById(booking.Id);
+    
+    private async Task CheckInBooking(ResourceBookingDto booking) => await CheckInBookingById(booking.Id);
+    
+    private async Task CheckInBookingById(Guid bookingId)
+    {
+        try
+        {
+            var result = await BookingsClient.CheckInAsync(bookingId);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["CustomerCheckedIn"], Severity.Success);
+                await RefreshData();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task CompleteBooking(ResourceBookingSummaryDto booking) => await CompleteBookingById(booking.Id);
+    
+    private async Task CompleteBooking(ResourceBookingDto booking) => await CompleteBookingById(booking.Id);
+    
+    private async Task CompleteBookingById(Guid bookingId)
+    {
+        try
+        {
+            var result = await BookingsClient.CompleteBookingAsync(bookingId);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["BookingCompleted"], Severity.Success);
+                await RefreshData();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task CancelBooking(ResourceBookingSummaryDto booking)
+    {
+        try
+        {
+            var result = await BookingsClient.CancelBookingAsync(booking.Id, new CancelBookingDto { Reason = "Cancelled by business" });
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["BookingCancelled"], Severity.Success);
+                await RefreshData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task MarkNoShow(ResourceBookingSummaryDto booking)
+    {
+        try
+        {
+            var result = await BookingsClient.MarkNoShowAsync(booking.Id);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["MarkedNoShow"], Severity.Info);
+                await RefreshData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task RefreshData()
+    {
+        await Task.WhenAll(
+            LoadStats(),
+            LoadTodayBookings(),
+            LoadBookings()
+        );
+    }
+    
+    private Color GetStatusColor(BookingStatus status)
+    {
+        return status switch
+        {
+            BookingStatus.Pending => Color.Warning,
+            BookingStatus.Confirmed => Color.Success,
+            BookingStatus.InProgress => Color.Info,
+            BookingStatus.Completed => Color.Default,
+            BookingStatus.Cancelled => Color.Error,
+            BookingStatus.NoShow => Color.Dark,
+            BookingStatus.Rescheduled => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+}

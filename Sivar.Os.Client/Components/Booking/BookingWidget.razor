@@ -1,0 +1,556 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<BookingWidget> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<MudPaper Class="booking-widget" Elevation="2">
+    <div class="booking-header">
+        <MudText Typo="Typo.h6">@Localizer["BookAppointment"]</MudText>
+        @if (CurrentStep > 1)
+        {
+            <MudButton Variant="Variant.Text" 
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="GoBack">
+                @Localizer["Back"]
+            </MudButton>
+        }
+    </div>
+    
+    <MudDivider />
+    
+    <div class="booking-content">
+        @* Step Indicator *@
+        <div class="step-indicator mb-4">
+            <div class="step @(CurrentStep >= 1 ? "active" : "") @(CurrentStep > 1 ? "completed" : "")">
+                <span class="step-number">1</span>
+                <span class="step-label">@Localizer["SelectResource"]</span>
+            </div>
+            <div class="step-line @(CurrentStep > 1 ? "completed" : "")"></div>
+            <div class="step @(CurrentStep >= 2 ? "active" : "") @(CurrentStep > 2 ? "completed" : "")">
+                <span class="step-number">2</span>
+                <span class="step-label">@Localizer["SelectTime"]</span>
+            </div>
+            <div class="step-line @(CurrentStep > 2 ? "completed" : "")"></div>
+            <div class="step @(CurrentStep >= 3 ? "active" : "")">
+                <span class="step-number">3</span>
+                <span class="step-label">@Localizer["Confirm"]</span>
+            </div>
+        </div>
+        
+        @* Step 1: Select Resource *@
+        @if (CurrentStep == 1)
+        {
+            @if (IsLoadingResources)
+            {
+                <div class="loading-state">
+                    <MudProgressCircular Indeterminate="true" />
+                    <MudText Typo="Typo.body2" Class="mt-2">@Localizer["LoadingResources"]</MudText>
+                </div>
+            }
+            else if (Resources == null || !Resources.Any())
+            {
+                <MudAlert Severity="Severity.Info">
+                    @Localizer["NoResourcesAvailable"]
+                </MudAlert>
+            }
+            else
+            {
+                <div class="resources-list">
+                    @foreach (var resource in Resources)
+                    {
+                        <ResourceCard Resource="@resource"
+                                      IsSelected="@(SelectedResource?.Id == resource.Id)"
+                                      ShowBookButton="false"
+                                      OnSelect="SelectResource" />
+                    }
+                </div>
+                
+                @if (SelectedResource != null)
+                {
+                    @* Service Selection *@
+                    @if (Services != null && Services.Any())
+                    {
+                        <div class="service-selection mt-4">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["SelectService"]</MudText>
+                            <MudSelect T="Guid?" @bind-Value="SelectedServiceId"
+                                       Label="@Localizer["Service"]"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Clearable="true">
+                                @foreach (var service in Services)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@service.Id">
+                                        @service.Name 
+                                        @if (service.DurationMinutes > 0)
+                                        {
+                                            <text> (@service.DurationMinutes @Localizer["min"])</text>
+                                        }
+                                        @if (service.Price > 0)
+                                        {
+                                            <text> - @FormatPrice(service.Price, service.Currency)</text>
+                                        }
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                    }
+                    
+                    <div class="mt-4">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="() => CurrentStep = 2">
+                            @Localizer["Continue"]
+                        </MudButton>
+                    </div>
+                }
+            }
+        }
+        
+        @* Step 2: Select Time *@
+        @if (CurrentStep == 2)
+        {
+            <div class="selected-resource-summary mb-4">
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                    @SelectedResource?.Name
+                </MudChip>
+                @if (SelectedService != null)
+                {
+                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Outlined">
+                        @SelectedService.Name
+                    </MudChip>
+                }
+            </div>
+            
+            <TimeSlotPicker @bind-SelectedDate="SelectedDate"
+                            @bind-SelectedSlot="SelectedSlot"
+                            AvailableSlots="@AvailableSlots"
+                            IsLoading="@IsLoadingSlots"
+                            MaxAdvanceDays="30" />
+            
+            @if (SelectedSlot != null)
+            {
+                <div class="mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               EndIcon="@Icons.Material.Filled.ArrowForward"
+                               OnClick="() => CurrentStep = 3">
+                        @Localizer["Continue"]
+                    </MudButton>
+                </div>
+            }
+        }
+        
+        @* Step 3: Confirm Booking *@
+        @if (CurrentStep == 3)
+        {
+            <div class="booking-summary">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">@Localizer["BookingSummary"]</MudText>
+                
+                <div class="summary-item">
+                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small" Class="mr-2" />
+                    <div>
+                        <MudText Typo="Typo.body2" Class="text-secondary">@Localizer["Resource"]</MudText>
+                        <MudText Typo="Typo.body1">@SelectedResource?.Name</MudText>
+                    </div>
+                </div>
+                
+                @if (SelectedService != null)
+                {
+                    <div class="summary-item">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Size="Size.Small" Class="mr-2" />
+                        <div>
+                            <MudText Typo="Typo.body2" Class="text-secondary">@Localizer["Service"]</MudText>
+                            <MudText Typo="Typo.body1">@SelectedService.Name</MudText>
+                        </div>
+                    </div>
+                }
+                
+                <div class="summary-item">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-2" />
+                    <div>
+                        <MudText Typo="Typo.body2" Class="text-secondary">@Localizer["DateTime"]</MudText>
+                        <MudText Typo="Typo.body1">
+                            @SelectedDate.ToString("dddd, MMMM d, yyyy")
+                        </MudText>
+                        <MudText Typo="Typo.body1">
+                            @SelectedSlot?.StartTime.ToString("h:mm tt") - @SelectedSlot?.EndTime.ToString("h:mm tt")
+                        </MudText>
+                    </div>
+                </div>
+                
+                @if (SelectedSlot?.Price > 0)
+                {
+                    <div class="summary-item">
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-2" />
+                        <div>
+                            <MudText Typo="Typo.body2" Class="text-secondary">@Localizer["Price"]</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">
+                                @FormatPrice(SelectedSlot.Price ?? 0, SelectedSlot.Currency)
+                            </MudText>
+                        </div>
+                    </div>
+                }
+                
+                <MudTextField @bind-Value="CustomerNotes"
+                              Label="@Localizer["Notes"]"
+                              Placeholder="@Localizer["NotesPlaceholder"]"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              Class="mt-4" />
+                
+                <div class="mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                               OnClick="ConfirmBooking"
+                               Disabled="@IsBooking">
+                        @if (IsBooking)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        }
+                        @Localizer["ConfirmBooking"]
+                    </MudButton>
+                </div>
+            </div>
+        }
+    </div>
+</MudPaper>
+
+@* Confirmation Dialog *@
+<MudDialog @bind-Visible="ShowConfirmationDialog">
+    <TitleContent>
+        <div class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-2" />
+            @Localizer["BookingConfirmed"]
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="confirmation-content">
+            <MudText Typo="Typo.body1" Class="mb-3">
+                @Localizer["BookingConfirmedMessage"]
+            </MudText>
+            
+            @if (ConfirmedBooking != null)
+            {
+                <MudPaper Elevation="0" Class="pa-3 confirmation-code">
+                    <MudText Typo="Typo.caption">@Localizer["ConfirmationCode"]</MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Primary">@ConfirmedBooking.ConfirmationCode</MudText>
+                </MudPaper>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CloseConfirmation">
+            @Localizer["Done"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .booking-widget {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .booking-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+    }
+    
+    .booking-content {
+        padding: 16px;
+    }
+    
+    .step-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0.5;
+    }
+    
+    .step.active {
+        opacity: 1;
+    }
+    
+    .step.completed .step-number {
+        background-color: var(--mud-palette-success);
+    }
+    
+    .step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: var(--mud-palette-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .step-label {
+        font-size: 11px;
+        margin-top: 4px;
+        text-align: center;
+    }
+    
+    .step-line {
+        width: 40px;
+        height: 2px;
+        background-color: var(--mud-palette-gray-light);
+        margin: 0 8px;
+        margin-bottom: 20px;
+    }
+    
+    .step-line.completed {
+        background-color: var(--mud-palette-success);
+    }
+    
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+    }
+    
+    .resources-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .booking-summary {
+        background: var(--mud-palette-background-grey);
+        border-radius: 8px;
+        padding: 16px;
+    }
+    
+    .summary-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--mud-palette-divider);
+    }
+    
+    .summary-item:last-of-type {
+        border-bottom: none;
+    }
+    
+    .confirmation-code {
+        background: var(--mud-palette-background-grey);
+        text-align: center;
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid ProfileId { get; set; }
+    
+    [Parameter]
+    public EventCallback<ResourceBookingDto> OnBookingComplete { get; set; }
+    
+    private int CurrentStep { get; set; } = 1;
+    
+    // Step 1 state
+    private List<BookableResourceSummaryDto>? Resources { get; set; }
+    private BookableResourceSummaryDto? SelectedResource { get; set; }
+    private List<ResourceServiceDto>? Services { get; set; }
+    private Guid? SelectedServiceId { get; set; }
+    private ResourceServiceDto? SelectedService => Services?.FirstOrDefault(s => s.Id == SelectedServiceId);
+    private bool IsLoadingResources { get; set; }
+    
+    // Step 2 state
+    private DateOnly SelectedDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    private List<AvailableTimeSlotDto>? AvailableSlots { get; set; }
+    private AvailableTimeSlotDto? SelectedSlot { get; set; }
+    private bool IsLoadingSlots { get; set; }
+    
+    // Step 3 state
+    private string? CustomerNotes { get; set; }
+    private bool IsBooking { get; set; }
+    
+    // Confirmation
+    private bool ShowConfirmationDialog { get; set; }
+    private ResourceBookingDto? ConfirmedBooking { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadResources();
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedResource != null && SelectedDate != default)
+        {
+            await LoadAvailableSlots();
+        }
+    }
+    
+    private async Task LoadResources()
+    {
+        if (ProfileId == Guid.Empty) return;
+        
+        IsLoadingResources = true;
+        StateHasChanged();
+        
+        try
+        {
+            Resources = await BookingsClient.GetResourcesByProfileAsync(ProfileId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingResources"], Severity.Error);
+        }
+        finally
+        {
+            IsLoadingResources = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task SelectResource(BookableResourceSummaryDto resource)
+    {
+        SelectedResource = resource;
+        SelectedServiceId = null;
+        SelectedSlot = null;
+        
+        // Load services for this resource
+        try
+        {
+            Services = await BookingsClient.GetServicesAsync(resource.Id);
+        }
+        catch (Exception ex)
+        {
+            Services = new List<ResourceServiceDto>();
+        }
+        
+        StateHasChanged();
+    }
+    
+    private async Task LoadAvailableSlots()
+    {
+        if (SelectedResource == null) return;
+        
+        IsLoadingSlots = true;
+        AvailableSlots = null;
+        StateHasChanged();
+        
+        try
+        {
+            var response = await BookingsClient.GetAvailableSlotsAsync(
+                SelectedResource.Id, 
+                SelectedDate, 
+                SelectedServiceId);
+            
+            if (response?.SlotsByDate != null && response.SlotsByDate.TryGetValue(SelectedDate, out var slots))
+            {
+                AvailableSlots = slots;
+            }
+            else
+            {
+                AvailableSlots = new List<AvailableTimeSlotDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingSlots"], Severity.Error);
+            AvailableSlots = new List<AvailableTimeSlotDto>();
+        }
+        finally
+        {
+            IsLoadingSlots = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void GoBack()
+    {
+        if (CurrentStep > 1)
+        {
+            CurrentStep--;
+        }
+    }
+    
+    private async Task ConfirmBooking()
+    {
+        if (SelectedResource == null || SelectedSlot == null) return;
+        
+        IsBooking = true;
+        StateHasChanged();
+        
+        try
+        {
+            var request = new CreateResourceBookingDto
+            {
+                ResourceId = SelectedResource.Id,
+                ServiceId = SelectedServiceId,
+                StartTime = SelectedSlot.StartTime,
+                CustomerNotes = CustomerNotes
+            };
+            
+            var booking = await BookingsClient.CreateBookingAsync(request);
+            
+            if (booking != null)
+            {
+                ConfirmedBooking = booking;
+                ShowConfirmationDialog = true;
+                await OnBookingComplete.InvokeAsync(booking);
+            }
+            else
+            {
+                Snackbar.Add(Localizer["BookingFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["BookingError"], Severity.Error);
+        }
+        finally
+        {
+            IsBooking = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseConfirmation()
+    {
+        ShowConfirmationDialog = false;
+        // Reset wizard
+        CurrentStep = 1;
+        SelectedResource = null;
+        SelectedServiceId = null;
+        SelectedSlot = null;
+        CustomerNotes = null;
+        ConfirmedBooking = null;
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+}

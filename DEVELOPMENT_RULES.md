@@ -749,6 +749,7 @@ builder.HasOne(sr => sr.ChatMessage)
 | `Post` | PostAttachment | `PostId` |
 | `Post` | ProfileBookmark | `PostId` |
 | `Post` | SearchResult | `PostId` |
+| `Post` | BookableResource | `PostId` |
 
 #### Hypertable Entity Checklist
 

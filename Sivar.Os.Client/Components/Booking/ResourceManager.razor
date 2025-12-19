@@ -1,0 +1,533 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ResourceManager> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<div class="resource-manager">
+    <div class="manager-header mb-4">
+        <MudText Typo="Typo.h5">@Localizer["ManageResources"]</MudText>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            @Localizer["AddResource"]
+        </MudButton>
+    </div>
+    
+    @if (IsLoading)
+    {
+        <div class="loading-state">
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body2" Class="mt-2">@Localizer["Loading"]</MudText>
+        </div>
+    }
+    else if (Resources == null || !Resources.Any())
+    {
+        <MudPaper Class="empty-state pa-8" Elevation="1">
+            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Default" />
+            <MudText Typo="Typo.h6" Class="mt-3">@Localizer["NoResourcesYet"]</MudText>
+            <MudText Typo="Typo.body2" Class="text-secondary mt-1">@Localizer["NoResourcesDescription"]</MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Class="mt-4"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">
+                @Localizer["CreateFirstResource"]
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <div class="resources-grid">
+            @foreach (var resource in Resources)
+            {
+                <MudCard Class="resource-item" Elevation="1">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Primary">
+                                <MudIcon Icon="@GetResourceIcon(resource.ResourceType)" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.subtitle1">@resource.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                @resource.ResourceType.ToString() • @resource.Category.ToString()
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudSwitch T="bool" 
+                                       Value="@resource.IsActive"
+                                       ValueChanged="@((bool val) => ToggleActive(resource, val))"
+                                       Color="Color.Success"
+                                       Size="Size.Small" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    
+                    <MudCardContent Class="pt-0">
+                        <div class="resource-stats">
+                            <div class="stat">
+                                <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" />
+                                <span>@resource.SlotDurationMinutes @Localizer["min"]</span>
+                            </div>
+                            @if (resource.DefaultPrice.HasValue)
+                            {
+                                <div class="stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" />
+                                    <span>@FormatPrice(resource.DefaultPrice.Value, resource.Currency)</span>
+                                </div>
+                            }
+                            @if (resource.AverageRating.HasValue)
+                            {
+                                <div class="stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
+                                    <span>@resource.AverageRating.Value.ToString("0.0")</span>
+                                </div>
+                            }
+                        </div>
+                    </MudCardContent>
+                    
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="() => OpenEditDialog(resource)">
+                            @Localizer["Edit"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Schedule"
+                                   OnClick="() => OpenAvailabilityDialog(resource)">
+                            @Localizer["Availability"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.LocalOffer"
+                                   OnClick="() => OpenServicesDialog(resource)">
+                            @Localizer["Services"]
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="() => DeleteResource(resource)" />
+                    </MudCardActions>
+                </MudCard>
+            }
+        </div>
+    }
+</div>
+
+@* Create/Edit Resource Dialog *@
+<MudDialog @bind-Visible="ShowResourceDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(EditingResource == null ? Localizer["CreateResource"] : Localizer["EditResource"])
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="ResourceForm.Name"
+                              Label="@Localizer["Name"]"
+                              Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="ResourceType" @bind-Value="ResourceForm.ResourceType"
+                           Label="@Localizer["Type"]"
+                           Variant="Variant.Outlined">
+                    @foreach (ResourceType type in Enum.GetValues<ResourceType>())
+                    {
+                        <MudSelectItem T="ResourceType" Value="@type">@type.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="ResourceForm.Description"
+                              Label="@Localizer["Description"]"
+                              Lines="2"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="ResourceCategory?" @bind-Value="ResourceForm.Category"
+                           Label="@Localizer["Category"]"
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (ResourceCategory cat in Enum.GetValues<ResourceCategory>())
+                    {
+                        <MudSelectItem T="ResourceCategory?" Value="@cat">@cat.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField T="int" @bind-Value="ResourceForm.SlotDurationMinutes"
+                                 Label="@Localizer["Duration"]"
+                                 Min="5" Max="480"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="min"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField T="int" @bind-Value="ResourceForm.BufferMinutes"
+                                 Label="@Localizer["Buffer"]"
+                                 Min="0" Max="60"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="min"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="4">
+                <MudNumericField T="decimal?" @bind-Value="ResourceForm.DefaultPrice"
+                                 Label="@Localizer["Price"]"
+                                 Format="N2"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudSelect T="string" @bind-Value="ResourceForm.Currency"
+                           Label="@Localizer["Currency"]"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("USD")">USD</MudSelectItem>
+                    <MudSelectItem Value="@("EUR")">EUR</MudSelectItem>
+                    <MudSelectItem Value="@("GBP")">GBP</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="BookingConfirmationMode" @bind-Value="ResourceForm.ConfirmationMode"
+                           Label="@Localizer["ConfirmationMode"]"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@BookingConfirmationMode.Automatic">@Localizer["Automatic"]</MudSelectItem>
+                    <MudSelectItem Value="@BookingConfirmationMode.ManualApproval">@Localizer["ManualApproval"]</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField T="int" @bind-Value="ResourceForm.MaxAdvanceBookingDays"
+                                 Label="@Localizer["MaxAdvanceDays"]"
+                                 Min="1" Max="365"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField T="int" @bind-Value="ResourceForm.CancellationWindowHours"
+                                 Label="@Localizer["CancellationHours"]"
+                                 Min="0" Max="168"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => ShowResourceDialog = false">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SaveResource"
+                   Disabled="@(IsSaving || string.IsNullOrWhiteSpace(ResourceForm.Name))">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .resource-manager {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .manager-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .loading-state, .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        text-align: center;
+    }
+    
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 16px;
+    }
+    
+    .resource-item {
+        transition: all 0.2s ease;
+    }
+    
+    .resource-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--mud-elevation-4);
+    }
+    
+    .resource-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .resource-stats .stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--mud-palette-text-secondary);
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid ProfileId { get; set; }
+    
+    private List<BookableResourceSummaryDto>? Resources { get; set; }
+    private bool IsLoading { get; set; }
+    
+    // Dialog state
+    private bool ShowResourceDialog { get; set; }
+    private BookableResourceSummaryDto? EditingResource { get; set; }
+    private ResourceFormModel ResourceForm { get; set; } = new();
+    private bool IsSaving { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadResources();
+    }
+    
+    private async Task LoadResources()
+    {
+        if (ProfileId == Guid.Empty) return;
+        
+        IsLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            Resources = await BookingsClient.GetResourcesByProfileAsync(ProfileId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingResources"], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void OpenCreateDialog()
+    {
+        EditingResource = null;
+        ResourceForm = new ResourceFormModel
+        {
+            SlotDurationMinutes = 30,
+            BufferMinutes = 0,
+            Currency = "USD",
+            ConfirmationMode = BookingConfirmationMode.Automatic,
+            MaxAdvanceBookingDays = 30,
+            CancellationWindowHours = 24
+        };
+        ShowResourceDialog = true;
+    }
+    
+    private async Task OpenEditDialog(BookableResourceSummaryDto resource)
+    {
+        EditingResource = resource;
+        
+        // Load full resource details
+        var fullResource = await BookingsClient.GetResourceAsync(resource.Id);
+        if (fullResource != null)
+        {
+            ResourceForm = new ResourceFormModel
+            {
+                Name = fullResource.Name,
+                Description = fullResource.Description,
+                ResourceType = fullResource.ResourceType,
+                Category = fullResource.Category,
+                SlotDurationMinutes = fullResource.SlotDurationMinutes,
+                BufferMinutes = fullResource.BufferMinutes,
+                DefaultPrice = fullResource.DefaultPrice,
+                Currency = fullResource.Currency ?? "USD",
+                ConfirmationMode = fullResource.ConfirmationMode,
+                MaxAdvanceBookingDays = fullResource.MaxAdvanceBookingDays,
+                CancellationWindowHours = fullResource.CancellationWindowHours
+            };
+        }
+        
+        ShowResourceDialog = true;
+    }
+    
+    private async Task SaveResource()
+    {
+        if (string.IsNullOrWhiteSpace(ResourceForm.Name)) return;
+        
+        IsSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            if (EditingResource == null)
+            {
+                // Create new - ProfileId is set by service from authenticated user
+                var createDto = new CreateBookableResourceDto
+                {
+                    Name = ResourceForm.Name,
+                    Description = ResourceForm.Description,
+                    ResourceType = ResourceForm.ResourceType,
+                    Category = ResourceForm.Category ?? ResourceCategory.Other,
+                    SlotDurationMinutes = ResourceForm.SlotDurationMinutes,
+                    BufferMinutes = ResourceForm.BufferMinutes,
+                    DefaultPrice = ResourceForm.DefaultPrice,
+                    Currency = ResourceForm.Currency,
+                    ConfirmationMode = ResourceForm.ConfirmationMode,
+                    MaxAdvanceBookingDays = ResourceForm.MaxAdvanceBookingDays,
+                    CancellationWindowHours = ResourceForm.CancellationWindowHours
+                };
+                
+                var result = await BookingsClient.CreateResourceAsync(createDto);
+                if (result != null)
+                {
+                    Snackbar.Add(Localizer["ResourceCreated"], Severity.Success);
+                    ShowResourceDialog = false;
+                    await LoadResources();
+                }
+            }
+            else
+            {
+                // Update existing
+                var updateDto = new UpdateBookableResourceDto
+                {
+                    Name = ResourceForm.Name,
+                    Description = ResourceForm.Description,
+                    Category = ResourceForm.Category,
+                    SlotDurationMinutes = ResourceForm.SlotDurationMinutes,
+                    BufferMinutes = ResourceForm.BufferMinutes,
+                    DefaultPrice = ResourceForm.DefaultPrice,
+                    Currency = ResourceForm.Currency,
+                    ConfirmationMode = ResourceForm.ConfirmationMode,
+                    MaxAdvanceBookingDays = ResourceForm.MaxAdvanceBookingDays,
+                    CancellationWindowHours = ResourceForm.CancellationWindowHours
+                };
+                
+                var result = await BookingsClient.UpdateResourceAsync(EditingResource.Id, updateDto);
+                if (result != null)
+                {
+                    Snackbar.Add(Localizer["ResourceUpdated"], Severity.Success);
+                    ShowResourceDialog = false;
+                    await LoadResources();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["SaveFailed"], Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ToggleActive(BookableResourceSummaryDto resource, bool isActive)
+    {
+        try
+        {
+            var updateDto = new UpdateBookableResourceDto { IsActive = isActive };
+            var result = await BookingsClient.UpdateResourceAsync(resource.Id, updateDto);
+            if (result != null)
+            {
+                resource.IsActive = isActive;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["UpdateFailed"], Severity.Error);
+        }
+    }
+    
+    private async Task DeleteResource(BookableResourceSummaryDto resource)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            Localizer["DeleteResource"],
+            Localizer["DeleteResourceConfirmation"],
+            yesText: Localizer["Delete"],
+            cancelText: Localizer["Cancel"]);
+        
+        if (confirmed == true)
+        {
+            try
+            {
+                var result = await BookingsClient.DeleteResourceAsync(resource.Id);
+                if (result)
+                {
+                    Snackbar.Add(Localizer["ResourceDeleted"], Severity.Success);
+                    await LoadResources();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(Localizer["DeleteFailed"], Severity.Error);
+            }
+        }
+    }
+    
+    private void OpenAvailabilityDialog(BookableResourceSummaryDto resource)
+    {
+        // TODO: Implement availability dialog
+        Snackbar.Add(Localizer["AvailabilityComingSoon"], Severity.Info);
+    }
+    
+    private void OpenServicesDialog(BookableResourceSummaryDto resource)
+    {
+        // TODO: Implement services dialog
+        Snackbar.Add(Localizer["ServicesComingSoon"], Severity.Info);
+    }
+    
+    private string GetResourceIcon(ResourceType type)
+    {
+        return type switch
+        {
+            ResourceType.Person => Icons.Material.Filled.Person,
+            ResourceType.Object => Icons.Material.Filled.Chair,
+            ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+            ResourceType.Equipment => Icons.Material.Filled.Build,
+            _ => Icons.Material.Filled.EventAvailable
+        };
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+    
+    // Form model
+    private class ResourceFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public ResourceType ResourceType { get; set; } = ResourceType.Person;
+        public ResourceCategory? Category { get; set; }
+        public int SlotDurationMinutes { get; set; } = 30;
+        public int BufferMinutes { get; set; } = 0;
+        public decimal? DefaultPrice { get; set; }
+        public string Currency { get; set; } = "USD";
+        public BookingConfirmationMode ConfirmationMode { get; set; } = BookingConfirmationMode.Automatic;
+        public int MaxAdvanceBookingDays { get; set; } = 30;
+        public int CancellationWindowHours { get; set; } = 24;
+    }
+}

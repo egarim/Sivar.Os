@@ -136,6 +136,10 @@ builder.Services.AddScoped<IUserSearchBehaviorRepository, UserSearchBehaviorRepo
 builder.Services.AddScoped<IRankingConfigurationRepository, RankingConfigurationRepository>();
 // Search Ads System - Repository registration
 builder.Services.AddScoped<IAdTransactionRepository, AdTransactionRepository>();
+// Event/Appointment Scheduling System - Repository registration
+builder.Services.AddScoped<IScheduleEventRepository, ScheduleEventRepository>();
+// Resource Booking System - Repository registration
+builder.Services.AddScoped<IResourceBookingRepository, ResourceBookingRepository>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -185,6 +189,10 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IContactUrlBuilder, ContactUrlBuilder>();
 // Profile Bookmarks - Service registration
 builder.Services.AddScoped<IProfileBookmarkService, ProfileBookmarkService>();
+// Event/Appointment Scheduling System - Service registration
+builder.Services.AddScoped<IScheduleEventService, ScheduleEventService>();
+// Resource Booking System - Service registration
+builder.Services.AddScoped<IResourceBookingService, ResourceBookingService>();
 
 // --- Utility Services Registration ---
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
@@ -288,6 +296,7 @@ builder.Services.AddScoped<ISivarChatClient, ChatClient>();
 builder.Services.AddScoped<IFilesClient, FilesClient>();
 builder.Services.AddScoped<IActivitiesClient, ActivitiesClient>();
 builder.Services.AddScoped<IContactsClient, ContactsClient>();
+builder.Services.AddScoped<IResourceBookingsClient, ResourceBookingsClient>();
 
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();

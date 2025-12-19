@@ -1,0 +1,203 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<BookingCard> Localizer
+
+<MudCard Class="booking-card" Elevation="1">
+    <MudCardContent Class="pa-3">
+        <div class="booking-header">
+            <div class="booking-status">
+                <MudChip T="string" 
+                         Size="Size.Small" 
+                         Color="@GetStatusColor(Booking.Status)"
+                         Variant="Variant.Filled">
+                    @GetStatusText(Booking.Status)
+                </MudChip>
+            </div>
+            <div class="booking-code">
+                <MudText Typo="Typo.caption" Class="text-secondary">@Localizer["Code"]</MudText>
+                <MudText Typo="Typo.body2" Class="font-weight-bold">@Booking.ConfirmationCode</MudText>
+            </div>
+        </div>
+        
+        <div class="booking-details mt-3">
+            <div class="detail-row">
+                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small" Class="mr-2 text-secondary" />
+                <div>
+                    <MudText Typo="Typo.body1" Class="font-weight-medium">@Booking.ResourceName</MudText>
+                    @if (!string.IsNullOrEmpty(Booking.ServiceName))
+                    {
+                        <MudText Typo="Typo.caption" Class="text-secondary">@Booking.ServiceName</MudText>
+                    }
+                </div>
+            </div>
+            
+            <div class="detail-row mt-2">
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-2 text-secondary" />
+                <div>
+                    <MudText Typo="Typo.body2">
+                        @Booking.StartTime.ToString("dddd, MMMM d, yyyy")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="font-weight-medium">
+                        @Booking.StartTime.ToString("h:mm tt") - @Booking.EndTime.ToString("h:mm tt")
+                    </MudText>
+                </div>
+            </div>
+            
+            @* BusinessName not in summary DTO, show only if full DTO is used *@
+            
+            @if (Booking.Price.HasValue && Booking.Price.Value > 0)
+            {
+                <div class="detail-row mt-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-2 text-secondary" />
+                    <MudText Typo="Typo.body2">
+                        @FormatPrice(Booking.Price.Value, Booking.Currency)
+                    </MudText>
+                </div>
+            }
+        </div>
+    </MudCardContent>
+    
+    @if (ShowActions && CanModify())
+    {
+        <MudCardActions Class="pa-3 pt-0">
+            @if (ShowRescheduleButton())
+            {
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.EditCalendar"
+                           OnClick="OnReschedule">
+                    @Localizer["Reschedule"]
+                </MudButton>
+            }
+            @if (ShowCancelButton())
+            {
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Cancel"
+                           OnClick="OnCancel">
+                    @Localizer["Cancel"]
+                </MudButton>
+            }
+        </MudCardActions>
+    }
+    
+    @if (ShowReviewButton)
+    {
+        <MudCardActions Class="pa-3 pt-0">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       FullWidth="true"
+                       StartIcon="@Icons.Material.Filled.RateReview"
+                       OnClick="OnReview">
+                @Localizer["LeaveReview"]
+            </MudButton>
+        </MudCardActions>
+    }
+</MudCard>
+
+<style>
+    .booking-card {
+        transition: all 0.2s ease;
+    }
+    
+    .booking-card:hover {
+        box-shadow: var(--mud-elevation-3);
+    }
+    
+    .booking-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .booking-code {
+        text-align: right;
+    }
+    
+    .detail-row {
+        display: flex;
+        align-items: flex-start;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public ResourceBookingSummaryDto Booking { get; set; } = null!;
+    
+    [Parameter]
+    public bool ShowActions { get; set; } = true;
+    
+    [Parameter]
+    public bool ShowReviewButton { get; set; }
+    
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+    
+    [Parameter]
+    public EventCallback OnReschedule { get; set; }
+    
+    [Parameter]
+    public EventCallback OnReview { get; set; }
+    
+    private Color GetStatusColor(BookingStatus status)
+    {
+        return status switch
+        {
+            BookingStatus.Pending => Color.Warning,
+            BookingStatus.Confirmed => Color.Success,
+            BookingStatus.InProgress => Color.Info,
+            BookingStatus.Completed => Color.Default,
+            BookingStatus.Cancelled => Color.Error,
+            BookingStatus.NoShow => Color.Dark,
+            BookingStatus.Rescheduled => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetStatusText(BookingStatus status)
+    {
+        return status switch
+        {
+            BookingStatus.Pending => Localizer["StatusPending"],
+            BookingStatus.Confirmed => Localizer["StatusConfirmed"],
+            BookingStatus.InProgress => Localizer["StatusInProgress"],
+            BookingStatus.Completed => Localizer["StatusCompleted"],
+            BookingStatus.Cancelled => Localizer["StatusCancelled"],
+            BookingStatus.NoShow => Localizer["StatusNoShow"],
+            BookingStatus.Rescheduled => Localizer["StatusRescheduled"],
+            _ => status.ToString()
+        };
+    }
+    
+    private bool CanModify()
+    {
+        return Booking.Status == BookingStatus.Pending || 
+               Booking.Status == BookingStatus.Confirmed;
+    }
+    
+    private bool ShowRescheduleButton()
+    {
+        return CanModify() && Booking.StartTime > DateTime.UtcNow;
+    }
+    
+    private bool ShowCancelButton()
+    {
+        return CanModify() && Booking.StartTime > DateTime.UtcNow;
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+}

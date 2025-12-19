@@ -53,7 +53,14 @@ Blog = 7,
 /// Available to: All profile types
 /// Examples: Government procedures, business processes, tutorials, how-to guides
 /// </summary>
-Procedure = 8
+Procedure = 8,
+
+/// <summary>
+/// Bookable resource post (person, table, room, equipment)
+/// Available to: Business, Organization profiles
+/// Links to a BookableResource entity for scheduling/booking
+/// </summary>
+Resource = 9
 }
 
 /// <summary>

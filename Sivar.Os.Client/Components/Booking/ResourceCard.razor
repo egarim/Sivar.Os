@@ -1,0 +1,192 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ResourceCard> Localizer
+
+<MudCard Class="@CardClass" @onclick="OnCardClick">
+    <MudCardContent Class="pa-3">
+        <div class="resource-header">
+            <div class="resource-icon">
+                <MudIcon Icon="@GetResourceIcon()" Color="Color.Primary" Size="Size.Medium" />
+            </div>
+            <div class="resource-info">
+                <MudText Typo="Typo.subtitle1" Class="resource-name">@Resource.Name</MudText>
+                @if (!string.IsNullOrEmpty(Resource.Description))
+                {
+                    <MudText Typo="Typo.caption" Class="resource-description text-secondary">
+                        @TruncateDescription(Resource.Description)
+                    </MudText>
+                }
+            </div>
+            @if (Resource.DefaultPrice.HasValue && Resource.DefaultPrice.Value > 0)
+            {
+                <div class="resource-price">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                        @FormatPrice(Resource.DefaultPrice.Value, Resource.Currency)
+                    </MudText>
+                </div>
+            }
+        </div>
+        
+        <div class="resource-meta">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">
+                <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="mr-1" />
+                @Resource.SlotDurationMinutes @Localizer["min"]
+            </MudChip>
+            
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary">
+                @GetCategoryName(Resource.Category)
+            </MudChip>
+            
+            @if (Resource.AverageRating.HasValue && Resource.AverageRating.Value > 0)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Class="mr-1" />
+                    @Resource.AverageRating.Value.ToString("0.0")
+                </MudChip>
+            }
+        </div>
+        
+        @* Tags are in full DTO, not summary *@
+    </MudCardContent>
+    
+    @if (ShowBookButton)
+    {
+        <MudCardActions Class="pa-3 pt-0">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       FullWidth="true"
+                       StartIcon="@Icons.Material.Filled.CalendarMonth"
+                       OnClick="OnBookClick">
+                @Localizer["BookNow"]
+            </MudButton>
+        </MudCardActions>
+    }
+</MudCard>
+
+<style>
+    .resource-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+    
+    .resource-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--mud-elevation-4);
+    }
+    
+    .resource-card.selected {
+        border-color: var(--mud-palette-primary);
+        background-color: var(--mud-palette-primary-hover);
+    }
+    
+    .resource-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .resource-icon {
+        padding: 8px;
+        border-radius: 8px;
+        background: var(--mud-palette-primary-lighten);
+    }
+    
+    .resource-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .resource-name {
+        font-weight: 600;
+    }
+    
+    .resource-description {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .resource-price {
+        text-align: right;
+    }
+    
+    .resource-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 12px;
+    }
+    
+    .resource-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public BookableResourceSummaryDto Resource { get; set; } = null!;
+    
+    [Parameter]
+    public bool IsSelected { get; set; }
+    
+    [Parameter]
+    public bool ShowBookButton { get; set; } = true;
+    
+    [Parameter]
+    public EventCallback<BookableResourceSummaryDto> OnSelect { get; set; }
+    
+    [Parameter]
+    public EventCallback<BookableResourceSummaryDto> OnBook { get; set; }
+    
+    private string CardClass => IsSelected ? "resource-card selected" : "resource-card";
+    
+    private async Task OnCardClick()
+    {
+        await OnSelect.InvokeAsync(Resource);
+    }
+    
+    private async Task OnBookClick()
+    {
+        await OnBook.InvokeAsync(Resource);
+    }
+    
+    private string GetResourceIcon()
+    {
+        return Resource.ResourceType switch
+        {
+            ResourceType.Person => Icons.Material.Filled.Person,
+            ResourceType.Object => Icons.Material.Filled.Chair,
+            ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+            ResourceType.Equipment => Icons.Material.Filled.Build,
+            _ => Icons.Material.Filled.EventAvailable
+        };
+    }
+    
+    private string GetCategoryName(ResourceCategory category)
+    {
+        return category.ToString();
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+    
+    private string TruncateDescription(string description, int maxLength = 80)
+    {
+        if (description.Length <= maxLength) return description;
+        return description[..(maxLength - 3)] + "...";
+    }
+}
