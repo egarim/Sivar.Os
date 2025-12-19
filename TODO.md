@@ -1,7 +1,20 @@
 # 📋 Sivar.Os - Consolidated TODO
 
-> **Last Updated**: December 15, 2025  
+> **Last Updated**: December 19, 2025  
 > **Purpose**: Single source of truth for all pending work across the project
+
+---
+
+## 🐛 UI/UX ISSUES TO FIX
+
+### Search Page Theming
+- [ ] Search page colors still not matching theme correctly
+- [ ] MudPaper component added but theming not fully working
+- [ ] Need to investigate MudTextField theme inheritance
+
+### Theme Toggle
+- [ ] Theme toggle position may need adjustment
+- [ ] Toggle behavior sometimes inconsistent
 
 ---
 
