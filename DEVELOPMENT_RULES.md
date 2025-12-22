@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: December 18, 2025 - Added XAF Admin Backend & Database Migrations section  
+> **Last Updated**: December 22, 2025 - Added AI Tool Selection & Function Descriptions section  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -23,52 +23,58 @@
    - CategoryDefinition Reference Table
    - Query-Time Translation Flow
    - Implementation Checklist
-7. [Service Layer Rules](#service-layer-rules)
-8. [Repository Layer Rules](#repository-layer-rules)
-9. [Controller Usage](#controller-usage)
-10. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
+7. [AI Tool Selection & Function Descriptions](#ai-tool-selection--function-descriptions) ⭐ **NEW** - OpenAI Tool Calling
+   - How OpenAI Tool Calling Works
+   - Two Levels of Intent Detection
+   - Critical Rules for `[Description]` Attributes
+   - Avoiding Tool Selection Conflicts
+   - Testing & Debugging Tool Selection
+8. [Service Layer Rules](#service-layer-rules)
+9. [Repository Layer Rules](#repository-layer-rules)
+10. [Controller Usage](#controller-usage)
+11. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
    - Storage Configuration & Hierarchical Namespace
    - CORS & Mixed Content Solutions
    - Proxy Endpoint Implementation
    - URL Generation Strategy (Dynamic vs Stored)
    - GetFileUrlAsync - The Critical Metadata Loading Fix
    - Troubleshooting Guide & Common Issues
-11. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
+12. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
     - Progressive Enhancement for AI Features
     - Background Model Preloading
     - Server-First with Client Switch Strategy
     - Transformers.js Integration Examples
     - Sentiment Analysis & Embeddings Implementation
-12. [CSS Organization & Styling](#css-organization--styling)
-13. [Logging Standards](#logging-standards)
-14. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
+13. [CSS Organization & Styling](#css-organization--styling)
+14. [Logging Standards](#logging-standards)
+15. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
     - Route Configuration Pattern
     - AllowAnonymous Implementation
     - Cookie Authentication Middleware
     - Redirect Loop Prevention
     - Common Issues & Solutions
-15. [Error Handling](#error-handling)
-16. [Testing & Debugging](#testing--debugging)
-17. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-18. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
-19. [XAF Admin Backend & Database Migrations](#xaf-admin-backend--database-migrations) ⭐ **NEW**
+16. [Error Handling](#error-handling)
+17. [Testing & Debugging](#testing--debugging)
+18. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+19. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
+20. [XAF Admin Backend & Database Migrations](#xaf-admin-backend--database-migrations) ⭐ **NEW**
     - XAF is the Admin Backend
     - Navigation Structure (7 Groups)
     - NO EF Core Migrations - XAF Updater.cs Handles Everything
     - Adding a New Entity Checklist
-20. [Database Script System](#database-script-system) ⭐ **UPDATED**
+21. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-21. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
+22. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
     - Virtual Environment Setup
     - Available Scripts
     - Running Python Scripts
     - Adding New Dependencies
-22. [References](#references)
-23. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
+23. [References](#references)
+24. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
 
 ---
 
@@ -1982,6 +1988,239 @@ When implementing multilingual search:
 2. **Auto-Categorization** - Analyze content and suggest CategoryKeys automatically
 3. **Category Hierarchy Search** - Search "food" returns all subcategories (restaurant, cafe, etc.)
 4. **User Preference Learning** - Track which categories user searches frequently
+
+---
+
+## AI Tool Selection & Function Descriptions
+
+### ⚠️ CRITICAL: How OpenAI Tool Calling Works
+
+When using AI agents with function calling (OpenAI, Azure OpenAI), the model decides which tool to call based on the `[Description]` attribute text. Understanding this is essential for building reliable AI-powered features.
+
+### The Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    User Message                              │
+│              "Busco una barbería para cortarme el pelo"      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│           IntentClassifier (Our Code - Rule-Based)           │
+│     Classifies intent: BusinessSearch, EventSearch, etc.     │
+│     This is LOCAL preprocessing, NOT tool selection          │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│               OpenAI GPT Model (Remote API)                  │
+│     Receives: System prompt + User message + Tool list       │
+│     Decides: Which function to call based on [Description]   │
+│     This is where TOOL SELECTION happens                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│            Selected Function Executes                        │
+│     ChatFunctionService.FindBusinesses() OR                  │
+│     BookingFunctions.SearchBookableResources()               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Two Levels of Intent Detection
+
+| Level | Component | Purpose | Control |
+|-------|-----------|---------|---------|
+| **Level 1** | `IntentClassifier.cs` | Pre-classify user intent (BusinessSearch, EventSearch, etc.) | Our code - keyword/regex based |
+| **Level 2** | OpenAI Model | Select which tool/function to call | AI model - based on `[Description]` text |
+
+**Key Insight:** Level 1 (IntentClassifier) does NOT control which function OpenAI calls. The AI model makes its own decision based solely on the `[Description]` attributes.
+
+### What OpenAI Sees
+
+When the AI agent runs, OpenAI receives a list of available tools. For each function marked with `[Description]`, it sees:
+
+```json
+{
+  "name": "FindBusinesses",
+  "description": "Find businesses by type and city",
+  "parameters": { ... }
+},
+{
+  "name": "SearchBookableResources", 
+  "description": "Search for bookable resources like barberías, salones, doctores",
+  "parameters": { ... }
+}
+```
+
+The AI model then decides: *"User said 'barbería' - which function description mentions barberías?"*
+
+### Critical Rules for `[Description]` Attributes
+
+| Rule | Reason | Example |
+|------|--------|---------|
+| **Be specific about use cases** | Vague descriptions cause wrong tool selection | ❌ "Find businesses" → ✅ "Find businesses WITHOUT appointment systems" |
+| **Include Spanish keywords** | Users query in Spanish, AI matches keywords | Include: "barbería", "peluquería", "cortarme el pelo" |
+| **Explicitly redirect conflicts** | Prevent similar functions from competing | "For appointment services, use SearchBookableResources instead" |
+| **List example scenarios** | Help AI understand when to use the function | "Use when user asks: 'busco restaurante', 'dónde comer'" |
+| **Mention what it does NOT do** | Clarify boundaries | "Does NOT handle reservations or appointments" |
+
+### ✅ CORRECT: Clear, Specific Descriptions
+
+```csharp
+// ✅ GOOD - Clearly defines scope and redirects to other function
+[Description("Find general businesses by type and city. " +
+    "IMPORTANT: For services that accept APPOINTMENTS or RESERVATIONS " +
+    "(barberías, salones de belleza, doctores, peluquerías, spas, clínicas), " +
+    "use SearchBookableResources instead. " +
+    "This function is for businesses WITHOUT booking systems like restaurants, tiendas, farmacias.")]
+public async Task<string> FindBusinesses(
+    [Description("Business type to search for (e.g., 'restaurante', 'farmacia', 'tienda')")] 
+    string businessType,
+    [Description("City name to search in (optional)")] 
+    string? city = null)
+
+// ✅ GOOD - Explicitly mentions target keywords in multiple languages
+[Description("Search for bookable resources and services that accept appointments or reservations. " +
+    "Use this for: barberías (barbershops), peluquerías (hair salons), salones de belleza, " +
+    "doctores, dentistas, spas, clínicas, gimnasios, and any service requiring scheduling. " +
+    "Keywords that trigger this: 'reservar', 'cita', 'cortarme el pelo', 'haircut', 'appointment'.")]
+public async Task<string> SearchBookableResources(
+    [Description("Type of service: 'barberia', 'salon', 'doctor', 'spa', 'gym', etc.")] 
+    string? serviceType = null,
+    [Description("City to search in (optional)")] 
+    string? city = null)
+```
+
+### ❌ WRONG: Vague Descriptions
+
+```csharp
+// ❌ BAD - Too vague, overlaps with other functions
+[Description("Find businesses by type and city")]
+public async Task<string> FindBusinesses(...)
+
+// ❌ BAD - Doesn't mention the actual use cases in user's language
+[Description("Search bookable resources")]
+public async Task<string> SearchBookableResources(...)
+
+// ❌ BAD - No differentiation from similar functions
+[Description("Search for businesses")]
+public async Task<string> FindBusinesses(...)
+```
+
+### Common Tool Selection Conflicts
+
+| Conflict | Problem | Solution |
+|----------|---------|----------|
+| `FindBusinesses` vs `SearchBookableResources` | Both find "businesses" | Add explicit redirect in FindBusinesses description |
+| `SearchPosts` vs `SearchProfiles` | User says "buscar" which applies to both | Include specific keywords each handles |
+| `GetContactInfo` vs `GetBusinessHours` | Both are "getting info" about a business | Specify: "phone, email, WhatsApp" vs "opening hours, schedule" |
+
+### Function Location: AgentFactory.cs
+
+All AI-callable functions are registered in `AgentFactory.InitializeAvailableTools()`:
+
+```csharp
+// Sivar.Os/Services/AgentFactory.cs
+private Dictionary<string, AITool> InitializeAvailableTools()
+{
+    return new Dictionary<string, AITool>(StringComparer.OrdinalIgnoreCase)
+    {
+        // Core search functions
+        ["SearchProfiles"] = AIFunctionFactory.Create(_functionService.SearchProfiles),
+        ["FindBusinesses"] = AIFunctionFactory.Create(_functionService.FindBusinesses),
+        
+        // Booking functions
+        ["SearchBookableResources"] = AIFunctionFactory.Create(_bookingFunctions.SearchBookableResources),
+        ["GetAvailableSlots"] = AIFunctionFactory.Create(_bookingFunctions.GetAvailableSlots),
+        // ... more tools
+    };
+}
+```
+
+### Agent Configuration: Database-Driven
+
+Which tools each agent has access to is controlled by the `AgentConfiguration` table:
+
+| Column | Purpose |
+|--------|---------|
+| `EnabledTools` | JSON array of tool names: `["FindBusinesses", "SearchBookableResources", ...]` |
+| `SystemPrompt` | Instructions for the AI about when to use each tool |
+
+**Update via XAF Admin** or the seeder in `Xaf.Sivar.Os.Module/DatabaseUpdate/Updater.cs`.
+
+### Testing & Debugging Tool Selection
+
+#### 1. Check Logs for Tool Count
+
+```
+[AgentFactory] Building agent 'sivar-main' with 26 tools
+```
+
+If the count is wrong, check `EnabledTools` in the database or `Updater.cs`.
+
+#### 2. Check Which Function Was Called
+
+```
+[ChatFunctionService.FindBusinesses] Called with businessType=barberia  ❌ Wrong!
+[BookingFunctions.SearchBookableResources] Called with serviceType=barberia  ✅ Correct!
+```
+
+#### 3. If Wrong Function Is Called
+
+1. **Update the `[Description]` attribute** - Make it more specific
+2. **Add redirect text** - "For X, use Y instead"
+3. **Include user keywords** - Spanish phrases users actually type
+4. **Rebuild and test** - The AI will see the updated descriptions
+
+#### 4. Common Log Patterns
+
+| Log Pattern | Meaning |
+|-------------|---------|
+| `Building agent 'X' with N tools` | Agent loaded with N enabled tools |
+| `[FunctionName] Called with...` | AI selected and called this function |
+| `FunctionCall completed - Results: N items` | Function executed successfully |
+| `AI returned without calling functions` | AI didn't match any tool (check descriptions) |
+
+### SystemPrompt Best Practices
+
+The `SystemPrompt` in `AgentConfiguration` can also guide tool selection:
+
+```
+Eres Sivar, un asistente para El Salvador.
+
+REGLAS DE SELECCIÓN DE HERRAMIENTAS:
+- Para barberías, peluquerías, salones: USA SearchBookableResources
+- Para restaurantes, tiendas, farmacias: USA FindBusinesses
+- Para eventos y conciertos: USA SearchEvents
+- Para trámites de gobierno: USA GetProcedureInfo
+
+NUNCA uses FindBusinesses para servicios que requieren citas.
+```
+
+### Implementation Checklist
+
+When adding a new AI-callable function:
+
+- [ ] **Add `[Description]` attribute** - Detailed, specific, with keywords
+- [ ] **Include Spanish AND English keywords** - Users query in both
+- [ ] **Differentiate from similar functions** - Explain when NOT to use this function
+- [ ] **Add parameter descriptions** - Each parameter needs `[Description]`
+- [ ] **Register in `AgentFactory.InitializeAvailableTools()`** - Add to the dictionary
+- [ ] **Add to `Updater.cs` seeder** - Include in `EnabledTools` JSON array
+- [ ] **Update `SystemPrompt`** - Add guidance about when to use the new function
+- [ ] **Test with real queries** - Verify the AI selects the correct function
+- [ ] **Check logs** - Confirm the function is being called, not a similar one
+
+### Key Lessons Learned
+
+1. **The AI doesn't "know" your intent** - It only reads `[Description]` text
+2. **Similar function names cause conflicts** - Differentiate in descriptions
+3. **Spanish keywords matter** - Include them in descriptions for Spanish-speaking users
+4. **Explicit redirects work** - "For X, use Y instead" is effective
+5. **Testing reveals issues** - Always test with real user queries
+6. **Logs are essential** - Check which function was actually called
 
 ---
 

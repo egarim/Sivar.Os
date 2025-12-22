@@ -734,8 +734,9 @@ public class ChatFunctionService
     /// <summary>
     /// Search for business locations by type and city.
     /// Specifically designed for queries like "pizzerias in San Salvador" or "restaurants near me".
+    /// NOTE: For services that accept appointments (barbershops, salons, doctors, etc.), use SearchBookableResources instead.
     /// </summary>
-    [Description("Find businesses and locations by type and city. Best for queries like 'pizzerias in San Salvador', 'restaurants in the city', or 'cafes near downtown'. Searches both content and location data.")]
+    [Description("Find businesses and locations by type and city. Best for queries like 'pizzerias in San Salvador', 'restaurants in the city', or 'cafes near downtown'. Searches posts and profiles. IMPORTANT: For services that accept APPOINTMENTS or RESERVATIONS (barberías, salones, doctores, peluquerías, spas, clínicas), use SearchBookableResources instead to find bookable services.")]
     public async Task<string> FindBusinesses(
         [Description("Type of business or place to find (e.g., 'pizzeria', 'restaurant', 'cafe', 'hotel')")]
         string businessType,

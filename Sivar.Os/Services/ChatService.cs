@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Microsoft.Agents.AI;
+using Sivar.Os.Services.AgentFunctions;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
@@ -25,6 +26,7 @@ public class ChatService : IChatService
     private readonly IChatTokenUsageRepository _tokenUsageRepository;
     private readonly IAgentFactory _agentFactory;
     private readonly ChatFunctionService _functionService;
+    private readonly BookingFunctions _bookingFunctions;
     private readonly IIntentClassifier _intentClassifier;
     private readonly ChatServiceOptions _options;
     private readonly ISearchResultService _searchResultService;
@@ -38,6 +40,7 @@ public class ChatService : IChatService
         IChatTokenUsageRepository tokenUsageRepository,
         IAgentFactory agentFactory,
         ChatFunctionService functionService,
+        BookingFunctions bookingFunctions,
         IIntentClassifier intentClassifier,
         IOptions<ChatServiceOptions> options,
         ISearchResultService searchResultService,
@@ -50,6 +53,7 @@ public class ChatService : IChatService
         _tokenUsageRepository = tokenUsageRepository ?? throw new ArgumentNullException(nameof(tokenUsageRepository));
         _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
+        _bookingFunctions = bookingFunctions ?? throw new ArgumentNullException(nameof(bookingFunctions));
         _intentClassifier = intentClassifier ?? throw new ArgumentNullException(nameof(intentClassifier));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _searchResultService = searchResultService ?? throw new ArgumentNullException(nameof(searchResultService));
@@ -175,8 +179,8 @@ public class ChatService : IChatService
                 throw new UnauthorizedAccessException("Conversation does not belong to this profile");
             }
 
-            // Phase 11: Token Allowance Check - Get profile and verify token allowance
-            var profile = await _profileRepository.GetByIdAsync(profileId);
+            // Phase 11: Token Allowance Check - Get profile with User data for booking functions
+            var profile = await _profileRepository.GetWithRelatedDataAsync(profileId);
             if (profile == null)
             {
                 _logger.LogWarning("[ChatService.SendMessageAsync] PROFILE_NOT_FOUND - ProfileId={ProfileId}, RequestId={RequestId}", 
@@ -226,6 +230,12 @@ public class ChatService : IChatService
 
             // Set current profile for function calls
             _functionService.SetCurrentProfile(profileId);
+
+            // Set current user context for booking functions
+            var keycloakId = profile.User?.KeycloakId ?? string.Empty;
+            _bookingFunctions.SetCurrentUser(profileId, keycloakId);
+            _logger.LogDebug("[ChatService.SendMessageAsync] Booking functions context set - ProfileId={ProfileId}, RequestId={RequestId}", 
+                profileId, requestId);
 
             // Set location context for proximity-aware searches (Phase 0)
             if (dto.Location != null && dto.Location.IsValid)
@@ -514,6 +524,26 @@ public class ChatService : IChatService
             "If they write in Spanish, respond in Spanish. If they write in English, respond in English. " +
             "If they write in Russian, respond in Russian. Mirror their language exactly, regardless of system settings.";
 
+        // Add date/time context to system prompt (CRITICAL for booking/scheduling)
+        if (location != null && !string.IsNullOrEmpty(location.UserLocalTime))
+        {
+            systemPrompt += $"\n\nDATE/TIME CONTEXT: The user's current local time is {location.UserLocalTime}";
+            if (!string.IsNullOrEmpty(location.TimeZone))
+            {
+                systemPrompt += $" (timezone: {location.TimeZone})";
+            }
+            systemPrompt += ". Use this to understand 'today', 'tomorrow', 'next week', etc. " +
+                "When searching for available slots or creating bookings, use dates AFTER this date.";
+        }
+        else
+        {
+            // Fallback to server time if no user time provided
+            var serverTime = DateTime.UtcNow;
+            systemPrompt += $"\n\nDATE/TIME CONTEXT: Current date is {serverTime:yyyy-MM-dd} (UTC). " +
+                "Use this to understand 'today', 'tomorrow', 'next week', etc. " +
+                "When searching for available slots or creating bookings, use dates AFTER this date.";
+        }
+
         // Add location context to system prompt if available
         if (location != null && location.IsValid)
         {
@@ -524,11 +554,22 @@ public class ChatService : IChatService
                 "3. Do NOT ask which city they want - either use the city they mentioned OR default to their current location.";
         }
 
+        // Add efficiency instructions to reduce redundant tool calls
+        systemPrompt += "\n\nEFFICIENCY: Do NOT call SearchBookableResources again for resources you already retrieved in this conversation. " +
+            "Use the resource IDs and information from previous tool results.";
+
         // Add system message
         history.Add(new AiChatMessage(ChatRole.System, systemPrompt));
 
-        // Add conversation messages
-        var messages = conversation.Messages.OrderBy(m => m.MessageOrder).ToList();
+        // Add conversation messages - LIMIT to last 6 messages to reduce token usage
+        // This significantly reduces input tokens (from 17+ messages to 6)
+        const int MaxHistoryMessages = 6;
+        var messages = conversation.Messages
+            .OrderByDescending(m => m.MessageOrder)
+            .Take(MaxHistoryMessages)
+            .OrderBy(m => m.MessageOrder) // Re-order chronologically
+            .ToList();
+            
         foreach (var msg in messages)
         {
             var role = msg.Role.ToLower() == "user" ? ChatRole.User : ChatRole.Assistant;

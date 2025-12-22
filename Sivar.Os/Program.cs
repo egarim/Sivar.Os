@@ -201,6 +201,7 @@ builder.Services.AddScoped<IProfileMetadataValidator, ProfileMetadataValidator>(
 
 // --- AI & Vector Services Registration ---
 builder.Services.AddScoped<ChatFunctionService>();
+builder.Services.AddScoped<Sivar.Os.Services.AgentFunctions.BookingFunctions>(); // Booking integration for Chat AI
 builder.Services.AddScoped<IIntentClassifier, IntentClassifier>(); // Phase 6: Intent-Based Routing
 builder.Services.AddSingleton<ICategoryNormalizer, CategoryNormalizer>(); // Phase 6: Multilingual Search
 builder.Services.AddScoped<IVectorEmbeddingService, VectorEmbeddingService>();

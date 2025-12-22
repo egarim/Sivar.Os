@@ -3,6 +3,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Sivar.Os.Services.AgentFunctions;
 using Sivar.Os.Shared.Entities;
 using Sivar.Os.Shared.Repositories;
 
@@ -20,6 +21,7 @@ public class AgentFactory : IAgentFactory
     private readonly IMemoryCache _cache;
     private readonly ILogger<AgentFactory> _logger;
     private readonly ChatFunctionService _functionService;
+    private readonly BookingFunctions _bookingFunctions;
     private readonly IChatClient _chatClient;
     private readonly ILoggerFactory _loggerFactory;
 
@@ -36,6 +38,7 @@ public class AgentFactory : IAgentFactory
         IMemoryCache cache,
         ILogger<AgentFactory> logger,
         ChatFunctionService functionService,
+        BookingFunctions bookingFunctions,
         IChatClient chatClient,
         ILoggerFactory loggerFactory)
     {
@@ -44,6 +47,7 @@ public class AgentFactory : IAgentFactory
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _functionService = functionService ?? throw new ArgumentNullException(nameof(functionService));
+        _bookingFunctions = bookingFunctions ?? throw new ArgumentNullException(nameof(bookingFunctions));
         _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
 
@@ -267,7 +271,17 @@ Be friendly and helpful.",
             ["GetContactInfo"] = AIFunctionFactory.Create(_functionService.GetContactInfo),
             ["GetBusinessHours"] = AIFunctionFactory.Create(_functionService.GetBusinessHours),
             ["GetDirections"] = AIFunctionFactory.Create(_functionService.GetDirections),
-            ["GetProcedureInfo"] = AIFunctionFactory.Create(_functionService.GetProcedureInfo)
+            ["GetProcedureInfo"] = AIFunctionFactory.Create(_functionService.GetProcedureInfo),
+            
+            // Booking functions - enables reservations and appointments via chat
+            ["SearchBookableResources"] = AIFunctionFactory.Create(_bookingFunctions.SearchBookableResources),
+            ["GetResourceDetails"] = AIFunctionFactory.Create(_bookingFunctions.GetResourceDetails),
+            ["GetAvailableSlots"] = AIFunctionFactory.Create(_bookingFunctions.GetAvailableSlots),
+            ["CreateBooking"] = AIFunctionFactory.Create(_bookingFunctions.CreateBooking),
+            ["GetMyUpcomingBookings"] = AIFunctionFactory.Create(_bookingFunctions.GetMyUpcomingBookings),
+            ["GetBookingByConfirmationCode"] = AIFunctionFactory.Create(_bookingFunctions.GetBookingByConfirmationCode),
+            ["CancelBooking"] = AIFunctionFactory.Create(_bookingFunctions.CancelBooking),
+            ["GetBookingCategories"] = AIFunctionFactory.Create(_bookingFunctions.GetBookingCategories)
         };
     }
 }

@@ -17,12 +17,20 @@
     <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.11" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sivar.Os\Sivar.Os.csproj" />
     <ProjectReference Include="..\Sivar.Os.Client\Sivar.Os.Client.csproj" />
     <ProjectReference Include="..\Sivar.Os.Shared\Sivar.Os.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

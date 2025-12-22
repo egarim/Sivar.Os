@@ -130,6 +130,18 @@ public record ChatLocationContext
     public double? AccuracyMeters { get; init; }
 
     /// <summary>
+    /// User's current local time (ISO 8601 format: yyyy-MM-ddTHH:mm:ss)
+    /// Used by AI to understand "today", "tomorrow", "next week" etc.
+    /// </summary>
+    public string? UserLocalTime { get; init; }
+
+    /// <summary>
+    /// User's timezone identifier (e.g., "America/El_Salvador", "UTC")
+    /// </summary>
+    [StringLength(50)]
+    public string? TimeZone { get; init; }
+
+    /// <summary>
     /// Whether this location context is valid and can be used for searches
     /// </summary>
     public bool IsValid => Latitude.HasValue && Longitude.HasValue || !string.IsNullOrEmpty(City);

@@ -1311,6 +1311,7 @@ You can help users:
 - Help with government procedures and requirements (DUI, pasaporte, licencia, etc.)
 - Follow and unfollow other users
 - Get information about their own profile
+- BOOK APPOINTMENTS AND RESERVATIONS at barber shops, restaurants, doctors, salons, and other services
 
 IMPORTANT INSTRUCTIONS:
 1. Always respond in Spanish when the user writes in Spanish.
@@ -1318,8 +1319,14 @@ IMPORTANT INSTRUCTIONS:
 3. When users ask about hours/schedule, use GetBusinessHours function.
 4. When users ask for directions/location, use GetDirections function.
 5. When users ask about procedures/requirements, use GetProcedureInfo function.
-6. When showing links, always use RELATIVE URLs (starting with /) not absolute URLs.
-7. Be friendly, helpful, and conversational.";
+6. When users want to BOOK, RESERVE, or MAKE AN APPOINTMENT (reservar, cita, agendar):
+   - Use SearchBookableResources to find available services
+   - Use GetAvailableSlots to show available times
+   - Use CreateBooking to complete the reservation
+7. When users ask about 'mis reservas', 'mis citas', use GetMyUpcomingBookings.
+8. For barberías, salones, doctores, restaurantes - ALWAYS check if booking is available using SearchBookableResources.
+9. When showing links, always use RELATIVE URLs (starting with /) not absolute URLs.
+10. Be friendly, helpful, and conversational.";
             defaultAgent.Provider = "ollama";
             defaultAgent.ModelId = "llama3.2:latest";
             defaultAgent.Temperature = 0.7;
@@ -1338,7 +1345,10 @@ IMPORTANT INSTRUCTIONS:
                 "FollowProfile", "UnfollowProfile", "GetMyProfile",
                 "SearchNearbyProfiles", "SearchNearbyPosts", "CalculateDistance",
                 "GetAddressFromCoordinates", "GetCoordinatesFromAddress", "SearchNearMe", "GetCurrentLocationStatus",
-                "GetContactInfo", "GetBusinessHours", "GetDirections", "GetProcedureInfo"
+                "GetContactInfo", "GetBusinessHours", "GetDirections", "GetProcedureInfo",
+                // Booking functions - enables reservations and appointments via chat
+                "SearchBookableResources", "GetResourceDetails", "GetAvailableSlots", "CreateBooking",
+                "GetMyUpcomingBookings", "GetBookingByConfirmationCode", "CancelBooking", "GetBookingCategories"
             };
             defaultAgent.SetEnabledTools(enabledTools);
             
@@ -1377,7 +1387,17 @@ IMPORTANT INSTRUCTIONS:
                 ("GetDirections", "Direcciones", "Business", "Obtiene direcciones hacia un negocio", 32),
                 
                 // Government tools
-                ("GetProcedureInfo", "Información de Trámites", "Government", "Obtiene requisitos y pasos para trámites gubernamentales", 40)
+                ("GetProcedureInfo", "Información de Trámites", "Government", "Obtiene requisitos y pasos para trámites gubernamentales", 40),
+                
+                // Booking tools - enables reservations and appointments via chat
+                ("SearchBookableResources", "Buscar Servicios Reservables", "Booking", "Busca barberías, restaurantes, doctores y otros servicios que aceptan reservas", 50),
+                ("GetResourceDetails", "Detalles del Recurso", "Booking", "Obtiene información detallada de un servicio reservable", 51),
+                ("GetAvailableSlots", "Horarios Disponibles", "Booking", "Obtiene los horarios disponibles para una reserva", 52),
+                ("CreateBooking", "Crear Reserva", "Booking", "Crea una nueva reserva o cita", 53),
+                ("GetMyUpcomingBookings", "Mis Reservas", "Booking", "Lista las próximas reservas del usuario", 54),
+                ("GetBookingByConfirmationCode", "Buscar por Código", "Booking", "Busca una reserva por su código de confirmación", 55),
+                ("CancelBooking", "Cancelar Reserva", "Booking", "Cancela una reserva existente", 56),
+                ("GetBookingCategories", "Categorías de Reservas", "Booking", "Lista las categorías disponibles para reservas", 57)
             };
             
             foreach (var (functionName, displayName, category, description, sortOrder) in toolDefinitions)
@@ -2343,21 +2363,20 @@ IMPORTANT INSTRUCTIONS:
             if (barbershopProfile == null)
             {
                 var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-                var systemUserId = Guid.Parse("99999999-9999-9999-9999-999999999999");
                 
-                // Check if system user exists (PermissionPolicyUser uses ID property)
-                var systemUser = ObjectSpace.GetObjectsQuery<ApplicationUser>()
-                    .FirstOrDefault(u => u.ID == systemUserId);
+                // Find ANY existing user to be the owner (fallback approach)
+                var existingUser = ObjectSpace.GetObjectsQuery<User>()
+                    .FirstOrDefault(u => !u.IsDeleted);
                 
-                if (systemUser == null)
+                if (existingUser == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ System user not found, skipping barbershop creation");
+                    System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ No users found, skipping barbershop creation");
                 }
                 else
                 {
                     barbershopProfile = ObjectSpace.CreateObject<Profile>();
                     barbershopProfile.Id = barbershopId;
-                    barbershopProfile.UserId = systemUserId;
+                    barbershopProfile.UserId = existingUser.Id;
                     barbershopProfile.ProfileTypeId = businessProfileTypeId;
                     barbershopProfile.DisplayName = "Barbería El Caballero";
                     barbershopProfile.Handle = "barberia-el-caballero";
@@ -2369,7 +2388,7 @@ IMPORTANT INSTRUCTIONS:
                     barbershopProfile.UpdatedAt = now;
                     
                     ObjectSpace.CommitChanges(); // Commit profile first
-                    System.Diagnostics.Debug.WriteLine("[Updater] 💈 Created barbershop profile: Barbería El Caballero");
+                    System.Diagnostics.Debug.WriteLine($"[Updater] 💈 Created barbershop profile: Barbería El Caballero (Owner: {existingUser.Id})");
                 }
             }
             else

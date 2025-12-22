@@ -77,9 +77,13 @@ public class ResourceBookingRepository : IResourceBookingRepository
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var term = query.SearchTerm.ToLower();
+            // Search in resource name, description, tags, AND profile display name/category keys
             dbQuery = dbQuery.Where(r =>
                 r.Name.ToLower().Contains(term) ||
-                (r.Description != null && r.Description.ToLower().Contains(term)));
+                (r.Description != null && r.Description.ToLower().Contains(term)) ||
+                r.Tags.Any(t => t.ToLower().Contains(term)) ||
+                (r.Profile != null && r.Profile.DisplayName.ToLower().Contains(term)) ||
+                (r.Profile != null && r.Profile.CategoryKeys.Any(ck => ck.ToLower().Contains(term))));
         }
 
         if (query.MaxPrice.HasValue)

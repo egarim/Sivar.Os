@@ -1200,12 +1200,25 @@
                 await CreateNewConversationAsync();
             }
 
-            // Call the backend API
+            // Call the backend API - add user's local time to location context
+            var locationWithTime = _chatLocation != null 
+                ? _chatLocation with 
+                { 
+                    UserLocalTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = TimeZoneInfo.Local.Id
+                }
+                : new ChatLocationContext 
+                { 
+                    UserLocalTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = TimeZoneInfo.Local.Id,
+                    Source = "time-only"
+                };
+            
             var sendMessageDto = new SendMessageDto
             {
                 ConversationId = _currentConversationId,
                 Content = args.Content,
-                Location = _chatLocation
+                Location = locationWithTime
             };
 
             Logger.LogInformation("[MainLayout.HandleDxChatMessageSent] Calling API - ConversationId={ConversationId}", 
