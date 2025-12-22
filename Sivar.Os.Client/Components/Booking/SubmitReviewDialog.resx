@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <data name="LeaveReview" xml:space="preserve">
+    <value>Leave a Review</value>
+  </data>
+  <data name="HowWasExperience" xml:space="preserve">
+    <value>How was your experience?</value>
+  </data>
+  <data name="TapToRate" xml:space="preserve">
+    <value>Tap to rate</value>
+  </data>
+  <data name="RatingTerrible" xml:space="preserve">
+    <value>Terrible</value>
+  </data>
+  <data name="RatingPoor" xml:space="preserve">
+    <value>Poor</value>
+  </data>
+  <data name="RatingAverage" xml:space="preserve">
+    <value>Average</value>
+  </data>
+  <data name="RatingGood" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="RatingExcellent" xml:space="preserve">
+    <value>Excellent!</value>
+  </data>
+  <data name="YourReview" xml:space="preserve">
+    <value>Your Review</value>
+  </data>
+  <data name="ReviewPlaceholder" xml:space="preserve">
+    <value>Tell others about your experience...</value>
+  </data>
+  <data name="WhatCouldImprove" xml:space="preserve">
+    <value>What could be improved?</value>
+  </data>
+  <data name="WhatWasGreat" xml:space="preserve">
+    <value>What was great?</value>
+  </data>
+  <data name="TagWaitTime" xml:space="preserve">
+    <value>Wait Time</value>
+  </data>
+  <data name="TagServiceQuality" xml:space="preserve">
+    <value>Service Quality</value>
+  </data>
+  <data name="TagCommunication" xml:space="preserve">
+    <value>Communication</value>
+  </data>
+  <data name="TagValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="TagFriendlyStaff" xml:space="preserve">
+    <value>Friendly Staff</value>
+  </data>
+  <data name="TagGreatService" xml:space="preserve">
+    <value>Great Service</value>
+  </data>
+  <data name="TagOnTime" xml:space="preserve">
+    <value>On Time</value>
+  </data>
+  <data name="TagGoodValue" xml:space="preserve">
+    <value>Good Value</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SubmitReview" xml:space="preserve">
+    <value>Submit Review</value>
+  </data>
+  <data name="ReviewSubmitted" xml:space="preserve">
+    <value>Thank you for your review!</value>
+  </data>
+  <data name="ReviewFailed" xml:space="preserve">
+    <value>Failed to submit review</value>
+  </data>
+  <data name="ReviewError" xml:space="preserve">
+    <value>An error occurred while submitting your review</value>
+  </data>
+</root>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <data name="BookingDetails" xml:space="preserve">
+    <value>Booking Details</value>
+  </data>
+  <data name="BookingNotFound" xml:space="preserve">
+    <value>Booking not found</value>
+  </data>
+  <data name="DateTime" xml:space="preserve">
+    <value>Date &amp; Time</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Paid" xml:space="preserve">
+    <value>Paid</value>
+  </data>
+  <data name="PayAtVenue" xml:space="preserve">
+    <value>Pay at venue</value>
+  </data>
+  <data name="Guests" xml:space="preserve">
+    <value>Guests</value>
+  </data>
+  <data name="People" xml:space="preserve">
+    <value>people</value>
+  </data>
+  <data name="YourNotes" xml:space="preserve">
+    <value>Your Notes</value>
+  </data>
+  <data name="ConfirmationCode" xml:space="preserve">
+    <value>Confirmation Code</value>
+  </data>
+  <data name="CopyCode" xml:space="preserve">
+    <value>Copy code</value>
+  </data>
+  <data name="CodeCopied" xml:space="preserve">
+    <value>Code copied to clipboard</value>
+  </data>
+  <data name="CancelledAt" xml:space="preserve">
+    <value>Cancelled on</value>
+  </data>
+  <data name="Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="CompletedAt" xml:space="preserve">
+    <value>Completed on</value>
+  </data>
+  <data name="ConfirmedAt" xml:space="preserve">
+    <value>Confirmed on</value>
+  </data>
+  <data name="CancelBooking" xml:space="preserve">
+    <value>Cancel Booking</value>
+  </data>
+  <data name="Reschedule" xml:space="preserve">
+    <value>Reschedule</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ErrorLoadingDetails" xml:space="preserve">
+    <value>Error loading booking details</value>
+  </data>
+  <data name="StatusPending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="StatusConfirmed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="StatusCheckedIn" xml:space="preserve">
+    <value>Checked In</value>
+  </data>
+  <data name="StatusCompleted" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="StatusNoShow" xml:space="preserve">
+    <value>No Show</value>
+  </data>
+</root>

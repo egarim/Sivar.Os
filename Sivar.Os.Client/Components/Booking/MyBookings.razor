@@ -28,10 +28,12 @@
                 <div class="bookings-list">
                     @foreach (var booking in UpcomingBookings)
                     {
-                        <BookingCard Booking="@booking" 
-                                     ShowActions="true"
-                                     OnCancel="() => CancelBooking(booking)"
-                                     OnReschedule="() => RescheduleBooking(booking)" />
+                        <div @onclick="() => ViewBookingDetails(booking.Id)" class="booking-card-wrapper">
+                            <BookingCard Booking="@booking" 
+                                         ShowActions="true"
+                                         OnCancel="() => CancelBooking(booking)"
+                                         OnReschedule="() => RescheduleBooking(booking)" />
+                        </div>
                     }
                 </div>
             }
@@ -55,10 +57,12 @@
                 <div class="bookings-list">
                     @foreach (var booking in BookingHistory.Bookings)
                     {
-                        <BookingCard Booking="@booking" 
-                                     ShowActions="false"
-                                     ShowReviewButton="@(booking.Status == BookingStatus.Completed)"
-                                     OnReview="() => ReviewBooking(booking)" />
+                        <div @onclick="() => ViewBookingDetails(booking.Id)" class="booking-card-wrapper">
+                            <BookingCard Booking="@booking" 
+                                         ShowActions="false"
+                                         ShowReviewButton="@(booking.Status == BookingStatus.Completed)"
+                                         OnReview="() => ReviewBooking(booking)" />
+                        </div>
                     }
                 </div>
                 
@@ -105,52 +109,20 @@
     </DialogActions>
 </MudDialog>
 
-@* Review Dialog *@
-<MudDialog @bind-Visible="ShowReviewDialog">
-    <TitleContent>
-        <MudText Typo="Typo.h6">@Localizer["LeaveReview"]</MudText>
-    </TitleContent>
-    <DialogContent>
-        <div class="review-form">
-            <MudText Typo="Typo.body2" Class="mb-2">@Localizer["HowWasExperience"]</MudText>
-            <MudRating @bind-SelectedValue="ReviewRating" MaxValue="5" Size="Size.Large" Class="mb-4" />
-            
-            <MudTextField @bind-Value="ReviewText"
-                          Label="@Localizer["Review"]"
-                          Placeholder="@Localizer["ReviewPlaceholder"]"
-                          Variant="Variant.Outlined"
-                          Lines="3" />
-        </div>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="() => ShowReviewDialog = false">@Localizer["Cancel"]</MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
-                   OnClick="SubmitReview"
-                   Disabled="@(IsSubmittingReview || ReviewRating == 0)">
-            @if (IsSubmittingReview)
-            {
-                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
-            }
-            @Localizer["SubmitReview"]
-        </MudButton>
-    </DialogActions>
-</MudDialog>
-
 <style>
     .my-bookings {
         max-width: 800px;
         margin: 0 auto;
     }
     
+    .booking-card-wrapper {
+        cursor: pointer;
+    }
+    
     .bookings-list {
         display: flex;
         flex-direction: column;
         gap: 16px;
-    }
-    
-    .review-form {
-        min-width: 300px;
     }
 </style>
 
@@ -167,13 +139,6 @@
     private ResourceBookingSummaryDto? BookingToCancel { get; set; }
     private string? CancellationReason { get; set; }
     private bool IsCancelling { get; set; }
-    
-    // Review dialog
-    private bool ShowReviewDialog { get; set; }
-    private ResourceBookingSummaryDto? BookingToReview { get; set; }
-    private int ReviewRating { get; set; }
-    private string? ReviewText { get; set; }
-    private bool IsSubmittingReview { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
@@ -271,57 +236,131 @@
         }
     }
     
-    private void RescheduleBooking(ResourceBookingSummaryDto booking)
+    private async Task RescheduleBooking(ResourceBookingSummaryDto booking)
     {
-        // TODO: Implement reschedule dialog
-        Snackbar.Add(Localizer["RescheduleComingSoon"], Severity.Info);
-    }
-    
-    private void ReviewBooking(ResourceBookingSummaryDto booking)
-    {
-        BookingToReview = booking;
-        ReviewRating = 0;
-        ReviewText = null;
-        ShowReviewDialog = true;
-    }
-    
-    private async Task SubmitReview()
-    {
-        if (BookingToReview == null || ReviewRating == 0) return;
-        
-        IsSubmittingReview = true;
-        StateHasChanged();
-        
-        try
+        // First load the full booking details for the reschedule dialog
+        var fullBooking = await BookingsClient.GetBookingAsync(booking.Id);
+        if (fullBooking == null)
         {
-            var result = await BookingsClient.SubmitReviewAsync(
-                BookingToReview.Id,
-                new SubmitBookingReviewDto
+            Snackbar.Add(Localizer["ErrorLoadingBookings"], Severity.Error);
+            return;
+        }
+        
+        var parameters = new DialogParameters<RescheduleBookingDialog>
+        {
+            { x => x.Booking, fullBooking }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<RescheduleBookingDialog>(
+            Localizer["Reschedule"], 
+            parameters, 
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (result is { Canceled: false })
+        {
+            // Refresh the bookings list
+            await LoadUpcomingBookings();
+        }
+    }
+    
+    private async Task ReviewBooking(ResourceBookingSummaryDto booking)
+    {
+        // Load the full booking details for the review dialog
+        var fullBooking = await BookingsClient.GetBookingAsync(booking.Id);
+        if (fullBooking == null)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingBookings"], Severity.Error);
+            return;
+        }
+        
+        var parameters = new DialogParameters<SubmitReviewDialog>
+        {
+            { x => x.Booking, fullBooking }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<SubmitReviewDialog>(
+            Localizer["LeaveReview"], 
+            parameters, 
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (result is { Canceled: false })
+        {
+            // Refresh the history to update the review status
+            await LoadBookingHistory();
+        }
+    }
+    
+    private async Task ViewBookingDetails(Guid bookingId)
+    {
+        var parameters = new DialogParameters<BookingDetailsDialog>
+        {
+            { x => x.BookingId, bookingId },
+            { x => x.OnCancel, EventCallback.Factory.Create<ResourceBookingDto>(this, async b => 
+            {
+                // Close details and open cancel dialog
+                var summary = new ResourceBookingSummaryDto { Id = b.Id };
+                CancelBooking(summary);
+            })},
+            { x => x.OnReschedule, EventCallback.Factory.Create<ResourceBookingDto>(this, async b => 
+            {
+                // Open reschedule dialog with full booking
+                var parameters = new DialogParameters<RescheduleBookingDialog>
                 {
-                    Rating = ReviewRating,
-                    Review = ReviewText
-                });
-            
-            if (result != null)
-            {
-                Snackbar.Add(Localizer["ReviewSubmitted"], Severity.Success);
-                ShowReviewDialog = false;
-                await LoadBookingHistory();
-            }
-            else
-            {
-                Snackbar.Add(Localizer["ReviewFailed"], Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(Localizer["ReviewError"], Severity.Error);
-        }
-        finally
-        {
-            IsSubmittingReview = false;
-            StateHasChanged();
-        }
+                    { x => x.Booking, b }
+                };
+                
+                var options = new DialogOptions 
+                { 
+                    CloseButton = true, 
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                };
+                
+                var dialog = await DialogService.ShowAsync<RescheduleBookingDialog>(
+                    Localizer["Reschedule"], 
+                    parameters, 
+                    options);
+                
+                var result = await dialog.Result;
+                
+                if (result is { Canceled: false })
+                {
+                    await LoadUpcomingBookings();
+                }
+            })}
+        };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<BookingDetailsDialog>(
+            Localizer["BookingDetails"], 
+            parameters, 
+            options);
+        
+        await dialog.Result;
     }
 }
 

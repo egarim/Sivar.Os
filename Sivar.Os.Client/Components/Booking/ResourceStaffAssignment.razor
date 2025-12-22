@@ -1,0 +1,266 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ResourceStaffAssignment> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject IProfilesClient ProfilesClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
+            <MudText Typo="Typo.h6">@Localizer["AssignStaff"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="staff-assignment">
+            @* Resource being assigned *@
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <div class="d-flex align-center gap-2">
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">
+                        <MudIcon Icon="@GetResourceIcon(Resource.ResourceType)" Size="Size.Small" />
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.subtitle1">@Resource.Name</MudText>
+                        <MudText Typo="Typo.caption" Class="text-secondary">@Resource.ResourceType</MudText>
+                    </div>
+                </div>
+            </MudPaper>
+
+            @* Search for staff *@
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["SearchForStaff"]</MudText>
+            <MudTextField @bind-Value="SearchQuery"
+                          Label="@Localizer["SearchPlaceholder"]"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          DebounceInterval="400"
+                          OnDebounceIntervalElapsed="SearchProfiles"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" />
+
+            @* Search Results *@
+            @if (IsSearching)
+            {
+                <div class="d-flex justify-center pa-4">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                </div>
+            }
+            else if (SearchResults?.Any() == true)
+            {
+                <MudList T="ProfileSummaryDto" Dense="true" Clickable="true" Class="search-results mt-3">
+                    @foreach (var profile in SearchResults)
+                    {
+                        var isSelected = SelectedProfile?.Id == profile.Id;
+                        <MudListItem T="ProfileSummaryDto" 
+                                     Class="@(isSelected ? "selected-profile" : "")"
+                                     OnClick="() => SelectProfile(profile)">
+                            <div class="d-flex align-center gap-3 w-100">
+                                <MudAvatar Size="Size.Small">
+                                    @if (!string.IsNullOrEmpty(profile.Avatar))
+                                    {
+                                        <MudImage Src="@profile.Avatar" />
+                                    }
+                                    else
+                                    {
+                                        @profile.DisplayName[0]
+                                    }
+                                </MudAvatar>
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body2">@profile.DisplayName</MudText>
+                                    <MudText Typo="Typo.caption" Class="text-secondary">@@@profile.Handle</MudText>
+                                </div>
+                                @if (isSelected)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                                }
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+            else if (!string.IsNullOrEmpty(SearchQuery) && SearchQuery.Length >= 2)
+            {
+                <MudText Typo="Typo.body2" Class="text-secondary mt-3 text-center">
+                    @Localizer["NoProfilesFound"]
+                </MudText>
+            }
+
+            @* Selected Profile *@
+            @if (SelectedProfile != null)
+            {
+                <MudPaper Class="pa-3 mt-4" Elevation="0" Outlined="true" Style="border-color: var(--mud-palette-primary);">
+                    <MudText Typo="Typo.caption" Class="text-secondary mb-2">@Localizer["SelectedForAssignment"]</MudText>
+                    <div class="d-flex align-center gap-3">
+                        <MudAvatar Size="Size.Medium">
+                            @if (!string.IsNullOrEmpty(SelectedProfile.Avatar))
+                            {
+                                <MudImage Src="@SelectedProfile.Avatar" />
+                            }
+                            else
+                            {
+                                @SelectedProfile.DisplayName[0]
+                            }
+                        </MudAvatar>
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body1" Class="font-weight-medium">@SelectedProfile.DisplayName</MudText>
+                            <MudText Typo="Typo.caption" Class="text-secondary">@@@SelectedProfile.Handle</MudText>
+                        </div>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                       Size="Size.Small" 
+                                       OnClick="ClearSelection" />
+                    </div>
+                </MudPaper>
+            }
+            
+            @* Option to remove current assignment *@
+            <MudCheckBox T="bool" @bind-Value="RemoveAssignment" 
+                         Label="@Localizer["RemoveCurrentAssignment"]"
+                         Color="Color.Warning" 
+                         Class="mt-3" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SaveAssignment" 
+                   Disabled="@(IsSaving || (SelectedProfile == null && !RemoveAssignment))">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .staff-assignment {
+        min-width: 400px;
+        max-width: 500px;
+    }
+    
+    .search-results {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 4px;
+    }
+    
+    .selected-profile {
+        background-color: var(--mud-palette-primary-lighten);
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public BookableResourceSummaryDto Resource { get; set; } = null!;
+    
+    private ProfileSummaryDto? SelectedProfile { get; set; }
+    private IEnumerable<ProfileSummaryDto>? SearchResults { get; set; }
+    
+    private string SearchQuery { get; set; } = string.Empty;
+    private bool IsSearching { get; set; }
+    private bool IsSaving { get; set; }
+    private bool RemoveAssignment { get; set; }
+    
+    private async Task SearchProfiles()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery) || SearchQuery.Length < 2)
+        {
+            SearchResults = null;
+            return;
+        }
+        
+        IsSearching = true;
+        StateHasChanged();
+        
+        try
+        {
+            SearchResults = await ProfilesClient.SearchProfilesAsync(SearchQuery, pageSize: 10);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["SearchError"], Severity.Error);
+        }
+        finally
+        {
+            IsSearching = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void SelectProfile(ProfileSummaryDto profile)
+    {
+        SelectedProfile = profile;
+        RemoveAssignment = false;
+        StateHasChanged();
+    }
+    
+    private void ClearSelection()
+    {
+        SelectedProfile = null;
+        StateHasChanged();
+    }
+    
+    private async Task SaveAssignment()
+    {
+        IsSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            Guid? newProfileId = RemoveAssignment ? null : SelectedProfile?.Id;
+            
+            var updateDto = new UpdateBookableResourceDto
+            {
+                AssignedProfileId = newProfileId
+            };
+            
+            var result = await BookingsClient.UpdateResourceAsync(Resource.Id, updateDto);
+            if (result != null)
+            {
+                var message = RemoveAssignment 
+                    ? Localizer["StaffRemoved"] 
+                    : Localizer["StaffAssigned"];
+                Snackbar.Add(message, Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(Localizer["UpdateFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["SaveError"], Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+    
+    private string GetResourceIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Handyman,
+        ResourceType.Object => Icons.Material.Filled.TableRestaurant,
+        _ => Icons.Material.Filled.Event
+    };
+}

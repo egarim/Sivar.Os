@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <data name="Upcoming" xml:space="preserve">
+    <value>Próximas</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>Historial</value>
+  </data>
+  <data name="NoUpcomingBookings" xml:space="preserve">
+    <value>No tienes reservas próximas</value>
+  </data>
+  <data name="NoBookingHistory" xml:space="preserve">
+    <value>Aún no tienes historial de reservas</value>
+  </data>
+  <data name="CancelBooking" xml:space="preserve">
+    <value>Cancelar Reserva</value>
+  </data>
+  <data name="CancelBookingConfirmation" xml:space="preserve">
+    <value>¿Estás seguro de que quieres cancelar esta reserva?</value>
+  </data>
+  <data name="Reason" xml:space="preserve">
+    <value>Razón de cancelación</value>
+  </data>
+  <data name="ReasonPlaceholder" xml:space="preserve">
+    <value>Opcional - cuéntales por qué estás cancelando...</value>
+  </data>
+  <data name="Keep" xml:space="preserve">
+    <value>Mantener Reserva</value>
+  </data>
+  <data name="BookingCancelled" xml:space="preserve">
+    <value>Reserva cancelada exitosamente</value>
+  </data>
+  <data name="CancelFailed" xml:space="preserve">
+    <value>No se pudo cancelar la reserva</value>
+  </data>
+  <data name="CancelError" xml:space="preserve">
+    <value>Ocurrió un error al cancelar</value>
+  </data>
+  <data name="ErrorLoadingBookings" xml:space="preserve">
+    <value>Error al cargar las reservas</value>
+  </data>
+  <data name="ErrorLoadingHistory" xml:space="preserve">
+    <value>Error al cargar el historial de reservas</value>
+  </data>
+  <data name="Reschedule" xml:space="preserve">
+    <value>Reprogramar</value>
+  </data>
+  <data name="LeaveReview" xml:space="preserve">
+    <value>Dejar una Reseña</value>
+  </data>
+  <data name="BookingDetails" xml:space="preserve">
+    <value>Detalles de la Reserva</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+</root>

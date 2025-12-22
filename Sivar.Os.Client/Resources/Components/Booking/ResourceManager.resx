@@ -124,4 +124,43 @@
   <data name="ConfirmDeleteTitle" xml:space="preserve">
     <value>Delete Resource</value>
   </data>
+  <data name="Availability" xml:space="preserve">
+    <value>Availability</value>
+  </data>
+  <data name="Services" xml:space="preserve">
+    <value>Services</value>
+  </data>
+  <data name="Exceptions" xml:space="preserve">
+    <value>Exceptions</value>
+  </data>
+  <data name="Staff" xml:space="preserve">
+    <value>Staff</value>
+  </data>
+  <data name="min" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Buffer" xml:space="preserve">
+    <value>Buffer</value>
+  </data>
+  <data name="DeleteResource" xml:space="preserve">
+    <value>Delete Resource</value>
+  </data>
+  <data name="DeleteResourceConfirmation" xml:space="preserve">
+    <value>Are you sure you want to delete this resource? This action cannot be undone.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Failed to update resource</value>
+  </data>
+  <data name="DeleteFailed" xml:space="preserve">
+    <value>Failed to delete resource</value>
+  </data>
 </root>

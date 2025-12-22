@@ -1,0 +1,345 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<BookingDetailsDialog> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" />
+            <MudText Typo="Typo.h6">@Localizer["BookingDetails"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (IsLoading)
+        {
+            <div class="d-flex justify-center align-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (Booking == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @Localizer["BookingNotFound"]
+            </MudAlert>
+        }
+        else
+        {
+            <div class="booking-details-content">
+                @* Header: Resource/Service Info *@
+                <div class="booking-header d-flex gap-3 mb-4">
+                    @if (!string.IsNullOrEmpty(Booking.ResourceImageUrl))
+                    {
+                        <MudAvatar Size="Size.Large" Image="@Booking.ResourceImageUrl" />
+                    }
+                    else
+                    {
+                        <MudAvatar Size="Size.Large" Color="Color.Primary">
+                            <MudIcon Icon="@GetResourceIcon(Booking.ResourceType)" />
+                        </MudAvatar>
+                    }
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.h6">@Booking.ResourceName</MudText>
+                        @if (!string.IsNullOrEmpty(Booking.ServiceName))
+                        {
+                            <MudText Typo="Typo.body2" Class="text-secondary">@Booking.ServiceName</MudText>
+                        }
+                        <div class="d-flex align-center gap-2 mt-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Class="text-secondary" />
+                            <MudText Typo="Typo.body2" Class="text-secondary">@Booking.BusinessName</MudText>
+                        </div>
+                    </div>
+                    <MudChip T="string" 
+                             Size="Size.Small" 
+                             Color="@GetStatusColor(Booking.Status)"
+                             Variant="Variant.Filled">
+                        @GetStatusText(Booking.Status)
+                    </MudChip>
+                </div>
+
+                <MudDivider Class="mb-4" />
+
+                @* Date & Time Section *@
+                <div class="detail-section mb-4">
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">@Localizer["DateTime"]</MudText>
+                    </div>
+                    <div class="detail-card pa-3">
+                        <MudText Typo="Typo.body1" Class="font-weight-medium">
+                            @Booking.StartTime.ToString("dddd, MMMM d, yyyy")
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @Booking.StartTime.ToString("h:mm tt") - @Booking.EndTime.ToString("h:mm tt")
+                            (@GetDuration())
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="text-secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Language" Size="Size.Small" Style="font-size: 14px; vertical-align: middle;" />
+                            @Booking.TimeZone
+                        </MudText>
+                    </div>
+                </div>
+
+                @* Price Section *@
+                @if (Booking.Price.HasValue && Booking.Price.Value > 0)
+                {
+                    <div class="detail-section mb-4">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">@Localizer["Price"]</MudText>
+                        </div>
+                        <div class="detail-card pa-3 d-flex justify-space-between align-center">
+                            <MudText Typo="Typo.h6">@FormatPrice(Booking.Price.Value, Booking.Currency)</MudText>
+                            @if (Booking.IsPaid)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
+                                    @Localizer["Paid"]
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                                    @Localizer["PayAtVenue"]
+                                </MudChip>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* Guest Count *@
+                @if (Booking.GuestCount > 1)
+                {
+                    <div class="detail-section mb-4">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">@Localizer["Guests"]</MudText>
+                        </div>
+                        <div class="detail-card pa-3">
+                            <MudText Typo="Typo.body1">@Booking.GuestCount @Localizer["People"]</MudText>
+                        </div>
+                    </div>
+                }
+
+                @* Customer Notes *@
+                @if (!string.IsNullOrEmpty(Booking.CustomerNotes))
+                {
+                    <div class="detail-section mb-4">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">@Localizer["YourNotes"]</MudText>
+                        </div>
+                        <div class="detail-card pa-3">
+                            <MudText Typo="Typo.body2">@Booking.CustomerNotes</MudText>
+                        </div>
+                    </div>
+                }
+
+                @* Confirmation Code *@
+                <div class="detail-section mb-4">
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">@Localizer["ConfirmationCode"]</MudText>
+                    </div>
+                    <div class="detail-card pa-3 d-flex justify-space-between align-center">
+                        <MudText Typo="Typo.h5" Class="font-weight-bold confirmation-code">
+                            @Booking.ConfirmationCode
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" 
+                                       Size="Size.Small"
+                                       OnClick="CopyConfirmationCode"
+                                       Title="@Localizer["CopyCode"]" />
+                    </div>
+                </div>
+
+                @* Booking Status History *@
+                @if (Booking.CancelledAt.HasValue)
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            @Localizer["CancelledAt"]: @Booking.CancelledAt.Value.ToString("g")
+                        </MudText>
+                        @if (!string.IsNullOrEmpty(Booking.CancellationReason))
+                        {
+                            <MudText Typo="Typo.caption">@Localizer["Reason"]: @Booking.CancellationReason</MudText>
+                        }
+                    </MudAlert>
+                }
+                else if (Booking.CompletedAt.HasValue)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            @Localizer["CompletedAt"]: @Booking.CompletedAt.Value.ToString("g")
+                        </MudText>
+                    </MudAlert>
+                }
+                else if (Booking.ConfirmedAt.HasValue)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            @Localizer["ConfirmedAt"]: @Booking.ConfirmedAt.Value.ToString("g")
+                        </MudText>
+                    </MudAlert>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (Booking != null && CanModify())
+        {
+            <MudButton Color="Color.Error" 
+                       Variant="Variant.Text" 
+                       OnClick="() => OnCancel.InvokeAsync(Booking)">
+                @Localizer["CancelBooking"]
+            </MudButton>
+            <MudButton Color="Color.Primary" 
+                       Variant="Variant.Text" 
+                       OnClick="() => OnReschedule.InvokeAsync(Booking)">
+                @Localizer["Reschedule"]
+            </MudButton>
+        }
+        <MudButton Color="Color.Default" OnClick="Close">@Localizer["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .booking-details-content {
+        min-width: 350px;
+        max-width: 450px;
+    }
+    
+    .detail-card {
+        background: var(--mud-palette-background-grey);
+        border-radius: 8px;
+    }
+    
+    .confirmation-code {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 2px;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public Guid BookingId { get; set; }
+    
+    [Parameter]
+    public ResourceBookingDto? InitialBooking { get; set; }
+    
+    [Parameter]
+    public EventCallback<ResourceBookingDto> OnCancel { get; set; }
+    
+    [Parameter]
+    public EventCallback<ResourceBookingDto> OnReschedule { get; set; }
+    
+    private ResourceBookingDto? Booking { get; set; }
+    private bool IsLoading { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (InitialBooking != null)
+        {
+            Booking = InitialBooking;
+        }
+        else if (BookingId != Guid.Empty)
+        {
+            await LoadBookingDetails();
+        }
+    }
+    
+    private async Task LoadBookingDetails()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            Booking = await BookingsClient.GetBookingAsync(BookingId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingDetails"], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private bool CanModify()
+    {
+        if (Booking == null) return false;
+        
+        return Booking.Status == BookingStatus.Pending ||
+               Booking.Status == BookingStatus.Confirmed;
+    }
+    
+    private string GetDuration()
+    {
+        var duration = Booking!.EndTime - Booking.StartTime;
+        if (duration.TotalHours >= 1)
+        {
+            return $"{(int)duration.TotalHours}h {duration.Minutes}min";
+        }
+        return $"{(int)duration.TotalMinutes} min";
+    }
+    
+    private string GetResourceIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Handyman,
+        ResourceType.Object => Icons.Material.Filled.TableRestaurant,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    private Color GetStatusColor(BookingStatus status) => status switch
+    {
+        BookingStatus.Pending => Color.Warning,
+        BookingStatus.Confirmed => Color.Success,
+        BookingStatus.InProgress => Color.Info,
+        BookingStatus.Completed => Color.Success,
+        BookingStatus.Cancelled => Color.Error,
+        BookingStatus.NoShow => Color.Error,
+        _ => Color.Default
+    };
+    
+    private string GetStatusText(BookingStatus status) => status switch
+    {
+        BookingStatus.Pending => Localizer["StatusPending"],
+        BookingStatus.Confirmed => Localizer["StatusConfirmed"],
+        BookingStatus.InProgress => Localizer["StatusCheckedIn"],
+        BookingStatus.Completed => Localizer["StatusCompleted"],
+        BookingStatus.Cancelled => Localizer["StatusCancelled"],
+        BookingStatus.NoShow => Localizer["StatusNoShow"],
+        _ => status.ToString()
+    };
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+    
+    private async Task CopyConfirmationCode()
+    {
+        // Note: In real implementation, use JSInterop to copy to clipboard
+        Snackbar.Add(Localizer["CodeCopied"], Severity.Success);
+    }
+    
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}

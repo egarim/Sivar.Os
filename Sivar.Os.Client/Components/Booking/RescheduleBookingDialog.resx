@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <data name="RescheduleBooking" xml:space="preserve">
+    <value>Reschedule Booking</value>
+  </data>
+  <data name="CurrentAppointment" xml:space="preserve">
+    <value>Current Appointment</value>
+  </data>
+  <data name="SelectNewDate" xml:space="preserve">
+    <value>Select New Date</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="AvailableTimes" xml:space="preserve">
+    <value>Available Times</value>
+  </data>
+  <data name="LoadingSlots" xml:space="preserve">
+    <value>Loading available times...</value>
+  </data>
+  <data name="NoSlotsAvailable" xml:space="preserve">
+    <value>No available time slots for this date. Please select another date.</value>
+  </data>
+  <data name="NewTime" xml:space="preserve">
+    <value>New time</value>
+  </data>
+  <data name="ReasonOptional" xml:space="preserve">
+    <value>Reason for rescheduling (optional)</value>
+  </data>
+  <data name="ReasonPlaceholder" xml:space="preserve">
+    <value>Let them know why you need to reschedule...</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirm Reschedule</value>
+  </data>
+  <data name="ErrorLoadingSlots" xml:space="preserve">
+    <value>Error loading available time slots</value>
+  </data>
+  <data name="RescheduleSuccess" xml:space="preserve">
+    <value>Booking rescheduled successfully!</value>
+  </data>
+  <data name="RescheduleFailed" xml:space="preserve">
+    <value>Failed to reschedule booking</value>
+  </data>
+  <data name="RescheduleError" xml:space="preserve">
+    <value>An error occurred while rescheduling</value>
+  </data>
+</root>

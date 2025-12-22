@@ -124,4 +124,43 @@
   <data name="ConfirmDeleteTitle" xml:space="preserve">
     <value>Eliminar Recurso</value>
   </data>
+  <data name="Availability" xml:space="preserve">
+    <value>Disponibilidad</value>
+  </data>
+  <data name="Services" xml:space="preserve">
+    <value>Servicios</value>
+  </data>
+  <data name="Exceptions" xml:space="preserve">
+    <value>Excepciones</value>
+  </data>
+  <data name="Staff" xml:space="preserve">
+    <value>Personal</value>
+  </data>
+  <data name="min" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Duration" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="Buffer" xml:space="preserve">
+    <value>Buffer</value>
+  </data>
+  <data name="DeleteResource" xml:space="preserve">
+    <value>Eliminar Recurso</value>
+  </data>
+  <data name="DeleteResourceConfirmation" xml:space="preserve">
+    <value>¿Está seguro que desea eliminar este recurso? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Error al actualizar recurso</value>
+  </data>
+  <data name="DeleteFailed" xml:space="preserve">
+    <value>Error al eliminar recurso</value>
+  </data>
 </root>

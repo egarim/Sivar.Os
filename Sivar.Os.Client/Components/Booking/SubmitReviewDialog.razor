@@ -1,0 +1,233 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SubmitReviewDialog> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.RateReview" />
+            <MudText Typo="Typo.h6">@Localizer["LeaveReview"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="review-content">
+            @* Booking Summary *@
+            <div class="booking-summary mb-4">
+                <MudPaper Class="pa-3" Outlined="true">
+                    <div class="d-flex align-center gap-3">
+                        @if (!string.IsNullOrEmpty(Booking.ResourceImageUrl))
+                        {
+                            <MudAvatar Size="Size.Medium" Image="@Booking.ResourceImageUrl" />
+                        }
+                        else
+                        {
+                            <MudAvatar Size="Size.Medium" Color="Color.Primary">
+                                <MudIcon Icon="@GetResourceIcon(Booking.ResourceType)" />
+                            </MudAvatar>
+                        }
+                        <div>
+                            <MudText Typo="Typo.body1" Class="font-weight-medium">@Booking.ResourceName</MudText>
+                            @if (!string.IsNullOrEmpty(Booking.ServiceName))
+                            {
+                                <MudText Typo="Typo.caption" Class="text-secondary">@Booking.ServiceName</MudText>
+                            }
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                @Booking.StartTime.ToString("MMM d, yyyy")
+                            </MudText>
+                        </div>
+                    </div>
+                </MudPaper>
+            </div>
+
+            @* Rating *@
+            <div class="rating-section mb-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["HowWasExperience"]</MudText>
+                <div class="d-flex flex-column align-center pa-4">
+                    <MudRating @bind-SelectedValue="Rating" 
+                               MaxValue="5" 
+                               Size="Size.Large" 
+                               Color="Color.Warning"
+                               FullIcon="@Icons.Material.Filled.Star"
+                               EmptyIcon="@Icons.Material.Outlined.StarBorder" />
+                    <MudText Typo="Typo.body2" Class="mt-2 text-secondary">
+                        @GetRatingText()
+                    </MudText>
+                </div>
+            </div>
+
+            @* Review Text *@
+            <div class="review-text-section">
+                <MudTextField @bind-Value="ReviewText"
+                              Label="@Localizer["YourReview"]"
+                              Placeholder="@Localizer["ReviewPlaceholder"]"
+                              Variant="Variant.Outlined"
+                              Lines="4"
+                              MaxLength="1000"
+                              Counter="1000"
+                              Immediate="true" />
+            </div>
+
+            @* Quick Feedback Tags (optional) *@
+            @if (Rating > 0 && Rating <= 3)
+            {
+                <div class="feedback-tags mt-4">
+                    <MudText Typo="Typo.caption" Class="mb-2 text-secondary">@Localizer["WhatCouldImprove"]</MudText>
+                    <MudChipSet T="string" @bind-SelectedValues="SelectedTags" SelectionMode="SelectionMode.MultiSelection">
+                        <MudChip T="string" Value="@("Wait Time")" Variant="Variant.Outlined" Size="Size.Small">@Localizer["TagWaitTime"]</MudChip>
+                        <MudChip T="string" Value="@("Service Quality")" Variant="Variant.Outlined" Size="Size.Small">@Localizer["TagServiceQuality"]</MudChip>
+                        <MudChip T="string" Value="@("Communication")" Variant="Variant.Outlined" Size="Size.Small">@Localizer["TagCommunication"]</MudChip>
+                        <MudChip T="string" Value="@("Value")" Variant="Variant.Outlined" Size="Size.Small">@Localizer["TagValue"]</MudChip>
+                    </MudChipSet>
+                </div>
+            }
+            else if (Rating >= 4)
+            {
+                <div class="feedback-tags mt-4">
+                    <MudText Typo="Typo.caption" Class="mb-2 text-secondary">@Localizer["WhatWasGreat"]</MudText>
+                    <MudChipSet T="string" @bind-SelectedValues="SelectedTags" SelectionMode="SelectionMode.MultiSelection">
+                        <MudChip T="string" Value="@("Friendly Staff")" Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success">@Localizer["TagFriendlyStaff"]</MudChip>
+                        <MudChip T="string" Value="@("Great Service")" Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success">@Localizer["TagGreatService"]</MudChip>
+                        <MudChip T="string" Value="@("On Time")" Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success">@Localizer["TagOnTime"]</MudChip>
+                        <MudChip T="string" Value="@("Good Value")" Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success">@Localizer["TagGoodValue"]</MudChip>
+                    </MudChipSet>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SubmitReview"
+                   Disabled="@(!CanSubmit || IsSubmitting)">
+            @if (IsSubmitting)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["SubmitReview"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .review-content {
+        min-width: 350px;
+        max-width: 450px;
+    }
+    
+    .rating-section {
+        text-align: center;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public ResourceBookingDto Booking { get; set; } = null!;
+    
+    private int Rating { get; set; }
+    private string? ReviewText { get; set; }
+    private IReadOnlyCollection<string> SelectedTags { get; set; } = new List<string>();
+    
+    private bool IsSubmitting { get; set; }
+    
+    private bool CanSubmit => Rating > 0;
+    
+    private string GetRatingText() => Rating switch
+    {
+        1 => Localizer["RatingTerrible"],
+        2 => Localizer["RatingPoor"],
+        3 => Localizer["RatingAverage"],
+        4 => Localizer["RatingGood"],
+        5 => Localizer["RatingExcellent"],
+        _ => Localizer["TapToRate"]
+    };
+    
+    private string GetResourceIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Handyman,
+        ResourceType.Object => Icons.Material.Filled.TableRestaurant,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    private async Task SubmitReview()
+    {
+        if (!CanSubmit) return;
+        
+        IsSubmitting = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Combine review text with selected tags
+            var fullReview = BuildReviewText();
+            
+            var request = new SubmitBookingReviewDto
+            {
+                Rating = Rating,
+                Review = fullReview
+            };
+            
+            var result = await BookingsClient.SubmitReviewAsync(Booking.Id, request);
+            
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["ReviewSubmitted"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(Localizer["ReviewFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ReviewError"], Severity.Error);
+        }
+        finally
+        {
+            IsSubmitting = false;
+            StateHasChanged();
+        }
+    }
+    
+    private string? BuildReviewText()
+    {
+        var parts = new List<string>();
+        
+        if (!string.IsNullOrWhiteSpace(ReviewText))
+        {
+            parts.Add(ReviewText.Trim());
+        }
+        
+        if (SelectedTags.Any())
+        {
+            // Append tags as hashtags or comma-separated
+            var tagString = string.Join(", ", SelectedTags);
+            if (!string.IsNullOrEmpty(tagString))
+            {
+                if (parts.Any())
+                {
+                    parts.Add($"[{tagString}]");
+                }
+                else
+                {
+                    parts.Add(tagString);
+                }
+            }
+        }
+        
+        return parts.Any() ? string.Join(" ", parts) : null;
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+}

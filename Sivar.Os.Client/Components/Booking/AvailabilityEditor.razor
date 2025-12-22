@@ -1,0 +1,418 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@using DayOfWeek = System.DayOfWeek
+@inject IStringLocalizer<AvailabilityEditor> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+            <MudText Typo="Typo.h6">@Localizer["WeeklySchedule"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="availability-editor">
+            @* Header with resource info *@
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <div class="d-flex align-center gap-2">
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">
+                        <MudIcon Icon="@GetResourceIcon(Resource.ResourceType)" Size="Size.Small" />
+                    </MudAvatar>
+                    <MudText Typo="Typo.subtitle1">@Resource.Name</MudText>
+                </div>
+            </MudPaper>
+
+            @if (IsLoading)
+            {
+                <div class="d-flex justify-center pa-4">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-3 text-secondary">
+                    @Localizer["SetAvailabilityDescription"]
+                </MudText>
+                
+                @* Weekly Schedule Grid *@
+                <div class="weekly-grid">
+                    @foreach (var day in Enum.GetValues<DayOfWeek>())
+                    {
+                        var schedule = GetScheduleForDay(day);
+                        <MudPaper Class="day-row pa-3 mb-2" Elevation="0" Outlined="true">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="3">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudSwitch T="bool" 
+                                                   Value="schedule.IsAvailable"
+                                                   ValueChanged="(bool val) => ToggleDay(day, val)"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Class="@(schedule.IsAvailable ? "font-weight-medium" : "text-secondary")">
+                                            @Localizer[day.ToString()]
+                                        </MudText>
+                                    </div>
+                                </MudItem>
+                                @if (schedule.IsAvailable)
+                                {
+                                    <MudItem xs="5" sm="4">
+                                        <MudTimePicker @bind-Time="schedule.StartTime"
+                                                       Label="@Localizer["From"]"
+                                                       Variant="Variant.Outlined"
+                                                       Margin="Margin.Dense"
+                                                       Editable="true"
+                                                       AmPm="false" />
+                                    </MudItem>
+                                    <MudItem xs="5" sm="4">
+                                        <MudTimePicker @bind-Time="schedule.EndTime"
+                                                       Label="@Localizer["To"]"
+                                                       Variant="Variant.Outlined"
+                                                       Margin="Margin.Dense"
+                                                       Editable="true"
+                                                       AmPm="false" />
+                                    </MudItem>
+                                    <MudItem xs="2" sm="1" Class="d-flex align-end">
+                                        @if (schedule.Slots.Count > 1)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.RemoveCircleOutline"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="() => RemoveSlot(schedule, 0)"
+                                                           aria-label="Remove slot" />
+                                        }
+                                    </MudItem>
+                                    
+                                    @* Additional time slots for same day *@
+                                    @for (int i = 1; i < schedule.Slots.Count; i++)
+                                    {
+                                        var slotIndex = i;
+                                        var slot = schedule.Slots[i];
+                                        <MudItem xs="12" sm="3"></MudItem>
+                                        <MudItem xs="5" sm="4">
+                                            <MudTimePicker @bind-Time="slot.StartTime"
+                                                           Label="@Localizer["From"]"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Editable="true"
+                                                           AmPm="false" />
+                                        </MudItem>
+                                        <MudItem xs="5" sm="4">
+                                            <MudTimePicker @bind-Time="slot.EndTime"
+                                                           Label="@Localizer["To"]"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Editable="true"
+                                                           AmPm="false" />
+                                        </MudItem>
+                                        <MudItem xs="2" sm="1" Class="d-flex align-end">
+                                            <MudIconButton Icon="@Icons.Material.Filled.RemoveCircleOutline"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="() => RemoveSlot(schedule, slotIndex)"
+                                                           aria-label="Remove slot" />
+                                        </MudItem>
+                                    }
+                                    
+                                    @* Add slot button *@
+                                    <MudItem xs="12" Class="d-flex justify-start">
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Add"
+                                                   OnClick="() => AddSlot(schedule)">
+                                            @Localizer["AddTimeSlot"]
+                                        </MudButton>
+                                    </MudItem>
+                                }
+                                else
+                                {
+                                    <MudItem xs="9" sm="9">
+                                        <MudText Typo="Typo.body2" Class="text-secondary ml-2">
+                                            @Localizer["Closed"]
+                                        </MudText>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                </div>
+                
+                @* Quick Templates *@
+                <div class="d-flex gap-2 mt-3">
+                    <MudText Typo="Typo.caption" Class="text-secondary align-self-center">
+                        @Localizer["QuickTemplates"]:
+                    </MudText>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="ApplyWeekdaysTemplate">
+                        @Localizer["Weekdays9to5"]
+                    </MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="ApplyAllWeekTemplate">
+                        @Localizer["AllWeek"]
+                    </MudButton>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@IsSaving">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .availability-editor {
+        min-width: 500px;
+        max-width: 700px;
+    }
+    
+    .weekly-grid {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .day-row {
+        transition: background-color 0.2s;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public BookableResourceSummaryDto Resource { get; set; } = null!;
+    
+    private bool IsLoading { get; set; }
+    private bool IsSaving { get; set; }
+    private Dictionary<DayOfWeek, DaySchedule> WeeklySchedule { get; set; } = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        InitializeEmptySchedule();
+        await LoadAvailability();
+    }
+    
+    private void InitializeEmptySchedule()
+    {
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+        {
+            WeeklySchedule[day] = new DaySchedule
+            {
+                Day = day,
+                IsAvailable = false,
+                Slots = new List<TimeSlot> { new TimeSlot { StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(17, 0, 0) } }
+            };
+        }
+    }
+    
+    private async Task LoadAvailability()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            var availability = await BookingsClient.GetAvailabilityAsync(Resource.Id);
+            if (availability != null && availability.Any())
+            {
+                foreach (var avail in availability)
+                {
+                    if (WeeklySchedule.TryGetValue(avail.DayOfWeek, out var schedule))
+                    {
+                        schedule.IsAvailable = avail.IsAvailable;
+                        if (avail.IsAvailable)
+                        {
+                            // Find existing slot or add new one
+                            if (schedule.Slots.Count == 0)
+                            {
+                                schedule.Slots.Add(new TimeSlot());
+                            }
+                            schedule.Slots[0].StartTime = avail.StartTime.ToTimeSpan();
+                            schedule.Slots[0].EndTime = avail.EndTime.ToTimeSpan();
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingAvailability"], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private DaySchedule GetScheduleForDay(DayOfWeek day)
+    {
+        return WeeklySchedule.TryGetValue(day, out var schedule) ? schedule : new DaySchedule { Day = day };
+    }
+    
+    private void ToggleDay(DayOfWeek day, bool isAvailable)
+    {
+        if (WeeklySchedule.TryGetValue(day, out var schedule))
+        {
+            schedule.IsAvailable = isAvailable;
+            if (isAvailable && schedule.Slots.Count == 0)
+            {
+                schedule.Slots.Add(new TimeSlot { StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(17, 0, 0) });
+            }
+            StateHasChanged();
+        }
+    }
+    
+    private void AddSlot(DaySchedule schedule)
+    {
+        var lastSlot = schedule.Slots.LastOrDefault();
+        var newStart = lastSlot?.EndTime?.Add(TimeSpan.FromHours(1)) ?? new TimeSpan(12, 0, 0);
+        var newEnd = newStart.Add(TimeSpan.FromHours(4));
+        
+        schedule.Slots.Add(new TimeSlot { StartTime = newStart, EndTime = newEnd });
+        StateHasChanged();
+    }
+    
+    private void RemoveSlot(DaySchedule schedule, int index)
+    {
+        if (index >= 0 && index < schedule.Slots.Count && schedule.Slots.Count > 1)
+        {
+            schedule.Slots.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+    
+    private void ApplyWeekdaysTemplate()
+    {
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+        {
+            if (WeeklySchedule.TryGetValue(day, out var schedule))
+            {
+                var isWeekday = day != DayOfWeek.Saturday && day != DayOfWeek.Sunday;
+                schedule.IsAvailable = isWeekday;
+                schedule.Slots = new List<TimeSlot> { new TimeSlot { StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(17, 0, 0) } };
+            }
+        }
+        StateHasChanged();
+    }
+    
+    private void ApplyAllWeekTemplate()
+    {
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+        {
+            if (WeeklySchedule.TryGetValue(day, out var schedule))
+            {
+                schedule.IsAvailable = true;
+                schedule.Slots = new List<TimeSlot> { new TimeSlot { StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(20, 0, 0) } };
+            }
+        }
+        StateHasChanged();
+    }
+    
+    private async Task Save()
+    {
+        IsSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            var availabilityList = new List<CreateResourceAvailabilityDto>();
+            
+            foreach (var kvp in WeeklySchedule)
+            {
+                var day = kvp.Key;
+                var schedule = kvp.Value;
+                
+                if (schedule.IsAvailable && schedule.Slots.Count > 0)
+                {
+                    foreach (var slot in schedule.Slots.Where(s => s.StartTime.HasValue && s.EndTime.HasValue))
+                    {
+                        availabilityList.Add(new CreateResourceAvailabilityDto
+                        {
+                            DayOfWeek = day,
+                            StartTime = TimeOnly.FromTimeSpan(slot.StartTime!.Value),
+                            EndTime = TimeOnly.FromTimeSpan(slot.EndTime!.Value),
+                            IsAvailable = true
+                        });
+                    }
+                }
+                else
+                {
+                    // Add closed entry
+                    availabilityList.Add(new CreateResourceAvailabilityDto
+                    {
+                        DayOfWeek = day,
+                        StartTime = TimeOnly.MinValue,
+                        EndTime = TimeOnly.MinValue,
+                        IsAvailable = false
+                    });
+                }
+            }
+            
+            var request = new SetWeeklyAvailabilityDto { Schedule = availabilityList };
+            var result = await BookingsClient.SetWeeklyAvailabilityAsync(Resource.Id, request);
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["ScheduleSaved"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(Localizer["SaveFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["SaveError"], Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+    
+    private string GetResourceIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Handyman,
+        ResourceType.Object => Icons.Material.Filled.TableRestaurant,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    private class DaySchedule
+    {
+        public DayOfWeek Day { get; set; }
+        public bool IsAvailable { get; set; }
+        public TimeSpan? StartTime
+        {
+            get => Slots.FirstOrDefault()?.StartTime;
+            set { if (Slots.Count > 0) Slots[0].StartTime = value; }
+        }
+        public TimeSpan? EndTime
+        {
+            get => Slots.FirstOrDefault()?.EndTime;
+            set { if (Slots.Count > 0) Slots[0].EndTime = value; }
+        }
+        public List<TimeSlot> Slots { get; set; } = new();
+    }
+    
+    private class TimeSlot
+    {
+        public TimeSpan? StartTime { get; set; }
+        public TimeSpan? EndTime { get; set; }
+    }
+}

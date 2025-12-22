@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ManageExceptions" xml:space="preserve">
+    <value>Administrar Excepciones</value>
+  </data>
+  <data name="BlockedDates" xml:space="preserve">
+    <value>Fechas Bloqueadas</value>
+  </data>
+  <data name="SpecialHours" xml:space="preserve">
+    <value>Horarios Especiales</value>
+  </data>
+  <data name="BlockDate" xml:space="preserve">
+    <value>Bloquear Fecha</value>
+  </data>
+  <data name="AddSpecialHours" xml:space="preserve">
+    <value>Agregar Horario Especial</value>
+  </data>
+  <data name="NoBlockedDates" xml:space="preserve">
+    <value>Sin fechas bloqueadas. Bloquea fechas cuando este recurso no esté disponible (feriados, vacaciones, etc.)</value>
+  </data>
+  <data name="NoSpecialHours" xml:space="preserve">
+    <value>Sin horarios especiales. Agrega horarios especiales para días con horarios diferentes.</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Hours" xml:space="preserve">
+    <value>Horario</value>
+  </data>
+  <data name="Reason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="Recurring" xml:space="preserve">
+    <value>Recurrente</value>
+  </data>
+  <data name="Annual" xml:space="preserve">
+    <value>Anual</value>
+  </data>
+  <data name="From" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="ReasonPlaceholder" xml:space="preserve">
+    <value>ej. Feriado, Vacaciones, Mantenimiento</value>
+  </data>
+  <data name="RecurAnnually" xml:space="preserve">
+    <value>Repetir cada año</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="ExceptionAdded" xml:space="preserve">
+    <value>Excepción agregada exitosamente</value>
+  </data>
+  <data name="ExceptionDeleted" xml:space="preserve">
+    <value>Excepción eliminada exitosamente</value>
+  </data>
+  <data name="ErrorLoadingExceptions" xml:space="preserve">
+    <value>Error al cargar excepciones</value>
+  </data>
+  <data name="AddFailed" xml:space="preserve">
+    <value>Error al agregar excepción</value>
+  </data>
+  <data name="DeleteFailed" xml:space="preserve">
+    <value>Error al eliminar excepción</value>
+  </data>
+  <data name="SaveError" xml:space="preserve">
+    <value>Error al guardar excepción</value>
+  </data>
+  <data name="DeleteError" xml:space="preserve">
+    <value>Error al eliminar excepción</value>
+  </data>
+</root>

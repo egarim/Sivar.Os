@@ -1,0 +1,403 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ServiceEditor> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.LocalOffer" />
+            <MudText Typo="Typo.h6">@Localizer["ManageServices"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="service-editor">
+            @* Header with resource info *@
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <div class="d-flex align-center gap-2">
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">
+                        <MudIcon Icon="@GetResourceIcon(Resource.ResourceType)" Size="Size.Small" />
+                    </MudAvatar>
+                    <MudText Typo="Typo.subtitle1">@Resource.Name</MudText>
+                </div>
+            </MudPaper>
+
+            @* Add Service Button *@
+            <div class="d-flex justify-end mb-3">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddServiceForm">
+                    @Localizer["AddService"]
+                </MudButton>
+            </div>
+
+            @* Services List *@
+            @if (IsLoading)
+            {
+                <div class="d-flex justify-center pa-4">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                </div>
+            }
+            else if (Services == null || !Services.Any())
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    @Localizer["NoServicesYet"]
+                </MudAlert>
+            }
+            else
+            {
+                <MudList T="ResourceServiceDto" Dense="true" Class="services-list">
+                    @foreach (var service in Services.OrderBy(s => s.DisplayOrder))
+                    {
+                        <MudListItem T="ResourceServiceDto" Class="service-item">
+                            <div class="d-flex align-center justify-space-between gap-4 w-100">
+                                <div class="service-info flex-grow-1">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudText Typo="Typo.body1" Class="font-weight-medium">
+                                            @service.Name
+                                        </MudText>
+                                        @if (!service.IsActive)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                                @Localizer["Inactive"]
+                                            </MudChip>
+                                        }
+                                    </div>
+                                    <div class="d-flex gap-3 mt-1">
+                                        <MudText Typo="Typo.caption" Class="text-secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Style="font-size: 14px;" />
+                                            @service.DurationMinutes @Localizer["min"]
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Class="text-secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" Style="font-size: 14px;" />
+                                            @FormatPrice(service.Price, service.Currency)
+                                        </MudText>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(service.Description))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="text-secondary mt-1 text-truncate" Style="max-width: 250px;">
+                                            @service.Description
+                                        </MudText>
+                                    }
+                                </div>
+                                <div class="service-actions d-flex gap-1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   OnClick="() => EditService(service)"
+                                                   aria-label="Edit" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="() => DeleteService(service)"
+                                                   aria-label="Delete" />
+                                </div>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            @* Add/Edit Form *@
+            @if (ShowForm)
+            {
+                <MudPaper Class="pa-4 mt-4" Elevation="0" Outlined="true">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">
+                        @(EditingService == null ? Localizer["NewService"] : Localizer["EditService"])
+                    </MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="8">
+                            <MudTextField @bind-Value="ServiceForm.Name"
+                                          Label="@Localizer["ServiceName"]"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSwitch T="bool" @bind-Value="ServiceForm.IsActive"
+                                       Label="@Localizer["Active"]"
+                                       Color="Color.Success" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="ServiceForm.Description"
+                                          Label="@Localizer["Description"]"
+                                          Variant="Variant.Outlined"
+                                          Lines="2"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="6" md="4">
+                            <MudNumericField T="int" @bind-Value="ServiceForm.DurationMinutes"
+                                             Label="@Localizer["Duration"]"
+                                             Min="5" Max="480"
+                                             Adornment="Adornment.End"
+                                             AdornmentText="min"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="6" md="4">
+                            <MudNumericField T="decimal" @bind-Value="ServiceForm.Price"
+                                             Label="@Localizer["Price"]"
+                                             Min="0"
+                                             Format="N2"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="6" md="4">
+                            <MudSelect T="string" @bind-Value="ServiceForm.Currency"
+                                       Label="@Localizer["Currency"]"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense">
+                                <MudSelectItem Value="@("USD")">USD</MudSelectItem>
+                                <MudSelectItem Value="@("EUR")">EUR</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                    <div class="d-flex justify-end gap-2 mt-3">
+                        <MudButton Size="Size.Small" OnClick="CancelForm">
+                            @Localizer["Cancel"]
+                        </MudButton>
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveService"
+                                   Disabled="@(IsSaving || string.IsNullOrWhiteSpace(ServiceForm.Name))">
+                            @if (IsSaving)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                            }
+                            @Localizer["Save"]
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Close">@Localizer["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .service-editor {
+        min-width: 400px;
+        max-width: 600px;
+    }
+    
+    .services-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .service-item {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+    
+    .service-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public BookableResourceSummaryDto Resource { get; set; } = null!;
+    
+    private List<ResourceServiceDto>? Services { get; set; }
+    private bool IsLoading { get; set; }
+    private bool ShowForm { get; set; }
+    private bool IsSaving { get; set; }
+    private ResourceServiceDto? EditingService { get; set; }
+    private ServiceFormModel ServiceForm { get; set; } = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServices();
+    }
+    
+    private async Task LoadServices()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            Services = await BookingsClient.GetServicesAsync(Resource.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingServices"], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void OpenAddServiceForm()
+    {
+        EditingService = null;
+        ServiceForm = new ServiceFormModel
+        {
+            DurationMinutes = Resource.SlotDurationMinutes,
+            Price = Resource.DefaultPrice ?? 0,
+            Currency = Resource.Currency ?? "USD",
+            IsActive = true
+        };
+        ShowForm = true;
+    }
+    
+    private void EditService(ResourceServiceDto service)
+    {
+        EditingService = service;
+        ServiceForm = new ServiceFormModel
+        {
+            Name = service.Name,
+            Description = service.Description,
+            DurationMinutes = service.DurationMinutes,
+            Price = service.Price,
+            Currency = service.Currency ?? "USD",
+            IsActive = service.IsActive
+        };
+        ShowForm = true;
+    }
+    
+    private void CancelForm()
+    {
+        ShowForm = false;
+        EditingService = null;
+    }
+    
+    private async Task SaveService()
+    {
+        if (string.IsNullOrWhiteSpace(ServiceForm.Name)) return;
+        
+        IsSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            if (EditingService == null)
+            {
+                // Create new service
+                var createDto = new CreateResourceServiceDto
+                {
+                    Name = ServiceForm.Name,
+                    Description = ServiceForm.Description,
+                    DurationMinutes = ServiceForm.DurationMinutes,
+                    Price = ServiceForm.Price,
+                    Currency = ServiceForm.Currency,
+                    IsActive = ServiceForm.IsActive,
+                    DisplayOrder = Services?.Count ?? 0
+                };
+                
+                var created = await BookingsClient.AddServiceAsync(Resource.Id, createDto);
+                if (created != null)
+                {
+                    Snackbar.Add(Localizer["ServiceCreated"], Severity.Success);
+                    await LoadServices();
+                    ShowForm = false;
+                }
+                else
+                {
+                    Snackbar.Add(Localizer["CreateFailed"], Severity.Error);
+                }
+            }
+            else
+            {
+                // Update existing service
+                var updateDto = new UpdateResourceServiceDto
+                {
+                    Name = ServiceForm.Name,
+                    Description = ServiceForm.Description,
+                    DurationMinutes = ServiceForm.DurationMinutes,
+                    Price = ServiceForm.Price,
+                    Currency = ServiceForm.Currency,
+                    IsActive = ServiceForm.IsActive
+                };
+                
+                var updated = await BookingsClient.UpdateServiceAsync(EditingService.Id, updateDto);
+                if (updated != null)
+                {
+                    Snackbar.Add(Localizer["ServiceUpdated"], Severity.Success);
+                    await LoadServices();
+                    ShowForm = false;
+                }
+                else
+                {
+                    Snackbar.Add(Localizer["UpdateFailed"], Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["SaveError"], Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteService(ResourceServiceDto service)
+    {
+        // Simply delete without confirmation for now - can add dialog later
+        try
+        {
+            var result = await BookingsClient.DeleteServiceAsync(service.Id);
+            if (result)
+            {
+                Snackbar.Add(Localizer["ServiceDeleted"], Severity.Success);
+                await LoadServices();
+            }
+            else
+            {
+                Snackbar.Add(Localizer["DeleteFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["DeleteError"], Severity.Error);
+        }
+    }
+    
+    private string GetResourceIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Handyman,
+        ResourceType.Object => Icons.Material.Filled.TableRestaurant,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+    
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+    
+    private class ServiceFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int DurationMinutes { get; set; } = 30;
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "USD";
+        public bool IsActive { get; set; } = true;
+    }
+}

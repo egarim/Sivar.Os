@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <data name="LeaveReview" xml:space="preserve">
+    <value>Dejar una Reseña</value>
+  </data>
+  <data name="HowWasExperience" xml:space="preserve">
+    <value>¿Cómo fue tu experiencia?</value>
+  </data>
+  <data name="TapToRate" xml:space="preserve">
+    <value>Toca para calificar</value>
+  </data>
+  <data name="RatingTerrible" xml:space="preserve">
+    <value>Terrible</value>
+  </data>
+  <data name="RatingPoor" xml:space="preserve">
+    <value>Malo</value>
+  </data>
+  <data name="RatingAverage" xml:space="preserve">
+    <value>Regular</value>
+  </data>
+  <data name="RatingGood" xml:space="preserve">
+    <value>Bueno</value>
+  </data>
+  <data name="RatingExcellent" xml:space="preserve">
+    <value>¡Excelente!</value>
+  </data>
+  <data name="YourReview" xml:space="preserve">
+    <value>Tu Reseña</value>
+  </data>
+  <data name="ReviewPlaceholder" xml:space="preserve">
+    <value>Cuéntale a otros sobre tu experiencia...</value>
+  </data>
+  <data name="WhatCouldImprove" xml:space="preserve">
+    <value>¿Qué podría mejorar?</value>
+  </data>
+  <data name="WhatWasGreat" xml:space="preserve">
+    <value>¿Qué fue genial?</value>
+  </data>
+  <data name="TagWaitTime" xml:space="preserve">
+    <value>Tiempo de Espera</value>
+  </data>
+  <data name="TagServiceQuality" xml:space="preserve">
+    <value>Calidad del Servicio</value>
+  </data>
+  <data name="TagCommunication" xml:space="preserve">
+    <value>Comunicación</value>
+  </data>
+  <data name="TagValue" xml:space="preserve">
+    <value>Precio</value>
+  </data>
+  <data name="TagFriendlyStaff" xml:space="preserve">
+    <value>Personal Amable</value>
+  </data>
+  <data name="TagGreatService" xml:space="preserve">
+    <value>Excelente Servicio</value>
+  </data>
+  <data name="TagOnTime" xml:space="preserve">
+    <value>Puntual</value>
+  </data>
+  <data name="TagGoodValue" xml:space="preserve">
+    <value>Buen Precio</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="SubmitReview" xml:space="preserve">
+    <value>Enviar Reseña</value>
+  </data>
+  <data name="ReviewSubmitted" xml:space="preserve">
+    <value>¡Gracias por tu reseña!</value>
+  </data>
+  <data name="ReviewFailed" xml:space="preserve">
+    <value>No se pudo enviar la reseña</value>
+  </data>
+  <data name="ReviewError" xml:space="preserve">
+    <value>Ocurrió un error al enviar tu reseña</value>
+  </data>
+</root>

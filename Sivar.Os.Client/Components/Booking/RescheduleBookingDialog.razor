@@ -1,0 +1,301 @@
+@using MudBlazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Clients
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<RescheduleBookingDialog> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.EditCalendar" />
+            <MudText Typo="Typo.h6">@Localizer["RescheduleBooking"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="reschedule-content">
+            @* Current Appointment Summary *@
+            <div class="current-appointment mb-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["CurrentAppointment"]</MudText>
+                <MudPaper Class="pa-3" Outlined="true">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Color="Color.Primary" />
+                        <div>
+                            <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                @Booking.StartTime.ToString("ddd, MMM d") @@ @Booking.StartTime.ToString("h:mm tt")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                @Booking.ResourceName
+                                @if (!string.IsNullOrEmpty(Booking.ServiceName))
+                                {
+                                    <span> • @Booking.ServiceName</span>
+                                }
+                            </MudText>
+                        </div>
+                    </div>
+                </MudPaper>
+            </div>
+
+            <MudDivider Class="mb-4" />
+
+            @* Date Selection *@
+            <div class="date-selection mb-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@Localizer["SelectNewDate"]</MudText>
+                <MudDatePicker @bind-Date="SelectedDateNullable"
+                               Label="@Localizer["Date"]"
+                               Variant="Variant.Outlined"
+                               MinDate="DateTime.Today"
+                               MaxDate="DateTime.Today.AddDays(MaxAdvanceDays)"
+                               DateFormat="dddd, MMMM d, yyyy"
+                               Margin="Margin.Dense" />
+            </div>
+
+            @* Time Slots *@
+            <div class="time-selection">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    @Localizer["AvailableTimes"] 
+                    @if (SelectedDate.HasValue)
+                    {
+                        <span class="text-secondary font-weight-regular">
+                            (@SelectedDate.Value.ToString("MMM d"))
+                        </span>
+                    }
+                </MudText>
+                
+                @if (IsLoadingSlots)
+                {
+                    <div class="d-flex justify-center align-center pa-4">
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <MudText Typo="Typo.body2" Class="ml-2">@Localizer["LoadingSlots"]</MudText>
+                    </div>
+                }
+                else if (AvailableSlots == null || !AvailableSlots.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @Localizer["NoSlotsAvailable"]
+                    </MudAlert>
+                }
+                else
+                {
+                    <div class="time-slots-grid">
+                        @foreach (var slot in AvailableSlots)
+                        {
+                            var isSelected = SelectedSlot?.StartTime == slot.StartTime;
+                            <MudButton Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                                       Color="@(isSelected ? Color.Primary : Color.Default)"
+                                       Size="Size.Small"
+                                       Class="time-slot-btn"
+                                       OnClick="() => SelectSlot(slot)">
+                                @slot.StartTime.ToString("h:mm tt")
+                            </MudButton>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Selected Summary *@
+            @if (SelectedSlot != null && SelectedDate.HasValue)
+            {
+                <div class="new-appointment-summary mt-4">
+                    <MudAlert Severity="Severity.Success" Dense="true">
+                        <div class="d-flex align-center justify-space-between">
+                            <div>
+                                <MudText Typo="Typo.body2">
+                                    <strong>@Localizer["NewTime"]:</strong>
+                                    @SelectedDate.Value.ToString("ddd, MMM d") @@ @SelectedSlot.StartTime.ToString("h:mm tt")
+                                </MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Size="Size.Small"
+                                           OnClick="ClearSelection" />
+                        </div>
+                    </MudAlert>
+                </div>
+            }
+
+            @* Optional Reason *@
+            @if (ShowReason)
+            {
+                <div class="reason-section mt-4">
+                    <MudTextField @bind-Value="Reason"
+                                  Label="@Localizer["ReasonOptional"]"
+                                  Placeholder="@Localizer["ReasonPlaceholder"]"
+                                  Variant="Variant.Outlined"
+                                  Lines="2" />
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="ConfirmReschedule"
+                   Disabled="@(!CanConfirm || IsRescheduling)">
+            @if (IsRescheduling)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            @Localizer["Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .reschedule-content {
+        min-width: 350px;
+        max-width: 450px;
+    }
+    
+    .time-slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 8px;
+    }
+    
+    .time-slot-btn {
+        min-width: 80px;
+        font-size: 13px;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter]
+    public ResourceBookingDto Booking { get; set; } = null!;
+    
+    [Parameter]
+    public bool ShowReason { get; set; } = true;
+    
+    [Parameter]
+    public int MaxAdvanceDays { get; set; } = 30;
+    
+    private DateTime? SelectedDate { get; set; }
+    private List<AvailableTimeSlotDto>? AvailableSlots { get; set; }
+    private AvailableTimeSlotDto? SelectedSlot { get; set; }
+    private string? Reason { get; set; }
+    
+    private bool IsLoadingSlots { get; set; }
+    private bool IsRescheduling { get; set; }
+    
+    private bool CanConfirm => SelectedDate.HasValue && SelectedSlot != null;
+    
+    private DateTime? SelectedDateNullable
+    {
+        get => SelectedDate;
+        set
+        {
+            if (value != SelectedDate)
+            {
+                SelectedDate = value;
+                SelectedSlot = null;
+                _ = LoadAvailableSlots();
+            }
+        }
+    }
+    
+    protected override void OnInitialized()
+    {
+        // Pre-select tomorrow's date
+        SelectedDate = DateTime.Today.AddDays(1);
+        _ = LoadAvailableSlots();
+    }
+    
+    private async Task LoadAvailableSlots()
+    {
+        if (!SelectedDate.HasValue) return;
+        
+        IsLoadingSlots = true;
+        StateHasChanged();
+        
+        try
+        {
+            var date = DateOnly.FromDateTime(SelectedDate.Value);
+            var response = await BookingsClient.GetAvailableSlotsAsync(
+                Booking.ResourceId, 
+                date, 
+                Booking.ServiceId);
+            
+            // Get the slots for the selected date
+            if (response.SlotsByDate.TryGetValue(date, out var slots))
+            {
+                AvailableSlots = slots;
+            }
+            else
+            {
+                AvailableSlots = new List<AvailableTimeSlotDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorLoadingSlots"], Severity.Error);
+            AvailableSlots = new List<AvailableTimeSlotDto>();
+        }
+        finally
+        {
+            IsLoadingSlots = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void SelectSlot(AvailableTimeSlotDto slot)
+    {
+        SelectedSlot = slot;
+        StateHasChanged();
+    }
+    
+    private void ClearSelection()
+    {
+        SelectedSlot = null;
+        StateHasChanged();
+    }
+    
+    private async Task ConfirmReschedule()
+    {
+        if (!CanConfirm) return;
+        
+        IsRescheduling = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Combine selected date with selected time
+            var newStartTime = SelectedDate!.Value.Date.Add(SelectedSlot!.StartTime.TimeOfDay);
+            var newEndTime = SelectedDate!.Value.Date.Add(SelectedSlot!.EndTime.TimeOfDay);
+            
+            var request = new RescheduleBookingDto
+            {
+                NewStartTime = newStartTime,
+                NewEndTime = newEndTime,
+                Reason = Reason
+            };
+            
+            var result = await BookingsClient.RescheduleBookingAsync(Booking.Id, request);
+            
+            if (result != null)
+            {
+                Snackbar.Add(Localizer["RescheduleSuccess"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(Localizer["RescheduleFailed"], Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["RescheduleError"], Severity.Error);
+        }
+        finally
+        {
+            IsRescheduling = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+}

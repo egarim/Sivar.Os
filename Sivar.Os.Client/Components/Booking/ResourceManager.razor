@@ -112,6 +112,18 @@
                                    OnClick="() => OpenServicesDialog(resource)">
                             @Localizer["Services"]
                         </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.EventBusy"
+                                   OnClick="() => OpenExceptionsDialog(resource)">
+                            @Localizer["Exceptions"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   OnClick="() => OpenStaffAssignmentDialog(resource)">
+                            @Localizer["Staff"]
+                        </MudButton>
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Size="Size.Small"
                                        Color="Color.Error"
@@ -492,16 +504,72 @@
         }
     }
     
-    private void OpenAvailabilityDialog(BookableResourceSummaryDto resource)
+    private async Task OpenAvailabilityDialog(BookableResourceSummaryDto resource)
     {
-        // TODO: Implement availability dialog
-        Snackbar.Add(Localizer["AvailabilityComingSoon"], Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { nameof(AvailabilityEditor.Resource), resource }
+        };
+        
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AvailabilityEditor>(null, parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result!.Canceled)
+        {
+            await LoadResources();
+        }
     }
     
-    private void OpenServicesDialog(BookableResourceSummaryDto resource)
+    private async Task OpenServicesDialog(BookableResourceSummaryDto resource)
     {
-        // TODO: Implement services dialog
-        Snackbar.Add(Localizer["ServicesComingSoon"], Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { nameof(ServiceEditor.Resource), resource }
+        };
+        
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ServiceEditor>(null, parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result!.Canceled)
+        {
+            await LoadResources();
+        }
+    }
+    
+    private async Task OpenExceptionsDialog(BookableResourceSummaryDto resource)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ExceptionEditor.Resource), resource }
+        };
+        
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ExceptionEditor>(null, parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result!.Canceled)
+        {
+            await LoadResources();
+        }
+    }
+    
+    private async Task OpenStaffAssignmentDialog(BookableResourceSummaryDto resource)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ResourceStaffAssignment.Resource), resource }
+        };
+        
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ResourceStaffAssignment>(null, parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result!.Canceled)
+        {
+            await LoadResources();
+        }
     }
     
     private string GetResourceIcon(ResourceType type)
