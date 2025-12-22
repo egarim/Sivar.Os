@@ -160,6 +160,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists ad budgets
             
+            // Seed demo bookable resources (Pizza Place & Barbershop examples)
+            SeedDemoBookableResources();
+            
+            ObjectSpace.CommitChanges(); //This line persists bookable resources
+            
             // Apply content embeddings via raw SQL (EF Core ignores ContentEmbedding property)
             // This must be called AFTER CommitChanges so posts exist in the database
             ApplyPendingEmbeddingsViaSql();
@@ -2208,6 +2213,268 @@ IMPORTANT INSTRUCTIONS:
             }
             
             System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Seeded ad budgets for {seededCount} business profiles.");
+        }
+        
+        /// <summary>
+        /// Seeds demo bookable resources for Pizza Place (tables) and Barbershop (barbers with services).
+        /// This demonstrates the Resource Booking System functionality.
+        /// </summary>
+        void SeedDemoBookableResources()
+        {
+            var now = DateTime.UtcNow;
+            
+            // Check if resources already exist
+            var existingResource = ObjectSpace.GetObjectsQuery<BookableResource>()
+                .FirstOrDefault(r => r.Name == "Mesa Principal - Pizzería Napoli");
+            
+            if (existingResource != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Bookable resources already seeded. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] 🎯 Starting SeedDemoBookableResources...");
+            
+            // ========================================
+            // PIZZA PLACE - Table Reservations
+            // ========================================
+            
+            // Find a pizza restaurant profile by known ID or DisplayName
+            // Pizzería Napoli ID: a0000001-0000-0000-0000-000000000017
+            var pizzaProfileId = Guid.Parse("a0000001-0000-0000-0000-000000000017");
+            var pizzaProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                .FirstOrDefault(p => p.Id == pizzaProfileId);
+            
+            // Fallback: search by display name containing "pizza" or "pizz"
+            if (pizzaProfile == null)
+            {
+                pizzaProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                    .FirstOrDefault(p => p.DisplayName.ToLower().Contains("pizza") || 
+                                         p.DisplayName.ToLower().Contains("napoli"));
+                System.Diagnostics.Debug.WriteLine("[Updater] 🔍 Searching pizza profile by name...");
+            }
+            
+            if (pizzaProfile != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] 🍕 Found pizza profile: {pizzaProfile.DisplayName} (ID: {pizzaProfile.Id})");
+                
+                // Create 4 tables for the pizza restaurant
+                var tableNames = new[] 
+                { 
+                    ("Mesa Principal - Pizzería Napoli", "Mesa central para 4-6 personas, perfecta para familias", 6),
+                    ("Mesa Terraza 1", "Mesa exterior con vista a la calle, ideal para parejas", 2),
+                    ("Mesa Terraza 2", "Mesa exterior con vista a la calle, para grupos pequeños", 4),
+                    ("Mesa VIP - Salón Privado", "Salón privado para eventos especiales y celebraciones", 12)
+                };
+                
+                foreach (var (name, description, capacity) in tableNames)
+                {
+                    var table = ObjectSpace.CreateObject<BookableResource>();
+                    table.ProfileId = pizzaProfile.Id;
+                    table.Name = name;
+                    table.Description = description;
+                    table.ResourceType = ResourceType.Space;
+                    table.Category = ResourceCategory.Table;
+                    table.SlotDurationMinutes = 90; // 1.5 hours for dining
+                    table.BufferMinutes = 15; // 15 min cleanup between reservations
+                    table.MaxConcurrentBookings = 1;
+                    table.DefaultPrice = 0; // Free reservation, pay for food
+                    table.Currency = "USD";
+                    table.ConfirmationMode = BookingConfirmationMode.Automatic;
+                    table.MinAdvanceBookingHours = 2;
+                    table.MaxAdvanceBookingDays = 14;
+                    table.CancellationWindowHours = 2;
+                    table.IsActive = true;
+                    table.IsVisible = true;
+                    table.DisplayOrder = capacity == 12 ? 99 : capacity; // VIP last
+                    table.MetadataJson = System.Text.Json.JsonSerializer.Serialize(new { capacity = capacity });
+                    table.Tags = new[] { "mesa", "reservación", "pizza", "italiano" };
+                    
+                    // Add availability (11:00 AM - 10:00 PM, closed Mondays)
+                    foreach (System.DayOfWeek day in Enum.GetValues(typeof(System.DayOfWeek)))
+                    {
+                        if (day == System.DayOfWeek.Monday) continue; // Closed Mondays
+                        
+                        // Lunch: 11:00 - 15:00
+                        var lunchAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        lunchAvail.ResourceId = table.Id;
+                        lunchAvail.DayOfWeek = day;
+                        lunchAvail.StartTime = new TimeOnly(11, 0);
+                        lunchAvail.EndTime = new TimeOnly(15, 0);
+                        lunchAvail.IsAvailable = true;
+                        lunchAvail.Label = "Almuerzo";
+                        
+                        // Dinner: 18:00 - 22:00
+                        var dinnerAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        dinnerAvail.ResourceId = table.Id;
+                        dinnerAvail.DayOfWeek = day;
+                        dinnerAvail.StartTime = new TimeOnly(18, 0);
+                        dinnerAvail.EndTime = new TimeOnly(22, 0);
+                        dinnerAvail.IsAvailable = true;
+                        dinnerAvail.Label = "Cena";
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created table: {name}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ No pizza profile found for table seeding");
+            }
+            
+            // ========================================
+            // BARBERSHOP - Barbers with Services
+            // ========================================
+            
+            // Find barbershop by known ID or search by name
+            var barbershopId = Guid.Parse("BBBB0001-0001-0001-0001-000000000001");
+            var barbershopProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                .FirstOrDefault(p => p.Id == barbershopId);
+            
+            // Fallback: search by display name containing "barber"
+            if (barbershopProfile == null)
+            {
+                barbershopProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                    .FirstOrDefault(p => p.DisplayName.ToLower().Contains("barber") || 
+                                         p.DisplayName.ToLower().Contains("barbería"));
+            }
+            
+            // If no barbershop exists, create one
+            if (barbershopProfile == null)
+            {
+                var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+                var systemUserId = Guid.Parse("99999999-9999-9999-9999-999999999999");
+                
+                // Check if system user exists (PermissionPolicyUser uses ID property)
+                var systemUser = ObjectSpace.GetObjectsQuery<ApplicationUser>()
+                    .FirstOrDefault(u => u.ID == systemUserId);
+                
+                if (systemUser == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ System user not found, skipping barbershop creation");
+                }
+                else
+                {
+                    barbershopProfile = ObjectSpace.CreateObject<Profile>();
+                    barbershopProfile.Id = barbershopId;
+                    barbershopProfile.UserId = systemUserId;
+                    barbershopProfile.ProfileTypeId = businessProfileTypeId;
+                    barbershopProfile.DisplayName = "Barbería El Caballero";
+                    barbershopProfile.Handle = "barberia-el-caballero";
+                    barbershopProfile.Bio = "La mejor barbería de la ciudad. Cortes clásicos y modernos, cuidado de barba, y ambiente tradicional. ¡Ven a lucir como un caballero!";
+                    barbershopProfile.CategoryKeys = new[] { "barbershop", "barber", "haircut", "grooming" };
+                    barbershopProfile.IsActive = true;
+                    barbershopProfile.VisibilityLevel = VisibilityLevel.Public;
+                    barbershopProfile.CreatedAt = now;
+                    barbershopProfile.UpdatedAt = now;
+                    
+                    ObjectSpace.CommitChanges(); // Commit profile first
+                    System.Diagnostics.Debug.WriteLine("[Updater] 💈 Created barbershop profile: Barbería El Caballero");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] 💈 Found barbershop profile: {barbershopProfile.DisplayName}");
+            }
+            
+            // Only create barbers if we have a profile
+            if (barbershopProfile == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ No barbershop profile available, skipping barber creation");
+                return;
+            }
+            
+            // Create 3 barbers
+            var barbers = new[]
+            {
+                ("Carlos - Barbero Senior", "15 años de experiencia. Especialista en cortes clásicos y degradados.", "carlos"),
+                ("Miguel - Barbero Experto", "8 años de experiencia. Experto en diseños y estilos modernos.", "miguel"),
+                ("José - Barbero Junior", "3 años de experiencia. Especialista en cortes juveniles y tendencias.", "jose")
+            };
+            
+            foreach (var (name, description, tag) in barbers)
+            {
+                var barber = ObjectSpace.CreateObject<BookableResource>();
+                barber.ProfileId = barbershopProfile.Id;
+                barber.Name = name;
+                barber.Description = description;
+                barber.ResourceType = ResourceType.Person;
+                barber.Category = ResourceCategory.Barber;
+                barber.SlotDurationMinutes = 30; // Default 30 min per service
+                barber.BufferMinutes = 5;
+                barber.MaxConcurrentBookings = 1;
+                barber.DefaultPrice = 15.00m;
+                barber.Currency = "USD";
+                barber.ConfirmationMode = BookingConfirmationMode.Automatic;
+                barber.MinAdvanceBookingHours = 1;
+                barber.MaxAdvanceBookingDays = 30;
+                barber.CancellationWindowHours = 2;
+                barber.IsActive = true;
+                barber.IsVisible = true;
+                barber.DisplayOrder = tag == "carlos" ? 1 : (tag == "miguel" ? 2 : 3);
+                barber.Tags = new[] { "barbero", tag, "corte", "barba" };
+                
+                // Add services for each barber
+                var services = new[]
+                {
+                    ("Corte de Cabello Clásico", "Corte tradicional con tijeras y máquina", 30, 15.00m),
+                    ("Corte + Barba", "Corte de cabello completo más arreglo de barba", 45, 25.00m),
+                    ("Afeitado Clásico", "Afeitado tradicional con navaja y toalla caliente", 30, 18.00m),
+                    ("Recorte de Barba", "Perfilado y arreglo de barba", 20, 12.00m),
+                    ("Paquete Completo VIP", "Corte, barba, afeitado, mascarilla facial y masaje", 75, 45.00m)
+                };
+                
+                var serviceOrder = 0;
+                foreach (var (svcName, svcDesc, duration, price) in services)
+                {
+                    var service = ObjectSpace.CreateObject<ResourceService>();
+                    service.ResourceId = barber.Id;
+                    service.Name = svcName;
+                    service.Description = svcDesc;
+                    service.DurationMinutes = duration;
+                    service.Price = price;
+                    service.Currency = "USD";
+                    service.IsActive = true;
+                    service.DisplayOrder = serviceOrder++;
+                }
+                
+                // Add availability (9:00 AM - 7:00 PM, closed Sundays)
+                foreach (System.DayOfWeek day in Enum.GetValues(typeof(System.DayOfWeek)))
+                {
+                    if (day == System.DayOfWeek.Sunday) continue; // Closed Sundays
+                    
+                    // Morning: 9:00 - 12:00
+                    var morningAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                    morningAvail.ResourceId = barber.Id;
+                    morningAvail.DayOfWeek = day;
+                    morningAvail.StartTime = new TimeOnly(9, 0);
+                    morningAvail.EndTime = new TimeOnly(12, 0);
+                    morningAvail.IsAvailable = true;
+                    morningAvail.Label = "Mañana";
+                    
+                    // Afternoon: 14:00 - 19:00 (lunch break 12-14)
+                    var afternoonAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                    afternoonAvail.ResourceId = barber.Id;
+                    afternoonAvail.DayOfWeek = day;
+                    afternoonAvail.StartTime = new TimeOnly(14, 0);
+                    afternoonAvail.EndTime = new TimeOnly(19, 0);
+                    afternoonAvail.IsAvailable = true;
+                    afternoonAvail.Label = "Tarde";
+                    
+                    // Saturday: shorter hours 9:00 - 15:00
+                    if (day == System.DayOfWeek.Saturday)
+                    {
+                        morningAvail.EndTime = new TimeOnly(15, 0);
+                        morningAvail.Label = "Horario Sábado";
+                        // Remove afternoon slot for Saturday (only one shift)
+                        ObjectSpace.Delete(afternoonAvail);
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created barber: {name} with 5 services");
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Completed SeedDemoBookableResources!");
         }
         
         /// <summary>

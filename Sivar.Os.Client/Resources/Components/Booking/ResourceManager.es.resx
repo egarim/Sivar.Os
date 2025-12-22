@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ManageResources" xml:space="preserve">
+    <value>Administrar Recursos</value>
+  </data>
+  <data name="AddResource" xml:space="preserve">
+    <value>Agregar Recurso</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+  <data name="NoResourcesYet" xml:space="preserve">
+    <value>Sin Recursos Aún</value>
+  </data>
+  <data name="NoResourcesDescription" xml:space="preserve">
+    <value>Crea tu primer recurso reservable para empezar a aceptar reservas.</value>
+  </data>
+  <data name="CreateFirstResource" xml:space="preserve">
+    <value>Crear Primer Recurso</value>
+  </data>
+  <data name="ErrorLoadingResources" xml:space="preserve">
+    <value>Error al cargar recursos. Por favor intente de nuevo.</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="ViewBookings" xml:space="preserve">
+    <value>Ver Reservas</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="CreateResource" xml:space="preserve">
+    <value>Crear Recurso</value>
+  </data>
+  <data name="EditResource" xml:space="preserve">
+    <value>Editar Recurso</value>
+  </data>
+  <data name="ResourceName" xml:space="preserve">
+    <value>Nombre del Recurso</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="ResourceType" xml:space="preserve">
+    <value>Tipo de Recurso</value>
+  </data>
+  <data name="Category" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="SlotDuration" xml:space="preserve">
+    <value>Duración del Turno (minutos)</value>
+  </data>
+  <data name="BufferTime" xml:space="preserve">
+    <value>Tiempo de Buffer (minutos)</value>
+  </data>
+  <data name="DefaultPrice" xml:space="preserve">
+    <value>Precio por Defecto</value>
+  </data>
+  <data name="Currency" xml:space="preserve">
+    <value>Moneda</value>
+  </data>
+  <data name="ConfirmationMode" xml:space="preserve">
+    <value>Modo de Confirmación</value>
+  </data>
+  <data name="MaxAdvanceBooking" xml:space="preserve">
+    <value>Reserva Máxima por Adelantado (días)</value>
+  </data>
+  <data name="CancellationWindow" xml:space="preserve">
+    <value>Ventana de Cancelación (horas)</value>
+  </data>
+  <data name="IsActive" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Guardando...</value>
+  </data>
+  <data name="ResourceCreated" xml:space="preserve">
+    <value>¡Recurso creado exitosamente!</value>
+  </data>
+  <data name="ResourceUpdated" xml:space="preserve">
+    <value>¡Recurso actualizado exitosamente!</value>
+  </data>
+  <data name="ResourceDeleted" xml:space="preserve">
+    <value>¡Recurso eliminado exitosamente!</value>
+  </data>
+  <data name="ErrorSaving" xml:space="preserve">
+    <value>Error al guardar recurso. Por favor intente de nuevo.</value>
+  </data>
+  <data name="ErrorDeleting" xml:space="preserve">
+    <value>Error al eliminar recurso. Por favor intente de nuevo.</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>¿Está seguro que desea eliminar este recurso?</value>
+  </data>
+  <data name="ConfirmDeleteTitle" xml:space="preserve">
+    <value>Eliminar Recurso</value>
+  </data>
+</root>

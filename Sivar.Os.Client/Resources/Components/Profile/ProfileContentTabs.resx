@@ -40,4 +40,7 @@
   <data name="Jobs" xml:space="preserve">
     <value>Jobs</value>
   </data>
+  <data name="Bookings" xml:space="preserve">
+    <value>Bookings</value>
+  </data>
 </root>

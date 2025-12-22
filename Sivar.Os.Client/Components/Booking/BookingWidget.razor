@@ -3,9 +3,11 @@
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Shared.Clients
 @using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Logging
 @inject IStringLocalizer<BookingWidget> Localizer
 @inject IResourceBookingsClient BookingsClient
 @inject ISnackbar Snackbar
+@inject ILogger<BookingWidget> Logger
 
 <MudPaper Class="booking-widget" Elevation="2">
     <div class="booking-header">
@@ -394,11 +396,13 @@
     
     protected override async Task OnInitializedAsync()
     {
+        Logger.LogInformation("[BookingWidget.OnInitializedAsync] ProfileId={ProfileId}", ProfileId);
         await LoadResources();
     }
     
     protected override async Task OnParametersSetAsync()
     {
+        Logger.LogInformation("[BookingWidget.OnParametersSetAsync] ProfileId={ProfileId}", ProfileId);
         if (SelectedResource != null && SelectedDate != default)
         {
             await LoadAvailableSlots();
@@ -407,17 +411,26 @@
     
     private async Task LoadResources()
     {
-        if (ProfileId == Guid.Empty) return;
+        Logger.LogInformation("[BookingWidget.LoadResources] Starting load for ProfileId={ProfileId}", ProfileId);
+        
+        if (ProfileId == Guid.Empty)
+        {
+            Logger.LogWarning("[BookingWidget.LoadResources] ProfileId is empty, skipping load");
+            return;
+        }
         
         IsLoadingResources = true;
         StateHasChanged();
         
         try
         {
+            Logger.LogInformation("[BookingWidget.LoadResources] Calling BookingsClient.GetResourcesByProfileAsync");
             Resources = await BookingsClient.GetResourcesByProfileAsync(ProfileId);
+            Logger.LogInformation("[BookingWidget.LoadResources] Loaded {Count} resources", Resources?.Count ?? 0);
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "[BookingWidget.LoadResources] Error loading resources for ProfileId={ProfileId}", ProfileId);
             Snackbar.Add(Localizer["ErrorLoadingResources"], Severity.Error);
         }
         finally

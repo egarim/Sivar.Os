@@ -3,10 +3,12 @@
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Shared.Clients
 @using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Logging
 @inject IStringLocalizer<ResourceManager> Localizer
 @inject IResourceBookingsClient BookingsClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ILogger<ResourceManager> Logger
 
 <div class="resource-manager">
     <div class="manager-header mb-4">
@@ -297,22 +299,32 @@
     
     protected override async Task OnInitializedAsync()
     {
+        Logger.LogInformation("[ResourceManager.OnInitializedAsync] ProfileId={ProfileId}", ProfileId);
         await LoadResources();
     }
     
     private async Task LoadResources()
     {
-        if (ProfileId == Guid.Empty) return;
+        Logger.LogInformation("[ResourceManager.LoadResources] Starting load for ProfileId={ProfileId}", ProfileId);
+        
+        if (ProfileId == Guid.Empty)
+        {
+            Logger.LogWarning("[ResourceManager.LoadResources] ProfileId is empty, skipping load");
+            return;
+        }
         
         IsLoading = true;
         StateHasChanged();
         
         try
         {
+            Logger.LogInformation("[ResourceManager.LoadResources] Calling BookingsClient.GetResourcesByProfileAsync");
             Resources = await BookingsClient.GetResourcesByProfileAsync(ProfileId);
+            Logger.LogInformation("[ResourceManager.LoadResources] Loaded {Count} resources", Resources?.Count ?? 0);
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "[ResourceManager.LoadResources] Error loading resources for ProfileId={ProfileId}", ProfileId);
             Snackbar.Add(Localizer["ErrorLoadingResources"], Severity.Error);
         }
         finally

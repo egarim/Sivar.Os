@@ -122,6 +122,7 @@
         {
             tabs.Add(new TabInfo("product", Localizer["Products"], Icons.Material.Filled.Storefront, GetCount("product")));
             tabs.Add(new TabInfo("service", Localizer["Services"], Icons.Material.Filled.HeadsetMic, GetCount("service")));
+            tabs.Add(new TabInfo("reservas", Localizer["Bookings"], Icons.Material.Filled.EventAvailable, null));
             tabs.Add(new TabInfo("businesslocation", Localizer["Locations"], Icons.Material.Filled.LocationOn, GetCount("businesslocation")));
             tabs.Add(new TabInfo("event", Localizer["Events"], Icons.Material.Filled.Event, GetCount("event")));
             tabs.Add(new TabInfo("jobposting", Localizer["Jobs"], Icons.Material.Filled.Work, GetCount("jobposting")));
@@ -129,6 +130,7 @@
         // Organization-specific tabs
         else if (ProfileTypeName == "OrganizationProfile")
         {
+            tabs.Add(new TabInfo("reservas", Localizer["Bookings"], Icons.Material.Filled.EventAvailable, null));
             tabs.Add(new TabInfo("event", Localizer["Events"], Icons.Material.Filled.Event, GetCount("event")));
             tabs.Add(new TabInfo("jobposting", Localizer["Jobs"], Icons.Material.Filled.Work, GetCount("jobposting")));
         }

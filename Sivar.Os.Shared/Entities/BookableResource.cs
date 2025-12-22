@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using Sivar.Os.Shared.Enums;
 
@@ -136,20 +137,20 @@ public class BookableResource : BaseEntity
     /// Services this resource can provide (for Person type)
     /// e.g., a barber might offer: Haircut, Beard Trim, Shave
     /// </summary>
-    public virtual ICollection<ResourceService> Services { get; set; } = new List<ResourceService>();
+    public virtual ICollection<ResourceService> Services { get; set; } = new ObservableCollection<ResourceService>();
 
     /// <summary>
     /// Weekly availability schedule
     /// </summary>
-    public virtual ICollection<ResourceAvailability> Availability { get; set; } = new List<ResourceAvailability>();
+    public virtual ICollection<ResourceAvailability> Availability { get; set; } = new ObservableCollection<ResourceAvailability>();
 
     /// <summary>
     /// Exceptions to regular availability (holidays, special hours, blocked dates)
     /// </summary>
-    public virtual ICollection<ResourceException> Exceptions { get; set; } = new List<ResourceException>();
+    public virtual ICollection<ResourceException> Exceptions { get; set; } = new ObservableCollection<ResourceException>();
 
     /// <summary>
     /// All bookings for this resource
     /// </summary>
-    public virtual ICollection<ResourceBooking> Bookings { get; set; } = new List<ResourceBooking>();
+    public virtual ICollection<ResourceBooking> Bookings { get; set; } = new ObservableCollection<ResourceBooking>();
 }

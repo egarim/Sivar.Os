@@ -6,6 +6,7 @@
 @using Sivar.Os.Client.Components.Profile
 @using Sivar.Os.Client.Components.Feed
 @using Sivar.Os.Client.Components.Shared
+@using Sivar.Os.Client.Components.Booking
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
@@ -319,7 +320,24 @@
             </div>
         }
 
-        @if (isLoadingPosts)
+        @* Bookings Tab - Show booking components *@
+        @if (selectedContentTab == "reservas" && viewedProfileId.HasValue)
+        {
+            <div class="profile-bookings-section mt-4">
+                @if (IsOwnProfile)
+                {
+                    @* Business owner sees ResourceManager to manage their bookable resources *@
+                    <ResourceManager ProfileId="@viewedProfileId.Value" />
+                }
+                else
+                {
+                    @* Visitors see BookingWidget to make reservations *@
+                    <BookingWidget ProfileId="@viewedProfileId.Value" 
+                                   OnBookingComplete="@HandleBookingComplete" />
+                }
+            </div>
+        }
+        else if (isLoadingPosts)
         {
             <MudCard Class="mt-4">
                 <MudCardContent>
@@ -743,7 +761,15 @@
     private async Task OnContentTabChanged(string tabValue)
     {
         selectedContentTab = tabValue;
-        Logger.LogInformation("[OnContentTabChanged] Tab changed to: {TabValue}", tabValue);
+        Logger.LogInformation("[OnContentTabChanged] Tab changed to: {TabValue}, ProfileId: {ProfileId}, IsOwnProfile: {IsOwnProfile}", 
+            tabValue, viewedProfileId, IsOwnProfile);
+        
+        // Skip loading posts for bookings tab - it uses its own components
+        if (tabValue == "reservas")
+        {
+            Logger.LogInformation("[OnContentTabChanged] Bookings tab selected, skipping post load");
+            return;
+        }
         
         // Reload posts with the new filter
         await LoadPostsAsync();
@@ -906,6 +932,18 @@
         var postUrl = $"{Navigation.BaseUri}posts/{post.Id}";
         // TODO: Implement clipboard copy functionality
         Logger.LogInformation("[HandleCopyLink] Post URL: {PostUrl}", postUrl);
+    }
+
+    #endregion
+
+    #region Booking Methods
+
+    private void HandleBookingComplete(ResourceBookingDto booking)
+    {
+        Logger.LogInformation("[HandleBookingComplete] Booking created: {BookingId} for resource {ResourceId}", 
+            booking.Id, booking.ResourceId);
+        // Booking is complete - the BookingWidget already shows a success message
+        // User can navigate to their bookings to see all their reservations
     }
 
     #endregion
