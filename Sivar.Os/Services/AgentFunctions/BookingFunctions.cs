@@ -323,7 +323,7 @@ public class BookingFunctions
     /// <summary>
     /// Create a new booking/reservation
     /// </summary>
-    [Description("Create a booking or reservation for the user. Use this after the user has selected a resource, date, and time. Requires confirmation from the user before calling.")]
+    [Description("Create a booking or reservation for the user. Use this after the user has selected a resource, date, and time. Requires confirmation from the user before calling. IMPORTANT: Use the timezone from the chat context (user's browser timezone) if available.")]
     public async Task<string> CreateBooking(
         [Description("The unique ID of the resource to book")]
         Guid resourceId,
@@ -335,8 +335,8 @@ public class BookingFunctions
         string? notes = null,
         [Description("Optional: number of guests (default 1)")]
         int guestCount = 1,
-        [Description("Timezone for the booking (default: America/El_Salvador)")]
-        string timeZone = "America/El_Salvador")
+        [Description("Timezone for the booking in IANA format. Use the timezone from the chat's location context if available, otherwise default to UTC.")]
+        string timeZone = "UTC")
     {
         var requestId = Guid.NewGuid();
         _logger.LogInformation("[BookingFunctions.CreateBooking] START - RequestId={RequestId}, ResourceId={ResourceId}, StartTime={StartTime}",

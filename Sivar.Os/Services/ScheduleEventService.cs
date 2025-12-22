@@ -174,7 +174,7 @@ public class ScheduleEventService : IScheduleEventService
             StartTime = createDto.StartTime,
             EndTime = createDto.EndTime,
             IsAllDay = createDto.IsAllDay,
-            TimeZone = createDto.TimeZone,
+            TimeZone = createDto.TimeZone ?? "UTC", // Fallback to UTC if not provided by client
             EventType = createDto.EventType,
             Visibility = createDto.Visibility,
             Status = EventStatus.Confirmed,

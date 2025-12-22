@@ -10,11 +10,13 @@
 @using DevExpress.AIIntegration.Blazor.Chat
 @using Conversation = Sivar.Os.Client.Pages.Conversation
 @using ChatMessage = Sivar.Os.Client.Pages.ChatMessage
+@using Sivar.Os.Shared.Services
 @inject IStringLocalizer<MainLayout> Localizer
 @inject IJSRuntime JS
 @inject ISivarClient SivarClient
 @inject ILogger<MainLayout> Logger
 @inject ChatSettingsService ChatSettings
+@inject IProfileContextService ProfileContextService
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -762,6 +764,18 @@
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Profile found - ProfileId={ProfileId}, DisplayName={DisplayName}, InitId={InitId}", 
                 _currentProfile.Id, _currentProfile.DisplayName, initId);
 
+            // Initialize ProfileContextService with current profile for timezone detection
+            try
+            {
+                await ProfileContextService.InitializeAsync(_currentProfile.Id);
+                Logger.LogInformation("[MainLayout.InitializeAIChatAsync] ProfileContextService initialized - TimeZone={TimeZone}, InitId={InitId}",
+                    ProfileContextService.CurrentContext?.Device.TimeZone ?? "unknown", initId);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[MainLayout.InitializeAIChatAsync] Failed to initialize ProfileContextService - InitId={InitId}", initId);
+            }
+
             // Load existing conversations from backend
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching conversations from API - ProfileId={ProfileId}, InitId={InitId}", 
                 _currentProfile.Id, initId);
@@ -1200,18 +1214,23 @@
                 await CreateNewConversationAsync();
             }
 
-            // Call the backend API - add user's local time to location context
+            // Call the backend API - use ProfileContextService for proper browser timezone detection
+            // ProfileContextService.GetChatLocationContext() returns location with populated TimeZone from browser
+            var profileContext = ProfileContextService.GetChatLocationContext();
+            var deviceTimeZone = ProfileContextService.GetDeviceTimeZone();
+            var deviceLocalTime = ProfileContextService.CurrentContext?.Device.LocalDateTime ?? DateTimeOffset.UtcNow;
+            
             var locationWithTime = _chatLocation != null 
                 ? _chatLocation with 
                 { 
-                    UserLocalTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    TimeZone = TimeZoneInfo.Local.Id
+                    UserLocalTime = deviceLocalTime.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = deviceTimeZone
                 }
-                : new ChatLocationContext 
+                : profileContext ?? new ChatLocationContext 
                 { 
-                    UserLocalTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    TimeZone = TimeZoneInfo.Local.Id,
-                    Source = "time-only"
+                    UserLocalTime = deviceLocalTime.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = deviceTimeZone,
+                    Source = "profile-context"
                 };
             
             var sendMessageDto = new SendMessageDto

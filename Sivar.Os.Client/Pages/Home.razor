@@ -35,6 +35,7 @@
 @inject IProfileSwitcherService ProfileSwitcherService
 @inject IStringLocalizer<Home> Localizer
 @inject ChatSettingsService ChatSettings
+@inject IProfileContextService ProfileContextService
 @implements IAsyncDisposable
 
 @* All CSS has been moved to external files in wwwroot/css/ for better organization and maintainability *@
@@ -244,6 +245,13 @@
             // Load user statistics
             Console.WriteLine("[Home] Step 4: Loading user statistics");
             await LoadUserStatsAsync();
+            
+            // Initialize Profile Context Service (timezone, device type, location)
+            if (_currentProfileId != Guid.Empty)
+            {
+                Console.WriteLine("[Home] Step 5: Initializing Profile Context Service");
+                await InitializeProfileContextAsync();
+            }
             
             Console.WriteLine($"[Home] ==================== OnInitializedAsync END - Activities loaded: {_activities.Count} ====================");
             
@@ -1488,6 +1496,47 @@
         {
             Console.WriteLine($"[Home] Error loading user statistics: {ex.Message}");
             // Keep default mock values as fallback
+        }
+    }
+
+    /// <summary>
+    /// Initialize Profile Context Service for timezone, device type, and location detection.
+    /// This enables timezone-aware features like scheduling and AI chat.
+    /// </summary>
+    private async Task InitializeProfileContextAsync()
+    {
+        try
+        {
+            Console.WriteLine("[Home] [ProfileContext] Initializing Profile Context Service...");
+            
+            await ProfileContextService.InitializeAsync(_currentProfileId);
+            
+            var context = ProfileContextService.CurrentContext;
+            if (context != null)
+            {
+                Console.WriteLine($"[Home] [ProfileContext] ✅ Initialized successfully:");
+                Console.WriteLine($"[Home] [ProfileContext]   - ProfileId: {context.ProfileId}");
+                Console.WriteLine($"[Home] [ProfileContext]   - TimeZone: {context.Device.TimeZone}");
+                Console.WriteLine($"[Home] [ProfileContext]   - DeviceType: {context.Device.DeviceType}");
+                Console.WriteLine($"[Home] [ProfileContext]   - Language: {context.Device.Language}");
+                Console.WriteLine($"[Home] [ProfileContext]   - LocalTime: {context.Device.LocalDateTime:O}");
+                Console.WriteLine($"[Home] [ProfileContext]   - HasLocation: {context.Location.HasLocation}");
+                
+                if (context.Location.HasLocation)
+                {
+                    var loc = context.Location.EffectiveLocation;
+                    Console.WriteLine($"[Home] [ProfileContext]   - Location: {loc?.DisplayName ?? "Unknown"}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[Home] [ProfileContext] ⚠️ Context is null after initialization");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] [ProfileContext] ❌ Error initializing: {ex.Message}");
+            Console.WriteLine($"[Home] [ProfileContext] Stack: {ex.StackTrace}");
         }
     }
 

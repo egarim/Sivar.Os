@@ -87,8 +87,13 @@ public class CreateScheduleEventDto
 
     public bool IsAllDay { get; set; }
 
+    /// <summary>
+    /// Timezone for the event in IANA format (e.g., "America/El_Salvador", "Europe/London").
+    /// Should be populated from ProfileContextService on client-side.
+    /// Falls back to "UTC" on server if not provided.
+    /// </summary>
     [MaxLength(100)]
-    public string TimeZone { get; set; } = "America/El_Salvador";
+    public string? TimeZone { get; set; }
 
     public EventType EventType { get; set; } = EventType.General;
     
