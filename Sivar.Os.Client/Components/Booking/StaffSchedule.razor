@@ -262,14 +262,31 @@
     private int TotalBookings => Bookings?.Count ?? 0;
     private int PendingBookings => Bookings?.Count(b => b.Status == BookingStatus.Pending) ?? 0;
     private int ConfirmedBookings => Bookings?.Count(b => b.Status == BookingStatus.Confirmed) ?? 0;
+    private bool _hasInitialized;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         SelectedDate = InitialDate ?? DateTime.Today;
-        await LoadAssignedResources();
-        if (HasAssignedResources)
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasInitialized)
         {
-            await LoadSchedule();
+            _hasInitialized = true;
+            IsLoading = true;
+            StateHasChanged();
+            
+            await LoadAssignedResources();
+            if (HasAssignedResources)
+            {
+                await LoadSchedule();
+            }
+            else
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
         }
     }
 

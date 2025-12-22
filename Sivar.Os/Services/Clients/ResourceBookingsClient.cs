@@ -16,6 +16,7 @@ public class ResourceBookingsClient : BaseRepositoryClient, IResourceBookingsCli
     private readonly IResourceBookingService _resourceBookingService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ResourceBookingsClient> _logger;
+    private static readonly SemaphoreSlim _dbLock = new SemaphoreSlim(1, 1);
 
     public ResourceBookingsClient(
         IResourceBookingService resourceBookingService,
@@ -623,6 +624,7 @@ public class ResourceBookingsClient : BaseRepositoryClient, IResourceBookingsCli
 
     public async Task<List<BookableResourceSummaryDto>> GetMyAssignedResourcesAsync(CancellationToken cancellationToken = default)
     {
+        await _dbLock.WaitAsync(cancellationToken);
         try
         {
             var keycloakId = GetKeycloakIdFromContext();
@@ -640,10 +642,15 @@ public class ResourceBookingsClient : BaseRepositoryClient, IResourceBookingsCli
             _logger.LogError(ex, "[ResourceBookingsClient.GetMyAssignedResourcesAsync] Error getting assigned resources");
             throw;
         }
+        finally
+        {
+            _dbLock.Release();
+        }
     }
 
     public async Task<List<ResourceBookingDto>> GetStaffScheduleAsync(DateTime? date = null, CancellationToken cancellationToken = default)
     {
+        await _dbLock.WaitAsync(cancellationToken);
         try
         {
             var keycloakId = GetKeycloakIdFromContext();
@@ -662,6 +669,10 @@ public class ResourceBookingsClient : BaseRepositoryClient, IResourceBookingsCli
         {
             _logger.LogError(ex, "[ResourceBookingsClient.GetStaffScheduleAsync] Error getting staff schedule");
             throw;
+        }
+        finally
+        {
+            _dbLock.Release();
         }
     }
 
