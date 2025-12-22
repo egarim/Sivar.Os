@@ -631,6 +631,42 @@ public class ResourceBookingService : IResourceBookingService
         return bookings.Select(MapToBookingDto).ToList();
     }
 
+    public async Task<List<BookableResourceSummaryDto>> GetMyAssignedResourcesAsync(string keycloakId)
+    {
+        var profile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+        if (profile == null) return new List<BookableResourceSummaryDto>();
+
+        var resources = await _repository.GetResourcesByAssignedProfileIdAsync(profile.Id);
+        return resources.Select(r => new BookableResourceSummaryDto
+        {
+            Id = r.Id,
+            ProfileId = r.ProfileId,
+            ProfileName = r.Profile?.DisplayName ?? string.Empty,
+            Name = r.Name,
+            Description = r.Description,
+            ResourceType = r.ResourceType,
+            Category = r.Category,
+            ImageUrl = r.ImageUrl,
+            DefaultPrice = r.DefaultPrice,
+            Currency = r.Currency,
+            SlotDurationMinutes = r.SlotDurationMinutes,
+            IsActive = r.IsActive,
+            ServiceCount = r.Services?.Count(s => s.IsActive) ?? 0
+        }).ToList();
+    }
+
+    public async Task<List<ResourceBookingDto>> GetStaffScheduleAsync(string keycloakId, DateTime date)
+    {
+        var profile = await _profileService.GetMyActiveProfileAsync(keycloakId);
+        if (profile == null) return new List<ResourceBookingDto>();
+
+        var startOfDay = date.Date;
+        var endOfDay = startOfDay.AddDays(1);
+
+        var bookings = await _repository.GetBookingsForStaffAsync(profile.Id, startOfDay, endOfDay);
+        return bookings.Select(MapToBookingDto).ToList();
+    }
+
     public async Task<ResourceBookingDto?> ConfirmBookingAsync(string keycloakId, Guid bookingId)
     {
         var booking = await _repository.GetBookingByIdAsync(bookingId);

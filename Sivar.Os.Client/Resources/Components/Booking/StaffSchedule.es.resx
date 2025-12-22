@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter</value>
+  </resheader>
+  <data name="Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="AssignedTo" xml:space="preserve">
+    <value>Asignado a</value>
+  </data>
+  <data name="NoAssignedResources" xml:space="preserve">
+    <value>No estás asignado a ningún recurso.</value>
+  </data>
+  <data name="ContactManager" xml:space="preserve">
+    <value>Contacta a tu gerente para ser asignado a recursos.</value>
+  </data>
+  <data name="NoBookingsForDay" xml:space="preserve">
+    <value>No hay citas programadas para este día.</value>
+  </data>
+  <data name="TotalAppointments" xml:space="preserve">
+    <value>Total de Citas</value>
+  </data>
+  <data name="Pending" xml:space="preserve">
+    <value>Pendientes</value>
+  </data>
+  <data name="Confirmed" xml:space="preserve">
+    <value>Confirmadas</value>
+  </data>
+  <data name="TodaysSchedule" xml:space="preserve">
+    <value>Horario</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="CheckIn" xml:space="preserve">
+    <value>Registrar</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Completar</value>
+  </data>
+  <data name="NoShow" xml:space="preserve">
+    <value>No Asistió</value>
+  </data>
+  <data name="StatusPending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="StatusConfirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="StatusCheckedIn" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="StatusCompleted" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="StatusNoShow" xml:space="preserve">
+    <value>No Asistió</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="ErrorLoadingResources" xml:space="preserve">
+    <value>Error al cargar tus recursos asignados</value>
+  </data>
+  <data name="ErrorLoadingSchedule" xml:space="preserve">
+    <value>Error al cargar el horario</value>
+  </data>
+  <data name="BookingConfirmed" xml:space="preserve">
+    <value>¡Cita confirmada!</value>
+  </data>
+  <data name="ErrorConfirmingBooking" xml:space="preserve">
+    <value>Error al confirmar la cita</value>
+  </data>
+  <data name="CustomerCheckedIn" xml:space="preserve">
+    <value>¡Cliente registrado!</value>
+  </data>
+  <data name="ErrorCheckingIn" xml:space="preserve">
+    <value>Error al registrar al cliente</value>
+  </data>
+  <data name="BookingCompleted" xml:space="preserve">
+    <value>¡Cita completada!</value>
+  </data>
+  <data name="ErrorCompletingBooking" xml:space="preserve">
+    <value>Error al completar la cita</value>
+  </data>
+  <data name="MarkedAsNoShow" xml:space="preserve">
+    <value>Marcado como no asistió</value>
+  </data>
+  <data name="ErrorMarkingNoShow" xml:space="preserve">
+    <value>Error al marcar como no asistió</value>
+  </data>
+</root>

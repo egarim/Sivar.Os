@@ -18,6 +18,13 @@ public class BookableResource : BaseEntity
     public virtual Profile Profile { get; set; } = null!;
 
     /// <summary>
+    /// The staff member's profile assigned to this resource (for Person type).
+    /// This allows staff (barbers, doctors, etc.) to log in and see their own schedule.
+    /// </summary>
+    public virtual Guid? AssignedProfileId { get; set; }
+    public virtual Profile? AssignedProfile { get; set; }
+
+    /// <summary>
     /// Reference to the associated Post (PostType = Resource)
     /// The Post contains the public-facing content (title, description, images)
     /// </summary>

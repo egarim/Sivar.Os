@@ -140,6 +140,18 @@ public interface IResourceBookingService
     Task<List<ResourceBookingDto>> GetTodayBookingsAsync(string keycloakId);
 
     /// <summary>
+    /// Gets resources assigned to the current user (for staff view).
+    /// Staff members can see which resources they are assigned to.
+    /// </summary>
+    Task<List<BookableResourceSummaryDto>> GetMyAssignedResourcesAsync(string keycloakId);
+
+    /// <summary>
+    /// Gets the staff schedule - bookings for all resources assigned to this user.
+    /// Used for staff members to view their personal schedule.
+    /// </summary>
+    Task<List<ResourceBookingDto>> GetStaffScheduleAsync(string keycloakId, DateTime date);
+
+    /// <summary>
     /// Confirms a pending booking (business action)
     /// </summary>
     Task<ResourceBookingDto?> ConfirmBookingAsync(string keycloakId, Guid bookingId);

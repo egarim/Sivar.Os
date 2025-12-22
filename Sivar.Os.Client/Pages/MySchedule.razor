@@ -1,0 +1,8 @@
+@page "/my-schedule"
+@using Microsoft.AspNetCore.Authorization
+@using Sivar.Os.Client.Components.Booking
+@attribute [Authorize]
+
+<PageTitle>My Schedule - Sivar.Os</PageTitle>
+
+<StaffSchedule />

@@ -52,6 +52,18 @@ public class ResourceBookingRepository : IResourceBookingRepository
         return await query.OrderBy(r => r.DisplayOrder).ThenBy(r => r.Name).ToListAsync();
     }
 
+    public async Task<List<BookableResource>> GetResourcesByAssignedProfileIdAsync(Guid assignedProfileId)
+    {
+        return await _context.BookableResources
+            .Include(r => r.Profile)
+            .Include(r => r.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder))
+            .Include(r => r.Availability.OrderBy(a => a.DayOfWeek).ThenBy(a => a.StartTime))
+            .Where(r => r.AssignedProfileId == assignedProfileId && r.IsActive)
+            .OrderBy(r => r.DisplayOrder)
+            .ThenBy(r => r.Name)
+            .ToListAsync();
+    }
+
     public async Task<(List<BookableResource> Resources, int TotalCount)> QueryResourcesAsync(ResourceQueryDto query)
     {
         var dbQuery = _context.BookableResources
@@ -442,6 +454,21 @@ public class ResourceBookingRepository : IResourceBookingRepository
             .Where(b => b.Resource.ProfileId == businessProfileId &&
                        b.StartTime >= today &&
                        b.StartTime < tomorrow)
+            .OrderBy(b => b.StartTime)
+            .ToListAsync();
+    }
+
+    public async Task<List<ResourceBooking>> GetBookingsForStaffAsync(Guid assignedProfileId, DateTime start, DateTime end)
+    {
+        // Get all bookings for resources assigned to this staff member
+        return await _context.ResourceBookings
+            .Include(b => b.Resource)
+            .Include(b => b.Service)
+            .Include(b => b.CustomerProfile)
+            .Where(b => b.Resource.AssignedProfileId == assignedProfileId &&
+                       b.StartTime >= start &&
+                       b.StartTime < end &&
+                       b.Status != BookingStatus.Cancelled)
             .OrderBy(b => b.StartTime)
             .ToListAsync();
     }

@@ -75,6 +75,11 @@
     <comment>Chat/AI Assistant navigation menu item</comment>
   </data>
   
+  <data name="MySchedule" xml:space="preserve">
+    <value>My Schedule</value>
+    <comment>Staff schedule navigation menu item - shows appointments for staff members</comment>
+  </data>
+  
   <data name="Counter" xml:space="preserve">
     <value>Counter</value>
     <comment>Counter navigation menu item</comment>

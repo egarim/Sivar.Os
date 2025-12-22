@@ -403,6 +403,47 @@ public class ResourceBookingsController : ControllerBase
         return Ok(bookings);
     }
 
+    #endregion
+
+    #region Staff Schedule
+
+    /// <summary>
+    /// Get resources assigned to the current user (for staff members).
+    /// Returns empty list if user is not assigned to any resources.
+    /// </summary>
+    [Authorize]
+    [HttpGet("staff/my-resources")]
+    public async Task<ActionResult<List<BookableResourceSummaryDto>>> GetMyAssignedResources()
+    {
+        var keycloakId = GetKeycloakId();
+        if (string.IsNullOrEmpty(keycloakId))
+            return Unauthorized();
+
+        var resources = await _bookingService.GetMyAssignedResourcesAsync(keycloakId);
+        return Ok(resources);
+    }
+
+    /// <summary>
+    /// Get staff schedule for a specific date.
+    /// Returns bookings for all resources assigned to the current user.
+    /// </summary>
+    [Authorize]
+    [HttpGet("staff/schedule")]
+    public async Task<ActionResult<List<ResourceBookingDto>>> GetStaffSchedule([FromQuery] DateTime? date = null)
+    {
+        var keycloakId = GetKeycloakId();
+        if (string.IsNullOrEmpty(keycloakId))
+            return Unauthorized();
+
+        var targetDate = date ?? DateTime.UtcNow;
+        var bookings = await _bookingService.GetStaffScheduleAsync(keycloakId, targetDate);
+        return Ok(bookings);
+    }
+
+    #endregion
+
+    #region Booking Actions
+
     /// <summary>
     /// Confirm a pending booking (business action)
     /// </summary>

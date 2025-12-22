@@ -75,6 +75,11 @@
     <comment>Elemento del menú de navegación Chat/Asistente IA</comment>
   </data>
   
+  <data name="MySchedule" xml:space="preserve">
+    <value>Mi Horario</value>
+    <comment>Elemento del menú de navegación para horario de personal - muestra citas para empleados</comment>
+  </data>
+  
   <data name="Counter" xml:space="preserve">
     <value>Contador</value>
     <comment>Elemento del menú de navegación Contador</comment>

@@ -22,6 +22,12 @@ public interface IResourceBookingRepository
     Task<List<BookableResource>> GetResourcesByProfileIdAsync(Guid profileId, bool activeOnly = true);
 
     /// <summary>
+    /// Gets all resources assigned to a staff member's profile.
+    /// Used for staff members to see their own schedule.
+    /// </summary>
+    Task<List<BookableResource>> GetResourcesByAssignedProfileIdAsync(Guid assignedProfileId);
+
+    /// <summary>
     /// Queries resources with filters
     /// </summary>
     Task<(List<BookableResource> Resources, int TotalCount)> QueryResourcesAsync(ResourceQueryDto query);
@@ -171,6 +177,12 @@ public interface IResourceBookingRepository
     /// Gets today's bookings for a business profile
     /// </summary>
     Task<List<ResourceBooking>> GetTodayBookingsForBusinessAsync(Guid businessProfileId);
+
+    /// <summary>
+    /// Gets bookings for all resources assigned to a staff member's profile.
+    /// Used for staff members to view their personal schedule.
+    /// </summary>
+    Task<List<ResourceBooking>> GetBookingsForStaffAsync(Guid assignedProfileId, DateTime start, DateTime end);
 
     /// <summary>
     /// Checks if a time slot is available

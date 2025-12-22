@@ -621,6 +621,50 @@ public class ResourceBookingsClient : BaseRepositoryClient, IResourceBookingsCli
         }
     }
 
+    public async Task<List<BookableResourceSummaryDto>> GetMyAssignedResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ResourceBookingsClient.GetMyAssignedResourcesAsync] No authenticated user");
+                return new List<BookableResourceSummaryDto>();
+            }
+
+            _logger.LogInformation("[ResourceBookingsClient.GetMyAssignedResourcesAsync] KeycloakId={KeycloakId}", keycloakId);
+            return await _resourceBookingService.GetMyAssignedResourcesAsync(keycloakId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ResourceBookingsClient.GetMyAssignedResourcesAsync] Error getting assigned resources");
+            throw;
+        }
+    }
+
+    public async Task<List<ResourceBookingDto>> GetStaffScheduleAsync(DateTime? date = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var keycloakId = GetKeycloakIdFromContext();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ResourceBookingsClient.GetStaffScheduleAsync] No authenticated user");
+                return new List<ResourceBookingDto>();
+            }
+
+            var targetDate = date ?? DateTime.UtcNow;
+            _logger.LogInformation("[ResourceBookingsClient.GetStaffScheduleAsync] KeycloakId={KeycloakId}, Date={Date}", 
+                keycloakId, targetDate.Date);
+            return await _resourceBookingService.GetStaffScheduleAsync(keycloakId, targetDate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ResourceBookingsClient.GetStaffScheduleAsync] Error getting staff schedule");
+            throw;
+        }
+    }
+
     public async Task<ResourceBookingDto?> ConfirmBookingAsync(Guid bookingId, CancellationToken cancellationToken = default)
     {
         if (bookingId == Guid.Empty)

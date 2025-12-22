@@ -16,6 +16,12 @@ public class BookableResourceDto
     public string ProfileAvatar { get; set; } = string.Empty;
     public Guid? PostId { get; set; }
     
+    /// <summary>
+    /// The staff member assigned to this resource (for Person type)
+    /// </summary>
+    public Guid? AssignedProfileId { get; set; }
+    public string? AssignedProfileName { get; set; }
+    
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public ResourceType ResourceType { get; set; }
@@ -85,6 +91,12 @@ public class CreateBookableResourceDto
     [Required]
     public ResourceType ResourceType { get; set; }
     
+    /// <summary>
+    /// Optional: Assign a staff member's profile to this resource.
+    /// This allows staff to log in and see their own schedule.
+    /// </summary>
+    public Guid? AssignedProfileId { get; set; }
+    
     public ResourceCategory Category { get; set; } = ResourceCategory.Other;
     
     [StringLength(500)]
@@ -143,6 +155,12 @@ public class UpdateBookableResourceDto
     
     [StringLength(1000)]
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// Assign or update the staff member's profile for this resource.
+    /// Set to null to unassign.
+    /// </summary>
+    public Guid? AssignedProfileId { get; set; }
     
     public ResourceCategory? Category { get; set; }
     

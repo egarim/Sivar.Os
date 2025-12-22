@@ -68,6 +68,12 @@ public class BookableResourceConfiguration : IEntityTypeConfiguration<BookableRe
             .HasForeignKey(r => r.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // AssignedProfile: The staff member assigned to this resource
+        builder.HasOne(r => r.AssignedProfile)
+            .WithMany()
+            .HasForeignKey(r => r.AssignedProfileId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Note: Post has composite PK (Id, CreatedAt) for TimescaleDB hypertable
         // Use HasPrincipalKey to reference the alternate key (Id) instead of composite PK
         builder.HasOne(r => r.Post)
@@ -79,6 +85,7 @@ public class BookableResourceConfiguration : IEntityTypeConfiguration<BookableRe
         // Indexes
         builder.HasIndex(r => r.ProfileId);
         builder.HasIndex(r => r.PostId);
+        builder.HasIndex(r => r.AssignedProfileId);
         builder.HasIndex(r => r.ResourceType);
         builder.HasIndex(r => r.Category);
         builder.HasIndex(r => r.IsActive);

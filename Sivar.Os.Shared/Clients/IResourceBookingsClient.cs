@@ -142,6 +142,26 @@ public interface IResourceBookingsClient
     /// </summary>
     Task<List<ResourceBookingDto>> GetTodayBookingsAsync(CancellationToken cancellationToken = default);
 
+    #endregion
+
+    #region Staff Schedule
+
+    /// <summary>
+    /// Gets resources assigned to the current user (for staff members).
+    /// Returns empty list if user is not assigned to any resources.
+    /// </summary>
+    Task<List<BookableResourceSummaryDto>> GetMyAssignedResourcesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets staff schedule for a specific date.
+    /// Returns bookings for all resources assigned to the current user.
+    /// </summary>
+    Task<List<ResourceBookingDto>> GetStaffScheduleAsync(DateTime? date = null, CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region Booking Actions
+
     /// <summary>
     /// Confirms a pending booking (business action)
     /// </summary>
