@@ -127,9 +127,8 @@ namespace Xaf.Sivar.Os.Module.Controllers
                 var profiles = ObjectSpace.GetObjects<Profile>().ToList();
                 seederLog.AppendLog($"Found {profiles.Count} profiles to sync");
 
-                // Run async sync operation
-                var syncTask = SyncKeycloakUsersAsync(seederLog, settings, profiles);
-                syncTask.Wait(); // XAF actions are synchronous, so we wait
+                // Run sync operation synchronously
+                SyncKeycloakUsersSync(seederLog, settings, profiles);
 
                 ObjectSpace.CommitChanges();
                 View.Refresh();
@@ -143,7 +142,10 @@ namespace Xaf.Sivar.Os.Module.Controllers
             }
         }
 
-        private async Task SyncKeycloakUsersAsync(BusinessObjects.SeederLog seederLog, KeycloakAdminSettings settings, List<Profile> profiles)
+        /// <summary>
+        /// Synchronous Keycloak user sync to avoid deadlocks in XAF actions
+        /// </summary>
+        private void SyncKeycloakUsersSync(BusinessObjects.SeederLog seederLog, KeycloakAdminSettings settings, List<Profile> profiles)
         {
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
@@ -153,7 +155,7 @@ namespace Xaf.Sivar.Os.Module.Controllers
             string? accessToken;
             try
             {
-                accessToken = await GetKeycloakAdminTokenAsync(httpClient, settings);
+                accessToken = GetKeycloakAdminTokenSync(httpClient, settings);
                 seederLog.AppendLog("✅ Authentication successful");
             }
             catch (Exception ex)
@@ -178,8 +180,8 @@ namespace Xaf.Sivar.Os.Module.Controllers
                 try
                 {
                     // Check if user already exists
-                    var existsResponse = await httpClient.GetAsync($"{settings.AdminApiUrl}/users?email={Uri.EscapeDataString(email)}");
-                    var existsContent = await existsResponse.Content.ReadAsStringAsync();
+                    var existsResponse = httpClient.GetAsync($"{settings.AdminApiUrl}/users?email={Uri.EscapeDataString(email)}").ConfigureAwait(false).GetAwaiter().GetResult();
+                    var existsContent = existsResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                     var existingUsers = JsonSerializer.Deserialize<JsonElement[]>(existsContent);
 
                     if (existingUsers != null && existingUsers.Length > 0)
@@ -188,7 +190,7 @@ namespace Xaf.Sivar.Os.Module.Controllers
                         seederLog.AppendLog($"⏭️ User exists: {email} (ID: {existingUserId})");
                         
                         // Link to local user if needed
-                        await EnsureLocalUserLinkedAsync(profile, existingUserId!, email, seederLog);
+                        EnsureLocalUserLinked(profile, existingUserId!, email, seederLog);
                         skipped++;
                         continue;
                     }
@@ -219,7 +221,7 @@ namespace Xaf.Sivar.Os.Module.Controllers
                     var json = JsonSerializer.Serialize(userPayload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    var response = await httpClient.PostAsync($"{settings.AdminApiUrl}/users", content);
+                    var response = httpClient.PostAsync($"{settings.AdminApiUrl}/users", content).ConfigureAwait(false).GetAwaiter().GetResult();
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -230,12 +232,12 @@ namespace Xaf.Sivar.Os.Module.Controllers
                         seederLog.AppendLog($"✅ Created: {email} (ID: {keycloakUserId})");
                         
                         // Link to local user
-                        await EnsureLocalUserLinkedAsync(profile, keycloakUserId, email, seederLog);
+                        EnsureLocalUserLinked(profile, keycloakUserId, email, seederLog);
                         created++;
                     }
                     else
                     {
-                        var errorContent = await response.Content.ReadAsStringAsync();
+                        var errorContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                         seederLog.AppendLog($"❌ Failed to create {email}: {response.StatusCode} - {errorContent}");
                         failed++;
                     }
@@ -252,7 +254,7 @@ namespace Xaf.Sivar.Os.Module.Controllers
             seederLog.EndOperation("Sync Keycloak Users", failed == 0, summary);
         }
 
-        private async Task<string> GetKeycloakAdminTokenAsync(HttpClient httpClient, KeycloakAdminSettings settings)
+        private string GetKeycloakAdminTokenSync(HttpClient httpClient, KeycloakAdminSettings settings)
         {
             var tokenRequest = new Dictionary<string, string>
             {
@@ -263,21 +265,21 @@ namespace Xaf.Sivar.Os.Module.Controllers
             };
 
             var content = new FormUrlEncodedContent(tokenRequest);
-            var response = await httpClient.PostAsync(settings.TokenEndpoint, content);
+            var response = httpClient.PostAsync(settings.TokenEndpoint, content).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 throw new Exception($"Token request failed: {response.StatusCode} - {error}");
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync();
+            var responseJson = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
             var tokenResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
             return tokenResponse.GetProperty("access_token").GetString() 
                 ?? throw new Exception("No access_token in response");
         }
 
-        private Task EnsureLocalUserLinkedAsync(Profile profile, string keycloakUserId, string email, BusinessObjects.SeederLog seederLog)
+        private void EnsureLocalUserLinked(Profile profile, string keycloakUserId, string email, BusinessObjects.SeederLog seederLog)
         {
             // Check if a local User exists with this email
             var existingUser = ObjectSpace.FirstOrDefault<User>(u => u.Email == email);
@@ -309,8 +311,6 @@ namespace Xaf.Sivar.Os.Module.Controllers
                 profile.UserId = existingUser.Id;
                 seederLog.AppendLog($"  🔗 Linked profile '{profile.Handle}' to user");
             }
-
-            return Task.CompletedTask;
         }
 
         private (string firstName, string lastName) ParseDisplayName(string? displayName)
