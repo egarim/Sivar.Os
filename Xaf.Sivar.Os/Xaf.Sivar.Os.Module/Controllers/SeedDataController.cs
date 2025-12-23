@@ -182,15 +182,36 @@ namespace Xaf.Sivar.Os.Module.Controllers
                     // Check if user already exists
                     var existsResponse = httpClient.GetAsync($"{settings.AdminApiUrl}/users?email={Uri.EscapeDataString(email)}").ConfigureAwait(false).GetAwaiter().GetResult();
                     var existsContent = existsResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    var existingUsers = JsonSerializer.Deserialize<JsonElement[]>(existsContent);
-
-                    if (existingUsers != null && existingUsers.Length > 0)
+                    
+                    // Safely parse JSON - Keycloak can return [] or {} or error responses
+                    string? existingUserId = null;
+                    try
                     {
-                        var existingUserId = existingUsers[0].GetProperty("id").GetString();
+                        using var doc = JsonDocument.Parse(existsContent);
+                        var root = doc.RootElement;
+                        
+                        // Check if it's an array with elements
+                        if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                        {
+                            var firstUser = root[0];
+                            if (firstUser.TryGetProperty("id", out var idProp))
+                            {
+                                existingUserId = idProp.GetString();
+                            }
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // JSON parsing failed, treat as "user not found"
+                        existingUserId = null;
+                    }
+
+                    if (existingUserId != null)
+                    {
                         seederLog.AppendLog($"⏭️ User exists: {email} (ID: {existingUserId})");
                         
                         // Link to local user if needed
-                        EnsureLocalUserLinked(profile, existingUserId!, email, seederLog);
+                        EnsureLocalUserLinked(profile, existingUserId, email, seederLog);
                         skipped++;
                         continue;
                     }
@@ -318,13 +339,58 @@ namespace Xaf.Sivar.Os.Module.Controllers
             if (string.IsNullOrWhiteSpace(displayName))
                 return ("User", "Unknown");
 
-            var parts = displayName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            // Sanitize the display name - remove characters not allowed by Keycloak
+            var sanitized = SanitizeNameForKeycloak(displayName.Trim());
+
+            var parts = sanitized.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             return parts.Length switch
             {
                 0 => ("User", "Unknown"),
-                1 => (parts[0], ""),
-                _ => (parts[0], parts[1])
+                1 => (parts[0], "Business"),  // Give single-word names a default lastName
+                _ => (parts[0], string.IsNullOrWhiteSpace(parts[1]) ? "Business" : parts[1])
             };
+        }
+
+        /// <summary>
+        /// Sanitizes a name for Keycloak by removing invalid characters.
+        /// Keycloak rejects names with &amp;, numbers at start, and other special characters.
+        /// </summary>
+        private string SanitizeNameForKeycloak(string name)
+        {
+            // Replace & with "and"
+            var result = name.Replace("&", "and");
+            
+            // Replace common invalid characters
+            result = result.Replace("@", "at");
+            result = result.Replace("#", "");
+            result = result.Replace("$", "");
+            result = result.Replace("%", "");
+            result = result.Replace("*", "");
+            result = result.Replace("+", "");
+            result = result.Replace("=", "");
+            result = result.Replace("[", "");
+            result = result.Replace("]", "");
+            result = result.Replace("{", "");
+            result = result.Replace("}", "");
+            result = result.Replace("|", "");
+            result = result.Replace("\\", "");
+            result = result.Replace("<", "");
+            result = result.Replace(">", "");
+            result = result.Replace("\"", "");
+            result = result.Replace("'", "");
+            
+            // Keep letters, numbers, spaces, hyphens, dots, and accented characters
+            // Remove anything else that Keycloak might reject
+            result = System.Text.RegularExpressions.Regex.Replace(result, @"[^\p{L}\p{N}\s\-\.]", "");
+            
+            // Collapse multiple spaces
+            result = System.Text.RegularExpressions.Regex.Replace(result, @"\s+", " ").Trim();
+            
+            // Ensure we have at least something
+            if (string.IsNullOrWhiteSpace(result))
+                result = "Business";
+
+            return result;
         }
 
         private void SeedDemoProfilesAction_Execute(object sender, SimpleActionExecuteEventArgs e)
