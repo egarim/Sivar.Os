@@ -37,7 +37,10 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
         public DbSet<DashboardData> DashboardData { get; set; }
         public new DbSet<Event> Events { get; set; }
         public DbSet<Analysis> Analysis { get; set; }
-        public DbSet<SqlScript> SqlScripts { get; set; }        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public DbSet<SqlScript> SqlScripts { get; set; }
+        public DbSet<SeederLog> SeederLogs { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Call base to apply Sivar entity configurations
       base.OnModelCreating(modelBuilder);
@@ -93,6 +96,13 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
                 b.HasIndex(s => new { s.BatchName, s.ExecutionOrder });
                 b.Property(s => s.Description).IsRequired();
                 b.Property(s => s.SqlText).IsRequired();
+            });
+            
+            // SeederLog singleton
+            modelBuilder.Entity<SeederLog>(b =>
+            {
+                b.ToTable("Xaf_SeederLogs");
+                b.Property(s => s.LogText).HasColumnType("text");
             });
  
     // XAF-specific configurations
