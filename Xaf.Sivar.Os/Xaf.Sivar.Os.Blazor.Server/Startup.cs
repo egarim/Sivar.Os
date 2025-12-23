@@ -36,6 +36,10 @@ namespace Xaf.Sivar.Os.Blazor.Server
         {
             services.AddSingleton(typeof(Microsoft.AspNetCore.SignalR.HubConnectionHandler<>), typeof(ProxyHubConnectionHandler<>));
 
+            // Register Keycloak Admin settings for seeder operations
+            services.Configure<Xaf.Sivar.Os.Module.Configuration.KeycloakAdminSettings>(
+                Configuration.GetSection(Xaf.Sivar.Os.Module.Configuration.KeycloakAdminSettings.SectionName));
+
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddHttpContextAccessor();

@@ -72,6 +72,39 @@ Handles singleton navigation - ensures clicking "SeederLog" nav item loads the s
 - **Module.cs**: Registered `SeederLog` in `AdditionalExportedTypes`
 - **Updater.cs**: Seeds singleton instance on database update
 
+### Keycloak Admin Configuration ✅ IMPLEMENTED
+
+**File**: `Xaf.Sivar.Os.Module/Configuration/KeycloakAdminSettings.cs`
+
+Configuration class for Keycloak Admin API access. Registered in `Startup.cs` via DI.
+
+**appsettings.json Configuration**:
+```json
+"KeycloakAdmin": {
+  "BaseUrl": "http://localhost:8080",
+  "Realm": "sivar-os",
+  "AdminUsername": "admin",
+  "AdminPassword": "your-admin-password",
+  "ClientId": "admin-cli",
+  "DefaultUserPassword": "SivarOs123!",
+  "TemporaryPassword": false,
+  "EmailVerified": true,
+  "EnabledByDefault": true
+}
+```
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `BaseUrl` | Keycloak server URL | `http://localhost:8080` |
+| `Realm` | Target realm for user creation | `sivar-os` |
+| `AdminUsername` | Admin user for API authentication | `admin` |
+| `AdminPassword` | Admin password (**REQUIRED**) | _(empty)_ |
+| `ClientId` | OAuth client for admin auth | `admin-cli` |
+| `DefaultUserPassword` | Password for new users | `SivarOs123!` |
+| `TemporaryPassword` | Force password change on first login | `false` |
+| `EmailVerified` | Mark email as verified | `true` |
+| `EnabledByDefault` | Enable new users immediately | `true` |
+
 ---
 
 ## Navigation Setup (Manual Step Required)
