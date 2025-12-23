@@ -10,7 +10,10 @@ using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using DevExpress.XtraEditors;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
+using Xaf.Sivar.Os.Module.Configuration;
 
 namespace Xaf.Sivar.Os.Win
 {
@@ -19,6 +22,17 @@ namespace Xaf.Sivar.Os.Win
         public static WinApplication BuildApplication(string connectionString)
         {
             var builder = WinApplication.CreateBuilder();
+            
+            // Load appsettings.json for KeycloakAdmin configuration
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .Build();
+            
+            // Register KeycloakAdminSettings for DI
+            builder.Services.Configure<KeycloakAdminSettings>(
+                configuration.GetSection(KeycloakAdminSettings.SectionName));
+            
             // Register custom services for Dependency Injection. For more information, refer to the following topic: https://docs.devexpress.com/eXpressAppFramework/404430/
             // builder.Services.AddScoped<CustomService>();
             // Register 3rd-party IoC containers (like Autofac, Dryloc, etc.)
