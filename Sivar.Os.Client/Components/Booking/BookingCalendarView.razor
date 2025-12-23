@@ -1,0 +1,515 @@
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using DayOfWeek = System.DayOfWeek
+@inject IResourceBookingsClient BookingsClient
+@inject IStringLocalizer<BookingCalendarView> L
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4">
+    @* Header with navigation and view toggle *@
+    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudStack Row AlignItems="AlignItems.Center">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" 
+                           OnClick="GoToPreviousPeriod"
+                           Title="@L["Previous"]" />
+            <MudText Typo="Typo.h5">@GetPeriodTitle()</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" 
+                           OnClick="GoToNextPeriod"
+                           Title="@L["Next"]" />
+            <MudButton Variant="Variant.Text" 
+                       Size="Size.Small" 
+                       OnClick="GoToToday"
+                       Class="ml-2">@L["Today"]</MudButton>
+        </MudStack>
+        
+        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+            <MudButton Color="@(CurrentView == CalendarViewType.Day ? Color.Primary : Color.Default)"
+                       OnClick="@(() => SetView(CalendarViewType.Day))">@L["Day"]</MudButton>
+            <MudButton Color="@(CurrentView == CalendarViewType.Week ? Color.Primary : Color.Default)"
+                       OnClick="@(() => SetView(CalendarViewType.Week))">@L["Week"]</MudButton>
+            <MudButton Color="@(CurrentView == CalendarViewType.Month ? Color.Primary : Color.Default)"
+                       OnClick="@(() => SetView(CalendarViewType.Month))">@L["Month"]</MudButton>
+        </MudButtonGroup>
+    </MudStack>
+    
+    @* Filters *@
+    <MudStack Row Spacing="3" Class="mb-4">
+        <MudSelect T="Guid?" 
+                   Value="SelectedResourceId"
+                   Label="@L["Resource"]"
+                   Dense="true"
+                   Variant="Variant.Outlined"
+                   ValueChanged="OnResourceFilterChanged"
+                   Style="max-width: 200px;">
+            <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["AllResources"]</MudSelectItem>
+            @foreach (var resource in Resources)
+            {
+                <MudSelectItem T="Guid?" Value="@resource.Id">@resource.Name</MudSelectItem>
+            }
+        </MudSelect>
+        
+        <MudSelect T="BookingStatus?" 
+                   Value="SelectedStatus"
+                   Label="@L["Status"]"
+                   Dense="true"
+                   Variant="Variant.Outlined"
+                   ValueChanged="OnStatusFilterChanged"
+                   Style="max-width: 180px;">
+            <MudSelectItem T="BookingStatus?" Value="@((BookingStatus?)null)">@L["AllStatuses"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.Pending">@L["Pending"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.Confirmed">@L["Confirmed"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.InProgress">@L["InProgress"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.Completed">@L["Completed"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.Cancelled">@L["Cancelled"]</MudSelectItem>
+            <MudSelectItem T="BookingStatus?" Value="BookingStatus.NoShow">@L["NoShow"]</MudSelectItem>
+        </MudSelect>
+        
+        <MudSpacer />
+        
+        @* Quick Actions *@
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnNewBookingClicked.InvokeAsync())">
+            @L["NewBooking"]
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" 
+                   StartIcon="@Icons.Material.Filled.Block"
+                   OnClick="@(() => OnBlockTimeClicked.InvokeAsync())">
+            @L["BlockTime"]
+        </MudButton>
+    </MudStack>
+    
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    
+    @* Calendar Grid *@
+    @switch (CurrentView)
+    {
+        case CalendarViewType.Day:
+            @RenderDayView()
+            break;
+        case CalendarViewType.Week:
+            @RenderWeekView()
+            break;
+        case CalendarViewType.Month:
+            @RenderMonthView()
+            break;
+    }
+    
+    @* Legend *@
+    <MudStack Row Spacing="4" Class="mt-4">
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Info" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["Pending"]</MudText>
+        </MudStack>
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Success" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["Confirmed"]</MudText>
+        </MudStack>
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["InProgress"]</MudText>
+        </MudStack>
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Secondary" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["Completed"]</MudText>
+        </MudStack>
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Error" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["Cancelled"]</MudText>
+        </MudStack>
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Warning" Size="Size.Small" />
+            <MudText Typo="Typo.caption">@L["NoShow"]</MudText>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public Guid ProfileId { get; set; }
+    [Parameter] public EventCallback OnNewBookingClicked { get; set; }
+    [Parameter] public EventCallback OnBlockTimeClicked { get; set; }
+    [Parameter] public EventCallback<ResourceBookingSummaryDto> OnBookingClicked { get; set; }
+    
+    private enum CalendarViewType { Day, Week, Month }
+    
+    private CalendarViewType CurrentView { get; set; } = CalendarViewType.Week;
+    private DateTime CurrentDate { get; set; } = DateTime.Today;
+    private List<BookableResourceSummaryDto> Resources { get; set; } = new();
+    private List<ResourceBookingSummaryDto> Bookings { get; set; } = new();
+    private Guid? SelectedResourceId { get; set; }
+    private BookingStatus? SelectedStatus { get; set; }
+    private bool IsLoading { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadResourcesAsync();
+        await LoadBookingsAsync();
+    }
+    
+    private async Task OnResourceFilterChanged(Guid? value)
+    {
+        SelectedResourceId = value;
+        await LoadBookingsAsync();
+    }
+    
+    private async Task OnStatusFilterChanged(BookingStatus? value)
+    {
+        SelectedStatus = value;
+        await LoadBookingsAsync();
+    }
+    
+    private async Task LoadResourcesAsync()
+    {
+        try
+        {
+            Resources = await BookingsClient.GetResourcesByProfileAsync(ProfileId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(L["ErrorLoadingResources", ex.Message], Severity.Error);
+        }
+    }
+    
+    private async Task LoadBookingsAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var (fromDate, toDate) = GetCurrentPeriodDates();
+            
+            var query = new BookingQueryDto
+            {
+                ResourceId = SelectedResourceId,
+                Status = SelectedStatus,
+                FromDate = fromDate,
+                ToDate = toDate,
+                PageSize = 500 // Calendar needs all bookings for the period
+            };
+            
+            var response = await BookingsClient.GetBusinessBookingsAsync(query);
+            Bookings = response.Bookings;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(L["ErrorLoadingBookings", ex.Message], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    private (DateTime FromDate, DateTime ToDate) GetCurrentPeriodDates()
+    {
+        return CurrentView switch
+        {
+            CalendarViewType.Day => (CurrentDate.Date, CurrentDate.Date.AddDays(1)),
+            CalendarViewType.Week => GetWeekDates(CurrentDate),
+            CalendarViewType.Month => GetMonthDates(CurrentDate),
+            _ => (CurrentDate.Date, CurrentDate.Date.AddDays(7))
+        };
+    }
+    
+    private (DateTime Start, DateTime End) GetWeekDates(DateTime date)
+    {
+        var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        var monday = date.AddDays(-diff).Date;
+        return (monday, monday.AddDays(7));
+    }
+    
+    private (DateTime Start, DateTime End) GetMonthDates(DateTime date)
+    {
+        var firstDay = new DateTime(date.Year, date.Month, 1);
+        var lastDay = firstDay.AddMonths(1);
+        return (firstDay, lastDay);
+    }
+    
+    private string GetPeriodTitle()
+    {
+        return CurrentView switch
+        {
+            CalendarViewType.Day => CurrentDate.ToString("dddd, MMMM d, yyyy"),
+            CalendarViewType.Week => 
+                $"{GetWeekDates(CurrentDate).Start:MMM d} - {GetWeekDates(CurrentDate).End.AddDays(-1):MMM d, yyyy}",
+            CalendarViewType.Month => CurrentDate.ToString("MMMM yyyy"),
+            _ => CurrentDate.ToString("MMMM yyyy")
+        };
+    }
+    
+    private async Task GoToPreviousPeriod()
+    {
+        CurrentDate = CurrentView switch
+        {
+            CalendarViewType.Day => CurrentDate.AddDays(-1),
+            CalendarViewType.Week => CurrentDate.AddDays(-7),
+            CalendarViewType.Month => CurrentDate.AddMonths(-1),
+            _ => CurrentDate.AddDays(-7)
+        };
+        await LoadBookingsAsync();
+    }
+    
+    private async Task GoToNextPeriod()
+    {
+        CurrentDate = CurrentView switch
+        {
+            CalendarViewType.Day => CurrentDate.AddDays(1),
+            CalendarViewType.Week => CurrentDate.AddDays(7),
+            CalendarViewType.Month => CurrentDate.AddMonths(1),
+            _ => CurrentDate.AddDays(7)
+        };
+        await LoadBookingsAsync();
+    }
+    
+    private async Task GoToToday()
+    {
+        CurrentDate = DateTime.Today;
+        await LoadBookingsAsync();
+    }
+    
+    private async Task SetView(CalendarViewType view)
+    {
+        CurrentView = view;
+        await LoadBookingsAsync();
+    }
+    
+    private Color GetStatusColor(BookingStatus status) => status switch
+    {
+        BookingStatus.Pending => Color.Info,
+        BookingStatus.Confirmed => Color.Success,
+        BookingStatus.InProgress => Color.Primary,
+        BookingStatus.Completed => Color.Secondary,
+        BookingStatus.Cancelled => Color.Error,
+        BookingStatus.NoShow => Color.Warning,
+        _ => Color.Default
+    };
+    
+    private string GetStatusIcon(BookingStatus status) => status switch
+    {
+        BookingStatus.Pending => Icons.Material.Filled.Schedule,
+        BookingStatus.Confirmed => Icons.Material.Filled.CheckCircle,
+        BookingStatus.InProgress => Icons.Material.Filled.Login,
+        BookingStatus.Completed => Icons.Material.Filled.Done,
+        BookingStatus.Cancelled => Icons.Material.Filled.Cancel,
+        BookingStatus.NoShow => Icons.Material.Filled.PersonOff,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    #region Day View
+    
+    private RenderFragment RenderDayView() => __builder =>
+    {
+        var dayBookings = Bookings
+            .Where(b => b.StartTime.Date == CurrentDate.Date)
+            .OrderBy(b => b.StartTime)
+            .ToList();
+        
+        <MudPaper Outlined Class="pa-3">
+            @if (!dayBookings.Any())
+            {
+                <MudAlert Severity="Severity.Info">@L["NoBookingsForDay"]</MudAlert>
+            }
+            else
+            {
+                // Group by hour
+                var hours = Enumerable.Range(6, 18); // 6 AM to 11 PM
+                foreach (var hour in hours)
+                {
+                    var hourBookings = dayBookings
+                        .Where(b => b.StartTime.Hour == hour)
+                        .ToList();
+                    
+                    <MudStack Row Class="@($"py-1 {(hour % 2 == 0 ? "mud-background-gray" : "")}")" Style="min-height: 60px;">
+                        <MudText Typo="Typo.caption" Style="width: 60px; flex-shrink: 0;">
+                            @(new TimeOnly(hour, 0).ToString("h:mm tt"))
+                        </MudText>
+                        <MudDivider Vertical FlexItem />
+                        <MudStack Row Wrap="Wrap.Wrap" Spacing="2" Style="flex: 1;">
+                            @foreach (var booking in hourBookings)
+                            {
+                                <MudChip T="string" 
+                                         Color="@GetStatusColor(booking.Status)"
+                                         Size="Size.Small"
+                                         OnClick="@(() => OnBookingClicked.InvokeAsync(booking))"
+                                         Style="cursor: pointer;">
+                                    @booking.StartTime.ToString("h:mm") - @booking.CustomerName 
+                                    (@booking.ResourceName)
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudStack>
+                }
+            }
+        </MudPaper>
+    };
+    
+    #endregion
+    
+    #region Week View
+    
+    private RenderFragment RenderWeekView() => __builder =>
+    {
+        var (weekStart, weekEnd) = GetWeekDates(CurrentDate);
+        var days = Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i)).ToList();
+        
+        <MudSimpleTable Dense Hover Striped FixedHeader Style="max-height: 500px; overflow-y: auto;">
+            <thead>
+                <tr>
+                    <th style="width: 120px;">@L["Resource"]</th>
+                    @foreach (var day in days)
+                    {
+                        <th style="text-align: center; min-width: 100px;">
+                            <MudStack AlignItems="AlignItems.Center" Spacing="0">
+                                <MudText Typo="Typo.caption">@day.ToString("ddd")</MudText>
+                                <MudText Typo="Typo.body2" 
+                                         Class="@(day.Date == DateTime.Today ? "mud-primary-text font-weight-bold" : "")">
+                                    @day.Day
+                                </MudText>
+                            </MudStack>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var resource in Resources)
+                {
+                    <tr>
+                        <td>
+                            <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@GetResourceTypeIcon(resource.ResourceType)" Size="Size.Small" />
+                                <MudText Typo="Typo.body2">@resource.Name</MudText>
+                            </MudStack>
+                        </td>
+                        @foreach (var day in days)
+                        {
+                            var dayResourceBookings = Bookings
+                                .Where(b => b.StartTime.Date == day.Date && b.ResourceName == resource.Name)
+                                .OrderBy(b => b.StartTime)
+                                .ToList();
+                            
+                            <td style="text-align: center; vertical-align: top; padding: 4px;">
+                                @if (dayResourceBookings.Any())
+                                {
+                                    <MudStack Spacing="1">
+                                        @foreach (var booking in dayResourceBookings.Take(3))
+                                        {
+                                            <MudTooltip Text="@($"{booking.StartTime:h:mm tt} - {booking.CustomerName}")">
+                                                <MudChip T="string" 
+                                                         Size="Size.Small"
+                                                         Color="@GetStatusColor(booking.Status)"
+                                                         OnClick="@(() => OnBookingClicked.InvokeAsync(booking))"
+                                                         Style="cursor: pointer; font-size: 10px;">
+                                                    @booking.StartTime.ToString("h:mm")
+                                                </MudChip>
+                                            </MudTooltip>
+                                        }
+                                        @if (dayResourceBookings.Count > 3)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                +@(dayResourceBookings.Count - 3) @L["More"]
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Tertiary">-</MudText>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    };
+    
+    private string GetResourceTypeIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Build,
+        ResourceType.Object => Icons.Material.Filled.Inventory,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    #endregion
+    
+    #region Month View
+    
+    private RenderFragment RenderMonthView() => __builder =>
+    {
+        var (monthStart, monthEnd) = GetMonthDates(CurrentDate);
+        var firstDayOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+        var startOffset = ((int)firstDayOfMonth.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var calendarStart = firstDayOfMonth.AddDays(-startOffset);
+        var daysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
+        var totalDays = startOffset + daysInMonth;
+        var weeksNeeded = (int)Math.Ceiling(totalDays / 7.0);
+        
+        <MudSimpleTable Dense Hover>
+            <thead>
+                <tr>
+                    @foreach (var dayName in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
+                    {
+                        <th style="text-align: center;">@L[dayName]</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @for (var week = 0; week < weeksNeeded; week++)
+                {
+                    <tr>
+                        @for (var dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++)
+                        {
+                            var currentDay = calendarStart.AddDays(week * 7 + dayOfWeek);
+                            var isCurrentMonth = currentDay.Month == CurrentDate.Month;
+                            var isToday = currentDay.Date == DateTime.Today;
+                            var dayBookings = Bookings
+                                .Where(b => b.StartTime.Date == currentDay.Date)
+                                .ToList();
+                            
+                            <td style="vertical-align: top; padding: 4px; min-width: 100px; height: 80px; 
+                                       @(isCurrentMonth ? "" : "opacity: 0.4;")
+                                       @(isToday ? "background-color: var(--mud-palette-primary-lighten);" : "")">
+                                <MudText Typo="Typo.body2" 
+                                         Class="@(isToday ? "mud-primary-text font-weight-bold" : "")">
+                                    @currentDay.Day
+                                </MudText>
+                                @if (dayBookings.Any())
+                                {
+                                    <MudStack Spacing="0">
+                                        @foreach (var booking in dayBookings.Take(2))
+                                        {
+                                            <MudTooltip Text="@($"{booking.StartTime:h:mm tt} - {booking.CustomerName} ({booking.ResourceName})")">
+                                                <MudChip T="string" 
+                                                         Size="Size.Small"
+                                                         Color="@GetStatusColor(booking.Status)"
+                                                         OnClick="@(() => OnBookingClicked.InvokeAsync(booking))"
+                                                         Style="cursor: pointer; font-size: 9px; margin: 1px 0;">
+                                                    @booking.StartTime.ToString("h:mm") @(booking.ResourceName.Length > 8 ? booking.ResourceName[..8] + "..." : booking.ResourceName)
+                                                </MudChip>
+                                            </MudTooltip>
+                                        }
+                                        @if (dayBookings.Count > 2)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                +@(dayBookings.Count - 2)
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    };
+    
+    #endregion
+}

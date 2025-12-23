@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral</value>
+  </resheader>
+  
+  <!-- Navigation -->
+  <data name="Previous" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="Next" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  
+  <!-- View Types -->
+  <data name="Day" xml:space="preserve">
+    <value>Día</value>
+  </data>
+  <data name="Week" xml:space="preserve">
+    <value>Semana</value>
+  </data>
+  <data name="Month" xml:space="preserve">
+    <value>Mes</value>
+  </data>
+  
+  <!-- Day Names -->
+  <data name="Mon" xml:space="preserve">
+    <value>Lun</value>
+  </data>
+  <data name="Tue" xml:space="preserve">
+    <value>Mar</value>
+  </data>
+  <data name="Wed" xml:space="preserve">
+    <value>Mié</value>
+  </data>
+  <data name="Thu" xml:space="preserve">
+    <value>Jue</value>
+  </data>
+  <data name="Fri" xml:space="preserve">
+    <value>Vie</value>
+  </data>
+  <data name="Sat" xml:space="preserve">
+    <value>Sáb</value>
+  </data>
+  <data name="Sun" xml:space="preserve">
+    <value>Dom</value>
+  </data>
+  
+  <!-- Filters -->
+  <data name="Resource" xml:space="preserve">
+    <value>Recurso</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="AllResources" xml:space="preserve">
+    <value>Todos los recursos</value>
+  </data>
+  <data name="AllStatuses" xml:space="preserve">
+    <value>Todos los estados</value>
+  </data>
+  
+  <!-- Actions -->
+  <data name="NewBooking" xml:space="preserve">
+    <value>Nueva Reserva</value>
+  </data>
+  <data name="BlockTime" xml:space="preserve">
+    <value>Bloquear Tiempo</value>
+  </data>
+  
+  <!-- Status Labels -->
+  <data name="Pending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="Confirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>En Progreso</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="NoShow" xml:space="preserve">
+    <value>No se presentó</value>
+  </data>
+  
+  <!-- Messages -->
+  <data name="NoBookingsForDay" xml:space="preserve">
+    <value>No hay reservas para este día</value>
+  </data>
+  <data name="More" xml:space="preserve">
+    <value>más</value>
+  </data>
+  <data name="ErrorLoadingResources" xml:space="preserve">
+    <value>Error al cargar recursos: {0}</value>
+  </data>
+  <data name="ErrorLoadingBookings" xml:space="preserve">
+    <value>Error al cargar reservas: {0}</value>
+  </data>
+</root>

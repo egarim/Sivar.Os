@@ -1,0 +1,381 @@
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@inject IResourceBookingsClient BookingsClient
+@inject IStringLocalizer<BookingAnalytics> L
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
+    
+    @if (IsLoading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (Stats == null)
+    {
+        <MudAlert Severity="Severity.Info">@L["NoDataAvailable"]</MudAlert>
+    }
+    else
+    {
+        @* Summary Cards *@
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Primary" />
+                            <MudText Typo="Typo.h4" Color="Color.Primary">@Stats.TodayBookings</MudText>
+                            <MudText Typo="Typo.body2">@L["TodayBookings"]</MudText>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Upcoming" Size="Size.Large" Color="Color.Info" />
+                            <MudText Typo="Typo.h4" Color="Color.Info">@Stats.UpcomingBookings</MudText>
+                            <MudText Typo="Typo.body2">@L["UpcomingBookings"]</MudText>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Size="Size.Large" Color="Color.Warning" />
+                            <MudText Typo="Typo.h4" Color="Color.Warning">@Stats.PendingConfirmations</MudText>
+                            <MudText Typo="Typo.body2">@L["PendingConfirmations"]</MudText>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" Color="Color.Success" />
+                            <MudText Typo="Typo.h4" Color="Color.Success">
+                                @Stats.ThisMonthRevenue.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
+                            </MudText>
+                            <MudText Typo="Typo.body2">@L["ThisMonthRevenue"]</MudText>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+        
+        @* Resources Summary *@
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6">
+                <MudPaper Outlined Class="pa-3">
+                    <MudText Typo="Typo.h6" Class="mb-3">@L["ResourcesOverview"]</MudText>
+                    <MudStack Row Justify="Justify.SpaceAround">
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.h4">@Stats.TotalResources</MudText>
+                            <MudText Typo="Typo.caption">@L["TotalResources"]</MudText>
+                        </MudStack>
+                        <MudDivider Vertical FlexItem />
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.h4" Color="Color.Success">@Stats.ActiveResources</MudText>
+                            <MudText Typo="Typo.caption">@L["ActiveResources"]</MudText>
+                        </MudStack>
+                        <MudDivider Vertical FlexItem />
+                        <MudStack AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.h4" Color="Color.Tertiary">@(Stats.TotalResources - Stats.ActiveResources)</MudText>
+                            <MudText Typo="Typo.caption">@L["InactiveResources"]</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudPaper Outlined Class="pa-3">
+                    <MudText Typo="Typo.h6" Class="mb-3">@L["QuickStats"]</MudText>
+                    @if (Stats.ResourceStats.Any())
+                    {
+                        var avgRating = Stats.ResourceStats.Where(r => r.ReviewCount > 0).Average(r => r.AverageRating);
+                        var avgCompletionRate = Stats.ResourceStats.Where(r => r.TotalBookings > 0).Average(r => r.BookingCompletionRate);
+                        var totalRevenue = Stats.ResourceStats.Sum(r => r.TotalRevenue);
+                        
+                        <MudStack Row Justify="Justify.SpaceAround">
+                            <MudStack AlignItems="AlignItems.Center">
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                    <MudText Typo="Typo.h5">@avgRating.ToString("F1")</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.caption">@L["AverageRating"]</MudText>
+                            </MudStack>
+                            <MudDivider Vertical FlexItem />
+                            <MudStack AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.h5">@((avgCompletionRate * 100).ToString("F0"))%</MudText>
+                                <MudText Typo="Typo.caption">@L["CompletionRate"]</MudText>
+                            </MudStack>
+                            <MudDivider Vertical FlexItem />
+                            <MudStack AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.h5" Color="Color.Success">@totalRevenue.ToString("C0")</MudText>
+                                <MudText Typo="Typo.caption">@L["TotalRevenue"]</MudText>
+                            </MudStack>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary">@L["NoResourceStats"]</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        
+        @* Resource Performance Table *@
+        @if (Stats.ResourceStats.Any())
+        {
+            <MudPaper Outlined Class="pa-3">
+                <MudText Typo="Typo.h6" Class="mb-3">@L["ResourcePerformance"]</MudText>
+                <MudSimpleTable Dense Hover Striped>
+                    <thead>
+                        <tr>
+                            <th>@L["Resource"]</th>
+                            <th style="text-align: center;">@L["TotalBookings"]</th>
+                            <th style="text-align: center;">@L["Completed"]</th>
+                            <th style="text-align: center;">@L["Cancelled"]</th>
+                            <th style="text-align: center;">@L["NoShow"]</th>
+                            <th style="text-align: center;">@L["Rating"]</th>
+                            <th style="text-align: right;">@L["Revenue"]</th>
+                            <th style="text-align: center;">@L["CompletionRate"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var resource in Stats.ResourceStats.OrderByDescending(r => r.TotalBookings))
+                        {
+                            var resourceInfo = Resources.FirstOrDefault(r => r.Id == resource.ResourceId);
+                            <tr>
+                                <td>
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                        @if (resourceInfo != null)
+                                        {
+                                            <MudIcon Icon="@GetResourceTypeIcon(resourceInfo.ResourceType)" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">@resourceInfo.Name</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2">@resource.ResourceId.ToString()[..8]...</MudText>
+                                        }
+                                    </MudStack>
+                                </td>
+                                <td style="text-align: center;">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@resource.TotalBookings</MudChip>
+                                </td>
+                                <td style="text-align: center;">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">@resource.CompletedBookings</MudChip>
+                                </td>
+                                <td style="text-align: center;">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">@resource.CancelledBookings</MudChip>
+                                </td>
+                                <td style="text-align: center;">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">@resource.NoShowBookings</MudChip>
+                                </td>
+                                <td style="text-align: center;">
+                                    @if (resource.ReviewCount > 0)
+                                    {
+                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">@resource.AverageRating.ToString("F1")</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Tertiary">(@resource.ReviewCount)</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Tertiary">-</MudText>
+                                    }
+                                </td>
+                                <td style="text-align: right;">
+                                    <MudText Typo="Typo.body2" Color="Color.Success">
+                                        @resource.TotalRevenue.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
+                                    </MudText>
+                                </td>
+                                <td style="text-align: center;">
+                                    @{
+                                        var completionRate = resource.BookingCompletionRate * 100;
+                                        var completionColor = completionRate >= 80 ? Color.Success : 
+                                                              completionRate >= 50 ? Color.Warning : Color.Error;
+                                    }
+                                    <MudProgressLinear Color="@completionColor" 
+                                                       Value="@completionRate" 
+                                                       Style="width: 80px; display: inline-block;" />
+                                    <MudText Typo="Typo.caption">@completionRate.ToString("F0")%</MudText>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        }
+        
+        @* Booking Status Distribution *@
+        @if (Stats.ResourceStats.Any())
+        {
+            <MudGrid Spacing="3" Class="mt-4">
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined Class="pa-3">
+                        <MudText Typo="Typo.h6" Class="mb-3">@L["BookingStatusDistribution"]</MudText>
+                        @{
+                            var totalPending = Stats.ResourceStats.Sum(r => r.PendingBookings);
+                            var totalConfirmed = Stats.ResourceStats.Sum(r => r.ConfirmedBookings);
+                            var totalCompleted = Stats.ResourceStats.Sum(r => r.CompletedBookings);
+                            var totalCancelled = Stats.ResourceStats.Sum(r => r.CancelledBookings);
+                            var totalNoShow = Stats.ResourceStats.Sum(r => r.NoShowBookings);
+                            var total = totalPending + totalConfirmed + totalCompleted + totalCancelled + totalNoShow;
+                        }
+                        @if (total > 0)
+                        {
+                            <MudStack Spacing="2">
+                                <MudStack Row AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="width: 100px;">@L["Pending"]</MudText>
+                                    <MudProgressLinear Color="Color.Info" Value="@((double)totalPending / total * 100)" Style="flex: 1;" />
+                                    <MudText Typo="Typo.body2" Style="width: 50px; text-align: right;">@totalPending</MudText>
+                                </MudStack>
+                                <MudStack Row AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="width: 100px;">@L["Confirmed"]</MudText>
+                                    <MudProgressLinear Color="Color.Success" Value="@((double)totalConfirmed / total * 100)" Style="flex: 1;" />
+                                    <MudText Typo="Typo.body2" Style="width: 50px; text-align: right;">@totalConfirmed</MudText>
+                                </MudStack>
+                                <MudStack Row AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="width: 100px;">@L["Completed"]</MudText>
+                                    <MudProgressLinear Color="Color.Secondary" Value="@((double)totalCompleted / total * 100)" Style="flex: 1;" />
+                                    <MudText Typo="Typo.body2" Style="width: 50px; text-align: right;">@totalCompleted</MudText>
+                                </MudStack>
+                                <MudStack Row AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="width: 100px;">@L["Cancelled"]</MudText>
+                                    <MudProgressLinear Color="Color.Error" Value="@((double)totalCancelled / total * 100)" Style="flex: 1;" />
+                                    <MudText Typo="Typo.body2" Style="width: 50px; text-align: right;">@totalCancelled</MudText>
+                                </MudStack>
+                                <MudStack Row AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="width: 100px;">@L["NoShow"]</MudText>
+                                    <MudProgressLinear Color="Color.Warning" Value="@((double)totalNoShow / total * 100)" Style="flex: 1;" />
+                                    <MudText Typo="Typo.body2" Style="width: 50px; text-align: right;">@totalNoShow</MudText>
+                                </MudStack>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Tertiary">@L["NoBookingData"]</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined Class="pa-3">
+                        <MudText Typo="Typo.h6" Class="mb-3">@L["TopPerformers"]</MudText>
+                        @{
+                            var topByRevenue = Stats.ResourceStats
+                                .Where(r => r.TotalRevenue > 0)
+                                .OrderByDescending(r => r.TotalRevenue)
+                                .Take(5)
+                                .ToList();
+                        }
+                        @if (topByRevenue.Any())
+                        {
+                            <MudList T="ResourceStatsDto" Dense>
+                                @foreach (var (resource, index) in topByRevenue.Select((r, i) => (r, i)))
+                                {
+                                    var resourceInfo = Resources.FirstOrDefault(r => r.Id == resource.ResourceId);
+                                    <MudListItem T="ResourceStatsDto">
+                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudAvatar Size="Size.Small" Color="@GetRankColor(index)">@(index + 1)</MudAvatar>
+                                                @if (resourceInfo != null)
+                                                {
+                                                    <MudIcon Icon="@GetResourceTypeIcon(resourceInfo.ResourceType)" Size="Size.Small" />
+                                                    <MudText Typo="Typo.body2">@resourceInfo.Name</MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2">@L["Resource"]</MudText>
+                                                }
+                                            </MudStack>
+                                            <MudText Typo="Typo.body2" Color="Color.Success">
+                                                @resource.TotalRevenue.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Tertiary">@L["NoRevenueData"]</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public Guid ProfileId { get; set; }
+    
+    private BusinessBookingStatsDto? Stats { get; set; }
+    private List<BookableResourceSummaryDto> Resources { get; set; } = new();
+    private bool IsLoading { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProfileId != Guid.Empty)
+        {
+            await LoadDataAsync();
+        }
+    }
+    
+    private async Task LoadDataAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var statsTask = BookingsClient.GetBusinessStatsAsync();
+            var resourcesTask = BookingsClient.GetResourcesByProfileAsync(ProfileId);
+            
+            await Task.WhenAll(statsTask, resourcesTask);
+            
+            Stats = await statsTask;
+            Resources = await resourcesTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(L["ErrorLoadingStats", ex.Message], Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    private string GetResourceTypeIcon(ResourceType type) => type switch
+    {
+        ResourceType.Person => Icons.Material.Filled.Person,
+        ResourceType.Space => Icons.Material.Filled.MeetingRoom,
+        ResourceType.Equipment => Icons.Material.Filled.Build,
+        ResourceType.Object => Icons.Material.Filled.Inventory,
+        _ => Icons.Material.Filled.Event
+    };
+    
+    private Color GetRankColor(int index) => index switch
+    {
+        0 => Color.Warning, // Gold
+        1 => Color.Default, // Silver
+        2 => Color.Tertiary, // Bronze
+        _ => Color.Surface
+    };
+}
