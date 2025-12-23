@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral</value>
+  </resheader>
+  
+  <!-- Title -->
+  <data name="Title" xml:space="preserve">
+    <value>Analíticas de Reservas</value>
+  </data>
+  
+  <!-- Summary Cards -->
+  <data name="TodayBookings" xml:space="preserve">
+    <value>Reservas de Hoy</value>
+  </data>
+  <data name="UpcomingBookings" xml:space="preserve">
+    <value>Próximas</value>
+  </data>
+  <data name="PendingConfirmations" xml:space="preserve">
+    <value>Pendientes de Confirmar</value>
+  </data>
+  <data name="ThisMonthRevenue" xml:space="preserve">
+    <value>Ingresos del Mes</value>
+  </data>
+  
+  <!-- Resources Overview -->
+  <data name="ResourcesOverview" xml:space="preserve">
+    <value>Resumen de Recursos</value>
+  </data>
+  <data name="TotalResources" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="ActiveResources" xml:space="preserve">
+    <value>Activos</value>
+  </data>
+  <data name="InactiveResources" xml:space="preserve">
+    <value>Inactivos</value>
+  </data>
+  
+  <!-- Quick Stats -->
+  <data name="QuickStats" xml:space="preserve">
+    <value>Estadísticas Rápidas</value>
+  </data>
+  <data name="AverageRating" xml:space="preserve">
+    <value>Calificación</value>
+  </data>
+  <data name="CompletionRate" xml:space="preserve">
+    <value>Completadas</value>
+  </data>
+  <data name="TotalRevenue" xml:space="preserve">
+    <value>Ingresos Totales</value>
+  </data>
+  <data name="NoResourceStats" xml:space="preserve">
+    <value>No hay estadísticas de recursos disponibles</value>
+  </data>
+  
+  <!-- Resource Performance Table -->
+  <data name="ResourcePerformance" xml:space="preserve">
+    <value>Rendimiento por Recurso</value>
+  </data>
+  <data name="Resource" xml:space="preserve">
+    <value>Recurso</value>
+  </data>
+  <data name="TotalBookings" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Completadas</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Canceladas</value>
+  </data>
+  <data name="NoShow" xml:space="preserve">
+    <value>No se presentó</value>
+  </data>
+  <data name="Rating" xml:space="preserve">
+    <value>Calificación</value>
+  </data>
+  <data name="Revenue" xml:space="preserve">
+    <value>Ingresos</value>
+  </data>
+  
+  <!-- Status Distribution -->
+  <data name="BookingStatusDistribution" xml:space="preserve">
+    <value>Distribución por Estado</value>
+  </data>
+  <data name="Pending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="Confirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="NoBookingData" xml:space="preserve">
+    <value>No hay datos de reservas disponibles</value>
+  </data>
+  
+  <!-- Top Performers -->
+  <data name="TopPerformers" xml:space="preserve">
+    <value>Mejores (por Ingresos)</value>
+  </data>
+  <data name="NoRevenueData" xml:space="preserve">
+    <value>No hay datos de ingresos disponibles</value>
+  </data>
+  
+  <!-- Errors -->
+  <data name="NoDataAvailable" xml:space="preserve">
+    <value>No hay datos analíticos disponibles</value>
+  </data>
+  <data name="ErrorLoadingStats" xml:space="preserve">
+    <value>Error al cargar estadísticas: {0}</value>
+  </data>
+</root>
