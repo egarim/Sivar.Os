@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: January 21, 2025 - Added Booking Functions Phase 2 Integration pattern  
+> **Last Updated**: December 24, 2025 - Added DbContext Concurrency Best Practices for Blazor Server  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -30,51 +30,58 @@
    - Avoiding Tool Selection Conflicts
    - Testing & Debugging Tool Selection
 8. [Service Layer Rules](#service-layer-rules)
-9. [Repository Layer Rules](#repository-layer-rules)
-10. [Controller Usage](#controller-usage)
-11. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
+9. [DbContext Concurrency in Blazor Server](#dbcontext-concurrency-in-blazor-server) ⚠️ **CRITICAL**
+   - The Problem: Scoped DbContext in Long-Lived Circuits
+   - Pattern 1: Sequential Awaits (Quick Fix)
+   - Pattern 2: IDbContextFactory (Recommended)
+   - Pattern 3: Short-Lived DbContext in Components
+   - CQRS-Lite Approach
+   - Migration Path & Checklist
+10. [Repository Layer Rules](#repository-layer-rules)
+11. [Controller Usage](#controller-usage)
+12. [File Upload & Blob Storage](#file-upload--blob-storage) ⭐ **UPDATED**
    - Storage Configuration & Hierarchical Namespace
    - CORS & Mixed Content Solutions
    - Proxy Endpoint Implementation
    - URL Generation Strategy (Dynamic vs Stored)
    - GetFileUrlAsync - The Critical Metadata Loading Fix
    - Troubleshooting Guide & Common Issues
-12. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
+13. [Adaptive Loading Pattern - Client/Server ML Hybrid](#adaptive-loading-pattern---clientserver-ml-hybrid) ⭐ **NEW**
     - Progressive Enhancement for AI Features
     - Background Model Preloading
     - Server-First with Client Switch Strategy
     - Transformers.js Integration Examples
     - Sentiment Analysis & Embeddings Implementation
-13. [CSS Organization & Styling](#css-organization--styling)
-14. [Logging Standards](#logging-standards)
-15. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
+14. [CSS Organization & Styling](#css-organization--styling)
+15. [Logging Standards](#logging-standards)
+16. [Authentication & Authorization Routing](#authentication--authorization-routing) ⭐ **NEW**
     - Route Configuration Pattern
     - AllowAnonymous Implementation
     - Cookie Authentication Middleware
     - Redirect Loop Prevention
     - Common Issues & Solutions
-16. [Error Handling](#error-handling)
-17. [Testing & Debugging](#testing--debugging)
-18. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
-19. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
-20. [XAF Admin Backend & Database Migrations](#xaf-admin-backend--database-migrations) ⭐ **NEW**
+17. [Error Handling](#error-handling)
+18. [Testing & Debugging](#testing--debugging)
+19. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
+20. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
+21. [XAF Admin Backend & Database Migrations](#xaf-admin-backend--database-migrations) ⭐ **NEW**
     - XAF is the Admin Backend
     - Navigation Structure (7 Groups)
     - NO EF Core Migrations - XAF Updater.cs Handles Everything
     - Adding a New Entity Checklist
-21. [Database Script System](#database-script-system) ⭐ **UPDATED**
+22. [Database Script System](#database-script-system) ⭐ **UPDATED**
     - Architecture Overview
     - Existing SQL Scripts (Phase 5-7)
     - How to Add More Continuous Aggregates ⭐ **NEW**
     - Script Execution Order
     - Best Practices & Troubleshooting
-22. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
+23. [Python Environment & Scripts](#python-environment--scripts) ⭐ **NEW**
     - Virtual Environment Setup
     - Available Scripts
     - Running Python Scripts
     - Adding New Dependencies
-23. [References](#references)
-24. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
+24. [References](#references)
+25. [Related Documentation](#related-documentation) ⭐ **SINGLE SOURCE OF TRUTH**
 
 ---
 
@@ -2516,6 +2523,315 @@ builder.Services.AddScoped<IReactionService, ReactionService>();
 - Don't use magic strings or numbers
 - Don't skip NULL checks
 - Don't return repository entities directly
+
+---
+
+## DbContext Concurrency in Blazor Server
+
+### 🚨 RECURRING ISSUE - READ THIS BEFORE USING PARALLEL ASYNC CALLS
+
+**Problem:** Blazor Server uses a single SignalR circuit per user session. When `DbContext` is registered as scoped (the default), the **same DbContext instance** is shared across all async operations within that circuit. This causes concurrency errors when multiple operations run in parallel.
+
+### The Error You'll See
+
+```
+System.InvalidOperationException: A second operation was started on this context instance 
+before a previous operation completed. This is usually caused by different threads concurrently 
+using the same instance of DbContext. For more information on how to avoid threading issues 
+with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
+```
+
+### Why This Happens in Blazor Server
+
+| Aspect | Traditional Web API | Blazor Server |
+|--------|--------------------|--------------|
+| **Lifetime** | Request starts → ends quickly | Circuit lives for entire session (minutes/hours) |
+| **Scope** | New DbContext per HTTP request | Same DbContext for entire circuit |
+| **Risk** | Low - requests are isolated | High - all component operations share context |
+| **Parallel Ops** | Each request has its own context | All parallel ops fight for same context |
+
+```
+// Blazor Server Circuit Lifecycle
+┌─────────────────────────────────────────────────────────────────┐
+│                    User Session (Circuit)                        │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │ Component A  │  │ Component B  │  │ Component C  │           │
+│  │ LoadData()   │  │ LoadData()   │  │ LoadData()   │           │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘           │
+│         │                 │                 │                    │
+│         └────────────┬────┴────────────────┘                    │
+│                      ↓                                           │
+│         ┌────────────────────────────────────┐                  │
+│         │     SINGLE SCOPED DbContext         │ ← CONFLICT!     │
+│         │  (shared by ALL operations)         │                  │
+│         └────────────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### ❌ WRONG - Parallel Operations with Shared DbContext
+
+```csharp
+// ❌ THIS WILL FAIL!
+protected override async Task OnInitializedAsync()
+{
+    // Both methods use the same scoped DbContext
+    // Running them in parallel causes concurrency errors
+    await Task.WhenAll(
+        LoadUpcomingBookings(),  // Uses _bookingService → _repository → _context
+        LoadBookingHistory()      // Uses _bookingService → _repository → _context
+    );
+}
+```
+
+---
+
+### Pattern 1: Sequential Awaits (Quick Fix)
+
+**Use this when:** You need a quick fix and performance is acceptable.
+
+```csharp
+// ✅ CORRECT - Sequential execution avoids concurrency
+protected override async Task OnInitializedAsync()
+{
+    await LoadUpcomingBookings();
+    await LoadBookingHistory();
+}
+```
+
+**Pros:**
+- Simple to implement
+- No architectural changes needed
+- Works immediately
+
+**Cons:**
+- Slower (operations run sequentially, not parallel)
+- Doesn't scale well with many data sources
+
+---
+
+### Pattern 2: IDbContextFactory (Recommended)
+
+**Use this when:** You need parallel data loading for performance.
+
+#### Step 1: Register Factory in Program.cs
+
+```csharp
+// Program.cs - Register BOTH scoped context AND factory
+
+// Keep existing scoped registration for simple cases
+builder.Services.AddDbContext<SivarDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, o => o.UseVector());
+});
+
+// ADD: Factory for parallel operations
+builder.Services.AddDbContextFactory<SivarDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, o => o.UseVector());
+}, ServiceLifetime.Scoped);
+```
+
+#### Step 2: Update Repository to Support Factory
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+public class BookingRepository : IBookingRepository
+{
+    private readonly IDbContextFactory<SivarDbContext> _contextFactory;
+    
+    public BookingRepository(IDbContextFactory<SivarDbContext> contextFactory)
+    {
+        _contextFactory = contextFactory;
+    }
+    
+    public async Task<List<Booking>> GetUpcomingAsync(Guid profileId)
+    {
+        // Create a NEW context for this operation
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        return await context.Bookings
+            .Where(b => b.ProfileId == profileId && b.StartTime > DateTime.UtcNow)
+            .OrderBy(b => b.StartTime)
+            .ToListAsync();
+    }
+    
+    public async Task<List<Booking>> GetHistoryAsync(Guid profileId)
+    {
+        // Each method gets its OWN context instance
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        return await context.Bookings
+            .Where(b => b.ProfileId == profileId && b.StartTime <= DateTime.UtcNow)
+            .OrderByDescending(b => b.StartTime)
+            .ToListAsync();
+    }
+}
+```
+
+#### Step 3: Now Parallel Operations Work!
+
+```csharp
+// ✅ NOW THIS WORKS - Each call uses a fresh DbContext
+protected override async Task OnInitializedAsync()
+{
+    await Task.WhenAll(
+        LoadUpcomingBookings(),  // Gets its own DbContext via factory
+        LoadBookingHistory()      // Gets its own DbContext via factory
+    );
+}
+```
+
+**Pros:**
+- True parallel execution
+- Each operation is isolated
+- No concurrency conflicts
+- Better performance for data-heavy pages
+
+**Cons:**
+- Requires refactoring repositories
+- Slightly more memory (multiple context instances)
+
+---
+
+### Pattern 3: Short-Lived DbContext in Components
+
+**Use this when:** Component needs direct database access for specific operations.
+
+```csharp
+@inject IDbContextFactory<SivarDbContext> DbFactory
+
+@code {
+    private List<Booking>? _upcomingBookings;
+    private List<Booking>? _historyBookings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Create separate contexts for parallel operations
+        var upcomingTask = LoadUpcomingAsync();
+        var historyTask = LoadHistoryAsync();
+        
+        await Task.WhenAll(upcomingTask, historyTask);
+        
+        _upcomingBookings = await upcomingTask;
+        _historyBookings = await historyTask;
+    }
+    
+    private async Task<List<Booking>> LoadUpcomingAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        return await context.Bookings
+            .Where(b => b.StartTime > DateTime.UtcNow)
+            .ToListAsync();
+    }
+    
+    private async Task<List<Booking>> LoadHistoryAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        return await context.Bookings
+            .Where(b => b.StartTime <= DateTime.UtcNow)
+            .ToListAsync();
+    }
+}
+```
+
+**Note:** This bypasses the service layer. Only use for simple read operations.
+
+---
+
+### CQRS-Lite Approach
+
+**Use this when:** You want clean separation between reads and writes.
+
+```csharp
+// Query handler - uses factory for parallel-safe reads
+public class BookingQueryHandler
+{
+    private readonly IDbContextFactory<SivarDbContext> _factory;
+    
+    public async Task<List<BookingDto>> GetDashboardDataAsync(Guid profileId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+        // Read-only queries, no tracking needed
+        return await context.Bookings
+            .AsNoTracking()
+            .Where(b => b.ProfileId == profileId)
+            .Select(b => new BookingDto { ... })
+            .ToListAsync();
+    }
+}
+
+// Command handler - uses scoped context for writes
+public class BookingCommandHandler
+{
+    private readonly SivarDbContext _context;  // Scoped
+    
+    public async Task<Booking> CreateBookingAsync(CreateBookingDto dto)
+    {
+        var booking = new Booking { ... };
+        _context.Bookings.Add(booking);
+        await _context.SaveChangesAsync();
+        return booking;
+    }
+}
+```
+
+---
+
+### Migration Path for Sivar.Os
+
+#### Phase 1: Immediate Fixes (Current)
+- ✅ Convert `Task.WhenAll` to sequential awaits in affected components
+- ✅ Identify all parallel database operations
+
+#### Phase 2: Add Factory Support
+- [ ] Add `AddDbContextFactory<SivarDbContext>` to `Program.cs`
+- [ ] Keep existing scoped registration for backward compatibility
+
+#### Phase 3: Update Critical Repositories
+- [ ] Update `ResourceBookingRepository` to use factory
+- [ ] Update `ProfileRepository` (used everywhere)
+- [ ] Update `PostRepository` for feed loading
+
+#### Phase 4: Re-enable Parallel Loading
+- [ ] Convert sequential awaits back to `Task.WhenAll` in data-heavy components
+- [ ] Test thoroughly for concurrency issues
+
+---
+
+### Affected Components Checklist
+
+Components known to have parallel data loading patterns:
+
+| Component | Status | Pattern Used |
+|-----------|--------|--------------|
+| `MyBookings.razor` | ✅ Fixed | Sequential awaits |
+| `BusinessBookingDashboard.razor` | ⚠️ Check | May need fix |
+| `Feed.razor` | ⚠️ Check | Multiple data sources |
+| `ProfilePage.razor` | ⚠️ Check | Tabs load in parallel |
+
+---
+
+### Performance Comparison
+
+| Pattern | Load Time (4 queries) | Memory | Complexity |
+|---------|----------------------|--------|------------|
+| Sequential Awaits | ~400ms (100ms × 4) | Low | ⭐ Simple |
+| IDbContextFactory | ~100ms (parallel) | Medium | ⭐⭐ Moderate |
+| CQRS-Lite | ~100ms (parallel) | Medium | ⭐⭐⭐ Complex |
+
+---
+
+### Quick Reference: When to Use Each Pattern
+
+| Scenario | Recommended Pattern |
+|----------|--------------------|
+| Quick fix needed | Sequential awaits |
+| 2-3 parallel queries | IDbContextFactory in repository |
+| Data-heavy dashboard | IDbContextFactory + parallel loading |
+| Complex read/write separation | CQRS-Lite |
+| Simple component, single query | Keep scoped DbContext |
 
 ---
 
