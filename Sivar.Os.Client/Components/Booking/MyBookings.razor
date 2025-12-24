@@ -177,10 +177,9 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(
-            LoadUpcomingBookings(),
-            LoadBookingHistory()
-        );
+        // Load sequentially to avoid DbContext concurrency issues
+        await LoadUpcomingBookings();
+        await LoadBookingHistory();
     }
     
     private async Task LoadUpcomingBookings()
