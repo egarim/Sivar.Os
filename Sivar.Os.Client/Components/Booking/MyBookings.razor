@@ -177,9 +177,12 @@
     
     protected override async Task OnInitializedAsync()
     {
-        // Load sequentially to avoid DbContext concurrency issues
-        await LoadUpcomingBookings();
-        await LoadBookingHistory();
+        // Load in parallel - ResourceBookingRepository now uses IDbContextFactory
+        // Each method gets its own DbContext instance via the factory
+        await Task.WhenAll(
+            LoadUpcomingBookings(),
+            LoadBookingHistory()
+        );
     }
     
     private async Task LoadUpcomingBookings()
