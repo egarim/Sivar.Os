@@ -353,6 +353,7 @@ function New-TestUsers {
     param($RealmName, $KeycloakUrl, $Token)
     
     $users = @(
+        # Personal users
         @{
             username = "roberto.guzman"
             email = "roberto.guzman@sivar.lat"
@@ -376,6 +377,31 @@ function New-TestUsers {
             email = "oscar.ojeda@sivar.lat"
             firstName = "Oscar"
             lastName = "Ojeda"
+        },
+        # Business users (restaurants with booking enabled)
+        @{
+            username = "dragon-palace"
+            email = "dragon-palace@sivar.lat"
+            firstName = "Dragon"
+            lastName = "Palace"
+        },
+        @{
+            username = "el-gaucho"
+            email = "el-gaucho@sivar.lat"
+            firstName = "El"
+            lastName = "Gaucho"
+        },
+        @{
+            username = "la-pampa-argentina"
+            email = "la-pampa-argentina@sivar.lat"
+            firstName = "La Pampa"
+            lastName = "Argentina"
+        },
+        @{
+            username = "barberia-el-caballero"
+            email = "barberia-el-caballero@sivar.lat"
+            firstName = "Barbería"
+            lastName = "El Caballero"
         }
     )
     

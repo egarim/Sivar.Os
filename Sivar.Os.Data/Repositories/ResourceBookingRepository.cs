@@ -90,12 +90,13 @@ public class ResourceBookingRepository : IResourceBookingRepository
         {
             var term = query.SearchTerm.ToLower();
             // Search in resource name, description, tags, AND profile display name/category keys
+            // Use bidirectional matching for category keys (handles "restaurante" matching "restaurant" and vice versa)
             dbQuery = dbQuery.Where(r =>
                 r.Name.ToLower().Contains(term) ||
                 (r.Description != null && r.Description.ToLower().Contains(term)) ||
-                r.Tags.Any(t => t.ToLower().Contains(term)) ||
+                r.Tags.Any(t => t.ToLower().Contains(term) || term.Contains(t.ToLower())) ||
                 (r.Profile != null && r.Profile.DisplayName.ToLower().Contains(term)) ||
-                (r.Profile != null && r.Profile.CategoryKeys.Any(ck => ck.ToLower().Contains(term))));
+                (r.Profile != null && r.Profile.CategoryKeys.Any(ck => ck.ToLower().Contains(term) || term.Contains(ck.ToLower()))));
         }
 
         if (query.MaxPrice.HasValue)
