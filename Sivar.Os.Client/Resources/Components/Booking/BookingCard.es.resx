@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Labels -->
+  <data name="Code" xml:space="preserve">
+    <value>Confirmación</value>
+  </data>
+  <!-- Actions -->
+  <data name="Reschedule" xml:space="preserve">
+    <value>Reprogramar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="LeaveReview" xml:space="preserve">
+    <value>Dejar una Reseña</value>
+  </data>
+  <!-- Status -->
+  <data name="StatusPending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="StatusConfirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>En Progreso</value>
+  </data>
+  <data name="StatusCompleted" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="StatusNoShow" xml:space="preserve">
+    <value>No se Presentó</value>
+  </data>
+  <data name="StatusRescheduled" xml:space="preserve">
+    <value>Reprogramado</value>
+  </data>
+</root>
