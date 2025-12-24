@@ -8,16 +8,32 @@ using Sivar.Os.Shared.Repositories;
 namespace Sivar.Os.Data.Repositories;
 
 /// <summary>
-/// Repository implementation for Resource Booking System
+/// Repository implementation for Resource Booking System.
+/// Uses IDbContextFactory for read operations (parallel-safe) and scoped context for writes.
+/// See DEVELOPMENT_RULES.md section "DbContext Concurrency in Blazor Server" for details.
 /// </summary>
 public class ResourceBookingRepository : IResourceBookingRepository
 {
     private readonly SivarDbContext _context;
+    private readonly IDbContextFactory<SivarDbContext> _contextFactory;
 
-    public ResourceBookingRepository(SivarDbContext context)
+    /// <summary>
+    /// Constructor with both scoped context (for writes) and factory (for parallel reads)
+    /// </summary>
+    public ResourceBookingRepository(
+        SivarDbContext context,
+        IDbContextFactory<SivarDbContext> contextFactory)
     {
         _context = context;
+        _contextFactory = contextFactory;
     }
+    
+    /// <summary>
+    /// Creates a fresh DbContext for parallel-safe read operations.
+    /// IMPORTANT: Always use 'await using' to properly dispose the context.
+    /// </summary>
+    private async Task<SivarDbContext> CreateReadContextAsync()
+        => await _contextFactory.CreateDbContextAsync();
 
     #region Bookable Resources
 
@@ -355,7 +371,11 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<(List<ResourceBooking> Bookings, int TotalCount)> QueryBookingsAsync(BookingQueryDto query)
     {
-        var dbQuery = _context.ResourceBookings
+        // Use factory context for parallel-safe reads
+        await using var context = await CreateReadContextAsync();
+        
+        var dbQuery = context.ResourceBookings
+            .AsNoTracking()
             .Include(b => b.Resource)
             .Include(b => b.Service)
             .Include(b => b.CustomerProfile)
@@ -405,7 +425,11 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<List<ResourceBooking>> GetUpcomingBookingsForCustomerAsync(Guid customerProfileId, int limit = 10)
     {
-        return await _context.ResourceBookings
+        // Use factory context for parallel-safe reads (called from MyBookings with Task.WhenAll)
+        await using var context = await CreateReadContextAsync();
+        
+        return await context.ResourceBookings
+            .AsNoTracking()
             .Include(b => b.Resource)
                 .ThenInclude(r => r.Profile)
             .Include(b => b.Service)
@@ -419,7 +443,11 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<List<ResourceBooking>> GetUpcomingBookingsForResourceAsync(Guid resourceId, int limit = 50)
     {
-        return await _context.ResourceBookings
+        // Use factory context for parallel-safe reads
+        await using var context = await CreateReadContextAsync();
+        
+        return await context.ResourceBookings
+            .AsNoTracking()
             .Include(b => b.Service)
             .Include(b => b.CustomerProfile)
             .Where(b => b.ResourceId == resourceId &&
@@ -432,7 +460,11 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<List<ResourceBooking>> GetBookingsInRangeAsync(Guid resourceId, DateTime start, DateTime end)
     {
-        return await _context.ResourceBookings
+        // Use factory context for parallel-safe reads
+        await using var context = await CreateReadContextAsync();
+        
+        return await context.ResourceBookings
+            .AsNoTracking()
             .Include(b => b.Service)
             .Include(b => b.CustomerProfile)
             .Where(b => b.ResourceId == resourceId &&
@@ -445,10 +477,14 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<List<ResourceBooking>> GetTodayBookingsForBusinessAsync(Guid businessProfileId)
     {
+        // Use factory context for parallel-safe reads
+        await using var context = await CreateReadContextAsync();
+        
         var today = DateTime.UtcNow.Date;
         var tomorrow = today.AddDays(1);
 
-        return await _context.ResourceBookings
+        return await context.ResourceBookings
+            .AsNoTracking()
             .Include(b => b.Resource)
             .Include(b => b.Service)
             .Include(b => b.CustomerProfile)
@@ -515,11 +551,14 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<ResourceStatsDto> GetResourceStatsAsync(Guid resourceId, DateTime? fromDate = null, DateTime? toDate = null)
     {
-        var resource = await _context.BookableResources.FindAsync(resourceId);
+        // Use factory context for parallel-safe reads (used in dashboard with multiple stats calls)
+        await using var context = await CreateReadContextAsync();
+        
+        var resource = await context.BookableResources.AsNoTracking().FirstOrDefaultAsync(r => r.Id == resourceId);
         if (resource == null)
             return new ResourceStatsDto { ResourceId = resourceId };
 
-        var query = _context.ResourceBookings.Where(b => b.ResourceId == resourceId);
+        var query = context.ResourceBookings.AsNoTracking().Where(b => b.ResourceId == resourceId);
 
         if (fromDate.HasValue)
             query = query.Where(b => b.StartTime >= fromDate.Value);
@@ -554,7 +593,11 @@ public class ResourceBookingRepository : IResourceBookingRepository
 
     public async Task<BusinessBookingStatsDto> GetBusinessStatsAsync(Guid profileId)
     {
-        var resources = await _context.BookableResources
+        // Use factory context for parallel-safe reads (dashboard calls multiple stats in parallel)
+        await using var context = await CreateReadContextAsync();
+        
+        var resources = await context.BookableResources
+            .AsNoTracking()
             .Where(r => r.ProfileId == profileId)
             .ToListAsync();
 
@@ -565,21 +608,22 @@ public class ResourceBookingRepository : IResourceBookingRepository
         var monthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthEnd = monthStart.AddMonths(1);
 
-        var todayBookings = await _context.ResourceBookings
+        // Run stats queries in parallel since each uses its own factory context
+        var todayBookingsTask = context.ResourceBookings
             .CountAsync(b => resourceIds.Contains(b.ResourceId) &&
                            b.StartTime >= today &&
                            b.StartTime < tomorrow);
 
-        var upcomingBookings = await _context.ResourceBookings
+        var upcomingBookingsTask = context.ResourceBookings
             .CountAsync(b => resourceIds.Contains(b.ResourceId) &&
                            b.StartTime >= DateTime.UtcNow &&
                            b.Status == BookingStatus.Confirmed);
 
-        var pendingConfirmations = await _context.ResourceBookings
+        var pendingConfirmationsTask = context.ResourceBookings
             .CountAsync(b => resourceIds.Contains(b.ResourceId) &&
                            b.Status == BookingStatus.Pending);
 
-        var thisMonthRevenue = await _context.ResourceBookings
+        var thisMonthRevenueTask = context.ResourceBookings
             .Where(b => resourceIds.Contains(b.ResourceId) &&
                        b.Status == BookingStatus.Completed &&
                        b.CompletedAt >= monthStart &&
@@ -587,15 +631,21 @@ public class ResourceBookingRepository : IResourceBookingRepository
                        b.Price.HasValue)
             .SumAsync(b => b.Price ?? 0);
 
+        // Wait for all parallel queries (same context is OK for sequential operations within one method)
+        await Task.WhenAll(todayBookingsTask, upcomingBookingsTask, pendingConfirmationsTask, thisMonthRevenueTask);
+
+        var todayBookings = await todayBookingsTask;
+        var upcomingBookings = await upcomingBookingsTask;
+        var pendingConfirmations = await pendingConfirmationsTask;
+        var thisMonthRevenue = await thisMonthRevenueTask;
+
         var currency = resources.FirstOrDefault()?.Currency ?? "USD";
 
-        // Get stats for each resource
-        var resourceStats = new List<ResourceStatsDto>();
-        foreach (var resource in resources.Take(10)) // Limit to top 10
-        {
-            var stats = await GetResourceStatsAsync(resource.Id, monthStart, monthEnd);
-            resourceStats.Add(stats);
-        }
+        // Get stats for each resource - each GetResourceStatsAsync uses its own factory context
+        var resourceStatsTasks = resources.Take(10)
+            .Select(r => GetResourceStatsAsync(r.Id, monthStart, monthEnd))
+            .ToList();
+        var resourceStats = (await Task.WhenAll(resourceStatsTasks)).ToList();
 
         return new BusinessBookingStatsDto
         {

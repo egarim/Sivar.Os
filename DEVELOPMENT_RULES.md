@@ -2786,16 +2786,17 @@ public class BookingCommandHandler
 - ✅ Identify all parallel database operations
 
 #### Phase 2: Add Factory Support
-- [ ] Add `AddDbContextFactory<SivarDbContext>` to `Program.cs`
-- [ ] Keep existing scoped registration for backward compatibility
+- ✅ `AddPooledDbContextFactory<SivarDbContext>` already in `Program.cs`
+- ✅ Scoped DbContext registered via factory for backward compatibility
 
 #### Phase 3: Update Critical Repositories
-- [ ] Update `ResourceBookingRepository` to use factory
+- ✅ Update `ResourceBookingRepository` to use factory (read operations)
 - [ ] Update `ProfileRepository` (used everywhere)
 - [ ] Update `PostRepository` for feed loading
 
 #### Phase 4: Re-enable Parallel Loading
-- [ ] Convert sequential awaits back to `Task.WhenAll` in data-heavy components
+- ✅ `MyBookings.razor` - Re-enabled `Task.WhenAll` for parallel loading
+- ✅ `GetBusinessStatsAsync` - Now runs stats queries in parallel
 - [ ] Test thoroughly for concurrency issues
 
 ---
@@ -2806,8 +2807,8 @@ Components known to have parallel data loading patterns:
 
 | Component | Status | Pattern Used |
 |-----------|--------|--------------|
-| `MyBookings.razor` | ✅ Fixed | Sequential awaits |
-| `BusinessBookingDashboard.razor` | ⚠️ Check | May need fix |
+| `MyBookings.razor` | ✅ Fixed | Parallel via factory |
+| `BusinessBookingDashboard.razor` | ✅ Fixed | Uses factory-based repository |
 | `Feed.razor` | ⚠️ Check | Multiple data sources |
 | `ProfilePage.razor` | ⚠️ Check | Tabs load in parallel |
 
