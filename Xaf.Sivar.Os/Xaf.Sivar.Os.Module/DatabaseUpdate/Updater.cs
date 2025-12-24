@@ -170,6 +170,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists bookable resources
             
+            // Seed additional bookable resources for more restaurants and salons
+            SeedAdditionalBookableResources();
+            
+            ObjectSpace.CommitChanges(); //This line persists additional bookable resources
+            
             // Apply content embeddings via raw SQL (EF Core ignores ContentEmbedding property)
             // This must be called AFTER CommitChanges so posts exist in the database
             ApplyPendingEmbeddingsViaSql();
@@ -2528,6 +2533,365 @@ IMPORTANT INSTRUCTIONS:
             }
             
             System.Diagnostics.Debug.WriteLine("[Updater] ✅ Completed SeedDemoBookableResources!");
+        }
+        
+        /// <summary>
+        /// Seeds additional bookable resources for more restaurants (tables) and beauty salons (stylists).
+        /// Extends the booking system demo with more variety.
+        /// </summary>
+        void SeedAdditionalBookableResources()
+        {
+            var now = DateTime.UtcNow;
+            
+            // Check if additional resources already exist
+            var existingResource = ObjectSpace.GetObjectsQuery<BookableResource>()
+                .FirstOrDefault(r => r.Name == "Mesa Principal - El Gaucho");
+            
+            if (existingResource != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Additional bookable resources already seeded. Skipping.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] 🎯 Starting SeedAdditionalBookableResources...");
+            
+            // ========================================
+            // ADDITIONAL RESTAURANTS WITH TABLES
+            // ========================================
+            
+            var restaurantsToSeed = new[]
+            {
+                // El Gaucho - Steakhouse
+                (
+                    ProfileId: Guid.Parse("a0000001-0000-0000-0000-000000000032"),
+                    Name: "El Gaucho",
+                    Tables: new[]
+                    {
+                        ("Mesa Principal - El Gaucho", "Mesa central para 6 personas, perfecta para cenas especiales", 6),
+                        ("Mesa Parrilla 1", "Vista directa a la parrilla, para amantes de la carne", 4),
+                        ("Mesa Parrilla 2", "Vista directa a la parrilla, ambiente tradicional", 4),
+                        ("Salón Privado Gaucho", "Salón privado para eventos y celebraciones", 16)
+                    },
+                    Tags: new[] { "carne", "parrilla", "argentino", "steak" }
+                ),
+                // Dragon Palace - Chinese
+                (
+                    ProfileId: Guid.Parse("a0000001-0000-0000-0000-000000000022"),
+                    Name: "Dragon Palace",
+                    Tables: new[]
+                    {
+                        ("Mesa Central Dragon Palace", "Mesa central para 8 personas, ideal para familias", 8),
+                        ("Mesa Ventana 1", "Vista a la calle, ambiente tranquilo", 4),
+                        ("Mesa Ventana 2", "Vista a la calle, para parejas", 2),
+                        ("Cuarto Privado Imperial", "Habitación privada estilo oriental para eventos", 12)
+                    },
+                    Tags: new[] { "chino", "oriental", "dim_sum", "asian" }
+                ),
+                // Cevichería La Ola - Seafood
+                (
+                    ProfileId: Guid.Parse("a0000001-0000-0000-0000-000000000027"),
+                    Name: "Cevichería La Ola",
+                    Tables: new[]
+                    {
+                        ("Mesa Mar 1", "Mesa con decoración marina, para 4 personas", 4),
+                        ("Mesa Mar 2", "Mesa junto a la fuente, ambiente fresco", 4),
+                        ("Barra de Mariscos", "Asientos en la barra frente al chef", 6),
+                        ("Mesa Familiar La Ola", "Mesa grande para grupos de hasta 10 personas", 10)
+                    },
+                    Tags: new[] { "ceviche", "mariscos", "seafood", "pescado" }
+                ),
+                // Café del Centro - Coffee & Bakery
+                (
+                    ProfileId: Guid.Parse("a0000001-0000-0000-0000-000000000041"),
+                    Name: "Café del Centro",
+                    Tables: new[]
+                    {
+                        ("Mesa Terraza Café", "Mesa exterior con sombrilla, para 2 personas", 2),
+                        ("Sofá Lounge", "Área cómoda con sofás, ideal para trabajo", 4),
+                        ("Mesa Interior 1", "Mesa interior junto a la ventana", 4),
+                        ("Salón de Eventos Café", "Espacio para reuniones y eventos pequeños", 20)
+                    },
+                    Tags: new[] { "cafe", "pasteleria", "bakery", "coffee" }
+                ),
+                // Burger Palace - Fast Food
+                (
+                    ProfileId: Guid.Parse("a0000001-0000-0000-0000-000000000037"),
+                    Name: "Burger Palace",
+                    Tables: new[]
+                    {
+                        ("Booth 1", "Booth privado estilo americano, para 4 personas", 4),
+                        ("Booth 2", "Booth privado con TV, para grupos", 6),
+                        ("Mesa Alta 1", "Mesa alta tipo bar, para 2 personas", 2),
+                        ("Zona Cumpleaños", "Área reservada para fiestas infantiles", 15)
+                    },
+                    Tags: new[] { "hamburguesa", "burger", "fast_food", "americana" }
+                )
+            };
+            
+            foreach (var restaurant in restaurantsToSeed)
+            {
+                var profile = ObjectSpace.GetObjectsQuery<Profile>()
+                    .FirstOrDefault(p => p.Id == restaurant.ProfileId);
+                
+                if (profile == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ⚠️ Profile not found for {restaurant.Name}, skipping...");
+                    continue;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[Updater] 🍽️ Seeding tables for: {profile.DisplayName}");
+                
+                foreach (var (tableName, description, capacity) in restaurant.Tables)
+                {
+                    var table = ObjectSpace.CreateObject<BookableResource>();
+                    table.ProfileId = profile.Id;
+                    table.Name = tableName;
+                    table.Description = description;
+                    table.ResourceType = ResourceType.Space;
+                    table.Category = ResourceCategory.Table;
+                    table.SlotDurationMinutes = 90;
+                    table.BufferMinutes = 15;
+                    table.MaxConcurrentBookings = 1;
+                    table.DefaultPrice = 0;
+                    table.Currency = "USD";
+                    table.ConfirmationMode = BookingConfirmationMode.Automatic;
+                    table.MinAdvanceBookingHours = 2;
+                    table.MaxAdvanceBookingDays = 14;
+                    table.CancellationWindowHours = 2;
+                    table.IsActive = true;
+                    table.IsVisible = true;
+                    table.DisplayOrder = capacity;
+                    table.MetadataJson = System.Text.Json.JsonSerializer.Serialize(new { capacity = capacity });
+                    table.Tags = restaurant.Tags;
+                    
+                    // Add availability (11:00 AM - 10:00 PM)
+                    foreach (System.DayOfWeek day in Enum.GetValues(typeof(System.DayOfWeek)))
+                    {
+                        // Lunch: 11:00 - 15:00
+                        var lunchAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        lunchAvail.ResourceId = table.Id;
+                        lunchAvail.DayOfWeek = day;
+                        lunchAvail.StartTime = new TimeOnly(11, 0);
+                        lunchAvail.EndTime = new TimeOnly(15, 0);
+                        lunchAvail.IsAvailable = true;
+                        lunchAvail.Label = "Almuerzo";
+                        
+                        // Dinner: 18:00 - 22:00
+                        var dinnerAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        dinnerAvail.ResourceId = table.Id;
+                        dinnerAvail.DayOfWeek = day;
+                        dinnerAvail.StartTime = new TimeOnly(18, 0);
+                        dinnerAvail.EndTime = new TimeOnly(22, 0);
+                        dinnerAvail.IsAvailable = true;
+                        dinnerAvail.Label = "Cena";
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {restaurant.Tables.Length} tables for {restaurant.Name}");
+            }
+            
+            // ========================================
+            // CREATE BEAUTY SALONS & SPAS
+            // ========================================
+            
+            var businessProfileTypeId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+            var existingUser = ObjectSpace.GetObjectsQuery<User>()
+                .FirstOrDefault(u => !u.IsDeleted);
+            
+            if (existingUser == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] ⚠️ No users found, skipping salon creation");
+                return;
+            }
+            
+            // Define new salon/spa profiles to create
+            var salonsToCreate = new[]
+            {
+                (
+                    Id: Guid.Parse("BBBB0002-0002-0002-0002-000000000002"),
+                    DisplayName: "Salón Belleza Divina",
+                    Handle: "salon-belleza-divina",
+                    Bio: "Tu destino para el cuidado del cabello y belleza. Cortes modernos, tintes, peinados y tratamientos capilares. ¡Luce espectacular!",
+                    CategoryKeys: new[] { "salon", "hairdresser", "beauty", "haircut", "styling" },
+                    Stylists: new[]
+                    {
+                        ("Ana María - Estilista Senior", "20 años de experiencia. Especialista en color y tratamientos", "ana"),
+                        ("Sofía - Estilista", "10 años de experiencia. Experta en cortes modernos y tendencias", "sofia"),
+                        ("Lucía - Colorista", "7 años de experiencia. Especialista en balayage y mechas", "lucia")
+                    }
+                ),
+                (
+                    Id: Guid.Parse("BBBB0003-0003-0003-0003-000000000003"),
+                    DisplayName: "Spa Zen Relax",
+                    Handle: "spa-zen-relax",
+                    Bio: "Centro de relajación y bienestar. Masajes terapéuticos, faciales, tratamientos corporales. Tu oasis de paz en la ciudad.",
+                    CategoryKeys: new[] { "spa", "massage", "wellness", "relaxation", "beauty" },
+                    Stylists: new[]
+                    {
+                        ("Carmen - Masajista Profesional", "15 años de experiencia. Masajes terapéuticos y relajantes", "carmen"),
+                        ("Roberto - Fisioterapeuta", "12 años de experiencia. Masajes deportivos y rehabilitación", "roberto"),
+                        ("Elena - Esteticista", "8 años de experiencia. Tratamientos faciales y corporales", "elena")
+                    }
+                ),
+                (
+                    Id: Guid.Parse("BBBB0004-0004-0004-0004-000000000004"),
+                    DisplayName: "Barbería Modern Style",
+                    Handle: "barberia-modern-style",
+                    Bio: "Barbería moderna para el hombre contemporáneo. Cortes de precisión, diseños, cuidado de barba y ambiente cool. #StayFresh",
+                    CategoryKeys: new[] { "barbershop", "barber", "haircut", "grooming", "modern" },
+                    Stylists: new[]
+                    {
+                        ("David - Master Barber", "12 años de experiencia. Especialista en fades y diseños", "david"),
+                        ("Andrés - Barber Pro", "8 años de experiencia. Experto en barba y bigote", "andres"),
+                        ("Kevin - Junior Barber", "4 años de experiencia. Tendencias urbanas y modernas", "kevin")
+                    }
+                )
+            };
+            
+            foreach (var salon in salonsToCreate)
+            {
+                // Check if profile already exists
+                var existingProfile = ObjectSpace.GetObjectsQuery<Profile>()
+                    .FirstOrDefault(p => p.Id == salon.Id || p.Handle == salon.Handle);
+                
+                Profile salonProfile;
+                if (existingProfile != null)
+                {
+                    salonProfile = existingProfile;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] 💇 Found existing profile: {salon.DisplayName}");
+                }
+                else
+                {
+                    salonProfile = ObjectSpace.CreateObject<Profile>();
+                    salonProfile.Id = salon.Id;
+                    salonProfile.UserId = existingUser.Id;
+                    salonProfile.ProfileTypeId = businessProfileTypeId;
+                    salonProfile.DisplayName = salon.DisplayName;
+                    salonProfile.Handle = salon.Handle;
+                    salonProfile.Bio = salon.Bio;
+                    salonProfile.CategoryKeys = salon.CategoryKeys;
+                    salonProfile.IsActive = true;
+                    salonProfile.VisibilityLevel = VisibilityLevel.Public;
+                    salonProfile.CreatedAt = now;
+                    salonProfile.UpdatedAt = now;
+                    
+                    System.Diagnostics.Debug.WriteLine($"[Updater] 💇 Created salon profile: {salon.DisplayName}");
+                }
+                
+                // Check if resources already exist for this profile
+                var existingResources = ObjectSpace.GetObjectsQuery<BookableResource>()
+                    .Where(r => r.ProfileId == salonProfile.Id)
+                    .ToList();
+                
+                if (existingResources.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ⏭️ Resources already exist for {salon.DisplayName}, skipping...");
+                    continue;
+                }
+                
+                // Determine resource category based on salon type
+                var category = salon.Handle.Contains("barberia") ? ResourceCategory.Barber : 
+                               salon.Handle.Contains("spa") ? ResourceCategory.MassageTherapist : 
+                               ResourceCategory.Hairdresser;
+                
+                foreach (var (name, description, tag) in salon.Stylists)
+                {
+                    var stylist = ObjectSpace.CreateObject<BookableResource>();
+                    stylist.ProfileId = salonProfile.Id;
+                    stylist.Name = name;
+                    stylist.Description = description;
+                    stylist.ResourceType = ResourceType.Person;
+                    stylist.Category = category;
+                    stylist.SlotDurationMinutes = category == ResourceCategory.MassageTherapist ? 60 : 45;
+                    stylist.BufferMinutes = 10;
+                    stylist.MaxConcurrentBookings = 1;
+                    stylist.DefaultPrice = category == ResourceCategory.MassageTherapist ? 35.00m : 25.00m;
+                    stylist.Currency = "USD";
+                    stylist.ConfirmationMode = BookingConfirmationMode.Automatic;
+                    stylist.MinAdvanceBookingHours = 1;
+                    stylist.MaxAdvanceBookingDays = 30;
+                    stylist.CancellationWindowHours = 4;
+                    stylist.IsActive = true;
+                    stylist.IsVisible = true;
+                    stylist.DisplayOrder = tag == "ana" || tag == "carmen" || tag == "david" ? 1 : 
+                                          tag == "sofia" || tag == "roberto" || tag == "andres" ? 2 : 3;
+                    stylist.Tags = new[] { "profesional", tag, category.ToString().ToLower() };
+                    
+                    // Add services
+                    var services = category switch
+                    {
+                        ResourceCategory.MassageTherapist => new[]
+                        {
+                            ("Masaje Relajante", "Masaje suave para aliviar el estrés", 60, 35.00m),
+                            ("Masaje Terapéutico", "Masaje profundo para dolores musculares", 60, 45.00m),
+                            ("Masaje Deportivo", "Masaje intenso para atletas", 45, 40.00m),
+                            ("Facial Rejuvenecedor", "Tratamiento facial completo", 45, 50.00m),
+                            ("Paquete Spa Completo", "Masaje + facial + exfoliación", 120, 95.00m)
+                        },
+                        ResourceCategory.Hairdresser => new[]
+                        {
+                            ("Corte de Cabello", "Corte personalizado según tu estilo", 45, 25.00m),
+                            ("Corte + Peinado", "Corte con peinado profesional", 60, 35.00m),
+                            ("Tinte Completo", "Coloración completa del cabello", 120, 65.00m),
+                            ("Mechas/Balayage", "Técnicas de iluminación", 150, 85.00m),
+                            ("Tratamiento Capilar", "Hidratación y reparación profunda", 45, 40.00m)
+                        },
+                        _ => new[] // Barber
+                        {
+                            ("Corte Clásico", "Corte tradicional con tijeras y máquina", 30, 18.00m),
+                            ("Fade/Degradado", "Corte degradado estilo moderno", 35, 22.00m),
+                            ("Corte + Barba", "Corte completo más arreglo de barba", 45, 28.00m),
+                            ("Diseño Artístico", "Corte con diseños y líneas", 45, 35.00m),
+                            ("Paquete VIP", "Corte + barba + tratamiento + masaje", 75, 55.00m)
+                        }
+                    };
+                    
+                    var serviceOrder = 0;
+                    foreach (var (svcName, svcDesc, duration, price) in services)
+                    {
+                        var service = ObjectSpace.CreateObject<ResourceService>();
+                        service.ResourceId = stylist.Id;
+                        service.Name = svcName;
+                        service.Description = svcDesc;
+                        service.DurationMinutes = duration;
+                        service.Price = price;
+                        service.Currency = "USD";
+                        service.IsActive = true;
+                        service.DisplayOrder = serviceOrder++;
+                    }
+                    
+                    // Add availability (9:00 AM - 7:00 PM, Sundays off for barbers, Mondays off for salons)
+                    foreach (System.DayOfWeek day in Enum.GetValues(typeof(System.DayOfWeek)))
+                    {
+                        // Skip closed days
+                        if (category == ResourceCategory.Barber && day == System.DayOfWeek.Sunday) continue;
+                        if (category == ResourceCategory.Hairdresser && day == System.DayOfWeek.Monday) continue;
+                        if (category == ResourceCategory.MassageTherapist && day == System.DayOfWeek.Monday) continue;
+                        
+                        // Morning: 9:00 - 13:00
+                        var morningAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        morningAvail.ResourceId = stylist.Id;
+                        morningAvail.DayOfWeek = day;
+                        morningAvail.StartTime = new TimeOnly(9, 0);
+                        morningAvail.EndTime = new TimeOnly(13, 0);
+                        morningAvail.IsAvailable = true;
+                        morningAvail.Label = "Mañana";
+                        
+                        // Afternoon: 14:00 - 19:00
+                        var afternoonAvail = ObjectSpace.CreateObject<ResourceAvailability>();
+                        afternoonAvail.ResourceId = stylist.Id;
+                        afternoonAvail.DayOfWeek = day;
+                        afternoonAvail.StartTime = new TimeOnly(14, 0);
+                        afternoonAvail.EndTime = new TimeOnly(19, 0);
+                        afternoonAvail.IsAvailable = true;
+                        afternoonAvail.Label = "Tarde";
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {salon.Stylists.Length} professionals for {salon.DisplayName}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Completed SeedAdditionalBookableResources!");
         }
         
         /// <summary>

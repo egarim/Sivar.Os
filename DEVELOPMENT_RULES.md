@@ -1,6 +1,6 @@
 # Sivar.Os Development Rules & Guidelines
 
-> **Last Updated**: December 22, 2025 - Added AI Tool Selection & Function Descriptions section  
+> **Last Updated**: January 21, 2025 - Added Booking Functions Phase 2 Integration pattern  
 > **Project Type**: Blazor Server (Interactive Server Only)  
 > **Target Framework**: .NET 9.0
 
@@ -1982,6 +1982,36 @@ When implementing multilingual search:
 | ❌ **Never search by content language** | Don't rely on `Content.Contains("pizzería")` |
 | ❌ **Never store keys in user's language** | Don't use `CategoryKeys = ["pizzería"]` |
 
+### ⚠️ CRITICAL: Bidirectional Substring Matching
+
+**Problem Discovered (Dec 2024):** When searching with Spanish terms like "restaurante", the search failed because:
+
+```csharp
+// ❌ WRONG - Unidirectional matching
+"restaurant".Contains("restaurante")  // FALSE - term is LONGER than key!
+
+// ✅ CORRECT - Bidirectional matching  
+"restaurante".Contains("restaurant")  // TRUE - key is INSIDE term
+```
+
+**The Issue:** Spanish words are often longer than English equivalents:
+- "restaurante" (11 chars) > "restaurant" (10 chars)
+- "pizzería" (8 chars) > "pizza" (5 chars)
+
+**Solution:** Always use **bidirectional** substring matching:
+
+```csharp
+// ✅ CORRECT - Repository/Search Layer
+.Where(r => r.Profile.CategoryKeys.Any(ck => 
+    ck.ToLower().Contains(term) ||      // Key contains search term
+    term.Contains(ck.ToLower())          // OR search term contains key (Spanish case!)
+))
+```
+
+**Rule:** When matching search terms to CategoryKeys or Synonyms:
+- Check if `key.Contains(term)` (English term inside longer key)
+- **AND** check if `term.Contains(key)` (Spanish term contains English key)
+
 ### Future Enhancements
 
 1. **LLM-Powered Normalization** - Use AI to translate/categorize when synonyms don't match
@@ -2117,6 +2147,61 @@ public async Task<string> FindBusinesses(...)
 | `SearchPosts` vs `SearchProfiles` | User says "buscar" which applies to both | Include specific keywords each handles |
 | `GetContactInfo` vs `GetBusinessHours` | Both are "getting info" about a business | Specify: "phone, email, WhatsApp" vs "opening hours, schedule" |
 
+### ⚠️ CRITICAL: ResourceCategory Enum Must Match AI Function Descriptions
+
+**Problem Discovered (Dec 2024):** AI passed `Category=FoodDining` which doesn't exist in the `ResourceCategory` enum, causing silent search failures.
+
+**The Actual ResourceCategory Enum Values:**
+
+```csharp
+// Sivar.Os.Shared/Enums/ResourceEnums.cs
+public enum ResourceCategory
+{
+    // Person-based services
+    Barber = 1,          // Barberías
+    Hairdresser = 2,     // Peluquerías
+    MassageTherapist = 3,
+    Doctor = 4,          // Doctores, clínicas
+    Dentist = 5,         // Dentistas
+    PersonalTrainer = 6,
+    Consultant = 7,
+    Tutor = 8,
+    Photographer = 9,
+    Lawyer = 10,
+
+    // Object-based resources
+    Table = 50,          // Mesas de restaurante
+    Chair = 51,
+    Booth = 52,          // Booths
+    Vehicle = 53,
+    Bike = 54,
+    Scooter = 55,
+
+    // Space-based resources
+    MeetingRoom = 100,
+    ConferenceRoom = 101,
+    Studio = 102,
+    TennisCourt = 103,
+    // ... more
+
+    Other = 999
+}
+```
+
+**Rule:** The `[Description]` attribute for `Category` parameter MUST list the actual enum names:
+
+```csharp
+// ✅ CORRECT - Lists actual enum values
+[Description("Optional category filter. Valid values: " +
+    "Barber, Hairdresser, Doctor, Dentist, Table, MeetingRoom, etc. " +
+    "Use 'Table' for restaurant reservations. Leave empty to search all.")]
+string? Category = null
+
+// ❌ WRONG - Invented category names
+[Description("Category like FoodDining, HealthWellness, BeautyPersonalCare")]
+string? Category = null  // These don't exist in the enum!
+```
+
 ### Function Location: AgentFactory.cs
 
 All AI-callable functions are registered in `AgentFactory.InitializeAvailableTools()`:
@@ -2221,6 +2306,67 @@ When adding a new AI-callable function:
 4. **Explicit redirects work** - "For X, use Y instead" is effective
 5. **Testing reveals issues** - Always test with real user queries
 6. **Logs are essential** - Check which function was actually called
+
+### ⚠️ CRITICAL: Booking Functions Phase 2 Integration
+
+**Problem Discovered (Jan 2025):** When `BookingFunctions.SearchBookableResources` was called successfully, the Phase 2 fallback in `ChatService` would still trigger a `HybridSearchAsync`, returning irrelevant profiles (like government registration offices) because the user's query contained keywords like "restaurante".
+
+**Root Cause:** 
+- `ChatFunctionService.LastSearchResults` is checked for structured results
+- `BookingFunctions` didn't populate this property
+- Phase 2 fallback triggered when `LastSearchResults` was null AND `IsSearchQuery()` returned true
+
+**Solution:**
+1. **Added `LastSearchResults` property to `BookingFunctions`** - Mirrors `ChatFunctionService` pattern
+2. **`SearchBookableResources` now populates `LastSearchResults`** - Creates `ServiceSearchResultDto` entries
+3. **`ChatService` checks both sources:**
+   ```csharp
+   SearchResultsCollectionDto? structuredResults = 
+       _functionService.LastSearchResults ?? _bookingFunctions.LastSearchResults;
+   ```
+4. **Both are cleared before AI calls:**
+   ```csharp
+   _functionService.ClearLastSearchResults();
+   _bookingFunctions.ClearLastSearchResults();
+   ```
+
+**When Adding New AI Function Classes:**
+
+If you create a new function class (like `EventFunctions`, `ContentFunctions`), follow this pattern:
+
+```csharp
+public class NewFunctions
+{
+    // Add Phase 2 support
+    public SearchResultsCollectionDto? LastSearchResults { get; private set; }
+    
+    public void ClearLastSearchResults()
+    {
+        LastSearchResults = null;
+        _logger.LogDebug("[NewFunctions] LastSearchResults cleared");
+    }
+    
+    // In search methods, populate LastSearchResults:
+    public async Task<string> SearchSomething(string query)
+    {
+        // ... perform search ...
+        
+        // Populate structured results for card rendering
+        LastSearchResults = new SearchResultsCollectionDto
+        {
+            Query = query,
+            TotalCount = results.Count,
+            Services = results.Select(r => new ServiceSearchResultDto { ... }).ToList()
+        };
+        
+        return JsonSerializer.Serialize(new { success = true, ... });
+    }
+}
+```
+
+**And in `ChatService.SendMessageAsync`:**
+1. Clear results before AI call: `_newFunctions.ClearLastSearchResults();`
+2. Check results after AI call: `?? _newFunctions.LastSearchResults`
 
 ---
 
