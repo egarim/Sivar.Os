@@ -326,8 +326,15 @@
             <div class="profile-bookings-section mt-4">
                 @if (IsOwnProfile)
                 {
-                    @* Business owner sees ResourceManager to manage their bookable resources *@
-                    <ResourceManager ProfileId="@viewedProfileId.Value" />
+                    @* Business owner sees their incoming bookings dashboard and resource manager *@
+                    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-2">
+                        <MudTabPanel Text="@Localizer["IncomingBookings"]" Icon="@Icons.Material.Filled.EventNote">
+                            <BusinessBookingDashboard />
+                        </MudTabPanel>
+                        <MudTabPanel Text="@Localizer["ManageResources"]" Icon="@Icons.Material.Filled.Settings">
+                            <ResourceManager ProfileId="@viewedProfileId.Value" />
+                        </MudTabPanel>
+                    </MudTabs>
                 }
                 else
                 {

@@ -110,4 +110,9 @@
     <value>Iniciar sesión</value>
     <comment>Texto del botón iniciar sesión</comment>
   </data>
+  
+  <data name="Bookings" xml:space="preserve">
+    <value>Mis Reservaciones</value>
+    <comment>Elemento del menú de navegación para reservaciones</comment>
+  </data>
 </root>

@@ -28,7 +28,7 @@
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
                 <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
               <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
               <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
               <xsd:attribute ref="xml:space" />
@@ -58,61 +58,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  
-  <!-- Navigation Menu Items -->
-  <data name="Home" xml:space="preserve">
-    <value>Home</value>
-    <comment>Home navigation menu item</comment>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Mis Reservaciones</value>
   </data>
-  
-  <data name="Search" xml:space="preserve">
-    <value>Search</value>
-    <comment>Search navigation menu item</comment>
+  <data name="MyBookings" xml:space="preserve">
+    <value>Mis Reservaciones</value>
   </data>
-  
-  <data name="Chat" xml:space="preserve">
-    <value>Chat</value>
-    <comment>Chat/AI Assistant navigation menu item</comment>
-  </data>
-  
-  <data name="Counter" xml:space="preserve">
-    <value>Counter</value>
-    <comment>Counter navigation menu item</comment>
-  </data>
-  
-  <data name="Weather" xml:space="preserve">
-    <value>Weather</value>
-    <comment>Weather navigation menu item</comment>
-  </data>
-  
-  <!-- Authentication Section (currently commented out) -->
-  <data name="Authenticating" xml:space="preserve">
-    <value>Authenticating...</value>
-    <comment>Loading message while checking authentication status</comment>
-  </data>
-  
-  <data name="LoggedInAs" xml:space="preserve">
-    <value>Logged in as:</value>
-    <comment>Label above username in nav menu</comment>
-  </data>
-  
-  <data name="DefaultUser" xml:space="preserve">
-    <value>User</value>
-    <comment>Default username when no name is available</comment>
-  </data>
-  
-  <data name="Logout" xml:space="preserve">
-    <value>Logout</value>
-    <comment>Logout button text</comment>
-  </data>
-  
-  <data name="Login" xml:space="preserve">
-    <value>Login</value>
-    <comment>Login button text</comment>
-  </data>
-  
-  <data name="Bookings" xml:space="preserve">
-    <value>My Bookings</value>
-    <comment>Bookings/reservations navigation menu item</comment>
+  <data name="ManageYourReservations" xml:space="preserve">
+    <value>Ver y administrar tus reservaciones</value>
   </data>
 </root>

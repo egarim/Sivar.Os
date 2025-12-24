@@ -138,4 +138,14 @@
     <value>Unknown</value>
     <comment>Fallback text for unknown user name</comment>
   </data>
+  
+  <!-- Business Bookings Tab -->
+  <data name="IncomingBookings" xml:space="preserve">
+    <value>Incoming Bookings</value>
+    <comment>Tab title for viewing incoming customer bookings</comment>
+  </data>
+  <data name="ManageResources" xml:space="preserve">
+    <value>Manage Resources</value>
+    <comment>Tab title for managing bookable resources (tables, services, etc.)</comment>
+  </data>
 </root>

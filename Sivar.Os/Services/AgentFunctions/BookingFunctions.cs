@@ -11,6 +11,7 @@ namespace Sivar.Os.Services.AgentFunctions;
 /// AI-callable functions for the Resource Booking System.
 /// Enables users to search for bookable resources, check availability,
 /// create bookings, and manage their reservations through the chat interface.
+/// Phase 2 Integration: Populates LastSearchResults for structured card rendering.
 /// </summary>
 public class BookingFunctions
 {
@@ -21,6 +22,44 @@ public class BookingFunctions
     
     private Guid _currentProfileId;
     private string? _currentKeycloakId;
+
+    /// <summary>
+    /// Memory Guard: Tracks valid resource IDs from the last search.
+    /// Prevents AI hallucination by validating IDs against actual search results.
+    /// </summary>
+    private HashSet<Guid> _validResourceIds = new();
+
+    /// <summary>
+    /// Phase 2: Captures the last booking search results as structured DTOs for card rendering.
+    /// Reset before each AI agent call and populated by SearchBookableResources.
+    /// </summary>
+    public SearchResultsCollectionDto? LastSearchResults { get; private set; }
+
+    /// <summary>
+    /// Clears the last search results and valid resource IDs. Call before each AI agent invocation.
+    /// </summary>
+    public void ClearLastSearchResults()
+    {
+        LastSearchResults = null;
+        // Don't clear _validResourceIds here - we want to maintain context across the conversation
+        _logger.LogDebug("[BookingFunctions] LastSearchResults cleared, ValidResourceIds count: {Count}", _validResourceIds.Count);
+    }
+
+    /// <summary>
+    /// Gets the list of valid resource IDs from recent searches.
+    /// Used for debugging and hallucination detection.
+    /// </summary>
+    public IReadOnlyCollection<Guid> GetValidResourceIds() => _validResourceIds;
+
+    /// <summary>
+    /// Clears all context including valid resource IDs. Call when starting a new conversation.
+    /// </summary>
+    public void ClearAllContext()
+    {
+        LastSearchResults = null;
+        _validResourceIds.Clear();
+        _logger.LogDebug("[BookingFunctions] All context cleared");
+    }
 
     public BookingFunctions(
         IResourceBookingService bookingService,
@@ -50,9 +89,9 @@ public class BookingFunctions
     /// </summary>
     [Description("Search for services that accept APPOINTMENTS or RESERVATIONS. Use this for: barberías (barbershops), peluquerías (hair salons), salones de belleza, doctores, dentistas, clínicas, spas, restaurantes (for table reservations), meeting rooms, etc. This is the PRIMARY tool for finding places where users can book an appointment or reserve a time slot. Keywords that should trigger this: 'reservar', 'cita', 'appointment', 'book', 'agendar', 'cortarme el pelo', 'haircut'.")]
     public async Task<string> SearchBookableResources(
-        [Description("Search query - business name, service type, or category (e.g., 'haircut', 'restaurant', 'dentist')")]
+        [Description("Search query - business name, service type, or category (e.g., 'haircut', 'restaurant', 'dentist', 'barbería', 'mesa')")]
         string query,
-        [Description("Optional: filter by category (e.g., 'HealthWellness', 'FoodDining', 'BeautyPersonalCare', 'ProfessionalServices')")]
+        [Description("Optional: filter by category. Valid values: Barber, Hairdresser, MassageTherapist, Doctor, Dentist, PersonalTrainer, Consultant, Tutor, Photographer, Lawyer, Table, Chair, Booth, Vehicle, MeetingRoom, ConferenceRoom, Studio, EventSpace. Leave empty to search all categories.")]
         string? category = null,
         [Description("Maximum number of results to return (default 5, max 10)")]
         int maxResults = 5)
@@ -67,9 +106,18 @@ public class BookingFunctions
 
             // Parse category if provided
             ResourceCategory? parsedCategory = null;
-            if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<ResourceCategory>(category, true, out var cat))
+            if (!string.IsNullOrWhiteSpace(category))
             {
-                parsedCategory = cat;
+                if (Enum.TryParse<ResourceCategory>(category, true, out var cat))
+                {
+                    parsedCategory = cat;
+                    _logger.LogInformation("[BookingFunctions.SearchBookableResources] Parsed category: {Category} -> {ParsedCategory}", 
+                        category, parsedCategory);
+                }
+                else
+                {
+                    _logger.LogWarning("[BookingFunctions.SearchBookableResources] Invalid category '{Category}' - will search all categories", category);
+                }
             }
 
             var queryDto = new ResourceQueryDto
@@ -81,7 +129,13 @@ public class BookingFunctions
                 Page = 1
             };
 
+            _logger.LogInformation("[BookingFunctions.SearchBookableResources] Querying with: SearchTerm={SearchTerm}, Category={Category}, PageSize={PageSize}",
+                queryDto.SearchTerm, queryDto.Category, queryDto.PageSize);
+
             var result = await _bookingService.QueryResourcesAsync(queryDto);
+
+            _logger.LogInformation("[BookingFunctions.SearchBookableResources] Query returned: TotalCount={TotalCount}, ResourcesCount={ResourcesCount}",
+                result.TotalCount, result.Resources?.Count ?? 0);
 
             if (result.Resources == null || !result.Resources.Any())
             {
@@ -112,6 +166,45 @@ public class BookingFunctions
             }).ToList();
 
             _logger.LogInformation("[BookingFunctions.SearchBookableResources] SUCCESS - Found {Count} resources", resources.Count);
+
+            // Memory Guard: Track valid resource IDs to prevent AI hallucination
+            foreach (var r in result.Resources)
+            {
+                _validResourceIds.Add(r.Id);
+            }
+            _logger.LogInformation("[BookingFunctions.SearchBookableResources] Memory Guard: Added {Count} resource IDs to valid set (total: {Total})",
+                result.Resources.Count, _validResourceIds.Count);
+
+            // Phase 2: Populate LastSearchResults for structured card rendering
+            // This prevents the fallback hybrid search from triggering
+            var serviceResults = result.Resources.Select((r, index) => new ServiceSearchResultDto
+            {
+                Id = r.Id,
+                Title = r.Name,
+                Description = r.Description,
+                Category = r.Category.ToString(),
+                ProfileId = r.ProfileId,
+                ProfileName = r.ProfileName,
+                Price = r.DefaultPrice,
+                Currency = r.Currency,
+                Duration = r.SlotDurationMinutes > 0 ? $"{r.SlotDurationMinutes} min" : null,
+                ImageUrl = r.ImageUrl,
+                ResultType = SearchResultType.Service,
+                MatchSource = SearchMatchSource.FullText,
+                RelevanceScore = 1.0 - (index * 0.1), // Decreasing relevance by order
+                DisplayOrder = index + 1
+            }).ToList();
+
+            LastSearchResults = new SearchResultsCollectionDto
+            {
+                Query = query,
+                TotalCount = serviceResults.Count,
+                SearchTimeMs = (long)(DateTime.UtcNow - DateTime.UtcNow).TotalMilliseconds, // Placeholder
+                Services = serviceResults
+            };
+
+            _logger.LogInformation("[BookingFunctions.SearchBookableResources] Phase 2: Populated LastSearchResults with {Count} service results",
+                serviceResults.Count);
 
             return JsonSerializer.Serialize(new
             {
@@ -147,6 +240,22 @@ public class BookingFunctions
 
         try
         {
+            // Memory Guard: Check if resourceId was returned in a previous search
+            if (_validResourceIds.Count > 0 && !_validResourceIds.Contains(resourceId))
+            {
+                _logger.LogWarning("[BookingFunctions.GetResourceDetails] HALLUCINATION DETECTED - ResourceId {ResourceId} was not in search results",
+                    resourceId);
+                
+                var validIdsList = string.Join(", ", _validResourceIds.Take(5).Select(id => $"'{id}'"));
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"The resource ID '{resourceId}' was not found in your previous search results. Please use one of these valid IDs: {validIdsList}.",
+                    validResourceIds = _validResourceIds.Take(5).ToList(),
+                    hint = "Use the 'id' field from the resources returned by SearchBookableResources"
+                });
+            }
+
             var resource = await _bookingService.GetResourceAsync(resourceId);
 
             if (resource == null)
@@ -242,6 +351,22 @@ public class BookingFunctions
 
         try
         {
+            // Memory Guard: Check if resourceId was returned in a previous search
+            if (_validResourceIds.Count > 0 && !_validResourceIds.Contains(resourceId))
+            {
+                _logger.LogWarning("[BookingFunctions.GetAvailableSlots] HALLUCINATION DETECTED - ResourceId {ResourceId} was not in search results. Valid IDs: {ValidIds}",
+                    resourceId, string.Join(", ", _validResourceIds.Take(5)));
+                
+                var validIdsList = string.Join(", ", _validResourceIds.Take(5).Select(id => $"'{id}'"));
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"The resource ID '{resourceId}' was not found in your previous search results. Please use one of these valid IDs: {validIdsList}. Or run SearchBookableResources again.",
+                    validResourceIds = _validResourceIds.Take(5).ToList(),
+                    hint = "Use the 'id' field from the resources returned by SearchBookableResources"
+                });
+            }
+
             // Parse date or default to tomorrow
             DateOnly targetDate;
             if (!string.IsNullOrWhiteSpace(date) && DateOnly.TryParse(date, out var parsed))
@@ -323,9 +448,9 @@ public class BookingFunctions
     /// <summary>
     /// Create a new booking/reservation
     /// </summary>
-    [Description("Create a booking or reservation for the user. Use this after the user has selected a resource, date, and time. Requires confirmation from the user before calling. IMPORTANT: Use the timezone from the chat context (user's browser timezone) if available.")]
+    [Description("Create a booking or reservation for the user. Use this after the user has selected a resource, date, and time. Requires confirmation from the user before calling. CRITICAL: The resourceId MUST be an exact ID returned from SearchBookableResources or GetAvailableSlots - do NOT generate or guess IDs. IMPORTANT: Use the timezone from the chat context (user's browser timezone) if available.")]
     public async Task<string> CreateBooking(
-        [Description("The unique ID of the resource to book")]
+        [Description("The EXACT unique ID of the resource to book - this MUST come from SearchBookableResources results. Never generate or guess this value.")]
         Guid resourceId,
         [Description("The start time of the booking (format: YYYY-MM-DDTHH:mm:ss or YYYY-MM-DD HH:mm)")]
         string startTime,
@@ -360,6 +485,34 @@ public class BookingFunctions
                 {
                     success = false,
                     error = $"Invalid date/time format: '{startTime}'. Please use format: YYYY-MM-DD HH:mm"
+                });
+            }
+
+            // Memory Guard: Check if resourceId was returned in a previous search
+            if (_validResourceIds.Count > 0 && !_validResourceIds.Contains(resourceId))
+            {
+                _logger.LogWarning("[BookingFunctions.CreateBooking] HALLUCINATION DETECTED - ResourceId {ResourceId} was not in search results. Valid IDs: {ValidIds}",
+                    resourceId, string.Join(", ", _validResourceIds.Take(5)));
+                
+                var validIdsList = string.Join(", ", _validResourceIds.Take(5).Select(id => $"'{id}'"));
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"The resource ID '{resourceId}' was not found in your previous search results. Please use one of these valid IDs: {validIdsList}. Or run SearchBookableResources again to get current available resources.",
+                    validResourceIds = _validResourceIds.Take(5).ToList(),
+                    hint = "Use the 'id' field from the resources returned by SearchBookableResources"
+                });
+            }
+
+            // Validate resource exists before attempting booking
+            var resource = await _bookingService.GetResourceAsync(resourceId);
+            if (resource == null)
+            {
+                _logger.LogWarning("[BookingFunctions.CreateBooking] Resource {ResourceId} not found in database", resourceId);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Resource with ID '{resourceId}' was not found. Please search for available resources again using SearchBookableResources and use a valid resource ID from the results."
                 });
             }
 
