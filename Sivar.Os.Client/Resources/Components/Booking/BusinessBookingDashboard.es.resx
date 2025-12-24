@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Stats Cards -->
+  <data name="TodayBookings" xml:space="preserve">
+    <value>Reservas Hoy</value>
+  </data>
+  <data name="PendingApproval" xml:space="preserve">
+    <value>Pendientes</value>
+  </data>
+  <data name="UpcomingBookings" xml:space="preserve">
+    <value>Próximas Reservas</value>
+  </data>
+  <data name="Revenue" xml:space="preserve">
+    <value>Ingresos</value>
+  </data>
+  <!-- Today's Schedule Section -->
+  <data name="TodaysSchedule" xml:space="preserve">
+    <value>Horario de Hoy</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="NoBookingsToday" xml:space="preserve">
+    <value>Sin reservas hoy</value>
+  </data>
+  <data name="GeneralBooking" xml:space="preserve">
+    <value>Reserva General</value>
+  </data>
+  <!-- All Bookings Section -->
+  <data name="AllBookings" xml:space="preserve">
+    <value>Todas las Reservas</value>
+  </data>
+  <data name="NoBookingsFound" xml:space="preserve">
+    <value>No se encontraron reservas</value>
+  </data>
+  <!-- Filters -->
+  <data name="Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="DateRange" xml:space="preserve">
+    <value>Rango de Fechas</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <!-- Table Headers -->
+  <data name="DateTime" xml:space="preserve">
+    <value>Fecha/Hora</value>
+  </data>
+  <data name="Customer" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="Resource" xml:space="preserve">
+    <value>Recurso</value>
+  </data>
+  <data name="Service" xml:space="preserve">
+    <value>Servicio</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Acciones</value>
+  </data>
+  <!-- Actions -->
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="CheckIn" xml:space="preserve">
+    <value>Registrar Entrada</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Completar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="NoShow" xml:space="preserve">
+    <value>No se Presentó</value>
+  </data>
+  <!-- Messages -->
+  <data name="BookingConfirmed" xml:space="preserve">
+    <value>Reserva confirmada</value>
+  </data>
+  <data name="BookingCancelled" xml:space="preserve">
+    <value>Reserva cancelada</value>
+  </data>
+  <data name="CheckedIn" xml:space="preserve">
+    <value>Cliente registrado</value>
+  </data>
+  <data name="BookingCompleted" xml:space="preserve">
+    <value>Reserva completada</value>
+  </data>
+  <data name="MarkedNoShow" xml:space="preserve">
+    <value>Marcado como no presentado</value>
+  </data>
+  <data name="OperationFailed" xml:space="preserve">
+    <value>Operación fallida. Por favor intente de nuevo.</value>
+  </data>
+  <!-- Status Labels -->
+  <data name="StatusPending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="StatusConfirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>En Progreso</value>
+  </data>
+  <data name="StatusCompleted" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="StatusNoShow" xml:space="preserve">
+    <value>No se Presentó</value>
+  </data>
+</root>

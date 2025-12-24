@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Tabs -->
+  <data name="Upcoming" xml:space="preserve">
+    <value>Próximas</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>Historial</value>
+  </data>
+  <!-- Empty States -->
+  <data name="NoUpcomingBookings" xml:space="preserve">
+    <value>No tienes reservas próximas. ¡Explora y haz una reservación!</value>
+  </data>
+  <data name="NoBookingHistory" xml:space="preserve">
+    <value>Tu historial de reservas está vacío.</value>
+  </data>
+  <!-- Cancel Dialog -->
+  <data name="CancelBooking" xml:space="preserve">
+    <value>Cancelar Reserva</value>
+  </data>
+  <data name="CancelBookingConfirmation" xml:space="preserve">
+    <value>¿Estás seguro de que deseas cancelar esta reserva?</value>
+  </data>
+  <data name="Reason" xml:space="preserve">
+    <value>Razón (opcional)</value>
+  </data>
+  <data name="ReasonPlaceholder" xml:space="preserve">
+    <value>Cuéntanos por qué cancelas...</value>
+  </data>
+  <data name="Keep" xml:space="preserve">
+    <value>Mantener Reserva</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <!-- Review Dialog -->
+  <data name="LeaveReview" xml:space="preserve">
+    <value>Dejar una Reseña</value>
+  </data>
+  <data name="HowWasExperience" xml:space="preserve">
+    <value>¿Cómo fue tu experiencia?</value>
+  </data>
+  <data name="Review" xml:space="preserve">
+    <value>Tu Reseña</value>
+  </data>
+  <data name="ReviewPlaceholder" xml:space="preserve">
+    <value>Comparte tu experiencia con otros...</value>
+  </data>
+  <data name="SubmitReview" xml:space="preserve">
+    <value>Enviar Reseña</value>
+  </data>
+  <!-- Messages -->
+  <data name="BookingCancelled" xml:space="preserve">
+    <value>Reserva cancelada exitosamente</value>
+  </data>
+  <data name="ReviewSubmitted" xml:space="preserve">
+    <value>¡Gracias por tu reseña!</value>
+  </data>
+  <data name="OperationFailed" xml:space="preserve">
+    <value>Operación fallida. Por favor intenta de nuevo.</value>
+  </data>
+</root>
