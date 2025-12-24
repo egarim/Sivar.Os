@@ -1,0 +1,38 @@
+@page "/bookings"
+@page "/reservaciones"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Components.Booking
+@attribute [Authorize]
+@inject IStringLocalizer<Bookings> Localizer
+@inject NavigationManager Nav
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+
+<div class="bookings-page">
+    <div class="bookings-header">
+        <MudText Typo="Typo.h5" Class="mb-2">@Localizer["MyBookings"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@Localizer["ManageYourReservations"]</MudText>
+    </div>
+    
+    <MyBookings />
+</div>
+
+<style>
+    .bookings-page {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+    
+    .bookings-header {
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    
+    @@media (max-width: 600px) {
+        .bookings-page {
+            padding: 8px;
+        }
+    }
+</style>

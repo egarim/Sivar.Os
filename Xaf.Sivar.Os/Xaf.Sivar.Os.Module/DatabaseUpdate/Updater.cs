@@ -125,6 +125,11 @@ namespace Xaf.Sivar.Os.Module.DatabaseUpdate
             
             ObjectSpace.CommitChanges(); //This line persists chat bot settings
             
+            // Seed SeederLog singleton (for admin seeding operations logging)
+            SeedSeederLog();
+            
+            ObjectSpace.CommitChanges(); //This line persists seeder log
+            
             // Seed agent configurations (Phase 10: Multi-Agent Configuration)
             SeedAgentConfigurations();
             
@@ -1275,6 +1280,35 @@ Always be polite and positive.";
             qaEventsEn.UpdatedAt = now;
 
             System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created English ChatBotSettings with QuickActions.");
+        }
+        
+        /// <summary>
+        /// Seeds the SeederLog singleton for admin seeding operations logging
+        /// Creates a single instance if it doesn't exist
+        /// </summary>
+        void SeedSeederLog()
+        {
+            System.Diagnostics.Debug.WriteLine("[Updater] Starting SeedSeederLog...");
+
+            // Check if SeederLog already exists (singleton pattern)
+            var existingLog = ObjectSpace.FirstOrDefault<BusinessObjects.SeederLog>(s => true);
+            if (existingLog != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] SeederLog already exists. Skipping.");
+                return;
+            }
+
+            // Create the singleton instance
+            var seederLog = ObjectSpace.CreateObject<BusinessObjects.SeederLog>();
+            seederLog.Id = Guid.Parse("d0000001-0001-0001-0001-000000000001");
+            seederLog.LogText = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}] SeederLog initialized.\n";
+            seederLog.LastOperationAt = DateTime.UtcNow;
+            seederLog.LastOperationSummary = "Singleton created during database update";
+            seederLog.KeycloakUsersSynced = 0;
+            seederLog.ProfilesSeeded = 0;
+            seederLog.ProfilesLinked = 0;
+
+            System.Diagnostics.Debug.WriteLine("[Updater] ✅ Created SeederLog singleton.");
         }
         
         /// <summary>

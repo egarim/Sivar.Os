@@ -99,6 +99,8 @@ namespace Xaf.Sivar.Os.Module
             AdditionalExportedTypes.Add(typeof(Activity));
             AdditionalExportedTypes.Add(typeof(Notification));
 
+            // === XAF-specific Business Objects ===
+            AdditionalExportedTypes.Add(typeof(Xaf.Sivar.Os.Module.BusinessObjects.SeederLog));
             AdditionalExportedTypes.Add(typeof(Xaf.Sivar.Os.Module.BusinessObjects.ApplicationUser));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRole));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.ModelDifference));
@@ -269,6 +271,7 @@ namespace Xaf.Sivar.Os.Module
             // ============================================
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Activity), NavGroupSystem);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(Notification), NavGroupSystem);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(BusinessObjects.SeederLog), NavGroupSystem);
         }
     }
 }

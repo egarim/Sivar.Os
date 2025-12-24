@@ -115,4 +115,9 @@
     <value>Login</value>
     <comment>Login button text</comment>
   </data>
+  
+  <data name="Bookings" xml:space="preserve">
+    <value>My Bookings</value>
+    <comment>Bookings/reservations navigation menu item</comment>
+  </data>
 </root>

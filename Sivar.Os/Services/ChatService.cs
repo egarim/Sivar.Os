@@ -250,8 +250,10 @@ public class ChatService : IChatService
                 _logger.LogDebug("[ChatService.SendMessageAsync] No location context provided - RequestId={RequestId}", requestId);
             }
 
-            // Phase 2: Clear last search results before AI agent call
+            // Phase 2: Clear last search results before AI agent call (both function services)
             _functionService.ClearLastSearchResults();
+            _bookingFunctions.ClearLastSearchResults();
+            _logger.LogDebug("[ChatService.SendMessageAsync] Phase 2: Cleared LastSearchResults on both ChatFunctionService and BookingFunctions - RequestId={RequestId}", requestId);
 
             // Phase 6: Intent Classification - Classify user intent before AI agent call
             var intentClassification = _intentClassifier.ClassifyIntent(dto.Content);
@@ -375,18 +377,28 @@ public class ChatService : IChatService
             await _conversationRepository.UpdateLastMessageTimeAsync(dto.ConversationId);
 
             // Phase 2: Unified Structured Search Pipeline
-            // First, check if the AI agent's function calls produced structured results
-            SearchResultsCollectionDto? structuredResults = _functionService.LastSearchResults;
+            // Check if the AI agent's function calls produced structured results
+            // Check both ChatFunctionService and BookingFunctions for results
+            var functionServiceResults = _functionService.LastSearchResults;
+            var bookingResults = _bookingFunctions.LastSearchResults;
+            
+            _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2 check: ChatFunctionService.LastSearchResults={HasFunctionResults}, BookingFunctions.LastSearchResults={HasBookingResults} - RequestId={RequestId}",
+                functionServiceResults?.HasResults == true, bookingResults?.HasResults == true, requestId);
+            
+            SearchResultsCollectionDto? structuredResults = functionServiceResults ?? bookingResults;
             
             if (structuredResults?.HasResults == true)
             {
-                _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2: AI Agent function call returned {Count} structured results - RequestId={RequestId}", 
-                    structuredResults.TotalCount, requestId);
+                var source = functionServiceResults != null ? "ChatFunctionService" : "BookingFunctions";
+                _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2: {Source} returned {Count} structured results - RequestId={RequestId}", 
+                    source, structuredResults.TotalCount, requestId);
             }
             else if (IsSearchQuery(dto.Content))
             {
                 // Fallback: If the AI agent didn't call a search function but this looks like a search query,
                 // perform a hybrid search (this maintains backward compatibility during transition)
+                _logger.LogWarning("[ChatService.SendMessageAsync] Phase 2 fallback triggered: No structured results and IsSearchQuery=true for query '{Query}' - RequestId={RequestId}", 
+                    dto.Content, requestId);
                 try
                 {
                     _logger.LogInformation("[ChatService.SendMessageAsync] Phase 2 fallback: Performing hybrid search for query - RequestId={RequestId}", requestId);

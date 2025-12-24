@@ -28,7 +28,7 @@
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
                 <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
               <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
               <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
               <xsd:attribute ref="xml:space" />
@@ -58,66 +58,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  
-  <!-- Navigation Menu Items -->
-  <data name="Home" xml:space="preserve">
-    <value>Inicio</value>
-    <comment>Elemento del menú de navegación Inicio</comment>
-  </data>
-  
-  <data name="Search" xml:space="preserve">
-    <value>Buscar</value>
-    <comment>Elemento del menú de navegación Buscar</comment>
-  </data>
-  
-  <data name="Chat" xml:space="preserve">
-    <value>Chat</value>
-    <comment>Elemento del menú de navegación Chat/Asistente IA</comment>
-  </data>
-  
-  <data name="MySchedule" xml:space="preserve">
-    <value>Mi Horario</value>
-    <comment>Elemento del menú de navegación para horario de personal - muestra citas para empleados</comment>
-  </data>
-  
-  <data name="Counter" xml:space="preserve">
-    <value>Contador</value>
-    <comment>Elemento del menú de navegación Contador</comment>
-  </data>
-  
-  <data name="Weather" xml:space="preserve">
-    <value>Clima</value>
-    <comment>Elemento del menú de navegación Clima</comment>
-  </data>
-  
-  <!-- Authentication Section (currently commented out) -->
-  <data name="Authenticating" xml:space="preserve">
-    <value>Autenticando...</value>
-    <comment>Mensaje de carga mientras se verifica el estado de autenticación</comment>
-  </data>
-  
-  <data name="LoggedInAs" xml:space="preserve">
-    <value>Sesión iniciada como:</value>
-    <comment>Etiqueta sobre el nombre de usuario en el menú de navegación</comment>
-  </data>
-  
-  <data name="DefaultUser" xml:space="preserve">
-    <value>Usuario</value>
-    <comment>Nombre de usuario predeterminado cuando no hay nombre disponible</comment>
-  </data>
-  
-  <data name="Logout" xml:space="preserve">
-    <value>Cerrar sesión</value>
-    <comment>Texto del botón cerrar sesión</comment>
-  </data>
-  
-  <data name="Login" xml:space="preserve">
-    <value>Iniciar sesión</value>
-    <comment>Texto del botón iniciar sesión</comment>
-  </data>
-  
-  <data name="Bookings" xml:space="preserve">
+  <data name="PageTitle" xml:space="preserve">
     <value>Mis Reservaciones</value>
-    <comment>Elemento del menú de navegación para reservaciones</comment>
+  </data>
+  <data name="MyBookings" xml:space="preserve">
+    <value>Mis Reservaciones</value>
+  </data>
+  <data name="ManageYourReservations" xml:space="preserve">
+    <value>Ver y administrar tus reservaciones</value>
   </data>
 </root>
