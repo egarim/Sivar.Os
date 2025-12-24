@@ -1,0 +1,154 @@
+@page "/my-schedule"
+@page "/mi-agenda"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Components.Booking
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Shared.DTOs
+@attribute [Authorize]
+@inject IStringLocalizer<MySchedule> Localizer
+@inject IProfileSwitcherService ProfileSwitcherService
+@inject NavigationManager Nav
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+
+<div class="my-schedule-page">
+    <div class="schedule-header">
+        <div class="header-content">
+            <MudText Typo="Typo.h5">@Localizer["MySchedule"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Localizer["ManageYourCalendar"]</MudText>
+        </div>
+        
+        @if (_isBusinessProfile)
+        {
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                @Localizer["BusinessMode"]
+            </MudChip>
+        }
+    </div>
+    
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-center pa-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (_isBusinessProfile)
+    {
+        @* Business owners see the full calendar view *@
+        <BookingCalendarView OnNewBookingClicked="HandleNewBooking"
+                             OnBlockTimeClicked="HandleBlockTime"
+                             OnBookingClicked="HandleBookingClicked" />
+    }
+    else
+    {
+        @* Regular users see their bookings in a simpler view *@
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+            <MudTabPanel Text="@Localizer["CalendarView"]" Icon="@Icons.Material.Filled.CalendarMonth">
+                <div class="user-calendar">
+                    <MudDatePicker @bind-Date="_selectedDate"
+                                   PickerVariant="PickerVariant.Static"
+                                   Orientation="Orientation.Landscape"
+                                   Color="Color.Primary" />
+                    
+                    <div class="day-bookings mt-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">
+                            @(_selectedDate?.ToString("dddd, MMMM d, yyyy") ?? Localizer["SelectDate"])
+                        </MudText>
+                        
+                        @if (_selectedDate.HasValue)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @Localizer["BookingsForThisDay"]
+                            </MudText>
+                            @* Bookings for selected day would be shown here *@
+                        }
+                    </div>
+                </div>
+            </MudTabPanel>
+            
+            <MudTabPanel Text="@Localizer["ListView"]" Icon="@Icons.Material.Filled.List">
+                <MyBookings />
+            </MudTabPanel>
+        </MudTabs>
+    }
+</div>
+
+<style>
+    .my-schedule-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+    
+    .schedule-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+    
+    .header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .user-calendar {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 24px;
+    }
+    
+    @@media (max-width: 900px) {
+        .user-calendar {
+            grid-template-columns: 1fr;
+        }
+        
+        .schedule-header {
+            flex-direction: column;
+            gap: 8px;
+        }
+    }
+    
+    @@media (max-width: 600px) {
+        .my-schedule-page {
+            padding: 8px;
+        }
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isBusinessProfile;
+    private DateTime? _selectedDate = DateTime.Today;
+    private ProfileDto? _activeProfile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _activeProfile = await ProfileSwitcherService.GetActiveProfileAsync();
+            _isBusinessProfile = _activeProfile?.ProfileType?.Name?.Equals("Business", StringComparison.OrdinalIgnoreCase) == true;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void HandleNewBooking()
+    {
+        // Could open a dialog or navigate to booking creation
+    }
+
+    private void HandleBlockTime()
+    {
+        // Could open a dialog to block time slots
+    }
+
+    private void HandleBookingClicked(ResourceBookingSummaryDto booking)
+    {
+        // Could open booking details dialog
+    }
+}
