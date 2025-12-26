@@ -78,8 +78,17 @@ public class PostService : IPostService
         _logger.LogInformation("[CreatePostAsync] START - KeycloakId={keycloakId}, ProfileIdFromRequest={profileId}", 
             keycloakId, createPostDto.ProfileId);
 
+        // ⚡ FIX: Use a new scope to avoid DbContext concurrency issues
+        // Blazor Server can trigger multiple async operations that share the same scoped DbContext
+        using var scope = _serviceScopeFactory.CreateScope();
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var profileRepository = scope.ServiceProvider.GetRequiredService<IProfileRepository>();
+        var postRepository = scope.ServiceProvider.GetRequiredService<IPostRepository>();
+        var postAttachmentRepository = scope.ServiceProvider.GetRequiredService<IPostAttachmentRepository>();
+        var activityService = scope.ServiceProvider.GetRequiredService<IActivityService>();
+
         // Get user
-        var user = await _userRepository.GetByKeycloakIdAsync(keycloakId);
+        var user = await userRepository.GetByKeycloakIdAsync(keycloakId);
         _logger.LogInformation("[CreatePostAsync] Retrieved user: UserId={userId}, ActiveProfileId={activeProfileId}", 
             user?.Id.ToString() ?? "NULL", 
             user?.ActiveProfileId.ToString() ?? "NULL");
@@ -99,8 +108,8 @@ public class PostService : IPostService
 
         _logger.LogInformation("[CreatePostAsync] Using ProfileId from request: {profileId}", createPostDto.ProfileId);
 
-        // Get the profile using the ID sent by client
-        var activeProfile = await _profileRepository.GetByIdIgnoringFiltersAsync(createPostDto.ProfileId);
+        // Get the profile using the ID sent by client (use scoped repository to avoid concurrency)
+        var activeProfile = await profileRepository.GetByIdIgnoringFiltersAsync(createPostDto.ProfileId);
         _logger.LogInformation("[CreatePostAsync] Profile lookup result: ProfileId={profileId}, FoundProfile={found}, UserId={userId}", 
             createPostDto.ProfileId, 
             activeProfile != null ? "YES" : "NO",
@@ -187,22 +196,31 @@ public class PostService : IPostService
             _logger.LogInformation("[CreatePostAsync] ⚡ FAST PATH: Saving post immediately: PostId={postId}, ProfileId={profileId}", 
                 post.Id, post.ProfileId);
 
-            await _postRepository.AddAsync(post);
-            await _postRepository.SaveChangesAsync();
+            await postRepository.AddAsync(post);
+            await postRepository.SaveChangesAsync();
 
             _logger.LogInformation("[CreatePostAsync] ✓ Post saved successfully: PostId={postId}", post.Id);
 
             // Process attachments if provided (this is fast, ~100ms)
             if (createPostDto.Attachments?.Any() == true)
             {
-                await ProcessPostAttachmentsAsync(post.Id, createPostDto.Attachments);
+                await ProcessPostAttachmentsAsync(post.Id, createPostDto.Attachments, postAttachmentRepository);
             }
 
-            // Record activity for the post creation
+            // ⚡ FAST PATH: Use data we already have instead of re-fetching from blob storage
+            // This avoids ~500ms latency from MapAttachmentsToDtosAsync which fetches URLs
+            var postDto = MapToPostDtoFast(post, activeProfile, createPostDto.Attachments);
+
+            // Record activity for the post creation with snapshot for fast feed loading
             try
             {
-                await _activityService.RecordPostCreatedAsync(post);
-                _logger.LogInformation("[CreatePostAsync] Activity recorded for post: PostId={postId}", post.Id);
+                var postSnapshotJson = JsonSerializer.Serialize(postDto, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = false
+                });
+                await activityService.RecordPostCreatedAsync(post, postSnapshotJson);
+                _logger.LogInformation("[CreatePostAsync] Activity recorded with snapshot for post: PostId={postId}", post.Id);
             }
             catch (Exception ex)
             {
@@ -231,9 +249,7 @@ public class PostService : IPostService
 
             _logger.LogInformation("[CreatePostAsync] ✓ Post returned to user, AI enrichment queued in background: PostId={postId}", post.Id);
 
-            // ⚡ FAST PATH: Use data we already have instead of re-fetching from blob storage
-            // This avoids ~500ms latency from MapAttachmentsToDtosAsync which fetches URLs
-            return MapToPostDtoFast(post, activeProfile, createPostDto.Attachments);
+            return postDto;
         }
         catch
         {
@@ -1397,6 +1413,14 @@ public class PostService : IPostService
     /// </summary>
     private async Task ProcessPostAttachmentsAsync(Guid postId, List<CreatePostAttachmentDto> attachments)
     {
+        await ProcessPostAttachmentsAsync(postId, attachments, _postAttachmentRepository);
+    }
+
+    /// <summary>
+    /// Process and create post attachments with explicit repository (for scoped scenarios)
+    /// </summary>
+    private async Task ProcessPostAttachmentsAsync(Guid postId, List<CreatePostAttachmentDto> attachments, IPostAttachmentRepository attachmentRepository)
+    {
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
@@ -1436,7 +1460,7 @@ public class PostService : IPostService
                     _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] Adding attachment - RequestId={RequestId}, PostId={PostId}, FileId={FileId}, Type={Type}, Size={Size}",
                         requestId, postId, attachmentDto.FileId, attachmentDto.AttachmentType, attachmentDto.FileSize);
 
-                    await _postAttachmentRepository.AddAsync(attachment);
+                    await attachmentRepository.AddAsync(attachment);
                     successCount++;
                 }
                 catch (Exception ex)
@@ -1447,7 +1471,7 @@ public class PostService : IPostService
             }
 
             // Save all attachments to database
-            await _postAttachmentRepository.SaveChangesAsync();
+            await attachmentRepository.SaveChangesAsync();
             
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[PostService.ProcessPostAttachmentsAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, ProcessedCount={ProcessedCount}, TotalCount={TotalCount}, Duration={Duration}ms",
@@ -1534,60 +1558,61 @@ public class PostService : IPostService
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] Retrieved {AttachmentCount} attachments - RequestId={RequestId}, PostId={PostId}",
                 attachments.Count, requestId, postId);
 
-            // ⚡ PERFORMANCE: Fetch all URLs in parallel instead of sequentially
-            var urlTasks = attachments.Select(async attachment =>
+            // ⚡ PERFORMANCE: Use stored URLs directly - no Azure API calls needed!
+            // URLs are generated and stored during upload, so we can use them directly.
+            // Browser caches images by URL, so consistent URLs = better caching.
+            var attachmentDtos = new List<PostAttachmentDto>();
+            
+            foreach (var attachment in attachments)
             {
                 string publicUrl;
                 
-                if (string.IsNullOrEmpty(attachment.FileId))
+                // Use stored URL if available (fast path - no API calls)
+                if (!string.IsNullOrEmpty(attachment.Url) && !attachment.Url.StartsWith("blob://"))
                 {
-                    // No FileId - use error placeholder
-                    _logger.LogWarning("[PostService.MapAttachmentsToDtosAsync] Missing FileId - RequestId={RequestId}, AttachmentId={AttachmentId}",
-                        requestId, attachment.Id);
-                    publicUrl = $"/api/file-missing/{attachment.Id}";
+                    publicUrl = attachment.Url;
+                    _logger.LogDebug("[PostService.MapAttachmentsToDtosAsync] Using stored URL - RequestId={RequestId}, AttachmentId={AttachmentId}, URL={URL}",
+                        requestId, attachment.Id, publicUrl);
                 }
-                else
+                else if (!string.IsNullOrEmpty(attachment.FileId))
                 {
+                    // Fallback: Generate URL from FileId (slow path - makes Azure API calls)
                     try
                     {
-                        // ⭐ CRITICAL: Always generate URL dynamically from FileId - NEVER use stored URL
                         publicUrl = await _fileStorageService.GetFileUrlAsync(attachment.FileId);
-                        
-                        _logger.LogDebug("[PostService.MapAttachmentsToDtosAsync] Generated public URL - RequestId={RequestId}, FileId={FileId}, URL={URL}",
+                        _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] Generated URL from FileId - RequestId={RequestId}, FileId={FileId}, URL={URL}",
                             requestId, attachment.FileId, publicUrl);
                     }
-                    catch (FileNotFoundException ex)
+                    catch (FileNotFoundException)
                     {
-                        // File not found in blob storage - log error and use error placeholder
-                        _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] File not found in blob storage - RequestId={RequestId}, FileId={FileId}, OriginalFileName={FileName}",
-                            requestId, attachment.FileId, attachment.OriginalFileName);
-                        publicUrl = $"/api/file-not-found/{attachment.FileId}"; // Error placeholder
+                        publicUrl = $"/api/file-not-found/{attachment.FileId}";
                     }
                     catch (Exception ex)
                     {
-                        // Other error generating URL - log and use error placeholder
-                        _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] Error generating public URL - RequestId={RequestId}, FileId={FileId}, OriginalFileName={FileName}",
-                            requestId, attachment.FileId, attachment.OriginalFileName);
-                        publicUrl = $"/api/file-error/{attachment.FileId}"; // Error placeholder
+                        _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] Error generating URL - RequestId={RequestId}, FileId={FileId}",
+                            requestId, attachment.FileId);
+                        publicUrl = $"/api/file-error/{attachment.FileId}";
                     }
                 }
-
-                return new PostAttachmentDto
+                else
+                {
+                    publicUrl = $"/api/file-missing/{attachment.Id}";
+                }
+                
+                attachmentDtos.Add(new PostAttachmentDto
                 {
                     Id = attachment.Id,
                     AttachmentType = attachment.AttachmentType,
                     FileId = attachment.FileId,
-                    FilePath = publicUrl, // ⭐ Dynamically generated URL (proxy or public)
+                    FilePath = publicUrl,
                     OriginalFilename = attachment.OriginalFileName ?? "",
                     MimeType = attachment.MimeType ?? "",
                     FileSize = attachment.FileSizeBytes ?? 0,
                     AltText = attachment.Description,
                     DisplayOrder = attachment.DisplayOrder,
                     CreatedAt = attachment.CreatedAt
-                };
-            });
-
-            var attachmentDtos = (await Task.WhenAll(urlTasks)).ToList();
+                });
+            }
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, MappedCount={MappedCount}, Duration={Duration}ms",
@@ -1600,6 +1625,75 @@ public class PostService : IPostService
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogError(ex, "[PostService.MapAttachmentsToDtosAsync] ERROR - RequestId={RequestId}, PostId={PostId}, Duration={Duration}ms",
                 requestId, postId, elapsed);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets multiple posts by their IDs in a single batch query (for feed optimization)
+    /// </summary>
+    public async Task<Dictionary<Guid, PostDto?>> GetPostsByIdsAsync(IEnumerable<Guid> postIds, string? requestingKeycloakId = null)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        var idList = postIds.ToList();
+        
+        _logger.LogInformation("[PostService.GetPostsByIdsAsync] START - RequestId={RequestId}, PostCount={PostCount}",
+            requestId, idList.Count);
+
+        var result = new Dictionary<Guid, PostDto?>();
+        
+        if (idList.Count == 0)
+        {
+            return result;
+        }
+
+        try
+        {
+            // Batch fetch all posts in a single query
+            var posts = await _postRepository.GetByIdsAsync(idList);
+            
+            _logger.LogInformation("[PostService.GetPostsByIdsAsync] Fetched {Found}/{Requested} posts from DB - RequestId={RequestId}, Duration={Elapsed}ms",
+                posts.Count, idList.Count, requestId, (DateTime.UtcNow - startTime).TotalMilliseconds);
+
+            // Map each post to DTO (sequential to avoid DbContext concurrency issues)
+            foreach (var post in posts)
+            {
+                try
+                {
+                    // Skip permission checks for public posts (optimization for feed)
+                    // Most feed posts are public anyway
+                    var postDto = await MapToPostDtoAsync(post, requestingKeycloakId, includeReactions: true, includeComments: false);
+                    result[post.Id] = postDto;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[PostService.GetPostsByIdsAsync] Failed to map post {PostId} - RequestId={RequestId}",
+                        post.Id, requestId);
+                    result[post.Id] = null;
+                }
+            }
+
+            // Add null entries for posts that weren't found
+            foreach (var id in idList)
+            {
+                if (!result.ContainsKey(id))
+                {
+                    result[id] = null;
+                }
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPostsByIdsAsync] SUCCESS - RequestId={RequestId}, PostCount={PostCount}, MappedCount={MappedCount}, Duration={Duration}ms",
+                requestId, idList.Count, result.Count(kv => kv.Value != null), elapsed);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPostsByIdsAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
             throw;
         }
     }

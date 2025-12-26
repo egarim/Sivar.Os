@@ -101,6 +101,10 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
         builder.Property(a => a.EngagementScore)
             .HasDefaultValue(0);
 
+        // PostSnapshotJson - denormalized post data for fast feed loading
+        builder.Property(a => a.PostSnapshotJson)
+            .HasColumnType("jsonb"); // PostgreSQL JSONB for efficient storage
+
         // Soft delete configuration
         builder.HasQueryFilter(a => !a.IsDeleted);
     }

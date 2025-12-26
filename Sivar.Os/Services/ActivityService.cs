@@ -68,15 +68,34 @@ public class ActivityService : IActivityService
         return activity;
     }
 
-    public async Task<Activity> RecordPostCreatedAsync(Post post, CancellationToken cancellationToken = default)
+    public async Task<Activity> RecordPostCreatedAsync(Post post, string? postSnapshotJson = null, CancellationToken cancellationToken = default)
     {
-        return await CreateActivityAsync(
-            actorId: post.ProfileId,
-            verb: ActivityVerb.Create,
-            objectType: "Post",
-            objectId: post.Id,
-            visibility: post.Visibility,
-            cancellationToken: cancellationToken);
+        var actor = await _profileRepository.GetByIdAsync(post.ProfileId);
+
+        if (actor == null)
+        {
+            throw new InvalidOperationException($"Actor profile not found: {post.ProfileId}");
+        }
+
+        var activity = new Activity
+        {
+            ActorId = post.ProfileId,
+            Verb = ActivityVerb.Create,
+            ObjectType = "Post",
+            ObjectId = post.Id,
+            Visibility = post.Visibility,
+            PublishedAt = DateTime.UtcNow,
+            IsPublished = true,
+            PostSnapshotJson = postSnapshotJson, // Store the denormalized post data
+            Summary = string.Empty
+        };
+
+        activity.Summary = activity.GenerateSummary(actor.DisplayName);
+
+        await _activityRepository.AddAsync(activity);
+        await _activityRepository.SaveChangesAsync();
+
+        return activity;
     }
 
     public async Task<Activity> RecordCommentAsync(Comment comment, CancellationToken cancellationToken = default)

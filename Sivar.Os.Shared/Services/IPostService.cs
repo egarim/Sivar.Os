@@ -104,6 +104,14 @@ public interface IPostService
     Task<bool> CanUserViewPostAsync(Guid postId, string? requestingKeycloakId);
 
     /// <summary>
+    /// Gets multiple posts by their IDs in a single batch query (for feed optimization)
+    /// </summary>
+    /// <param name="postIds">List of post IDs to retrieve</param>
+    /// <param name="requestingKeycloakId">Keycloak ID of user requesting (for permission checks)</param>
+    /// <returns>Dictionary mapping post ID to PostDto (null if not found/inaccessible)</returns>
+    Task<Dictionary<Guid, PostDto?>> GetPostsByIdsAsync(IEnumerable<Guid> postIds, string? requestingKeycloakId = null);
+
+    /// <summary>
     /// Gets all posts that have vector embeddings for semantic search
     /// </summary>
     /// <returns>List of posts with their vector embeddings</returns>

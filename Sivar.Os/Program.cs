@@ -65,6 +65,26 @@ builder.Services.AddDevExpressAI();
 // Add memory cache for rate limiting
 builder.Services.AddMemoryCache();
 
+// --- Caching Configuration ---
+// Configure caching services (Redis or Memory based on configuration)
+builder.Services.Configure<Sivar.Os.Shared.Configuration.CachingConfiguration>(
+    builder.Configuration.GetSection("Caching"));
+
+var cachingConfig = builder.Configuration.GetSection("Caching").Get<Sivar.Os.Shared.Configuration.CachingConfiguration>()
+    ?? new Sivar.Os.Shared.Configuration.CachingConfiguration();
+
+if (cachingConfig.UseRedis)
+{
+    builder.Services.AddSingleton<ICacheService, Sivar.Os.Shared.Services.RedisCacheService>();
+    Log.Information("🔴 Redis caching enabled with connection: {ConnectionString}", 
+        cachingConfig.Redis?.ConnectionString ?? "localhost:6379");
+}
+else
+{
+    builder.Services.AddSingleton<ICacheService, Sivar.Os.Shared.Services.MemoryCacheService>();
+    Log.Information("💾 In-memory caching enabled (Redis disabled)");
+}
+
 // Add localization services for server-side components
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 

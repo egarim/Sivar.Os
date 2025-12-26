@@ -2836,6 +2836,140 @@ Components known to have parallel data loading patterns:
 
 ---
 
+## Batch Fetching for Feed Performance
+
+### 🚨 CRITICAL - Avoid N+1 Query Problems in Feed Loading
+
+**Problem Discovered:** Feed activities reference posts by ID, but fetching each post sequentially creates an N+1 query problem that causes severe performance issues.
+
+### The Performance Issue
+
+```
+❌ BEFORE (Sequential - 2.3 seconds for 10 posts):
+
+Activity 1 → Fetch Post 1 (230ms DB query)
+Activity 2 → Fetch Post 2 (230ms DB query)
+Activity 3 → Fetch Post 3 (230ms DB query)
+...
+Activity 10 → Fetch Post 10 (230ms DB query)
+─────────────────────────────────────────────
+Total: 10 queries × 230ms = 2,300ms 🐌
+```
+
+### Why Parallel Fetching Doesn't Work
+
+You might think `Task.WhenAll` solves this, but it **doesn't work** due to DbContext concurrency:
+
+```csharp
+// ❌ THIS FAILS - DbContext is not thread-safe!
+var tasks = activities.Select(a => _postService.GetByIdAsync(a.ObjectId));
+var posts = await Task.WhenAll(tasks);  // CRASH: DbContext concurrency error
+```
+
+Even with `IServiceScopeFactory` to create isolated scopes, if the `PostService` uses injected repositories that share the scoped DbContext, you still get conflicts.
+
+### ✅ Solution: Batch Fetch Pattern
+
+Instead of fetching posts one-by-one, fetch ALL posts in a single query:
+
+```csharp
+// ✅ CORRECT - Single batch query (200-300ms for 10 posts)
+public async Task<Dictionary<Guid, PostDto?>> GetPostsByIdsAsync(
+    IEnumerable<Guid> postIds, 
+    string? requestingKeycloakId = null)
+{
+    var idList = postIds.ToList();
+    if (idList.Count == 0)
+        return new Dictionary<Guid, PostDto?>();
+
+    // 🚀 ONE DB query for ALL posts!
+    var posts = await _postRepository.GetByIdsAsync(idList);
+    
+    var result = new Dictionary<Guid, PostDto?>();
+    foreach (var id in idList)
+    {
+        var post = posts.FirstOrDefault(p => p.Id == id);
+        if (post != null)
+        {
+            // DTO mapping is sequential (safe for DbContext)
+            result[id] = await MapToPostDtoAsync(post, requestingKeycloakId);
+        }
+        else
+        {
+            result[id] = null;
+        }
+    }
+    return result;
+}
+```
+
+### Using Batch Fetch in Activity Clients
+
+```csharp
+public async Task<List<ActivityDto>> GetFeedActivitiesAsync(...)
+{
+    var activities = await _activityRepository.GetFeedActivitiesAsync(profileId, cursor, limit);
+    
+    // Collect all post IDs that need fetching
+    var postActivityIds = activities
+        .Where(a => a.Verb == "post" && a.ObjectType == "post")
+        .Select(a => a.ObjectId)
+        .ToList();
+
+    // 🚀 BATCH fetch all posts in ONE query
+    var stopwatch = Stopwatch.StartNew();
+    var posts = await _postService.GetPostsByIdsAsync(postActivityIds, keycloakId);
+    _logger.LogInformation("BATCH fetched {Count} posts: {Elapsed}ms", 
+        posts.Count, stopwatch.ElapsedMilliseconds);
+
+    // Now map activities to DTOs using the pre-fetched posts
+    foreach (var activity in activities)
+    {
+        if (posts.TryGetValue(activity.ObjectId, out var postDto))
+        {
+            activityDto.PostData = postDto;
+        }
+    }
+}
+```
+
+### Performance Comparison
+
+| Pattern | 10 Posts | 50 Posts | Memory | DB Queries |
+|---------|----------|----------|--------|------------|
+| Sequential Fetch | ~2,300ms | ~11,500ms | Low | N queries |
+| Parallel (fails) | N/A | N/A | - | DbContext crash |
+| **Batch Fetch** | ~200ms | ~400ms | Low | 1 query |
+
+### Repository Support
+
+The `IBaseRepository<T>` already provides `GetByIdsAsync`:
+
+```csharp
+// In IBaseRepository<T>
+Task<IEnumerable<T>> GetByIdsAsync(IEnumerable<Guid> ids);
+
+// Usage
+var posts = await _postRepository.GetByIdsAsync(postIds);
+```
+
+### Best Practices for Feed Loading
+
+1. **Identify batch opportunities**: Look for loops that call `GetByIdAsync` sequentially
+2. **Add batch methods to services**: Create `GetXxxsByIdsAsync` methods that use `repository.GetByIdsAsync`
+3. **Pre-collect IDs**: Before the loop, collect all IDs you'll need
+4. **Use Dictionary returns**: Return `Dictionary<Guid, Dto>` for O(1) lookups
+5. **Keep DTO mapping sequential**: After batch DB fetch, map DTOs one-by-one (safe for DbContext)
+
+### Applied In
+
+- ✅ `IPostService.GetPostsByIdsAsync()` - Batch fetch posts
+- ✅ `ActivitiesClient.GetFeedActivitiesAsync()` - Uses batch fetch
+- ✅ `ActivitiesClient.GetProfileActivitiesAsync()` - Uses batch fetch
+- ✅ `ActivitiesClient.GetObjectActivitiesAsync()` - Uses batch fetch
+
+---
+
 ## Repository Layer Rules
 
 ### ⭐ Repositories are the ONLY data access layer

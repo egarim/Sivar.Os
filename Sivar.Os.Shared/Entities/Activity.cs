@@ -99,6 +99,13 @@ public class Activity : BaseEntity
     public virtual int EngagementScore { get; set; } = 0;
 
     /// <summary>
+    /// Denormalized snapshot of the associated Post as JSON (JSONB in PostgreSQL).
+    /// This eliminates the need for expensive JOINs when loading the feed.
+    /// Contains a serialized PostDto with all data needed for display.
+    /// </summary>
+    public virtual string? PostSnapshotJson { get; set; }
+
+    /// <summary>
     /// Generates a human-readable summary of the activity
     /// </summary>
     public string GenerateSummary(string actorDisplayName)

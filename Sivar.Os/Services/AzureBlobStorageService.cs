@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sivar.Os.Shared.Configuration;
@@ -18,6 +19,10 @@ public class AzureBlobStorageService : IFileStorageService
     private readonly BlobServiceClient _blobServiceClient;
     private readonly ILogger<AzureBlobStorageService> _logger;
     private readonly ConcurrentDictionary<string, BlobContainerClient> _containerClients;
+    
+    // ⚡ PERFORMANCE: Cache FileId -> URL mappings to avoid expensive blob listing calls
+    // URLs with SAS tokens are valid for months, so caching is safe
+    private static readonly ConcurrentDictionary<string, string> _fileUrlCache = new();
 
     public AzureBlobStorageService(
         IOptions<AzureBlobStorageConfiguration> config,
@@ -382,19 +387,36 @@ public class AzureBlobStorageService : IFileStorageService
         var requestId = Guid.NewGuid();
         var startTime = DateTime.UtcNow;
 
+        // ⚡ PERFORMANCE: Check cache first - avoids expensive blob listing calls (~300ms each)
+        if (_fileUrlCache.TryGetValue(fileId, out var cachedUrl))
+        {
+            _logger.LogDebug("[AzureBlobStorageService.GetFileUrlAsync] CACHE HIT - RequestId={RequestId}, FileId={FileId}",
+                requestId, fileId);
+            return cachedUrl;
+        }
+
         _logger.LogInformation("[AzureBlobStorageService.GetFileUrlAsync] START - RequestId={RequestId}, FileId={FileId}, UseSingleContainer={UseSingleContainer}",
             requestId, fileId, _config.UseSingleContainer);
 
         try
         {
+            string url;
+            
             // When using single container mode (container-scoped SAS), search only in that container
             if (_config.UseSingleContainer)
             {
-                return await GetFileUrlFromSingleContainerAsync(requestId, fileId, startTime);
+                url = await GetFileUrlFromSingleContainerAsync(requestId, fileId, startTime);
+            }
+            else
+            {
+                // Original logic for multi-container mode (account-level access)
+                url = await GetFileUrlFromMultipleContainersAsync(requestId, fileId, startTime);
             }
             
-            // Original logic for multi-container mode (account-level access)
-            return await GetFileUrlFromMultipleContainersAsync(requestId, fileId, startTime);
+            // Cache the result for future requests
+            _fileUrlCache.TryAdd(fileId, url);
+            
+            return url;
         }
         catch (Exception ex) when (!(ex is FileNotFoundException))
         {

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.DTOs;
 using Sivar.Os.Shared.Services;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Sivar.Os.Services.Clients;
 
@@ -17,6 +19,7 @@ public class ActivitiesClient : IActivitiesClient
     private readonly IProfileService _profileService;
     private readonly ICommentService _commentService;
     private readonly AuthenticationStateProvider _authStateProvider;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<ActivitiesClient> _logger;
 
     public ActivitiesClient(
@@ -26,6 +29,7 @@ public class ActivitiesClient : IActivitiesClient
         IProfileService profileService,
         ICommentService commentService,
         AuthenticationStateProvider authStateProvider,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<ActivitiesClient> logger)
     {
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
@@ -34,6 +38,7 @@ public class ActivitiesClient : IActivitiesClient
         _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
         _commentService = commentService ?? throw new ArgumentNullException(nameof(commentService));
         _authStateProvider = authStateProvider ?? throw new ArgumentNullException(nameof(authStateProvider));
+        _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -66,7 +71,10 @@ public class ActivitiesClient : IActivitiesClient
             }
 
             // Get user from database
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var dbUser = await _userService.GetUserByKeycloakIdAsync(keycloakId);
+            _logger.LogInformation("[ActivitiesClient] ⏱️ GetUserByKeycloakIdAsync: {Elapsed}ms", sw.ElapsedMilliseconds);
+            
             if (dbUser == null)
             {
                 _logger.LogWarning("[ActivitiesClient.GetFeedActivitiesAsync] User not found for Keycloak ID: {KeycloakId}", keycloakId);
@@ -74,11 +82,13 @@ public class ActivitiesClient : IActivitiesClient
             }
 
             // Get activities from service
+            sw.Restart();
             var activities = await _activityService.GetFeedActivitiesAsync(
                 dbUser.Id,
                 pageNumber,
                 pageSize,
                 cancellationToken);
+            _logger.LogInformation("[ActivitiesClient] ⏱️ GetFeedActivitiesAsync: {Elapsed}ms", sw.ElapsedMilliseconds);
 
             if (activities == null || !activities.Any())
             {
@@ -86,23 +96,31 @@ public class ActivitiesClient : IActivitiesClient
                 return new ActivityFeedDto { Page = pageNumber - 1, PageSize = pageSize };
             }
 
-            // ⚡ PERFORMANCE: Batch load all posts at once, then map
-            // This avoids N+1 query problem (10 posts = 10 separate DB calls)
+            // ⚡ PERFORMANCE: Only fetch posts that DON'T have a snapshot (old activities)
+            // Activities with PostSnapshotJson can be deserialized instantly without DB call
             var postActivityIds = activities
                 .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Where(a => string.IsNullOrEmpty(a.PostSnapshotJson)) // Only fetch for activities without snapshot
                 .Select(a => a.ObjectId)
                 .Distinct()
                 .ToList();
             
-            // Pre-fetch all posts in one call
+            // ⚡ BATCH FETCH: Get all posts in a single query instead of N+1 queries
+            sw.Restart();
             var posts = new Dictionary<Guid, PostDto?>();
-            foreach (var postId in postActivityIds)
+            if (postActivityIds.Any())
             {
-                var post = await _postService.GetPostByIdAsync(postId);
-                posts[postId] = post;
+                _logger.LogInformation("[ActivitiesClient] ⏱️ BATCH fetching {Count} posts WITHOUT snapshot", postActivityIds.Count);
+                
+                // Use batch fetch method - single DB query for all posts!
+                posts = await _postService.GetPostsByIdsAsync(postActivityIds);
+                
+                _logger.LogInformation("[ActivitiesClient] ⏱️ BATCH fetched {Count} posts: {Elapsed}ms", posts.Count, sw.ElapsedMilliseconds);
             }
-            
-            _logger.LogInformation("[ActivitiesClient.GetFeedActivitiesAsync] Pre-fetched {Count} posts", posts.Count);
+            else
+            {
+                _logger.LogInformation("[ActivitiesClient] ⚡ All {Count} activities have PostSnapshotJson - zero DB lookups!", activities.Count);
+            }
 
             // Map activities using pre-fetched data
             var activityDtos = new List<ActivityDto>();
@@ -149,19 +167,18 @@ public class ActivitiesClient : IActivitiesClient
                 pageSize,
                 cancellationToken);
 
-            // ⚡ PERFORMANCE: Batch load all posts at once (avoids N+1 queries)
+            // ⚡ PERFORMANCE: Only fetch posts without snapshots using BATCH method
             var postActivityIds = activities
                 .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Where(a => string.IsNullOrEmpty(a.PostSnapshotJson))
                 .Select(a => a.ObjectId)
                 .Distinct()
                 .ToList();
             
-            var posts = new Dictionary<Guid, PostDto?>();
-            foreach (var postId in postActivityIds)
-            {
-                var post = await _postService.GetPostByIdAsync(postId);
-                posts[postId] = post;
-            }
+            // ⚡ BATCH FETCH: Single query for all posts
+            var posts = postActivityIds.Any() 
+                ? await _postService.GetPostsByIdsAsync(postActivityIds) 
+                : new Dictionary<Guid, PostDto?>();
 
             var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
 
@@ -200,19 +217,18 @@ public class ActivitiesClient : IActivitiesClient
                 pageSize,
                 cancellationToken);
 
-            // ⚡ PERFORMANCE: Batch load all posts at once (avoids N+1 queries)
+            // ⚡ PERFORMANCE: Batch load all posts at once using single query
             var postActivityIds = activities
                 .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Where(a => string.IsNullOrEmpty(a.PostSnapshotJson))
                 .Select(a => a.ObjectId)
                 .Distinct()
                 .ToList();
             
-            var posts = new Dictionary<Guid, PostDto?>();
-            foreach (var postId in postActivityIds)
-            {
-                var post = await _postService.GetPostByIdAsync(postId);
-                posts[postId] = post;
-            }
+            // ⚡ BATCH FETCH: Single query for all posts
+            var posts = postActivityIds.Any() 
+                ? await _postService.GetPostsByIdsAsync(postActivityIds) 
+                : new Dictionary<Guid, PostDto?>();
 
             var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
 
@@ -299,7 +315,9 @@ public class ActivitiesClient : IActivitiesClient
     }
 
     /// <summary>
-    /// Maps Activity entity to ActivityDto using pre-fetched posts (fast, no DB calls)
+    /// Maps Activity entity to ActivityDto using pre-fetched posts (fast, no DB calls).
+    /// ⚡ PERFORMANCE: First checks PostSnapshotJson (JSONB) for instant deserialization,
+    /// falls back to pre-fetched dictionary if snapshot not available.
     /// </summary>
     private ActivityDto MapActivityToDto(Shared.Entities.Activity activity, Dictionary<Guid, PostDto?> posts)
     {
@@ -324,7 +342,30 @@ public class ActivitiesClient : IActivitiesClient
         // Use pre-fetched post data
         if (activity.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
         {
-            if (posts.TryGetValue(activity.ObjectId, out var post))
+            // ⚡ FAST PATH: Use PostSnapshotJson if available (denormalized JSONB)
+            if (!string.IsNullOrEmpty(activity.PostSnapshotJson))
+            {
+                try
+                {
+                    dto.Post = JsonSerializer.Deserialize<PostDto>(activity.PostSnapshotJson, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        PropertyNameCaseInsensitive = true
+                    });
+                    _logger.LogDebug("[ActivitiesClient] ⚡ Used PostSnapshotJson for ActivityId={ActivityId}", activity.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[ActivitiesClient] Failed to deserialize PostSnapshotJson, falling back to posts dictionary");
+                    // Fall through to dictionary lookup
+                    if (posts.TryGetValue(activity.ObjectId, out var post))
+                    {
+                        dto.Post = post;
+                    }
+                }
+            }
+            // Fallback: Use pre-fetched dictionary (for older activities without snapshot)
+            else if (posts.TryGetValue(activity.ObjectId, out var post))
             {
                 dto.Post = post;
             }

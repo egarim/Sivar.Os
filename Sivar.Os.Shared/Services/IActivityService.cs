@@ -25,7 +25,10 @@ public interface IActivityService
     /// <summary>
     /// Records a post creation activity
     /// </summary>
-    Task<Activity> RecordPostCreatedAsync(Post post, CancellationToken cancellationToken = default);
+    /// <param name="post">The created post entity.</param>
+    /// <param name="postSnapshotJson">Optional JSON-serialized PostDto for denormalized feed loading.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<Activity> RecordPostCreatedAsync(Post post, string? postSnapshotJson = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Records a comment activity
