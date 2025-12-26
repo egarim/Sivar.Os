@@ -7,7 +7,7 @@
 
 @* PublicPostCard - Simplified post card for anonymous users *@
 
-<MudPaper Class="public-post-card" Elevation="1">
+<MudPaper Class="public-post-card" Elevation="1" @onclick="@(() => OnInteraction.InvokeAsync($"view:{Post.Id}"))">
     <!-- Header -->
     <div class="post-header">
         <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="post-avatar">
@@ -101,6 +101,12 @@
         border-radius: 12px;
         overflow: hidden;
         background: var(--mud-palette-surface);
+        cursor: pointer;
+        transition: box-shadow 0.2s ease;
+    }
+
+    .public-post-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .post-header {
