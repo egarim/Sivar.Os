@@ -105,6 +105,30 @@ builder.Services.AddPooledDbContextFactory<SivarDbContext>((serviceProvider, opt
 builder.Services.AddScoped<SivarDbContext>(sp => 
     sp.GetRequiredService<IDbContextFactory<SivarDbContext>>().CreateDbContext());
 
+// --- ChatService Configuration (Early binding for API key from environment) ---
+// Bind ChatServiceOptions early so all AI services get the correct API key
+var chatServiceOptions = builder.Configuration.GetSection(ChatServiceOptions.SectionName).Get<ChatServiceOptions>() ?? new ChatServiceOptions();
+
+// Override OpenAI API key from OPENAI_API_KEY environment variable
+var envApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+if (!string.IsNullOrEmpty(envApiKey))
+{
+    chatServiceOptions.OpenAI.ApiKey = envApiKey;
+}
+
+// Register the resolved options for IOptions<ChatServiceOptions> consumers
+builder.Services.Configure<ChatServiceOptions>(options =>
+{
+    options.Provider = chatServiceOptions.Provider;
+    options.MaxMessagesPerConversation = chatServiceOptions.MaxMessagesPerConversation;
+    options.DefaultResponseType = chatServiceOptions.DefaultResponseType;
+    options.MaxTokens = chatServiceOptions.MaxTokens;
+    options.Temperature = chatServiceOptions.Temperature;
+    options.RateLimitPerMinute = chatServiceOptions.RateLimitPerMinute;
+    options.Ollama = chatServiceOptions.Ollama;
+    options.OpenAI = chatServiceOptions.OpenAI;
+});
+
 // --- Repository Registration ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
@@ -143,19 +167,19 @@ builder.Services.AddScoped<IResourceBookingRepository, ResourceBookingRepository
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
+// Uses pre-resolved chatServiceOptions with environment variable override applied
 builder.Services.AddScoped<IChatClient>(sp =>
 {
-    var chatOptions = sp.GetRequiredService<IOptions<ChatServiceOptions>>().Value;
-    var provider = chatOptions.Provider?.ToLowerInvariant() ?? "ollama";
+    var provider = chatServiceOptions.Provider?.ToLowerInvariant() ?? "ollama";
 
     return provider switch
     {
         "openai" => GetChatClientOpenAiImp(
-            chatOptions.OpenAI.ApiKey, 
-            chatOptions.OpenAI.ModelId),
+            chatServiceOptions.OpenAI.ApiKey, 
+            chatServiceOptions.OpenAI.ModelId),
         "ollama" => GetChatClientOllamaImp(
-            chatOptions.Ollama.Endpoint, 
-            chatOptions.Ollama.ModelId),
+            chatServiceOptions.Ollama.Endpoint, 
+            chatServiceOptions.Ollama.ModelId),
         _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported providers: 'openai', 'ollama'")
     };
 });
@@ -164,10 +188,14 @@ builder.Services.AddScoped<IChatClient>(sp =>
 builder.Services.AddScoped<IAgentFactory, AgentFactory>();
 
 // Register IEmbeddingGenerator for VectorEmbeddingService (using OpenAI)
+// Uses pre-resolved chatServiceOptions with environment variable override applied
 builder.Services.AddScoped<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
-    var chatOptions = builder.Configuration.GetSection(ChatServiceOptions.SectionName).Get<ChatServiceOptions>();
-    var apiKey = chatOptions?.OpenAI?.ApiKey ?? throw new InvalidOperationException("OpenAI API key not configured");
+    var apiKey = chatServiceOptions.OpenAI.ApiKey;
+    if (string.IsNullOrEmpty(apiKey))
+    {
+        throw new InvalidOperationException("OpenAI API key not configured. Set the OPENAI_API_KEY environment variable.");
+    }
     var openAiClient = new OpenAIClient(apiKey);
     return openAiClient.GetEmbeddingClient("text-embedding-3-small").AsIEmbeddingGenerator();
 });
@@ -260,10 +288,6 @@ switch (locationProvider.ToLowerInvariant())
     default:
         throw new InvalidOperationException($"Unknown location provider: {locationProvider}");
 }
-
-// Configure ChatServiceOptions from configuration
-builder.Services.Configure<ChatServiceOptions>(
-    builder.Configuration.GetSection(ChatServiceOptions.SectionName));
 
 // Configure VectorEmbeddingOptions
 builder.Services.Configure<VectorEmbeddingOptions>(options =>
