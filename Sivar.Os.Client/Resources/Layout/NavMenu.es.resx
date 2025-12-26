@@ -120,4 +120,14 @@
     <value>Mis Reservaciones</value>
     <comment>Elemento del menú de navegación para reservaciones</comment>
   </data>
+
+  <data name="ExploreElSalvador" xml:space="preserve">
+    <value>Explora El Salvador</value>
+    <comment>Lema mostrado para usuarios invitados</comment>
+  </data>
+
+  <data name="SignUp" xml:space="preserve">
+    <value>Registrarse</value>
+    <comment>Texto del botón de registro para invitados</comment>
+  </data>
 </root>

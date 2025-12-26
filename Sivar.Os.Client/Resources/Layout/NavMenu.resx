@@ -120,4 +120,14 @@
     <value>My Bookings</value>
     <comment>Bookings/reservations navigation menu item</comment>
   </data>
+
+  <data name="ExploreElSalvador" xml:space="preserve">
+    <value>Explore El Salvador</value>
+    <comment>Tagline shown for guest users</comment>
+  </data>
+
+  <data name="SignUp" xml:space="preserve">
+    <value>Sign Up</value>
+    <comment>Sign up button text for guests</comment>
+  </data>
 </root>

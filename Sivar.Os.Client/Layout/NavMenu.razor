@@ -73,10 +73,25 @@
     {
         @* Social Media Mode - Normal navigation *@
         <div class="nav-menu-profile">
-            <ProfileSwitcher ActiveProfile="@_activeProfile"
-                             UserProfiles="@_userProfiles"
-                             OnProfileChanged="@HandleProfileChanged"
-                             OnCreateProfile="@HandleCreateProfile" />
+            <AuthorizeView>
+                <Authorized>
+                    <ProfileSwitcher ActiveProfile="@_activeProfile"
+                                     UserProfiles="@_userProfiles"
+                                     OnProfileChanged="@HandleProfileChanged"
+                                     OnCreateProfile="@HandleCreateProfile" />
+                </Authorized>
+                <NotAuthorized>
+                    <div class="guest-branding">
+                        <div class="brand-logo">
+                            <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Large" Color="Color.Primary" />
+                        </div>
+                        <div class="brand-text">
+                            <MudText Typo="Typo.h6" Class="brand-name">Sivar.Os</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["ExploreElSalvador"]</MudText>
+                        </div>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <MudNavMenu Class="nav-menu-items">
@@ -102,17 +117,41 @@
 
     <div class="nav-menu-spacer"></div>
 
-    <div class="nav-menu-logout">
-        <MudDivider Class="mb-2" />
-        <MudButton Variant="Variant.Text" 
-                   StartIcon="@Icons.Material.Filled.Logout" 
-                   FullWidth="true" 
-                   OnClick="Logout" 
-                   Class="justify-start"
-                   Color="Color.Error">
-            @Localizer["Logout"]
-        </MudButton>
-    </div>
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-menu-logout">
+                <MudDivider Class="mb-2" />
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@Icons.Material.Filled.Logout" 
+                           FullWidth="true" 
+                           OnClick="Logout" 
+                           Class="justify-start"
+                           Color="Color.Error">
+                    @Localizer["Logout"]
+                </MudButton>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="nav-menu-guest-actions">
+                <MudDivider Class="mb-2" />
+                <MudButton Variant="Variant.Filled" 
+                           StartIcon="@Icons.Material.Filled.PersonAdd" 
+                           FullWidth="true" 
+                           Href="/welcome?action=signup"
+                           Class="mb-2"
+                           Color="Color.Primary">
+                    @Localizer["SignUp"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                           StartIcon="@Icons.Material.Filled.Login" 
+                           FullWidth="true" 
+                           Href="/welcome"
+                           Color="Color.Primary">
+                    @Localizer["Login"]
+                </MudButton>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
 </div>
 
 <style>
@@ -125,6 +164,43 @@
 
     .nav-menu-profile {
         padding: 16px 16px 8px 16px;
+    }
+
+    .guest-branding {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 8px;
+        background: var(--mud-palette-background-grey);
+    }
+
+    .brand-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .brand-logo .mud-icon-root {
+        color: white !important;
+    }
+
+    .brand-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brand-name {
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .nav-menu-guest-actions {
+        padding: 8px 16px 16px 16px;
     }
 
     .nav-menu-items {
