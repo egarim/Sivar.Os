@@ -20,6 +20,7 @@ public class SivarClient : ISivarClient
     public IUsersClient Users { get; }
     public IProfileTypesClient ProfileTypes { get; }
     public IActivitiesClient Activities { get; }
+    public IPublicClient Public { get; }
 
     public SivarClient(
         IAuthClient auth,
@@ -33,7 +34,8 @@ public class SivarClient : ISivarClient
         IFilesClient files,
         IUsersClient users,
         IProfileTypesClient profileTypes,
-        IActivitiesClient activities)
+        IActivitiesClient activities,
+        IPublicClient publicClient)
     {
         Auth = auth ?? throw new ArgumentNullException(nameof(auth));
         Chat = chat ?? throw new ArgumentNullException(nameof(chat));
@@ -47,5 +49,6 @@ public class SivarClient : ISivarClient
         Users = users ?? throw new ArgumentNullException(nameof(users));
         ProfileTypes = profileTypes ?? throw new ArgumentNullException(nameof(profileTypes));
         Activities = activities ?? throw new ArgumentNullException(nameof(activities));
+        Public = publicClient ?? throw new ArgumentNullException(nameof(publicClient));
     }
 }

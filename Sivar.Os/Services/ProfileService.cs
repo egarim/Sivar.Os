@@ -1855,4 +1855,62 @@ public class ProfileService : IProfileService
             AdQualityScore = profile.AdQualityScore
         };
     }
+
+    // ==================== PUBLIC ACCESS METHODS (Anonymous) ====================
+
+    /// <summary>
+    /// Gets a public profile by ID (for anonymous access)
+    /// </summary>
+    public async Task<ProfileDto?> GetPublicProfileByIdAsync(Guid profileId)
+    {
+        _logger.LogInformation("[ProfileService.GetPublicProfileByIdAsync] Fetching profile - ProfileId: {ProfileId}", profileId);
+        
+        var profile = await _profileRepository.GetWithRelatedDataAsync(profileId);
+        
+        if (profile == null)
+        {
+            _logger.LogInformation("[ProfileService.GetPublicProfileByIdAsync] Profile not found - ProfileId: {ProfileId}", profileId);
+            return null;
+        }
+
+        // Increment view count for analytics
+        await _profileRepository.IncrementViewCountAsync(profileId);
+        await _profileRepository.SaveChangesAsync();
+
+        return await MapToProfileDtoAsync(profile);
+    }
+
+    /// <summary>
+    /// Gets a public profile by handle/username (for anonymous access)
+    /// </summary>
+    public async Task<ProfileDto?> GetPublicProfileByHandleAsync(string handle)
+    {
+        _logger.LogInformation("[ProfileService.GetPublicProfileByHandleAsync] Fetching profile - Handle: {Handle}", handle);
+        
+        if (string.IsNullOrWhiteSpace(handle))
+            return null;
+
+        var profile = await _profileRepository.GetByHandleAsync(handle);
+        
+        if (profile == null)
+        {
+            _logger.LogInformation("[ProfileService.GetPublicProfileByHandleAsync] Profile not found - Handle: {Handle}", handle);
+            return null;
+        }
+
+        // For public access, only return if profile visibility is public or if it's a business profile
+        if (profile.VisibilityLevel != VisibilityLevel.Public && 
+            profile.ProfileType?.Name?.ToLower() != "business")
+        {
+            _logger.LogInformation("[ProfileService.GetPublicProfileByHandleAsync] Profile not publicly accessible - Handle: {Handle}, Visibility: {Visibility}", 
+                handle, profile.VisibilityLevel);
+            return null;
+        }
+
+        // Increment view count for analytics
+        await _profileRepository.IncrementViewCountAsync(profile.Id);
+        await _profileRepository.SaveChangesAsync();
+
+        return await MapToProfileDtoAsync(profile);
+    }
 }

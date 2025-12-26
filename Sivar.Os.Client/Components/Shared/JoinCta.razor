@@ -1,0 +1,161 @@
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject NavigationManager Navigation
+@inject IStringLocalizer<JoinCta> Localizer
+
+<div class="join-cta-container @(DisplayVariant == "banner" ? "banner-variant" : "inline-variant")">
+    @if (DisplayVariant == "banner")
+    {
+        <MudPaper Class="join-cta-banner" Elevation="3">
+            <div class="banner-content">
+                <div class="banner-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
+                </div>
+                <div class="banner-text">
+                    <MudText Typo="Typo.h6" Class="banner-title">@Localizer["BannerTitle"]</MudText>
+                    <MudText Typo="Typo.body2" Class="banner-subtitle">@Localizer["BannerSubtitle"]</MudText>
+                </div>
+                <div class="banner-actions">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Size="Size.Medium"
+                               OnClick="NavigateToSignUp">
+                        @Localizer["SignUpButton"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               Size="Size.Medium"
+                               OnClick="NavigateToLogin">
+                        @Localizer["LoginButton"]
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="join-cta-inline">
+            <div class="inline-content">
+                <MudText Typo="Typo.body1">@Localizer["InlineMessage"]</MudText>
+                <div class="inline-actions">
+                    <MudLink Color="Color.Primary" OnClick="NavigateToSignUp">@Localizer["SignUpLink"]</MudLink>
+                    <span> · </span>
+                    <MudLink Color="Color.Default" OnClick="NavigateToLogin">@Localizer["LoginLink"]</MudLink>
+                </div>
+            </div>
+        </MudAlert>
+    }
+</div>
+
+<style>
+    .join-cta-container {
+        width: 100%;
+        margin: 16px 0;
+    }
+
+    .join-cta-banner {
+        background: linear-gradient(135deg, var(--mud-palette-primary-lighten) 0%, var(--mud-palette-primary) 100%);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .banner-content {
+        display: flex;
+        align-items: center;
+        padding: 20px 24px;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .banner-icon {
+        background: white;
+        border-radius: 50%;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .banner-text {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .banner-title {
+        color: white !important;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .banner-subtitle {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .banner-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .banner-actions .mud-button-filled {
+        background-color: white !important;
+        color: var(--mud-palette-primary) !important;
+    }
+
+    .banner-actions .mud-button-outlined {
+        border-color: white !important;
+        color: white !important;
+    }
+
+    .join-cta-inline {
+        border-radius: 8px;
+    }
+
+    .inline-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .inline-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    @@media (max-width: 600px) {
+        .banner-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .banner-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// Visual variant: "banner" for prominent display, "inline" for subtle
+    /// </summary>
+    [Parameter]
+    public string DisplayVariant { get; set; } = "banner";
+
+    /// <summary>
+    /// Custom message to show (optional)
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    private void NavigateToSignUp()
+    {
+        Navigation.NavigateTo("/welcome?action=signup");
+    }
+
+    private void NavigateToLogin()
+    {
+        Navigation.NavigateTo("/welcome?action=login");
+    }
+}

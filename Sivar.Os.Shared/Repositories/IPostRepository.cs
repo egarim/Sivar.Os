@@ -380,6 +380,32 @@ public interface IPostRepository : IBaseRepository<Post>
         double fullTextWeight = 0.3,
         double geoWeight = 0.2,
         int limit = 10);
+
+    // ========== Public Access Methods (Anonymous) ==========
+
+    /// <summary>
+    /// Gets public posts (Visibility = Public) for unauthenticated users
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="profileType">Optional filter by profile type name</param>
+    /// <returns>Paginated list of public posts</returns>
+    Task<(IEnumerable<Post> Posts, int TotalCount)> GetPublicPostsAsync(
+        int page = 1,
+        int pageSize = 20,
+        string? profileType = null);
+
+    /// <summary>
+    /// Gets public posts (Visibility = Public) by a specific profile
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <returns>Paginated list of public posts by the profile</returns>
+    Task<(IEnumerable<Post> Posts, int TotalCount)> GetPublicPostsByProfileAsync(
+        Guid profileId,
+        int page = 1,
+        int pageSize = 20);
 }
 
 /// <summary>

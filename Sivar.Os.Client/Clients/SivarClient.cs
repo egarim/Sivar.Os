@@ -28,6 +28,7 @@ public class SivarClient : ISivarClient
     private IUsersClient? _users;
     private IProfileTypesClient? _profileTypes;
     private IActivitiesClient? _activities;
+    private IPublicClient? _public;
 
     public SivarClient(HttpClient httpClient, IOptions<SivarClientOptions> options, ILoggerFactory? loggerFactory = null)
     {
@@ -95,4 +96,9 @@ public class SivarClient : ISivarClient
     /// Activity stream operations (feed, profile activities, trending)
     /// </summary>
     public IActivitiesClient Activities => _activities ??= new ActivitiesClient(_httpClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<ActivitiesClient>.Instance);
+
+    /// <summary>
+    /// Public (unauthenticated) operations for anonymous browsing
+    /// </summary>
+    public IPublicClient Public => _public ??= new PublicClient(_httpClient, _options);
 }

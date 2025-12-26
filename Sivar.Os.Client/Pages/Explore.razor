@@ -1,0 +1,245 @@
+@page "/explore"
+@page "/public"
+@layout LandingLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Components.Feed
+@using Sivar.Os.Client.Components.Shared
+@using Sivar.Os.Client.Layout
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared
+@inject ISivarClient SivarClient
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Explore> Localizer
+@inject ISnackbar Snackbar
+
+<PageTitle>@Localizer["PageTitle"] - Sivar.Os</PageTitle>
+
+<div class="explore-page">
+    <!-- Hero Section -->
+    <div class="explore-hero">
+        <div class="hero-content">
+            <MudText Typo="Typo.h3" Class="hero-title">@Localizer["HeroTitle"]</MudText>
+            <MudText Typo="Typo.subtitle1" Class="hero-subtitle">@Localizer["HeroSubtitle"]</MudText>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="explore-container">
+        <!-- Join CTA Banner -->
+        <JoinCta DisplayVariant="banner" />
+
+        <!-- Filter Chips -->
+        <div class="filter-section">
+            <MudChipSet T="string" @bind-SelectedValue="_selectedFilter" SelectionMode="SelectionMode.SingleSelection">
+                <MudChip T="string" Value="@("")" Variant="Variant.Outlined" Color="@GetChipColor("")">
+                    @Localizer["FilterAll"]
+                </MudChip>
+                <MudChip T="string" Value="@("Business")" Variant="Variant.Outlined" Color="@GetChipColor("Business")">
+                    @Localizer["FilterBusiness"]
+                </MudChip>
+                <MudChip T="string" Value="@("Personal")" Variant="Variant.Outlined" Color="@GetChipColor("Personal")">
+                    @Localizer["FilterPersonal"]
+                </MudChip>
+            </MudChipSet>
+        </div>
+
+        <!-- Posts Feed -->
+        <div class="explore-feed">
+            @if (_isLoading)
+            {
+                <FeedSkeleton Count="4" />
+            }
+            else if (_posts.Count == 0)
+            {
+                <MudPaper Class="empty-state" Elevation="0">
+                    <MudIcon Icon="@Icons.Material.Outlined.Explore" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.h6">@Localizer["EmptyTitle"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@Localizer["EmptyMessage"]</MudText>
+                </MudPaper>
+            }
+            else
+            {
+                @foreach (var post in _posts)
+                {
+                    <PublicPostCard Post="@post" 
+                                    OnInteraction="HandleInteraction" />
+                }
+
+                @if (_hasMore)
+                {
+                    <div class="load-more-container">
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Primary"
+                                   OnClick="LoadMore"
+                                   Disabled="_isLoadingMore">
+                            @if (_isLoadingMore)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            }
+                            @Localizer["LoadMoreButton"]
+                        </MudButton>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Bottom CTA -->
+        <JoinCta DisplayVariant="inline" />
+    </div>
+</div>
+
+<style>
+    .explore-page {
+        min-height: 100vh;
+        background: var(--mud-palette-background);
+    }
+
+    .explore-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 80px 24px 48px;
+        text-align: center;
+    }
+
+    .hero-content {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        color: white !important;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .hero-subtitle {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .explore-container {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 24px 16px;
+    }
+
+    .filter-section {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .explore-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        text-align: center;
+        gap: 12px;
+        background: var(--mud-palette-surface);
+        border-radius: 12px;
+        border: 1px dashed var(--mud-palette-lines-default);
+    }
+
+    .load-more-container {
+        display: flex;
+        justify-content: center;
+        padding: 16px 0;
+    }
+</style>
+
+@code {
+    private List<PostDto> _posts = new();
+    private bool _isLoading = true;
+    private bool _isLoadingMore = false;
+    private bool _hasMore = false;
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private string _selectedFilter = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPosts();
+    }
+
+    private async Task LoadPosts()
+    {
+        _isLoading = true;
+        _currentPage = 1;
+        
+        try
+        {
+            var profileType = string.IsNullOrEmpty(_selectedFilter) ? null : _selectedFilter;
+            var feed = await SivarClient.Public.GetPublicFeedAsync(_pageSize, _currentPage, profileType);
+            
+            _posts = feed.Posts?.ToList() ?? new List<PostDto>();
+            _hasMore = _posts.Count >= _pageSize && feed.TotalCount > _posts.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Explore] Error loading posts: {ex.Message}");
+            _posts = new List<PostDto>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        if (_isLoadingMore) return;
+        
+        _isLoadingMore = true;
+        _currentPage++;
+        
+        try
+        {
+            var profileType = string.IsNullOrEmpty(_selectedFilter) ? null : _selectedFilter;
+            var feed = await SivarClient.Public.GetPublicFeedAsync(_pageSize, _currentPage, profileType);
+            
+            var newPosts = feed.Posts?.ToList() ?? new List<PostDto>();
+            _posts.AddRange(newPosts);
+            _hasMore = newPosts.Count >= _pageSize && feed.TotalCount > _posts.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Explore] Error loading more posts: {ex.Message}");
+            _currentPage--; // Revert page increment on error
+        }
+        finally
+        {
+            _isLoadingMore = false;
+        }
+    }
+
+    private Color GetChipColor(string value)
+    {
+        return _selectedFilter == value ? Color.Primary : Color.Default;
+    }
+
+    private async Task OnFilterChanged(string? newValue)
+    {
+        _selectedFilter = newValue ?? "";
+        await LoadPosts();
+    }
+
+    private void HandleInteraction(string action)
+    {
+        // Show a snackbar prompting user to sign up
+        Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info, config =>
+        {
+            config.Action = Localizer["SignUpButton"];
+            config.ActionColor = Color.Primary;
+        });
+        Navigation.NavigateTo("/welcome?action=signup");
+    }
+}

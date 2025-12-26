@@ -1228,6 +1228,73 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             return new List<HybridSearchResult>();
         }
     }
+
+    // ========== Public Access Methods (Anonymous) ==========
+
+    /// <summary>
+    /// Gets public posts (Visibility = Public) for unauthenticated users
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetPublicPostsAsync(
+        int page = 1,
+        int pageSize = 20,
+        string? profileType = null)
+    {
+        var query = _context.Posts
+            .Include(p => p.Profile)
+                .ThenInclude(pr => pr.ProfileType)
+            .Include(p => p.Attachments)
+            .Include(p => p.Comments.Where(c => !c.IsDeleted).Take(3))
+            .Include(p => p.Reactions.Where(r => !r.IsDeleted))
+            .Where(p => !p.IsDeleted && p.Visibility == VisibilityLevel.Public)
+            .AsNoTracking();
+
+        // Filter by profile type if specified
+        if (!string.IsNullOrEmpty(profileType))
+        {
+            query = query.Where(p => p.Profile.ProfileType != null && 
+                p.Profile.ProfileType.Name.ToLower() == profileType.ToLower());
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
+
+    /// <summary>
+    /// Gets public posts (Visibility = Public) by a specific profile
+    /// </summary>
+    public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetPublicPostsByProfileAsync(
+        Guid profileId,
+        int page = 1,
+        int pageSize = 20)
+    {
+        var query = _context.Posts
+            .Include(p => p.Profile)
+                .ThenInclude(pr => pr.ProfileType)
+            .Include(p => p.Attachments)
+            .Include(p => p.Comments.Where(c => !c.IsDeleted).Take(3))
+            .Include(p => p.Reactions.Where(r => !r.IsDeleted))
+            .Where(p => !p.IsDeleted && 
+                   p.ProfileId == profileId && 
+                   p.Visibility == VisibilityLevel.Public)
+            .AsNoTracking();
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (posts, totalCount);
+    }
 }
 
 /// <summary>

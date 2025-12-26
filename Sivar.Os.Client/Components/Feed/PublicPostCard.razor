@@ -1,0 +1,244 @@
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@inject NavigationManager Navigation
+@inject IStringLocalizer<PublicPostCard> Localizer
+
+@* PublicPostCard - Simplified post card for anonymous users *@
+
+<MudPaper Class="public-post-card" Elevation="1">
+    <!-- Header -->
+    <div class="post-header">
+        <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="post-avatar">
+            @GetInitials(Post.Profile?.DisplayName)
+        </MudAvatar>
+        <div class="post-header-info">
+            <MudLink Typo="Typo.subtitle2" 
+                     Class="post-author-name"
+                     OnClick="@(() => OnInteraction.InvokeAsync("profile"))">
+                @Post.Profile?.DisplayName
+            </MudLink>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @FormatTimeAgo(Post.CreatedAt) · @GetVisibilityIcon() @GetPostTypeLabel()
+            </MudText>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="post-content">
+        <MudText Typo="Typo.body1">@Post.Content</MudText>
+    </div>
+
+    <!-- Attachments -->
+    @if (Post.Attachments?.Count > 0)
+    {
+        <div class="post-attachments">
+            @if (Post.Attachments.Count == 1)
+            {
+                <img src="@Post.Attachments[0].FilePath" 
+                     alt="@(Post.Attachments[0].AltText ?? "Post image")" 
+                     class="attachment-image" />
+            }
+            else
+            {
+                <div class="attachment-grid">
+                    @foreach (var attachment in Post.Attachments.Take(4))
+                    {
+                        <img src="@attachment.FilePath" 
+                             alt="@(attachment.AltText ?? "Post image")" 
+                             class="grid-image" />
+                    }
+                    @if (Post.Attachments.Count > 4)
+                    {
+                        <div class="more-images-overlay">+@(Post.Attachments.Count - 4)</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Stats (read-only) -->
+    <div class="post-stats">
+        <span class="stat-item">
+            <MudIcon Icon="@Icons.Material.Outlined.FavoriteBorder" Size="Size.Small" />
+            @(Post.ReactionSummary?.TotalReactions ?? 0) @Localizer["LikesLabel"]
+        </span>
+        <span class="stat-item">
+            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
+            @Post.CommentCount @Localizer["CommentsLabel"]
+        </span>
+    </div>
+
+    <!-- CTA Footer -->
+    <div class="post-cta">
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Primary" 
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.FavoriteBorder"
+                   OnClick="@(() => OnInteraction.InvokeAsync("like"))">
+            @Localizer["LikeButton"]
+        </MudButton>
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Default" 
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.ChatBubbleOutline"
+                   OnClick="@(() => OnInteraction.InvokeAsync("comment"))">
+            @Localizer["CommentButton"]
+        </MudButton>
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Default" 
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Share"
+                   OnClick="@(() => OnInteraction.InvokeAsync("share"))">
+            @Localizer["ShareButton"]
+        </MudButton>
+    </div>
+</MudPaper>
+
+<style>
+    .public-post-card {
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--mud-palette-surface);
+    }
+
+    .post-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 16px 12px;
+    }
+
+    .post-avatar {
+        flex-shrink: 0;
+    }
+
+    .post-header-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .post-author-name {
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .post-content {
+        padding: 0 16px 12px;
+        word-wrap: break-word;
+    }
+
+    .post-attachments {
+        width: 100%;
+    }
+
+    .attachment-image {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+    }
+
+    .attachment-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        position: relative;
+    }
+
+    .grid-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+    }
+
+    .more-images-overlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 50%;
+        height: 150px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .post-stats {
+        display: flex;
+        gap: 16px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+        color: var(--mud-palette-text-secondary);
+        font-size: 13px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .post-cta {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public PostDto Post { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<string> OnInteraction { get; set; }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length >= 2 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+    }
+
+    private string FormatTimeAgo(DateTime dateTime)
+    {
+        var span = DateTime.UtcNow - dateTime;
+        
+        if (span.TotalMinutes < 1) return Localizer["JustNow"];
+        if (span.TotalMinutes < 60) return string.Format(Localizer["MinutesAgo"], (int)span.TotalMinutes);
+        if (span.TotalHours < 24) return string.Format(Localizer["HoursAgo"], (int)span.TotalHours);
+        if (span.TotalDays < 7) return string.Format(Localizer["DaysAgo"], (int)span.TotalDays);
+        
+        return dateTime.ToString("MMM d, yyyy");
+    }
+
+    private string GetVisibilityIcon()
+    {
+        return Post.Visibility switch
+        {
+            VisibilityLevel.Public => "🌐",
+            VisibilityLevel.ConnectionsOnly => "👥",
+            VisibilityLevel.Private => "🔒",
+            _ => "🌐"
+        };
+    }
+
+    private string GetPostTypeLabel()
+    {
+        return Post.PostType switch
+        {
+            PostType.Blog => Localizer["TypeBlog"],
+            PostType.Product => Localizer["TypeProduct"],
+            PostType.Service => Localizer["TypeService"],
+            PostType.Event => Localizer["TypeEvent"],
+            PostType.BusinessLocation => Localizer["TypeLocation"],
+            _ => ""
+        };
+    }
+}

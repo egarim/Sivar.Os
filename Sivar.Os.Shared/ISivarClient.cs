@@ -69,4 +69,9 @@ public interface ISivarClient
     /// Activity stream operations (feed, profile activities, trending)
     /// </summary>
     IActivitiesClient Activities { get; }
+
+    /// <summary>
+    /// Public (unauthenticated) operations for anonymous browsing
+    /// </summary>
+    IPublicClient Public { get; }
 }

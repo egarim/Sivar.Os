@@ -342,6 +342,7 @@ builder.Services.AddScoped<IFilesClient, FilesClient>();
 builder.Services.AddScoped<IActivitiesClient, ActivitiesClient>();
 builder.Services.AddScoped<IContactsClient, ContactsClient>();
 builder.Services.AddScoped<IResourceBookingsClient, ResourceBookingsClient>();
+builder.Services.AddScoped<IPublicClient, Sivar.Os.Services.Clients.PublicClient>();
 
 // Register the aggregate SivarClient
 builder.Services.AddScoped<ISivarClient, Sivar.Os.Services.Clients.SivarClient>();

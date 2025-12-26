@@ -2001,4 +2001,144 @@ public class PostService : IPostService
     }
 
     #endregion
+
+    #region Public Access Methods (Anonymous)
+
+    /// <summary>
+    /// Gets public posts feed for unauthenticated users (only Visibility = Public)
+    /// </summary>
+    public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPublicFeedAsync(int page = 1, int pageSize = 20, string? profileType = null)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[PostService.GetPublicFeedAsync] START - RequestId={RequestId}, Page={Page}, PageSize={PageSize}, ProfileType={ProfileType}",
+            requestId, page, pageSize, profileType);
+
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var postRepository = scope.ServiceProvider.GetRequiredService<IPostRepository>();
+
+            // Get only public posts
+            var (posts, totalCount) = await postRepository.GetPublicPostsAsync(page, pageSize, profileType);
+            
+            _logger.LogInformation("[PostService.GetPublicFeedAsync] Repository returned {PostCount} posts (total: {TotalCount}) - RequestId={RequestId}",
+                posts.Count(), totalCount, requestId);
+
+            // Map to DTOs (no keycloakId for anonymous access)
+            var postDtos = new List<PostDto>();
+            foreach (var post in posts)
+            {
+                var dto = await MapToPostDtoAsync(post, null, false, false);
+                if (dto != null)
+                    postDtos.Add(dto);
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPublicFeedAsync] SUCCESS - RequestId={RequestId}, ReturnedCount={ReturnedCount}, Duration={Duration}ms",
+                requestId, postDtos.Count, elapsed);
+
+            return (postDtos, totalCount);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPublicFeedAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets a public post by ID (only if Visibility = Public)
+    /// </summary>
+    public async Task<PostDto?> GetPublicPostByIdAsync(Guid postId)
+    {
+        var requestId = Guid.NewGuid();
+        _logger.LogInformation("[PostService.GetPublicPostByIdAsync] START - RequestId={RequestId}, PostId={PostId}",
+            requestId, postId);
+
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var postRepository = scope.ServiceProvider.GetRequiredService<IPostRepository>();
+
+            var post = await postRepository.GetByIdAsync(postId);
+
+            if (post == null)
+            {
+                _logger.LogInformation("[PostService.GetPublicPostByIdAsync] Post not found - RequestId={RequestId}, PostId={PostId}",
+                    requestId, postId);
+                return null;
+            }
+
+            // Check if post is public
+            if (post.Visibility != VisibilityLevel.Public)
+            {
+                _logger.LogInformation("[PostService.GetPublicPostByIdAsync] Post is not public - RequestId={RequestId}, PostId={PostId}, Visibility={Visibility}",
+                    requestId, postId, post.Visibility);
+                return null;
+            }
+
+            var dto = await MapToPostDtoAsync(post, null, false, false);
+            _logger.LogInformation("[PostService.GetPublicPostByIdAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PostService.GetPublicPostByIdAsync] ERROR - RequestId={RequestId}, PostId={PostId}",
+                requestId, postId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets public posts by a specific profile (only Visibility = Public)
+    /// </summary>
+    public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPublicPostsByProfileAsync(Guid profileId, int page = 1, int pageSize = 20)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[PostService.GetPublicPostsByProfileAsync] START - RequestId={RequestId}, ProfileId={ProfileId}, Page={Page}, PageSize={PageSize}",
+            requestId, profileId, page, pageSize);
+
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var postRepository = scope.ServiceProvider.GetRequiredService<IPostRepository>();
+
+            // Get only public posts by this profile
+            var (posts, totalCount) = await postRepository.GetPublicPostsByProfileAsync(profileId, page, pageSize);
+            
+            _logger.LogInformation("[PostService.GetPublicPostsByProfileAsync] Repository returned {PostCount} posts (total: {TotalCount}) - RequestId={RequestId}",
+                posts.Count(), totalCount, requestId);
+
+            // Map to DTOs (no keycloakId for anonymous access)
+            var postDtos = new List<PostDto>();
+            foreach (var post in posts)
+            {
+                var dto = await MapToPostDtoAsync(post, null, false, false);
+                if (dto != null)
+                    postDtos.Add(dto);
+            }
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetPublicPostsByProfileAsync] SUCCESS - RequestId={RequestId}, ReturnedCount={ReturnedCount}, Duration={Duration}ms",
+                requestId, postDtos.Count, elapsed);
+
+            return (postDtos, totalCount);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetPublicPostsByProfileAsync] ERROR - RequestId={RequestId}, ProfileId={ProfileId}, Duration={Duration}ms",
+                requestId, profileId, elapsed);
+            throw;
+        }
+    }
+
+    #endregion
 }

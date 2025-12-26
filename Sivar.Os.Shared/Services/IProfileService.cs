@@ -74,6 +74,23 @@ public interface IProfileService
     /// <returns>Profile DTO if found and public, null otherwise</returns>
     Task<ProfileDto?> GetPublicProfileAsync(Guid profileId);
 
+    // ==================== PUBLIC ACCESS METHODS ====================
+    // These methods are for unauthenticated users to view public content
+
+    /// <summary>
+    /// Gets a public profile by ID (for anonymous access)
+    /// </summary>
+    /// <param name="profileId">Profile ID</param>
+    /// <returns>Profile DTO if found, null otherwise</returns>
+    Task<ProfileDto?> GetPublicProfileByIdAsync(Guid profileId);
+
+    /// <summary>
+    /// Gets a public profile by handle/username (for anonymous access)
+    /// </summary>
+    /// <param name="handle">Profile handle (username)</param>
+    /// <returns>Profile DTO if found, null otherwise</returns>
+    Task<ProfileDto?> GetPublicProfileByHandleAsync(string handle);
+
     /// <summary>
     /// Gets a profile by identifier (GUID or DisplayName slug)
     /// Tries to parse as GUID first, then falls back to DisplayName slug search

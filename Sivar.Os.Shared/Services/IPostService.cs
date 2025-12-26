@@ -133,4 +133,32 @@ public interface IPostService
     /// <param name="pageNumber">Page number for pagination (default: 1)</param>
     /// <returns>PostFeedDto with nearby posts and metadata</returns>
     Task<PostFeedDto> FindNearbyPostsAsync(double latitude, double longitude, double radiusKm = 10, int pageSize = 20, int pageNumber = 1);
+
+    // ==================== PUBLIC ACCESS METHODS ====================
+    // These methods are for unauthenticated users to view public content
+
+    /// <summary>
+    /// Gets public posts feed for unauthenticated users (only Visibility = Public)
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of posts per page</param>
+    /// <param name="profileType">Optional filter by profile type name</param>
+    /// <returns>Paginated list of public posts</returns>
+    Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPublicFeedAsync(int page = 1, int pageSize = 20, string? profileType = null);
+
+    /// <summary>
+    /// Gets a public post by ID (only if Visibility = Public)
+    /// </summary>
+    /// <param name="postId">Post unique identifier</param>
+    /// <returns>Post DTO if found and public, null otherwise</returns>
+    Task<PostDto?> GetPublicPostByIdAsync(Guid postId);
+
+    /// <summary>
+    /// Gets public posts by a specific profile (only Visibility = Public)
+    /// </summary>
+    /// <param name="profileId">Profile unique identifier</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of posts per page</param>
+    /// <returns>Paginated list of public posts by the profile</returns>
+    Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPublicPostsByProfileAsync(Guid profileId, int page = 1, int pageSize = 20);
 }
