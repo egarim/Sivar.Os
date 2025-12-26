@@ -53,6 +53,7 @@
 
             <PostComposer ProfileTypeTitle="@Localizer["CreatePostTitle"]"
                           CurrentProfileTypeName="@(_activeProfile?.ProfileType?.Name ?? "PersonalProfile")"
+                          IsSubmitting="@_isPosting"
                           @bind-SelectedType="@_selectedPostType"
                           @bind-PostText="@_postText"
                           @bind-ActiveAttachment="@_activeAttachment"
@@ -164,6 +165,10 @@
     private List<ActivityDto> _activities = new();
     private int _currentPage = 1;
     private int _totalPages = 12;
+    
+    // Optimistic UI State
+    private bool _isPosting = false;
+    private Guid? _optimisticPostId = null;
 
     // Stats
     private StatsSummary _stats = new()
@@ -1542,6 +1547,7 @@
 
     /// <summary>
     /// Handle post submission - create new post via API
+    /// Uses OPTIMISTIC UI pattern: show post immediately, sync with server in background
     /// </summary>
     private async Task HandlePostSubmitAsync()
     {
@@ -1555,8 +1561,17 @@
                 Console.WriteLine("[Home] Post text is empty - cannot submit");
                 return;
             }
+            
+            // Prevent double-posting
+            if (_isPosting)
+            {
+                Console.WriteLine("[Home] Already posting, ignoring...");
+                return;
+            }
 
-            Console.WriteLine("[Home] Submitting new post...");
+            Console.WriteLine("[Home] ⚡ OPTIMISTIC UI: Starting instant post...");
+            _isPosting = true;
+            StateHasChanged();
 
             // Convert string to PostType enum
             var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
@@ -1575,13 +1590,13 @@
                     var uploadResult = _uploadedFiles[i];
                     var file = _selectedFiles.Count > i ? _selectedFiles[i] : null;
                     
-                    Console.WriteLine($"[Home] ⚡ Using pre-uploaded file: FileId={uploadResult.FileId}");
+                    Console.WriteLine($"[Home] ⚡ Using pre-uploaded file: FileId={uploadResult.FileId}, Url={uploadResult.Url}");
                     
                     attachments.Add(new CreatePostAttachmentDto
                     {
                         AttachmentType = AttachmentType.Image,
                         FileId = uploadResult.FileId,
-                        FilePath = "", // URL generated server-side from FileId
+                        FilePath = uploadResult.Url, // ⚡ Use the pre-uploaded URL for optimistic display
                         OriginalFilename = uploadResult.OriginalFileName ?? file?.Name ?? "unknown",
                         MimeType = uploadResult.ContentType ?? file?.ContentType ?? "image/jpeg",
                         FileSize = uploadResult.FileSizeBytes > 0 ? uploadResult.FileSizeBytes : (file?.Size ?? 0),
@@ -1621,58 +1636,141 @@
                     : null
             };
 
+            // ⚡ OPTIMISTIC UI: Create local activity BEFORE calling server
+            var optimisticPostId = Guid.NewGuid();
+            _optimisticPostId = optimisticPostId;
+            
+            var optimisticActivity = new ActivityDto
+            {
+                Id = Guid.NewGuid(),
+                ActorId = _currentProfileId,
+                Actor = _activeProfile,
+                Verb = ActivityVerb.Create,
+                ObjectType = "Post",
+                ObjectId = optimisticPostId,
+                Summary = $"{_activeProfile?.DisplayName ?? "You"} posted",
+                Visibility = createPostDto.Visibility,
+                PublishedAt = DateTime.UtcNow,
+                Post = new PostDto
+                {
+                    Id = optimisticPostId,
+                    Profile = _activeProfile,
+                    Content = createPostDto.Content,
+                    PostType = postType,
+                    Visibility = createPostDto.Visibility,
+                    Language = createPostDto.Language,
+                    Tags = createPostDto.Tags,
+                    Attachments = attachments.Select((a, i) => new PostAttachmentDto
+                    {
+                        Id = Guid.NewGuid(),
+                        AttachmentType = a.AttachmentType,
+                        FileId = a.FileId,
+                        FilePath = a.FilePath,
+                        OriginalFilename = a.OriginalFilename,
+                        MimeType = a.MimeType,
+                        FileSize = a.FileSize,
+                        DisplayOrder = i,
+                        CreatedAt = DateTime.UtcNow
+                    }).ToList(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    CommentCount = 0,
+                    ReactionSummary = new PostReactionSummaryDto
+                    {
+                        PostId = optimisticPostId,
+                        TotalReactions = 0,
+                        ReactionCounts = new Dictionary<ReactionType, int>(),
+                        HasUserReacted = false
+                    }
+                }
+            };
+            
+            // Insert at TOP of feed immediately
+            _activities.Insert(0, optimisticActivity);
+            Console.WriteLine($"[Home] ⚡ OPTIMISTIC: Post added to feed instantly: {optimisticPostId}");
+            
+            // Clear form IMMEDIATELY for instant feedback
+            var savedPostText = _postText;
+            _postText = string.Empty;
+            _selectedPostType = "general";
+            _activeAttachment = null;
+            _scheduledDate = null;
+            _scheduledTime = null;
+            _scheduledLocation = string.Empty;
+            _selectedFiles = new();
+            _uploadedFiles = new();
+            _postVisibility = VisibilityLevel.Public;
+            _postLanguage = "en";
+            _postTags = new();
+            _postLocation = new() { City = string.Empty };
+            _postBusinessMetadata = string.Empty;
+            _blogTitle = string.Empty;
+            _blogContent = string.Empty;
+            _blogSubtitle = string.Empty;
+            _blogCoverImageUrl = string.Empty;
+            _blogCoverImageFileId = null;
+            _blogIsDraft = false;
+            _procedureMetadataJson = string.Empty;
+            
+            StateHasChanged();
+            
+            // Now call server in background
+            Console.WriteLine($"[Home] ⚡ Sending to server...");
             var newPost = await SivarClient.Posts.CreatePostAsync(createPostDto);
             
             if (newPost != null)
             {
-                Console.WriteLine($"[Home] Post created successfully: {newPost.Id}");
+                Console.WriteLine($"[Home] ✓ Server confirmed: {newPost.Id}");
                 
-                // Reload activities feed to show the new post activity
-                // The ActivityService should automatically record the Create activity
-                await LoadFeedActivitiesAsync();
+                // Update optimistic post with real server data
+                var optimisticItem = _activities.FirstOrDefault(a => a.Post?.Id == optimisticPostId);
+                if (optimisticItem != null)
+                {
+                    optimisticItem.ObjectId = newPost.Id;
+                    optimisticItem.Post = newPost;
+                    Console.WriteLine($"[Home] ✓ Updated optimistic post with server data");
+                }
                 
-                // Clear form
-                _postText = string.Empty;
-                _selectedPostType = "general";
-                _activeAttachment = null;
-                _scheduledDate = null;
-                _scheduledTime = null;
-                _scheduledLocation = string.Empty;
-                _selectedFiles = new();  // Create new empty list
-                _uploadedFiles = new();  // ⚡ Clear pre-uploaded files
-                
-                // Clear advanced options
-                _postVisibility = VisibilityLevel.Public;
-                _postLanguage = "en";
-                _postTags = new();
-                _postLocation = new() { City = string.Empty };
-                _postBusinessMetadata = string.Empty;
-                
-                // Clear blog-specific fields
-                _blogTitle = string.Empty;
-                _blogContent = string.Empty;
-                _blogSubtitle = string.Empty;
-                _blogCoverImageUrl = string.Empty;
-                _blogCoverImageFileId = null;
-                _blogIsDraft = false;
-                
-                // Clear procedure-specific fields
-                _procedureMetadataJson = string.Empty;
-                
+                StateHasChanged();
+            }
+            else
+            {
+                // Server failed - remove optimistic post and show error
+                Console.WriteLine($"[Home] ❌ Server failed, removing optimistic post");
+                _activities.RemoveAll(a => a.Post?.Id == optimisticPostId);
+                _postText = savedPostText; // Restore text so user can retry
                 StateHasChanged();
             }
         }
         catch (SivarApiException apiEx)
         {
-            Console.WriteLine($"[Home] ? API Error submitting post:");
+            Console.WriteLine($"[Home] ❌ API Error submitting post:");
             Console.WriteLine($"[Home]   Status: {apiEx.StatusCode}");
             Console.WriteLine($"[Home]   Reason: {apiEx.ReasonPhrase}");
             Console.WriteLine($"[Home]   Details: {apiEx.Content}");
+            
+            // Remove optimistic post on error
+            if (_optimisticPostId.HasValue)
+            {
+                _activities.RemoveAll(a => a.Post?.Id == _optimisticPostId);
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] ? Error submitting post: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[Home] ❌ Error submitting post: {ex.GetType().Name}: {ex.Message}");
             Console.WriteLine($"[Home] Stack Trace: {ex.StackTrace}");
+            
+            // Remove optimistic post on error
+            if (_optimisticPostId.HasValue)
+            {
+                _activities.RemoveAll(a => a.Post?.Id == _optimisticPostId);
+            }
+        }
+        finally
+        {
+            _isPosting = false;
+            _optimisticPostId = null;
+            StateHasChanged();
         }
     }
 

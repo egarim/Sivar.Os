@@ -30,6 +30,7 @@ public class PostService : IPostService
     private readonly ISentimentAnalysisService _sentimentService;
     private readonly ILocationService _locationService;
     private readonly IContentExtractionService _contentExtractionService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<PostService> _logger;
 
     public PostService(
@@ -46,6 +47,7 @@ public class PostService : IPostService
         ISentimentAnalysisService sentimentService,
         ILocationService locationService,
         IContentExtractionService contentExtractionService,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<PostService> logger)
     {
         _postRepository = postRepository ?? throw new ArgumentNullException(nameof(postRepository));
@@ -61,6 +63,7 @@ public class PostService : IPostService
         _sentimentService = sentimentService ?? throw new ArgumentNullException(nameof(sentimentService));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _contentExtractionService = contentExtractionService ?? throw new ArgumentNullException(nameof(contentExtractionService));
+        _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -123,54 +126,20 @@ public class PostService : IPostService
 
         _logger.LogInformation("[CreatePostAsync] Content validated: Length={length}", createPostDto.Content.Length);
 
-        // ==================== AI CONTENT EXTRACTION ====================
-        // Automatically extract structured metadata from plain text content
-        // This allows users to create simple text posts while the AI enriches them
-        ExtractedContentMetadata? extractedMetadata = null;
-        try
-        {
-            _logger.LogInformation("[CreatePostAsync] Starting AI content extraction for enhanced metadata");
-            extractedMetadata = await _contentExtractionService.ExtractMetadataAsync(
-                createPostDto.Content, 
-                createPostDto.Language ?? "es");
-            
-            if (extractedMetadata != null && extractedMetadata.Success)
-            {
-                _logger.LogInformation("[CreatePostAsync] ✓ AI extraction successful: PostType={PostType}, Tags={TagCount}, HasLocation={HasLocation}, HasBusinessData={HasBusiness}",
-                    extractedMetadata.SuggestedPostType,
-                    extractedMetadata.Tags?.Count ?? 0,
-                    extractedMetadata.Location != null,
-                    extractedMetadata.BusinessMetadata != null);
-            }
-            else
-            {
-                _logger.LogInformation("[CreatePostAsync] AI extraction returned no metadata, proceeding with user-provided data");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[CreatePostAsync] AI content extraction failed, continuing with user-provided data");
-        }
-
-        // Create post entity
-        // Use AI-extracted metadata to enrich the post when user didn't provide specific data
+        // ⚡ OPTIMISTIC UI: Create post immediately, process AI enrichment in background
+        // This gives instant feedback to the user while heavy AI processing happens async
+        
+        // Create post entity with user-provided data only (no AI extraction yet)
         var post = new Post
         {
             Id = Guid.NewGuid(),
             ProfileId = activeProfile.Id,
             Content = createPostDto.Content.Trim(),
-            // Use AI-detected PostType if user selected General and AI detected something more specific
-            PostType = (createPostDto.PostType == PostType.General && extractedMetadata?.Success == true && extractedMetadata.PostTypeConfidence > 0.6) 
-                ? extractedMetadata.SuggestedPostType 
-                : createPostDto.PostType,
+            PostType = createPostDto.PostType,
             Visibility = createPostDto.Visibility,
             Language = createPostDto.Language ?? "en",
-            // Merge user tags with AI-extracted tags (user tags take priority)
-            Tags = MergeTagsWithAiExtracted(createPostDto.Tags?.ToArray(), extractedMetadata?.Tags?.ToArray()),
-            // Use AI-extracted business metadata if user didn't provide any
-            BusinessMetadata = !string.IsNullOrEmpty(createPostDto.BusinessMetadata) 
-                ? createPostDto.BusinessMetadata 
-                : BuildBusinessMetadataFromExtraction(extractedMetadata),
+            Tags = createPostDto.Tags?.ToArray() ?? Array.Empty<string>(),
+            BusinessMetadata = createPostDto.BusinessMetadata,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -200,7 +169,7 @@ public class PostService : IPostService
                 !string.IsNullOrEmpty(createPostDto.ProcedureMetadataJson));
         }
 
-        // Set location: prioritize user-provided, fallback to AI-extracted
+        // Set location from user-provided data
         if (createPostDto.Location != null)
         {
             post.Location = new Location
@@ -212,41 +181,143 @@ public class PostService : IPostService
                 Longitude = createPostDto.Location.Longitude
             };
         }
-        else if (extractedMetadata?.Location != null)
-        {
-            // Use AI-extracted location when user didn't provide one
-            post.Location = new Location
-            {
-                City = extractedMetadata.Location.City,
-                State = extractedMetadata.Location.State,
-                Country = extractedMetadata.Location.Country ?? "El Salvador",
-                Latitude = extractedMetadata.Location.Latitude,
-                Longitude = extractedMetadata.Location.Longitude
-            };
-            _logger.LogInformation("[CreatePostAsync] Applied AI-extracted location: {City}, {Country}", 
-                post.Location.City, post.Location.Country);
-        }
 
         try
         {
-            _logger.LogInformation("[CreatePostAsync] Saving post: PostId={postId}, ProfileId={profileId}", 
+            _logger.LogInformation("[CreatePostAsync] ⚡ FAST PATH: Saving post immediately: PostId={postId}, ProfileId={profileId}", 
                 post.Id, post.ProfileId);
 
             await _postRepository.AddAsync(post);
             await _postRepository.SaveChangesAsync();
 
-            _logger.LogInformation("[CreatePostAsync] Post saved successfully: PostId={postId}", post.Id);
+            _logger.LogInformation("[CreatePostAsync] ✓ Post saved successfully: PostId={postId}", post.Id);
 
-            // ==================== SENTIMENT ANALYSIS ====================
-            // Hybrid approach: Try client-side first (privacy-first), fall back to server
+            // Process attachments if provided (this is fast, ~100ms)
+            if (createPostDto.Attachments?.Any() == true)
+            {
+                await ProcessPostAttachmentsAsync(post.Id, createPostDto.Attachments);
+            }
+
+            // Record activity for the post creation
             try
             {
-                _logger.LogInformation("[CreatePostAsync] Performing sentiment analysis for PostId={postId}", post.Id);
-                
-                var sentimentResult = await _sentimentService.AnalyzeAsync(
-                    post.Content, 
-                    post.Language ?? "en");
+                await _activityService.RecordPostCreatedAsync(post);
+                _logger.LogInformation("[CreatePostAsync] Activity recorded for post: PostId={postId}", post.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CreatePostAsync] Failed to record activity for post: PostId={postId}", post.Id);
+            }
 
+            // ⚡ BACKGROUND PROCESSING: Queue AI enrichment (content extraction, sentiment, embeddings)
+            // This runs async after returning to the user - they see the post immediately
+            var postId = post.Id;
+            var content = post.Content;
+            var language = post.Language ?? "en";
+            
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    await ProcessPostAiEnrichmentAsync(scope.ServiceProvider, postId, content, language);
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail - the post is already saved
+                    _logger.LogError(ex, "[CreatePostAsync] Background AI enrichment failed for PostId={postId}", postId);
+                }
+            });
+
+            _logger.LogInformation("[CreatePostAsync] ✓ Post returned to user, AI enrichment queued in background: PostId={postId}", post.Id);
+
+            // ⚡ FAST PATH: Use data we already have instead of re-fetching from blob storage
+            // This avoids ~500ms latency from MapAttachmentsToDtosAsync which fetches URLs
+            return MapToPostDtoFast(post, activeProfile, createPostDto.Attachments);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Background task: Process AI enrichment for a post (content extraction, sentiment, embeddings)
+    /// This runs after the post is saved and returned to the user for instant feedback
+    /// </summary>
+    private async Task ProcessPostAiEnrichmentAsync(IServiceProvider serviceProvider, Guid postId, string content, string language)
+    {
+        _logger.LogInformation("[ProcessPostAiEnrichmentAsync] START background processing for PostId={postId}", postId);
+        var startTime = DateTime.UtcNow;
+
+        try
+        {
+            var postRepository = serviceProvider.GetRequiredService<IPostRepository>();
+            var contentExtractionService = serviceProvider.GetRequiredService<IContentExtractionService>();
+            var sentimentService = serviceProvider.GetRequiredService<ISentimentAnalysisService>();
+            var clientEmbeddingService = serviceProvider.GetRequiredService<IClientEmbeddingService>();
+            var vectorEmbeddingService = serviceProvider.GetRequiredService<IVectorEmbeddingService>();
+
+            // Get the post
+            var post = await postRepository.GetByIdAsync(postId);
+            if (post == null)
+            {
+                _logger.LogWarning("[ProcessPostAiEnrichmentAsync] Post not found: {postId}", postId);
+                return;
+            }
+
+            // 1. AI CONTENT EXTRACTION (enriches tags, post type, location)
+            try
+            {
+                _logger.LogInformation("[ProcessPostAiEnrichmentAsync] Starting AI content extraction for PostId={postId}", postId);
+                var extractedMetadata = await contentExtractionService.ExtractMetadataAsync(content, language);
+                
+                if (extractedMetadata?.Success == true)
+                {
+                    // Update post with AI-extracted metadata
+                    if (post.PostType == PostType.General && extractedMetadata.PostTypeConfidence > 0.6)
+                    {
+                        post.PostType = extractedMetadata.SuggestedPostType;
+                    }
+                    
+                    if (extractedMetadata.Tags?.Any() == true)
+                    {
+                        post.Tags = MergeTagsWithAiExtracted(post.Tags, extractedMetadata.Tags.ToArray());
+                    }
+                    
+                    if (post.Location == null && extractedMetadata.Location != null)
+                    {
+                        post.Location = new Location
+                        {
+                            City = extractedMetadata.Location.City,
+                            State = extractedMetadata.Location.State,
+                            Country = extractedMetadata.Location.Country ?? "El Salvador",
+                            Latitude = extractedMetadata.Location.Latitude,
+                            Longitude = extractedMetadata.Location.Longitude
+                        };
+                    }
+                    
+                    if (string.IsNullOrEmpty(post.BusinessMetadata) && extractedMetadata.BusinessMetadata != null)
+                    {
+                        post.BusinessMetadata = BuildBusinessMetadataFromExtraction(extractedMetadata);
+                    }
+
+                    post.UpdatedAt = DateTime.UtcNow;
+                    await postRepository.UpdateAsync(post);
+                    await postRepository.SaveChangesAsync();
+                    
+                    _logger.LogInformation("[ProcessPostAiEnrichmentAsync] ✓ AI extraction complete for PostId={postId}", postId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ProcessPostAiEnrichmentAsync] AI extraction failed for PostId={postId}", postId);
+            }
+
+            // 2. SENTIMENT ANALYSIS
+            try
+            {
+                var sentimentResult = await sentimentService.AnalyzeAsync(content, language);
                 if (sentimentResult != null)
                 {
                     post.PrimaryEmotion = sentimentResult.PrimaryEmotion;
@@ -259,97 +330,51 @@ public class PostService : IPostService
                     post.HasAnger = sentimentResult.HasAnger;
                     post.NeedsReview = sentimentResult.NeedsReview;
                     post.AnalyzedAt = DateTime.UtcNow;
+                    post.UpdatedAt = DateTime.UtcNow;
 
-                    await _postRepository.UpdateAsync(post);
-                    await _postRepository.SaveChangesAsync();
-
-                    _logger.LogInformation("[CreatePostAsync] ✓ Sentiment analysis complete: Emotion={Emotion}, Score={Score:F2}, Source={Source}",
-                        post.PrimaryEmotion, post.EmotionScore, sentimentResult.AnalysisSource);
+                    await postRepository.UpdateAsync(post);
+                    await postRepository.SaveChangesAsync();
                     
-                    if (post.NeedsReview)
-                    {
-                        _logger.LogWarning("[CreatePostAsync] ⚠️ Post flagged for review: PostId={postId}, AngerScore={AngerScore:F2}",
-                            post.Id, post.AngerScore);
-                    }
+                    _logger.LogInformation("[ProcessPostAiEnrichmentAsync] ✓ Sentiment analysis complete for PostId={postId}: {Emotion}", 
+                        postId, post.PrimaryEmotion);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[CreatePostAsync] Sentiment analysis failed for PostId={postId}, continuing without it", post.Id);
-                // Don't fail post creation if sentiment analysis fails
+                _logger.LogWarning(ex, "[ProcessPostAiEnrichmentAsync] Sentiment analysis failed for PostId={postId}", postId);
             }
-            // ============================================================
 
-            // Generate and save content embedding (HYBRID APPROACH: Client-first → Server fallback)
+            // 3. EMBEDDING GENERATION
             try
             {
-                float[]? embedding = null;
+                float[]? embedding = await clientEmbeddingService.TryGenerateEmbeddingAsync(content);
                 string vectorString;
-
-                // STEP 1: Try client-side embedding generation first (free, fast, private)
-                _logger.LogInformation("[CreatePostAsync] Attempting client-side embedding generation for PostId={postId}", post.Id);
-                embedding = await _clientEmbeddingService.TryGenerateEmbeddingAsync(post.Content);
 
                 if (embedding != null)
                 {
-                    // ✅ Client-side SUCCESS
-                    _logger.LogInformation("[CreatePostAsync] ✓ Client-side embedding generated successfully for PostId={postId} ({Dimensions}D)", 
-                        post.Id, embedding.Length);
-                    vectorString = _vectorEmbeddingService.ToPostgresVector(embedding);
+                    vectorString = vectorEmbeddingService.ToPostgresVector(embedding);
                 }
                 else
                 {
-                    // ❌ Client-side FAILED → STEP 2: Fallback to server-side
-                    _logger.LogInformation("[CreatePostAsync] Client-side embedding unavailable, using server-side fallback for PostId={postId}", 
-                        post.Id);
-                    
-                    var serverEmbedding = await _vectorEmbeddingService.GenerateEmbeddingAsync(post.Content);
-                    vectorString = _vectorEmbeddingService.ToPostgresVector(serverEmbedding);
-                    
-                    _logger.LogInformation("[CreatePostAsync] ✓ Server-side embedding generated successfully for PostId={postId}", 
-                        post.Id);
+                    var serverEmbedding = await vectorEmbeddingService.GenerateEmbeddingAsync(content);
+                    vectorString = vectorEmbeddingService.ToPostgresVector(serverEmbedding);
                 }
 
-                // STEP 3: Save embedding to database via raw SQL
-                var embeddingUpdated = await _postRepository.UpdateContentEmbeddingAsync(post.Id, vectorString);
-                if (embeddingUpdated)
-                {
-                    _logger.LogInformation("[CreatePostAsync] ✓ Embedding saved to database for PostId={postId}", post.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("[CreatePostAsync] Failed to save embedding to database for PostId={postId}", post.Id);
-                }
+                await postRepository.UpdateContentEmbeddingAsync(postId, vectorString);
+                _logger.LogInformation("[ProcessPostAiEnrichmentAsync] ✓ Embedding saved for PostId={postId}", postId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CreatePostAsync] Failed to generate/save embedding for PostId={postId}", post.Id);
-                // Don't fail the post creation if embedding generation fails - post is already saved
+                _logger.LogWarning(ex, "[ProcessPostAiEnrichmentAsync] Embedding generation failed for PostId={postId}", postId);
             }
 
-            // Record activity for the post creation
-            try
-            {
-                await _activityService.RecordPostCreatedAsync(post);
-                _logger.LogInformation("[CreatePostAsync] Activity recorded for post: PostId={postId}", post.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[CreatePostAsync] Failed to record activity for post: PostId={postId}", post.Id);
-                // Don't fail the post creation if activity recording fails
-            }
-
-            // Process attachments if provided
-            if (createPostDto.Attachments?.Any() == true)
-            {
-                await ProcessPostAttachmentsAsync(post.Id, createPostDto.Attachments);
-            }
-
-            return await MapToPostDtoAsync(post, keycloakId);
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[ProcessPostAiEnrichmentAsync] ✅ COMPLETE background processing for PostId={postId} in {Duration}ms", 
+                postId, elapsed);
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            _logger.LogError(ex, "[ProcessPostAiEnrichmentAsync] FAILED background processing for PostId={postId}", postId);
         }
     }
 
@@ -1141,6 +1166,100 @@ public class PostService : IPostService
     #region Private Helper Methods
 
     /// <summary>
+    /// ⚡ FAST PATH: Maps Post to DTO using data we already have
+    /// Used during post creation to avoid re-fetching blob URLs (~500ms savings)
+    /// </summary>
+    private PostDto MapToPostDtoFast(Post post, Profile profile, List<CreatePostAttachmentDto>? attachments)
+    {
+        _logger.LogInformation("[PostService.MapToPostDtoFast] ⚡ Fast mapping post: PostId={PostId}", post.Id);
+
+        var postDto = new PostDto
+        {
+            Id = post.Id,
+            Profile = new ProfileDto
+            {
+                Id = profile.Id,
+                DisplayName = profile.DisplayName,
+                Handle = profile.Handle,
+                Avatar = profile.Avatar ?? "",
+                Bio = profile.Bio ?? "",
+                UserId = profile.UserId,
+                ProfileTypeId = profile.ProfileTypeId,
+                IsActive = profile.IsActive,
+                VisibilityLevel = profile.VisibilityLevel,
+                CreatedAt = profile.CreatedAt,
+                UpdatedAt = profile.UpdatedAt
+            },
+            Content = post.Content,
+            PostType = post.PostType,
+            Visibility = post.Visibility,
+            Language = post.Language,
+            Tags = post.Tags?.ToList() ?? new List<string>(),
+            BusinessMetadata = post.BusinessMetadata,
+            ProcedureMetadataJson = post.ProcedureMetadataJson,
+            // ⚡ Use attachment data from CreatePostDto - no blob URL re-fetch needed!
+            Attachments = attachments?.Select((a, index) => new PostAttachmentDto
+            {
+                Id = Guid.NewGuid(), // Placeholder - actual ID created in ProcessPostAttachmentsAsync
+                AttachmentType = a.AttachmentType,
+                FileId = a.FileId,
+                FilePath = a.FilePath, // Already have the URL from upload
+                OriginalFilename = a.OriginalFilename,
+                MimeType = a.MimeType,
+                FileSize = a.FileSize,
+                AltText = a.AltText,
+                DisplayOrder = a.DisplayOrder > 0 ? a.DisplayOrder : index,
+                CreatedAt = DateTime.UtcNow
+            }).ToList() ?? new List<PostAttachmentDto>(),
+            CommentCount = 0, // New post has no comments
+            CreatedAt = post.CreatedAt,
+            UpdatedAt = post.UpdatedAt,
+            IsEdited = post.IsEdited,
+            EditedAt = post.EditedAt,
+            // Blog-specific fields
+            BlogContent = post.BlogContent,
+            CoverImageUrl = post.CoverImageUrl,
+            CoverImageFileId = post.CoverImageFileId,
+            Subtitle = post.Subtitle,
+            ReadTimeMinutes = post.ReadTimeMinutes,
+            IsDraft = post.IsDraft,
+            PublishedAt = post.PublishedAt,
+            CanonicalUrl = post.CanonicalUrl,
+            // New post has no reactions
+            ReactionSummary = new PostReactionSummaryDto
+            {
+                PostId = post.Id,
+                TotalReactions = 0,
+                ReactionCounts = new Dictionary<ReactionType, int>(),
+                UserReaction = null,
+                TopReactionType = null,
+                HasUserReacted = false
+            }
+        };
+
+        // Add location if present
+        if (post.Location != null)
+        {
+            postDto = postDto with
+            {
+                Location = new LocationDto
+                {
+                    City = post.Location.City,
+                    State = post.Location.State,
+                    Country = post.Location.Country,
+                    Latitude = post.Location.Latitude,
+                    Longitude = post.Location.Longitude
+                }
+            };
+        }
+
+        _logger.LogInformation("[PostService.MapToPostDtoFast] ✓ Fast mapping complete: PostId={PostId}, AttachmentCount={AttachmentCount}", 
+            post.Id, postDto.Attachments.Count);
+
+        return postDto;
+    }
+
+    /// <summary>
     /// Maps a Post entity to PostDto
     /// </summary>
     private async Task<PostDto?> MapToPostDtoAsync(Post post, string? requestingKeycloakId = null, bool includeReactions = true, bool includeComments = true)
@@ -1415,9 +1534,8 @@ public class PostService : IPostService
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] Retrieved {AttachmentCount} attachments - RequestId={RequestId}, PostId={PostId}",
                 attachments.Count, requestId, postId);
 
-            var attachmentDtos = new List<PostAttachmentDto>();
-
-            foreach (var attachment in attachments)
+            // ⚡ PERFORMANCE: Fetch all URLs in parallel instead of sequentially
+            var urlTasks = attachments.Select(async attachment =>
             {
                 string publicUrl;
                 
@@ -1454,7 +1572,7 @@ public class PostService : IPostService
                     }
                 }
 
-                var dto = new PostAttachmentDto
+                return new PostAttachmentDto
                 {
                     Id = attachment.Id,
                     AttachmentType = attachment.AttachmentType,
@@ -1467,9 +1585,9 @@ public class PostService : IPostService
                     DisplayOrder = attachment.DisplayOrder,
                     CreatedAt = attachment.CreatedAt
                 };
+            });
 
-                attachmentDtos.Add(dto);
-            }
+            var attachmentDtos = (await Task.WhenAll(urlTasks)).ToList();
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[PostService.MapAttachmentsToDtosAsync] SUCCESS - RequestId={RequestId}, PostId={PostId}, MappedCount={MappedCount}, Duration={Duration}ms",

@@ -19,6 +19,15 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
     }
 
     /// <summary>
+    /// Override GetByIdAsync to handle composite primary key (Id, CreatedAt) for TimescaleDB.
+    /// Uses alternate key on Id column instead of FindAsync which requires all key parts.
+    /// </summary>
+    public override async Task<Post?> GetByIdAsync(Guid id)
+    {
+        return await _dbSet.FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    /// <summary>
     /// Gets posts by profile ID with pagination
     /// </summary>
     public async Task<(IEnumerable<Post> Posts, int TotalCount)> GetByProfileAsync(
