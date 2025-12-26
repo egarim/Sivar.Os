@@ -86,11 +86,29 @@ public class ActivitiesClient : IActivitiesClient
                 return new ActivityFeedDto { Page = pageNumber - 1, PageSize = pageSize };
             }
 
-            // Map to DTOs and enrich with related data
+            // ⚡ PERFORMANCE: Batch load all posts at once, then map
+            // This avoids N+1 query problem (10 posts = 10 separate DB calls)
+            var postActivityIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            
+            // Pre-fetch all posts in one call
+            var posts = new Dictionary<Guid, PostDto?>();
+            foreach (var postId in postActivityIds)
+            {
+                var post = await _postService.GetPostByIdAsync(postId);
+                posts[postId] = post;
+            }
+            
+            _logger.LogInformation("[ActivitiesClient.GetFeedActivitiesAsync] Pre-fetched {Count} posts", posts.Count);
+
+            // Map activities using pre-fetched data
             var activityDtos = new List<ActivityDto>();
             foreach (var activity in activities)
             {
-                var dto = await MapToActivityDto(activity);
+                var dto = MapActivityToDto(activity, posts);
                 activityDtos.Add(dto);
             }
 
@@ -131,12 +149,21 @@ public class ActivitiesClient : IActivitiesClient
                 pageSize,
                 cancellationToken);
 
-            var activityDtos = new List<ActivityDto>();
-            foreach (var activity in activities)
+            // ⚡ PERFORMANCE: Batch load all posts at once (avoids N+1 queries)
+            var postActivityIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            
+            var posts = new Dictionary<Guid, PostDto?>();
+            foreach (var postId in postActivityIds)
             {
-                var dto = await MapToActivityDto(activity);
-                activityDtos.Add(dto);
+                var post = await _postService.GetPostByIdAsync(postId);
+                posts[postId] = post;
             }
+
+            var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
 
             var totalCount = activityDtos.Count;
             var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
@@ -173,12 +200,21 @@ public class ActivitiesClient : IActivitiesClient
                 pageSize,
                 cancellationToken);
 
-            var activityDtos = new List<ActivityDto>();
-            foreach (var activity in activities)
+            // ⚡ PERFORMANCE: Batch load all posts at once (avoids N+1 queries)
+            var postActivityIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            
+            var posts = new Dictionary<Guid, PostDto?>();
+            foreach (var postId in postActivityIds)
             {
-                var dto = await MapToActivityDto(activity);
-                activityDtos.Add(dto);
+                var post = await _postService.GetPostByIdAsync(postId);
+                posts[postId] = post;
             }
+
+            var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
 
             var totalCount = activityDtos.Count;
             var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
@@ -257,6 +293,41 @@ public class ActivitiesClient : IActivitiesClient
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[ActivitiesClient.MapToActivityDto] Error enriching activity {ActivityId} with related object", activity.Id);
+        }
+
+        return dto;
+    }
+
+    /// <summary>
+    /// Maps Activity entity to ActivityDto using pre-fetched posts (fast, no DB calls)
+    /// </summary>
+    private ActivityDto MapActivityToDto(Shared.Entities.Activity activity, Dictionary<Guid, PostDto?> posts)
+    {
+        var dto = new ActivityDto
+        {
+            Id = activity.Id,
+            ActorId = activity.ActorId,
+            Actor = activity.Actor != null ? MapProfileToDto(activity.Actor) : null,
+            Verb = activity.Verb,
+            ObjectType = activity.ObjectType,
+            ObjectId = activity.ObjectId,
+            TargetType = activity.TargetType,
+            TargetId = activity.TargetId,
+            Summary = activity.Summary,
+            Metadata = activity.Metadata,
+            Visibility = activity.Visibility,
+            PublishedAt = activity.PublishedAt,
+            EngagementScore = activity.EngagementScore,
+            ViewCount = activity.ViewCount
+        };
+
+        // Use pre-fetched post data
+        if (activity.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+        {
+            if (posts.TryGetValue(activity.ObjectId, out var post))
+            {
+                dto.Post = post;
+            }
         }
 
         return dto;

@@ -77,11 +77,17 @@
                           OnPublish="@(() => HandlePostSubmitAsync())" />
 
             <div class="posts-grid">
-                @foreach (var activity in _activities)
+                @if (_isFeedLoading)
                 {
-                    @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
+                    <FeedSkeleton Count="4" />
+                }
+                else
+                {
+                    @foreach (var activity in _activities)
                     {
-                        <PostCard Post="@activity.Post"
+                        @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
+                        {
+                            <PostCard Post="@activity.Post"
                                   CurrentUserId="@_currentUserId"
                                   OnLike="@(() => ToggleLike(activity.Post))"
                                   OnCommentClick="@(() => ToggleComments(activity.Post))"
@@ -100,6 +106,7 @@
                         <div class="activity-card">
                             <p>@activity.Summary - @activity.TimeAgo</p>
                         </div>
+                    }
                     }
                 }
             </div>
@@ -169,6 +176,9 @@
     // Optimistic UI State
     private bool _isPosting = false;
     private Guid? _optimisticPostId = null;
+    
+    // Feed Loading State
+    private bool _isFeedLoading = true;
 
     // Stats
     private StatsSummary _stats = new()
@@ -1359,6 +1369,9 @@
     /// </summary>
     private async Task LoadFeedActivitiesAsync()
     {
+        _isFeedLoading = true;
+        StateHasChanged(); // Show skeleton immediately
+        
         try
         {
             Console.WriteLine("---------------------------------------------------------------");
@@ -1469,6 +1482,11 @@
             Console.WriteLine("---------------------------------------------------------------");
             _activities = new List<ActivityDto>();
             _totalPages = 0;
+            StateHasChanged();
+        }
+        finally
+        {
+            _isFeedLoading = false;
             StateHasChanged();
         }
     }
