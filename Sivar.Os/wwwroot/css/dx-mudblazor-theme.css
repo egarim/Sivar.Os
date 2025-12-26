@@ -267,6 +267,127 @@
     background-color: #27293d !important;
 }
 
+/* Hide default DxAIChat loading indicator - we use custom typing indicator */
+.sivar-ai-chat .dxbl-chatui-loading,
+.sivar-ai-chat .dxbl-chatui-typing-indicator,
+.sivar-ai-chat .dxbl-chatui-message-typing,
+.sivar-ai-chat .dxbl-aichat-loading,
+.sivar-ai-chat [class*="loading-indicator"] {
+    display: none !important;
+}
+
+/* Custom Typing Indicator Animation */
+.sivar-ai-chat .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background-color: var(--mud-palette-background, #f5f5f5);
+    border-radius: 18px;
+    width: fit-content;
+}
+
+.sivar-ai-chat .typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sivar-ai-chat .typing-text {
+    font-size: 13px;
+    color: var(--mud-palette-text-secondary, #666);
+    font-style: italic;
+}
+
+.mud-theme-dark .sivar-ai-chat .typing-indicator {
+    background-color: #27293d;
+}
+
+.mud-theme-dark .sivar-ai-chat .typing-text {
+    color: var(--mud-palette-text-secondary, #999);
+}
+
+.sivar-ai-chat .typing-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--mud-palette-primary, #7e6fff);
+    border-radius: 50%;
+    animation: typing-dot-bounce 1.4s infinite ease-in-out both;
+}
+
+.sivar-ai-chat .typing-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.sivar-ai-chat .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.sivar-ai-chat .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-dot-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   CUSTOM MESSAGE ACTIONS (Copy & Regenerate)
+   ============================================ */
+.sivar-ai-chat .message-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Show actions on message hover */
+.sivar-ai-chat .dxbl-chatui-bubble:hover .message-actions,
+.sivar-ai-chat .dxbl-chatui-message:hover .message-actions,
+.sivar-ai-chat .chat-bubble:hover .message-actions {
+    opacity: 1;
+}
+
+/* Always visible on touch devices */
+@media (hover: none) {
+    .sivar-ai-chat .message-actions {
+        opacity: 1;
+    }
+}
+
+.sivar-ai-chat .message-action-btn {
+    background: transparent !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 6px !important;
+    color: var(--mud-palette-text-secondary, #666) !important;
+    transition: all 0.2s ease !important;
+}
+
+.sivar-ai-chat .message-action-btn:hover {
+    background: var(--mud-palette-primary, #7e6fff) !important;
+    border-color: var(--mud-palette-primary, #7e6fff) !important;
+    color: white !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .message-action-btn {
+    border-color: #3a3c4e !important;
+    color: var(--mud-palette-text-secondary, #999) !important;
+}
+
+.mud-theme-dark .sivar-ai-chat .message-action-btn:hover {
+    background: var(--mud-palette-primary, #7e6fff) !important;
+    border-color: var(--mud-palette-primary, #7e6fff) !important;
+    color: white !important;
+}
+
 /* ============================================
    ERROR MESSAGES
    ============================================ */
@@ -466,4 +587,88 @@
 @keyframes sivarFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+/* ============================================
+   MESSAGE ACTION BUTTONS (Copy & Regenerate)
+   ============================================ */
+.sivar-ai-chat .dxbl-chatui-message-actions,
+.sivar-ai-chat .dxbl-aichat-message-actions {
+    display: flex !important;
+    gap: 4px !important;
+    margin-top: 8px !important;
+    opacity: 0;
+    transition: opacity 0.2s ease !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-message:hover .dxbl-chatui-message-actions,
+.sivar-ai-chat .dxbl-aichat-message:hover .dxbl-aichat-message-actions,
+.sivar-ai-chat .dxbl-chatui-bubble-assistant:hover .dxbl-chatui-message-actions,
+.sivar-ai-chat .dxbl-aichat-bubble:hover .dxbl-aichat-message-actions {
+    opacity: 1 !important;
+}
+
+/* Copy Button */
+.sivar-ai-chat .dxbl-chatui-copy-button,
+.sivar-ai-chat .dxbl-aichat-copy-btn,
+.sivar-ai-chat [class*="copy"] {
+    background: transparent !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    color: var(--mud-palette-text-secondary, #666) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-copy-button:hover,
+.sivar-ai-chat .dxbl-aichat-copy-btn:hover,
+.sivar-ai-chat [class*="copy"]:hover {
+    background: var(--mud-palette-primary, #7e6fff) !important;
+    border-color: var(--mud-palette-primary, #7e6fff) !important;
+    color: white !important;
+}
+
+/* Regenerate Button */
+.sivar-ai-chat .dxbl-chatui-regenerate-button,
+.sivar-ai-chat .dxbl-aichat-regenerate-btn,
+.sivar-ai-chat [class*="regenerate"] {
+    background: transparent !important;
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0) !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    color: var(--mud-palette-text-secondary, #666) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.sivar-ai-chat .dxbl-chatui-regenerate-button:hover,
+.sivar-ai-chat .dxbl-aichat-regenerate-btn:hover,
+.sivar-ai-chat [class*="regenerate"]:hover {
+    background: var(--mud-palette-secondary, #764ba2) !important;
+    border-color: var(--mud-palette-secondary, #764ba2) !important;
+    color: white !important;
+}
+
+/* Dark theme adjustments for action buttons */
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-copy-button,
+.mud-theme-dark .sivar-ai-chat .dxbl-aichat-copy-btn,
+.mud-theme-dark .sivar-ai-chat .dxbl-chatui-regenerate-button,
+.mud-theme-dark .sivar-ai-chat .dxbl-aichat-regenerate-btn {
+    border-color: #3a3c4e !important;
+    color: var(--mud-palette-text-secondary, #999) !important;
+}
+
+/* Ensure buttons are always visible (not just on hover) */
+.sivar-ai-chat .dxbl-chatui-message-actions,
+.sivar-ai-chat .dxbl-aichat-message-actions {
+    opacity: 1 !important;
+    visibility: visible !important;
 }

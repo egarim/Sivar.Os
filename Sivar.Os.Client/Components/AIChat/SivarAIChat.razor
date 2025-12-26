@@ -57,7 +57,19 @@
                 var hasStructuredResults = TryGetStructuredResults(messageId, out var results);
             }
             
-            @if (context.Role == ChatMessageRole.Assistant && hasStructuredResults && results != null)
+            @* Show typing indicator while AI is generating response *@
+            @if (context.Typing)
+            {
+                <div class="typing-indicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span class="typing-text">Sivar is typing a message</span>
+                </div>
+            }
+            else if (context.Role == ChatMessageRole.Assistant && hasStructuredResults && results != null)
             {
                 @* Render intro text with markdown *@
                 <div class="chat-bubble chat-intro">
@@ -437,6 +449,27 @@
                 @* Standard message rendering with markdown *@
                 <div class="message-content">
                     @((MarkupString)RenderMarkdown(context.Content))
+                </div>
+            }
+            
+            @* Message action buttons (Copy & Regenerate) for assistant messages *@
+            @if (context.Role == ChatMessageRole.Assistant && !context.Typing)
+            {
+                <div class="message-actions">
+                    <MudTooltip Text="Copiar respuesta" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Outlined.ContentCopy" 
+                                       Size="Size.Small" 
+                                       Color="Color.Default"
+                                       OnClick="@(() => CopyMessageToClipboard(context.Content))"
+                                       Class="message-action-btn" />
+                    </MudTooltip>
+                    <MudTooltip Text="Regenerar respuesta" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
+                                       Size="Size.Small" 
+                                       Color="Color.Default"
+                                       OnClick="@(() => RegenerateMessage(context))"
+                                       Class="message-action-btn" />
+                    </MudTooltip>
                 </div>
             }
         </MessageContentTemplate>
@@ -822,6 +855,63 @@
     #endregion
     
     #region Helper Methods
+    
+    /// <summary>
+    /// Copy message content to clipboard
+    /// </summary>
+    private async Task CopyMessageToClipboard(string content)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", content);
+            Logger.LogInformation("[SivarAIChat] Message copied to clipboard");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[SivarAIChat] Failed to copy to clipboard");
+        }
+    }
+    
+    /// <summary>
+    /// Regenerate a message by re-sending the previous user query
+    /// </summary>
+    private async Task RegenerateMessage(BlazorChatMessage context)
+    {
+        if (_chat == null) return;
+        
+        try
+        {
+            // Get all messages and find the previous user message
+            var messages = _chat.SaveMessages().ToList();
+            var currentIndex = messages.FindIndex(m => m.Content == context.Content && m.Role == context.Role);
+            
+            if (currentIndex > 0)
+            {
+                // Find the most recent user message before this assistant message
+                for (int i = currentIndex - 1; i >= 0; i--)
+                {
+                    if (messages[i].Role == ChatMessageRole.User)
+                    {
+                        var userQuery = messages[i].Content;
+                        Logger.LogInformation("[SivarAIChat] Regenerating response for query: {Query}", userQuery);
+                        
+                        // Create a synthetic MessageSentEventArgs and trigger the parent's handler
+                        // The parent component should handle the actual API call
+                        if (OnUserMessageSent.HasDelegate)
+                        {
+                            // Send the user message again to trigger regeneration
+                            await _chat.SendMessage(userQuery, Microsoft.Extensions.AI.ChatRole.User);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[SivarAIChat] Failed to regenerate message");
+        }
+    }
     
     /// <summary>
     /// Render markdown content to HTML
