@@ -21,7 +21,9 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
     // Request-scoped caching to prevent concurrent DbContext access
     private ProfileDto? _cachedActiveProfile;
     private bool _activeProfileLoaded;
+    private bool _activeProfileLoadedSuccessfully; // Tracks if load was successful (vs auth failure)
     private List<ProfileDto>? _cachedProfiles;
+    private bool _profilesLoadedSuccessfully;
     private readonly SemaphoreSlim _profileLock = new(1, 1);
     private readonly SemaphoreSlim _activeProfileLock = new(1, 1);
 
@@ -52,17 +54,33 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
     /// <summary>
     /// Get the Keycloak ID from the current user's claims
     /// </summary>
-    private string GetCurrentUserKeycloakId()
+    /// <returns>Keycloak ID or null if not authenticated</returns>
+    private string? GetCurrentUserKeycloakId()
     {
         var user = _httpContextAccessor.HttpContext?.User;
+        
+        // Check for mock authentication header (for integration tests)
+        if (_httpContextAccessor.HttpContext?.Request.Headers.TryGetValue("X-Keycloak-Id", out var keycloakIdHeader) == true)
+        {
+            return keycloakIdHeader.ToString();
+        }
+        
         // Use "sub" claim which is the standard Keycloak subject identifier
         // This matches how PostsClient and other services extract the Keycloak ID
         var keycloakId = user?.Claims?.FirstOrDefault(c => c.Type == "sub")?.Value;
 
         if (string.IsNullOrEmpty(keycloakId))
         {
-            _logger.LogWarning("[ProfileSwitcherClient] Unable to extract Keycloak ID from user claims");
-            throw new UnauthorizedAccessException("User is not authenticated");
+            // Try fallback claims
+            keycloakId = user?.FindFirst("user_id")?.Value 
+                      ?? user?.FindFirst("id")?.Value 
+                      ?? user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        if (string.IsNullOrEmpty(keycloakId))
+        {
+            _logger.LogDebug("[ProfileSwitcherClient] Unable to extract Keycloak ID from user claims - user may not be fully authenticated yet");
+            return null;
         }
 
         return keycloakId;
@@ -75,20 +93,27 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
         await _profileLock.WaitAsync();
         try
         {
-            // Return cached value if already loaded this request
-            if (_cachedProfiles != null)
+            // Return cached value only if load was successful (not an auth failure)
+            if (_profilesLoadedSuccessfully && _cachedProfiles != null)
             {
-                _logger.LogDebug("[ProfileSwitcherClient] Returning cached profiles");
+                _logger.LogDebug("[ProfileSwitcherClient] Returning cached profiles ({Count})", _cachedProfiles.Count);
                 return _cachedProfiles;
             }
             
             _logger.LogInformation("[ProfileSwitcherClient] Getting user profiles");
 
             var keycloakId = GetCurrentUserKeycloakId();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogDebug("[ProfileSwitcherClient] No keycloak ID available, returning empty list (will retry on next call)");
+                return new List<ProfileDto>();
+            }
+            
             var profiles = await _profileService.GetMyProfilesAsync(keycloakId);
 
             var profileList = profiles?.ToList() ?? new List<ProfileDto>();
-            _cachedProfiles = profileList; // Cache the result
+            _cachedProfiles = profileList;
+            _profilesLoadedSuccessfully = true; // Mark as successfully loaded
             
             _logger.LogInformation("[ProfileSwitcherClient] Retrieved {ProfileCount} profiles", profileList.Count);
 
@@ -97,11 +122,13 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning("[ProfileSwitcherClient] Authentication error: {Message}", ex.Message);
+            // Don't cache on auth failure - allow retry
             return new List<ProfileDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError("[ProfileSwitcherClient] Error getting profiles: {Message}", ex.Message);
+            // Don't cache on error - allow retry
             return new List<ProfileDto>();
         }
         finally
@@ -117,23 +144,31 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
         await _activeProfileLock.WaitAsync();
         try
         {
-            // Return cached value if already loaded this request
-            if (_activeProfileLoaded)
+            // Return cached value only if load was successful (not an auth failure)
+            if (_activeProfileLoadedSuccessfully)
             {
-                _logger.LogDebug("[ProfileSwitcherClient] Returning cached active profile");
+                _logger.LogDebug("[ProfileSwitcherClient] Returning cached active profile: {DisplayName}", 
+                    _cachedActiveProfile?.DisplayName ?? "(null)");
                 return _cachedActiveProfile;
             }
             
             _logger.LogInformation("[ProfileSwitcherClient] Getting active profile");
 
             var keycloakId = GetCurrentUserKeycloakId();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogDebug("[ProfileSwitcherClient] No keycloak ID available, returning null (will retry on next call)");
+                return null;
+            }
+            
             _logger.LogInformation("[ProfileSwitcherClient] KeycloakId: {KeycloakId}", keycloakId);
             
             var activeProfile = await _profileService.GetMyActiveProfileAsync(keycloakId);
 
-            // Cache the result
+            // Cache the result - mark as successfully loaded
             _cachedActiveProfile = activeProfile;
             _activeProfileLoaded = true;
+            _activeProfileLoadedSuccessfully = true;
 
             if (activeProfile != null)
             {
@@ -150,11 +185,13 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning("[ProfileSwitcherClient] Authentication error: {Message}", ex.Message);
+            // Don't cache on auth failure - allow retry
             return null;
         }
         catch (Exception ex)
         {
             _logger.LogError("[ProfileSwitcherClient] Error getting active profile: {Message}", ex.Message);
+            // Don't cache on error - allow retry
             return null;
         }
         finally
@@ -171,6 +208,12 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
             _logger.LogInformation("[ProfileSwitcherClient] Switching to profile: {ProfileId}", profileId);
 
             var keycloakId = GetCurrentUserKeycloakId();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfileSwitcherClient] Cannot switch profile - no keycloak ID available");
+                return false;
+            }
+            
             var success = await _profileService.SetActiveProfileAsync(keycloakId, profileId);
 
             if (success)
@@ -178,7 +221,9 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
                 // Invalidate cache on successful switch
                 _cachedActiveProfile = null;
                 _activeProfileLoaded = false;
+                _activeProfileLoadedSuccessfully = false;
                 _cachedProfiles = null;
+                _profilesLoadedSuccessfully = false;
                 
                 _logger.LogInformation("[ProfileSwitcherClient] Successfully switched to profile: {ProfileId}", profileId);
             }
@@ -209,6 +254,11 @@ public class ProfileSwitcherClient : BaseRepositoryClient, IProfileSwitcherServi
             _logger.LogInformation("[ProfileSwitcherClient] Creating new profile");
 
             var keycloakId = GetCurrentUserKeycloakId();
+            if (string.IsNullOrEmpty(keycloakId))
+            {
+                _logger.LogWarning("[ProfileSwitcherClient] Cannot create profile - no keycloak ID available");
+                return null;
+            }
 
             // Convert CreateAnyProfileDto to CreateProfileDto
             // CreateProfileDto is used by ProfileService which automatically determines profile type from metadata

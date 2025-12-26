@@ -501,39 +501,66 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     /// <summary>
     /// Load active profile from API and all user profiles
     /// Blazor Server: Uses component state, calls service methods directly
+    /// Includes retry logic for cases where auth isn't fully ready
     /// </summary>
     private async Task LoadActiveProfileAsync()
     {
-        try
+        const int maxRetries = 3;
+        const int retryDelayMs = 200;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            Console.WriteLine("[NavMenu] ==================== LoadActiveProfileAsync START ====================");
-            
-            // Step 1: Load the active profile from the service
-            Console.WriteLine("[NavMenu] Step 1: Getting active profile from service");
-            _activeProfile = await ProfileSwitcherService.GetActiveProfileAsync();
-            Console.WriteLine($"[NavMenu] Active profile from service: {_activeProfile?.DisplayName ?? "NULL"}");
-            
-            // Step 2: Load all user profiles
-            Console.WriteLine("[NavMenu] Step 2: Loading all user profiles");
-            await LoadUserProfilesAsync();
-            
-            // Step 3: If active profile is still null, use first from list
-            if (_activeProfile == null && _userProfiles?.Any() == true)
+            try
             {
-                _activeProfile = _userProfiles.FirstOrDefault(p => p.IsActive) ?? _userProfiles.FirstOrDefault();
-                Console.WriteLine($"[NavMenu] Set active profile from list: {_activeProfile?.DisplayName}");
+                Console.WriteLine($"[NavMenu] ==================== LoadActiveProfileAsync START (attempt {attempt}/{maxRetries}) ====================");
+                
+                // Step 1: Load the active profile from the service
+                Console.WriteLine("[NavMenu] Step 1: Getting active profile from service");
+                _activeProfile = await ProfileSwitcherService.GetActiveProfileAsync();
+                Console.WriteLine($"[NavMenu] Active profile from service: {_activeProfile?.DisplayName ?? "NULL"}");
+                
+                // Step 2: Load all user profiles
+                Console.WriteLine("[NavMenu] Step 2: Loading all user profiles");
+                await LoadUserProfilesAsync();
+                
+                // Step 3: If active profile is still null, use first from list
+                if (_activeProfile == null && _userProfiles?.Any() == true)
+                {
+                    _activeProfile = _userProfiles.FirstOrDefault(p => p.IsActive) ?? _userProfiles.FirstOrDefault();
+                    Console.WriteLine($"[NavMenu] Set active profile from list: {_activeProfile?.DisplayName}");
+                }
+                
+                // If we have profiles loaded, we're done
+                if (_activeProfile != null || (_userProfiles?.Any() == true))
+                {
+                    Console.WriteLine($"[NavMenu] ==================== LoadActiveProfileAsync SUCCESS - Active: {_activeProfile?.DisplayName ?? "NULL"} ====================");
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+                
+                // If both are empty and we have retries left, wait and retry
+                if (attempt < maxRetries)
+                {
+                    Console.WriteLine($"[NavMenu] No profiles loaded, retrying in {retryDelayMs}ms...");
+                    await Task.Delay(retryDelayMs);
+                }
             }
-            
-            Console.WriteLine($"[NavMenu] ==================== LoadActiveProfileAsync END - Active: {_activeProfile?.DisplayName ?? "NULL"} ====================");
-            
-            // Trigger UI update with the loaded profile
-            StateHasChanged();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NavMenu] ❌ Error in LoadActiveProfileAsync (attempt {attempt}): {ex.Message}");
+                if (attempt == maxRetries)
+                {
+                    Console.WriteLine($"[NavMenu] Stack trace: {ex.StackTrace}");
+                }
+                else
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[NavMenu] ❌ Error in LoadActiveProfileAsync: {ex.Message}");
-            Console.WriteLine($"[NavMenu] Stack trace: {ex.StackTrace}");
-        }
+        
+        Console.WriteLine("[NavMenu] ==================== LoadActiveProfileAsync END (all retries exhausted) ====================");
+        await InvokeAsync(StateHasChanged);
     }
     
     /// <summary>
