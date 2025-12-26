@@ -1,0 +1,1 @@
+SELECT "Id", "Email", "KeycloakId" FROM "Sivar_Users" WHERE "Id" = '50b68bba-c694-46eb-8e10-10e7d67abfdd';
