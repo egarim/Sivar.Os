@@ -42,16 +42,106 @@
         }
         else if (_post != null)
         {
-            <!-- Use the same PostCard component as Home and Profile pages -->
-            <div class="feed">
-                <PostCard Post="_post"
-                          CurrentUserId="_currentProfileId"
-                          OnLike="HandleLike"
-                          OnCommentClick="HandleCommentClick"
-                          OnShare="HandleShare"
-                          OnEdit="HandleEdit"
-                          OnDelete="HandleDelete" />
-            </div>
+            @if (_post.PostType == PostType.Blog)
+            {
+                <!-- Blog Post Detail View -->
+                <article class="blog-detail">
+                    @if (!string.IsNullOrEmpty(_post.CoverImageUrl))
+                    {
+                        <div class="blog-cover-image">
+                            <img src="@_post.CoverImageUrl" alt="@_post.Content" />
+                        </div>
+                    }
+                    
+                    <div class="blog-detail-content">
+                        <!-- Author Info -->
+                        <div class="blog-author">
+                            <MudAvatar Size="Size.Medium" Color="Color.Primary">
+                                @GetInitials(_post.Profile?.DisplayName)
+                            </MudAvatar>
+                            <div class="blog-author-info">
+                                <MudText Typo="Typo.subtitle1" Class="blog-author-name">
+                                    @_post.Profile?.DisplayName
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @FormatDate(_post.PublishedAt ?? _post.CreatedAt)
+                                    @if (_post.ReadTimeMinutes.HasValue && _post.ReadTimeMinutes.Value > 0)
+                                    {
+                                        <span> · @_post.ReadTimeMinutes min read</span>
+                                    }
+                                </MudText>
+                            </div>
+                        </div>
+                        
+                        <!-- Title -->
+                        <h1 class="blog-title">@_post.Content</h1>
+                        
+                        <!-- Subtitle -->
+                        @if (!string.IsNullOrEmpty(_post.Subtitle))
+                        {
+                            <p class="blog-subtitle">@_post.Subtitle</p>
+                        }
+                        
+                        <!-- Blog Content - render as HTML -->
+                        @if (!string.IsNullOrEmpty(_post.BlogContent))
+                        {
+                            <div class="blog-body">
+                                @((MarkupString)_post.BlogContent)
+                            </div>
+                        }
+                        
+                        <!-- Tags -->
+                        @if (_post.Tags?.Count > 0)
+                        {
+                            <div class="blog-tags">
+                                @foreach (var tag in _post.Tags)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                        @tag
+                                    </MudChip>
+                                }
+                            </div>
+                        }
+                        
+                        <MudDivider Class="my-4" />
+                        
+                        <!-- Reactions -->
+                        <PostReactions ReactionSummary="@_post.ReactionSummary" />
+                        
+                        <!-- Footer Actions -->
+                        <PostFooter 
+                            Likes="@(_post.ReactionSummary?.TotalReactions ?? 0)"
+                            Comments="@_post.CommentCount"
+                            Shares="0"
+                            Liked="@(_post.ReactionSummary?.UserReaction.HasValue ?? false)"
+                            IsPostOwner="@(_post.Profile?.Id == _currentProfileId)"
+                            PostLink="@($"/post/{_post.Id}")"
+                            OnLike="@(() => HandleLike(_post))"
+                            OnComment="@(() => HandleCommentClick(_post))"
+                            OnShare="@(() => HandleShare(_post))"
+                            OnEdit="@(() => HandleEdit(_post))"
+                            OnDelete="@(() => HandleDelete(_post))" />
+                        
+                        <!-- Comments Section -->
+                        <CommentSection PostId="@_post.Id"
+                                        InitialCommentCount="@_post.CommentCount"
+                                        IsExpanded="true" />
+                    </div>
+                </article>
+            }
+            else
+            {
+                <!-- Regular Post - Use PostCard -->
+                <div class="feed">
+                    <PostCard Post="_post"
+                              CurrentUserId="_currentProfileId"
+                              OnLike="HandleLike"
+                              OnCommentClick="HandleCommentClick"
+                              OnShare="HandleShare"
+                              OnEdit="HandleEdit"
+                              OnDelete="HandleDelete" />
+                </div>
+            }
         }
     </div>
 </div>
@@ -75,7 +165,7 @@
     }
 
     .post-detail-content {
-        max-width: 600px;
+        max-width: 800px;
         margin: 0 auto;
         padding: 1rem;
     }
@@ -85,6 +175,8 @@
         flex-direction: column;
         gap: 16px;
         width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
     }
 
     .loading-container,
@@ -96,6 +188,123 @@
         min-height: 50vh;
         padding: 2rem;
     }
+
+    /* Blog Detail Styles */
+    .blog-detail {
+        background: var(--mud-palette-surface);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--mud-elevation-2);
+    }
+
+    .blog-cover-image {
+        width: 100%;
+        max-height: 400px;
+        overflow: hidden;
+    }
+
+    .blog-cover-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .blog-detail-content {
+        padding: 24px;
+    }
+
+    .blog-author {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .blog-author-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .blog-author-name {
+        font-weight: 600;
+    }
+
+    .blog-title {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0 0 12px 0;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .blog-subtitle {
+        font-size: 1.25rem;
+        color: var(--mud-palette-text-secondary);
+        margin: 0 0 24px 0;
+        line-height: 1.5;
+    }
+
+    .blog-body {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .blog-body p {
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-body h1, .blog-body h2, .blog-body h3 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .blog-body ul, .blog-body ol {
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+    }
+
+    .blog-body li {
+        margin-bottom: 0.5rem;
+    }
+
+    .blog-body blockquote {
+        border-left: 4px solid var(--mud-palette-primary);
+        padding-left: 1rem;
+        margin: 1.5rem 0;
+        font-style: italic;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .blog-body pre {
+        background: var(--mud-palette-background);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-body code {
+        background: var(--mud-palette-background);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .blog-body img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .blog-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+    }
 </style>
 
 @code {
@@ -106,15 +315,16 @@
     private bool _isLoading = true;
     private string? _error;
     private Guid _currentProfileId;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPost();
-    }
+    private Guid _lastLoadedPostId;
 
     protected override async Task OnParametersSetAsync()
     {
-        await LoadPost();
+        // Only load if PostId changed (prevents double-loading)
+        if (PostId != _lastLoadedPostId)
+        {
+            _lastLoadedPostId = PostId;
+            await LoadPost();
+        }
     }
 
     private async Task LoadPost()
@@ -190,5 +400,25 @@
         {
             Logger.LogError(ex, "[PostDetail] Error deleting post {PostId}", post.Id);
         }
+    }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - date;
+
+        if (diff.TotalDays < 1)
+            return date.ToString("h:mm tt");
+        if (diff.TotalDays < 7)
+            return date.ToString("ddd, MMM d");
+        if (date.Year == now.Year)
+            return date.ToString("MMM d");
+        return date.ToString("MMM d, yyyy");
     }
 }

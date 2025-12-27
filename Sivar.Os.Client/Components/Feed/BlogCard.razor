@@ -175,10 +175,15 @@
     {
         if (string.IsNullOrEmpty(content)) return string.Empty;
         
-        // Strip markdown/html basics
-        var text = System.Text.RegularExpressions.Regex.Replace(content, @"[#*_`\[\]()>-]", "");
-        text = System.Text.RegularExpressions.Regex.Replace(text, @"<[^>]+>", "");
+        // Strip HTML tags (including malformed ones like <p, </p, etc.)
+        var text = System.Text.RegularExpressions.Regex.Replace(content, @"</?\w+[^>]*/?>", "");
+        // Also strip any remaining < or > that might be part of broken tags
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<[^>]*$|^[^<]*>", "");
+        // Strip markdown syntax
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[#*_`\[\]()>-]", "");
         text = text.Replace("\n", " ").Replace("\r", "").Trim();
+        // Clean up multiple spaces
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
         
         if (text.Length <= maxLength) return text;
         
@@ -199,7 +204,7 @@
         }
         else
         {
-            NavigationManager.NavigateTo($"/posts/{Post.Id}");
+            NavigationManager.NavigateTo($"/post/{Post.Id}");
         }
     }
 
@@ -211,13 +216,13 @@
 
     private void HandleReadMore()
     {
-        NavigationManager.NavigateTo($"/posts/{Post.Id}");
+        NavigationManager.NavigateTo($"/post/{Post.Id}");
     }
 
     private void HandleReadMoreWithStop()
     {
         // Navigates directly, card click won't fire since we're navigating
-        NavigationManager.NavigateTo($"/posts/{Post.Id}");
+        NavigationManager.NavigateTo($"/post/{Post.Id}");
     }
 }
 
