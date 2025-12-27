@@ -97,8 +97,14 @@
         <MudNavMenu Class="nav-menu-items">
             <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
             <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
-            <MudNavLink Href="bookings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.EventAvailable">@Localizer["Bookings"]</MudNavLink>
-            <MudNavLink Href="my-schedule" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EventNote">@Localizer["MySchedule"]</MudNavLink>
+            @if (_activeProfile?.ProfileType?.Name == "Business")
+            {
+                <MudNavLink Href="my-schedule" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EventNote">@Localizer["MySchedule"]</MudNavLink>
+            }
+            else
+            {
+                <MudNavLink Href="bookings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.EventAvailable">@Localizer["Bookings"]</MudNavLink>
+            }
             <MudNavLink @onclick="@ToggleAIChat" Icon="@Icons.Material.Filled.SmartToy">@Localizer["Chat"]</MudNavLink>
         </MudNavMenu>
 
