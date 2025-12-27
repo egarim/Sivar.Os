@@ -1,0 +1,401 @@
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
+@using MudBlazor
+@inject ILogger<BlogCard> Logger
+@inject IStringLocalizer<BlogCard> Localizer
+@inject NavigationManager NavigationManager
+
+@* BlogCard component - Specialized card for rendering blog posts in the feed *@
+
+<article class="blog-card" @onclick="HandleCardClick">
+    @* Cover Image *@
+    @if (!string.IsNullOrEmpty(Post.CoverImageUrl))
+    {
+        <div class="blog-cover-image">
+            <img src="@Post.CoverImageUrl" alt="@Post.Content" />
+            @if (Post.IsDraft)
+            {
+                <div class="draft-badge">@Localizer["DraftBadge"]</div>
+            }
+        </div>
+    }
+    else
+    {
+        @* Placeholder gradient for posts without cover *@
+        <div class="blog-cover-placeholder">
+            <MudIcon Icon="@Icons.Material.Outlined.Article" Size="Size.Large" />
+            @if (Post.IsDraft)
+            {
+                <div class="draft-badge">@Localizer["DraftBadge"]</div>
+            }
+        </div>
+    }
+
+    <div class="blog-card-content">
+        @* Author Info *@
+        <div class="blog-author" @onclick:stopPropagation="true">
+            <MudAvatar Size="Size.Small" Color="Color.Primary" Class="blog-author-avatar">
+                @GetInitials(Post.Profile?.DisplayName)
+            </MudAvatar>
+            <div class="blog-author-info">
+                <MudLink Class="blog-author-name" OnClick="HandleAuthorClick">
+                    @Post.Profile?.DisplayName
+                </MudLink>
+                <span class="blog-meta">
+                    @FormatDate(Post.PublishedAt ?? Post.CreatedAt)
+                    @if (Post.ReadTimeMinutes.HasValue && Post.ReadTimeMinutes.Value > 0)
+                    {
+                        <span> · @Post.ReadTimeMinutes @Localizer["MinRead"]</span>
+                    }
+                </span>
+            </div>
+        </div>
+
+        @* Title (stored in Content for blog posts) *@
+        <h2 class="blog-title">@Post.Content</h2>
+
+        @* Subtitle *@
+        @if (!string.IsNullOrEmpty(Post.Subtitle))
+        {
+            <p class="blog-subtitle">@Post.Subtitle</p>
+        }
+
+        @* Excerpt from BlogContent *@
+        @if (!string.IsNullOrEmpty(Post.BlogContent))
+        {
+            <p class="blog-excerpt">@GetExcerpt(Post.BlogContent, 200)</p>
+        }
+
+        @* Tags *@
+        @if (Post.Tags?.Count > 0)
+        {
+            <div class="blog-tags">
+                @foreach (var tag in Post.Tags.Take(3))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                        @tag
+                    </MudChip>
+                }
+                @if (Post.Tags.Count > 3)
+                {
+                    <span class="more-tags">+@(Post.Tags.Count - 3)</span>
+                }
+            </div>
+        }
+
+        @* Footer Stats *@
+        <div class="blog-footer">
+            <div class="blog-stats">
+                <span class="stat-item">
+                    <MudIcon Icon="@Icons.Material.Outlined.FavoriteBorder" Size="Size.Small" />
+                    @(Post.ReactionSummary?.TotalReactions ?? 0)
+                </span>
+                <span class="stat-item">
+                    <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
+                    @Post.CommentCount
+                </span>
+            </div>
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Primary" 
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       Size="Size.Small"
+                       OnClick="@HandleReadMoreWithStop">
+                @Localizer["ReadMore"]
+            </MudButton>
+        </div>
+    </div>
+</article>
+
+@code {
+    /// <summary>
+    /// The blog post to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public PostDto Post { get; set; } = null!;
+
+    /// <summary>
+    /// Current user ID for ownership check
+    /// </summary>
+    [Parameter]
+    public Guid CurrentUserId { get; set; }
+
+    /// <summary>
+    /// Callback when card is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnClick { get; set; }
+
+    /// <summary>
+    /// Callback when author is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnAuthorClick { get; set; }
+
+    /// <summary>
+    /// Callback when like button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnLike { get; set; }
+
+    /// <summary>
+    /// Callback when share button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnShare { get; set; }
+
+    /// <summary>
+    /// Callback when save button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<PostDto> OnSave { get; set; }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        return string.Join(string.Empty, name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - date;
+
+        if (diff.TotalDays < 1)
+            return date.ToString("h:mm tt");
+        if (diff.TotalDays < 7)
+            return date.ToString("ddd");
+        if (date.Year == now.Year)
+            return date.ToString("MMM d");
+        return date.ToString("MMM d, yyyy");
+    }
+
+    private string GetExcerpt(string? content, int maxLength)
+    {
+        if (string.IsNullOrEmpty(content)) return string.Empty;
+        
+        // Strip markdown/html basics
+        var text = System.Text.RegularExpressions.Regex.Replace(content, @"[#*_`\[\]()>-]", "");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<[^>]+>", "");
+        text = text.Replace("\n", " ").Replace("\r", "").Trim();
+        
+        if (text.Length <= maxLength) return text;
+        
+        // Find last word boundary
+        var truncated = text.Substring(0, maxLength);
+        var lastSpace = truncated.LastIndexOf(' ');
+        if (lastSpace > maxLength / 2)
+            truncated = truncated.Substring(0, lastSpace);
+        
+        return truncated + "...";
+    }
+
+    private void HandleCardClick()
+    {
+        if (OnClick.HasDelegate)
+        {
+            OnClick.InvokeAsync(Post);
+        }
+        else
+        {
+            NavigationManager.NavigateTo($"/posts/{Post.Id}");
+        }
+    }
+
+    private async Task HandleAuthorClick()
+    {
+        var handle = Post.Profile?.Handle ?? string.Empty;
+        await OnAuthorClick.InvokeAsync(handle);
+    }
+
+    private void HandleReadMore()
+    {
+        NavigationManager.NavigateTo($"/posts/{Post.Id}");
+    }
+
+    private void HandleReadMoreWithStop()
+    {
+        // Navigates directly, card click won't fire since we're navigating
+        NavigationManager.NavigateTo($"/posts/{Post.Id}");
+    }
+}
+
+<style>
+    .blog-card {
+        background: var(--mud-palette-surface);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--mud-elevation-2);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 16px;
+    }
+
+    .blog-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--mud-elevation-4);
+    }
+
+    .blog-cover-image {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+    }
+
+    .blog-cover-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .blog-card:hover .blog-cover-image img {
+        transform: scale(1.05);
+    }
+
+    .blog-cover-placeholder {
+        position: relative;
+        width: 100%;
+        height: 120px;
+        background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        opacity: 0.8;
+    }
+
+    .draft-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: var(--mud-palette-warning);
+        color: var(--mud-palette-warning-text);
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .blog-card-content {
+        padding: 16px 20px 20px;
+    }
+
+    .blog-author {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .blog-author-avatar {
+        flex-shrink: 0;
+    }
+
+    .blog-author-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .blog-author-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .blog-author-name:hover {
+        text-decoration: underline;
+    }
+
+    .blog-meta {
+        font-size: 0.75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .blog-title {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--mud-palette-text-primary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .blog-subtitle {
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--mud-palette-text-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .blog-excerpt {
+        margin: 0 0 12px;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--mud-palette-text-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .blog-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .more-tags {
+        font-size: 0.75rem;
+        color: var(--mud-palette-text-secondary);
+        display: flex;
+        align-items: center;
+    }
+
+    .blog-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid var(--mud-palette-divider);
+    }
+
+    .blog-stats {
+        display: flex;
+        gap: 16px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.875rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    /* Responsive */
+    @@media (max-width: 600px) {
+        .blog-cover-image {
+            height: 160px;
+        }
+
+        .blog-title {
+            font-size: 1.1rem;
+        }
+
+        .blog-card-content {
+            padding: 12px 16px 16px;
+        }
+    }
+</style>

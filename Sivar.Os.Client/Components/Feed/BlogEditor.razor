@@ -61,9 +61,8 @@
         <input type="text" 
                class="blog-title-input" 
                placeholder="Blog Title (required)" 
-               @bind="Title" 
-               @bind:event="oninput"
-               @onblur="OnTitleChanged" />
+               value="@Title" 
+               @oninput="OnTitleInput" />
     </div>
 
     @* Subtitle Input *@
@@ -71,9 +70,8 @@
         <input type="text" 
                class="blog-subtitle-input" 
                placeholder="Add a subtitle (optional)" 
-               @bind="Subtitle" 
-               @bind:event="oninput"
-               @onblur="OnSubtitleChanged" />
+               value="@Subtitle" 
+               @oninput="OnSubtitleInput" />
     </div>
 
     @* Markdown Editor *@
@@ -387,13 +385,15 @@
 
     #region Methods
 
-    private async Task OnTitleChanged()
+    private async Task OnTitleInput(ChangeEventArgs e)
     {
+        Title = e.Value?.ToString() ?? string.Empty;
         await TitleChanged.InvokeAsync(Title);
     }
 
-    private async Task OnSubtitleChanged()
+    private async Task OnSubtitleInput(ChangeEventArgs e)
     {
+        Subtitle = e.Value?.ToString() ?? string.Empty;
         await SubtitleChanged.InvokeAsync(Subtitle);
     }
 

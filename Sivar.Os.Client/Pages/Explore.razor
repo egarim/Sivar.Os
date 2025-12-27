@@ -9,6 +9,7 @@
 @using Sivar.Os.Client.Layout
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.Enums
 @using Sivar.Os.Shared
 @inject ISivarClient SivarClient
 @inject NavigationManager Navigation
@@ -78,8 +79,17 @@
             {
                 @foreach (var post in _posts)
                 {
-                    <PublicPostCard Post="@post" 
-                                    OnInteraction="HandleInteraction" />
+                    @if (post.PostType == PostType.Blog)
+                    {
+                        <BlogCard Post="@post" 
+                                  OnClick="@(p => HandleInteraction($"view:{p.Id}"))"
+                                  OnAuthorClick="@(author => HandleInteraction("profile"))" />
+                    }
+                    else
+                    {
+                        <PublicPostCard Post="@post" 
+                                        OnInteraction="HandleInteraction" />
+                    }
                 }
 
                 @if (_hasMore)

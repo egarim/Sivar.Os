@@ -87,26 +87,38 @@
                     {
                         @if (activity.Verb == ActivityVerb.Create && activity.Post != null)
                         {
-                            <PostCard Post="@activity.Post"
-                                  CurrentUserId="@_currentUserId"
-                                  OnLike="@(() => ToggleLike(activity.Post))"
-                                  OnCommentClick="@(() => ToggleComments(activity.Post))"
-                                  OnShare="@(() => SharePost(activity.Post))"
-                                  OnSave="@(() => SavePost(activity.Post))"
-                                  OnEdit="@(() => HandleEditPost(activity.Post))"
-                                  OnDelete="@(() => HandleDeletePost(activity.Post))"
-                                  OnViewAnalytics="@(() => HandleViewAnalytics(activity.Post))"
-                                  OnReport="@(() => HandleReportPost(activity.Post))"
-                                  OnCopyLink="@(() => HandleCopyPostLink(activity.Post))"
-                                  OnAuthorClick="@((author) => ViewProfile(author))" />
-                    }
-                    else
-                    {
-                        <!-- TODO: Render other activity types (Comment, Like, Follow, Share, etc.) -->
-                        <div class="activity-card">
-                            <p>@activity.Summary - @activity.TimeAgo</p>
-                        </div>
-                    }
+                            @if (activity.Post.PostType == PostType.Blog)
+                            {
+                                <BlogCard Post="@activity.Post"
+                                          CurrentUserId="@_currentUserId"
+                                          OnLike="@(() => ToggleLike(activity.Post))"
+                                          OnShare="@(() => SharePost(activity.Post))"
+                                          OnSave="@(() => SavePost(activity.Post))"
+                                          OnAuthorClick="@((author) => ViewProfile(author))" />
+                            }
+                            else
+                            {
+                                <PostCard Post="@activity.Post"
+                                      CurrentUserId="@_currentUserId"
+                                      OnLike="@(() => ToggleLike(activity.Post))"
+                                      OnCommentClick="@(() => ToggleComments(activity.Post))"
+                                      OnShare="@(() => SharePost(activity.Post))"
+                                      OnSave="@(() => SavePost(activity.Post))"
+                                      OnEdit="@(() => HandleEditPost(activity.Post))"
+                                      OnDelete="@(() => HandleDeletePost(activity.Post))"
+                                      OnViewAnalytics="@(() => HandleViewAnalytics(activity.Post))"
+                                      OnReport="@(() => HandleReportPost(activity.Post))"
+                                      OnCopyLink="@(() => HandleCopyPostLink(activity.Post))"
+                                      OnAuthorClick="@((author) => ViewProfile(author))" />
+                            }
+                        }
+                        else
+                        {
+                            <!-- TODO: Render other activity types (Comment, Like, Follow, Share, etc.) -->
+                            <div class="activity-card">
+                                <p>@activity.Summary - @activity.TimeAgo</p>
+                            </div>
+                        }
                     }
                 }
             </div>
@@ -1571,14 +1583,39 @@
     {
         try
         {
-            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Called - _postText='{_postText}' (length={_postText?.Length ?? 0})");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Called");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] _selectedPostType='{_selectedPostType}'");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] _postText='{_postText}' (length={_postText?.Length ?? 0})");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] _blogTitle='{_blogTitle}' (length={_blogTitle?.Length ?? 0})");
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] _blogContent length={_blogContent?.Length ?? 0}");
             
-            // Validate post content
-            if (string.IsNullOrWhiteSpace(_postText))
+            // Convert string to PostType enum early for validation
+            var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
+                ? pt 
+                : PostType.General;
+            
+            Console.WriteLine($"[Home] [HandlePostSubmitAsync] Parsed postType={postType}");
+            
+            // Validate post content - blog posts use _blogTitle, regular posts use _postText
+            if (postType == PostType.Blog)
             {
-                Console.WriteLine("[Home] Post text is empty - cannot submit");
-                return;
+                Console.WriteLine("[Home] [HandlePostSubmitAsync] Validating Blog post...");
+                if (string.IsNullOrWhiteSpace(_blogTitle))
+                {
+                    Console.WriteLine("[Home] Blog title is empty - cannot submit");
+                    return;
+                }
             }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(_postText))
+                {
+                    Console.WriteLine("[Home] Post text is empty - cannot submit");
+                    return;
+                }
+            }
+            
+            Console.WriteLine("[Home] [HandlePostSubmitAsync] Validation passed!");
             
             // Prevent double-posting
             if (_isPosting)
@@ -1591,11 +1628,6 @@
             _isPosting = true;
             StateHasChanged();
 
-            // Convert string to PostType enum
-            var postType = Enum.TryParse<PostType>(_selectedPostType, ignoreCase: true, out var pt) 
-                ? pt 
-                : PostType.General;
-            
             // ⚡ Use PRE-UPLOADED files from PostComposer (immediate upload for fast UX)
             var attachments = new List<CreatePostAttachmentDto>();
             

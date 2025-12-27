@@ -49,12 +49,18 @@
     @* Show either regular textarea or BlogEditor based on post type *@
     @if (SelectedType == "blog")
     {
-        <BlogEditor @bind-Title="BlogTitle"
-                    @bind-Subtitle="BlogSubtitle"
-                    @bind-Content="BlogContent"
-                    @bind-CoverImageUrl="BlogCoverImageUrl"
-                    @bind-CoverImageFileId="BlogCoverImageFileId"
-                    @bind-IsDraft="BlogIsDraft"
+        <BlogEditor Title="@BlogTitle"
+                    TitleChanged="@OnBlogTitleChangedInternal"
+                    Subtitle="@BlogSubtitle"
+                    SubtitleChanged="@OnBlogSubtitleChangedInternal"
+                    Content="@BlogContent"
+                    ContentChanged="@OnBlogContentChangedInternal"
+                    CoverImageUrl="@BlogCoverImageUrl"
+                    CoverImageUrlChanged="@OnBlogCoverImageUrlChangedInternal"
+                    CoverImageFileId="@BlogCoverImageFileId"
+                    CoverImageFileIdChanged="@OnBlogCoverImageFileIdChangedInternal"
+                    IsDraft="@BlogIsDraft"
+                    IsDraftChanged="@OnBlogIsDraftChangedInternal"
                     OnCoverImageUploaded="OnBlogCoverImageUploaded" />
     }
     else if (SelectedType == "businesslocation")
@@ -1180,6 +1186,64 @@
         BlogCoverImageFileId = result.FileId;
         await BlogCoverImageUrlChanged.InvokeAsync(BlogCoverImageUrl);
         await BlogCoverImageFileIdChanged.InvokeAsync(BlogCoverImageFileId);
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor Title changes to parent
+    /// </summary>
+    private async Task OnBlogTitleChangedInternal(string value)
+    {
+        BlogTitle = value;
+        Console.WriteLine($"[PostComposer] BlogTitle changed to: '{value}'");
+        await BlogTitleChanged.InvokeAsync(value);
+        StateHasChanged(); // Force UI update to re-evaluate IsPublishDisabled
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor Subtitle changes to parent
+    /// </summary>
+    private async Task OnBlogSubtitleChangedInternal(string value)
+    {
+        BlogSubtitle = value;
+        await BlogSubtitleChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor Content changes to parent
+    /// </summary>
+    private async Task OnBlogContentChangedInternal(string value)
+    {
+        BlogContent = value;
+        Console.WriteLine($"[PostComposer] BlogContent changed, length: {value?.Length ?? 0}");
+        await BlogContentChanged.InvokeAsync(value);
+        StateHasChanged(); // Force UI update to re-evaluate IsPublishDisabled
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor CoverImageUrl changes to parent
+    /// </summary>
+    private async Task OnBlogCoverImageUrlChangedInternal(string value)
+    {
+        BlogCoverImageUrl = value;
+        await BlogCoverImageUrlChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor CoverImageFileId changes to parent
+    /// </summary>
+    private async Task OnBlogCoverImageFileIdChangedInternal(string? value)
+    {
+        BlogCoverImageFileId = value;
+        await BlogCoverImageFileIdChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Internal handler to forward BlogEditor IsDraft changes to parent
+    /// </summary>
+    private async Task OnBlogIsDraftChangedInternal(bool value)
+    {
+        BlogIsDraft = value;
+        await BlogIsDraftChanged.InvokeAsync(value);
     }
 
     #endregion
