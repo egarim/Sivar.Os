@@ -7,13 +7,25 @@ using Sivar.Os.Shared.Repositories;
 namespace Sivar.Os.Data.Repositories;
 
 /// <summary>
-/// Repository implementation for Profile entity operations
+/// Repository implementation for Profile entity operations.
+/// Uses IDbContextFactory for read operations (parallel-safe) and scoped context for writes.
 /// </summary>
 public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
 {
-    public ProfileRepository(SivarDbContext context) : base(context)
+    private readonly IDbContextFactory<SivarDbContext> _contextFactory;
+    
+    public ProfileRepository(
+        SivarDbContext context,
+        IDbContextFactory<SivarDbContext> contextFactory) : base(context)
     {
+        _contextFactory = contextFactory;
     }
+    
+    /// <summary>
+    /// Creates a fresh DbContext for parallel-safe read operations.
+    /// </summary>
+    private async Task<SivarDbContext> CreateReadContextAsync()
+        => await _contextFactory.CreateDbContextAsync();
 
     /// <summary>
     /// Gets all profiles for a specific user
@@ -64,14 +76,16 @@ public class ProfileRepository : BaseRepository<Profile>, IProfileRepository
     }
 
     /// <summary>
-    /// Gets the active profile for a user by their Keycloak ID
+    /// Gets the active profile for a user by their Keycloak ID.
+    /// Uses IDbContextFactory for parallel-safe reads.
     /// </summary>
     public async Task<Profile?> GetActiveProfileByKeycloakIdAsync(string keycloakId)
     {
         if (string.IsNullOrWhiteSpace(keycloakId))
             return null;
 
-        return await _dbSet
+        await using var context = await CreateReadContextAsync();
+        return await context.Profiles
             .Include(p => p.ProfileType)
             .Include(p => p.User)
             .FirstOrDefaultAsync(p => p.User.KeycloakId == keycloakId && p.IsActive);
