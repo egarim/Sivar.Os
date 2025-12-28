@@ -35,9 +35,9 @@ builder.Services.AddMudLocalization();
 builder.Services.AddScoped<MudLocalizer, MudLocalizerService>();
 
 // Configure DevExpress Blazor services
+// Note: BootstrapVersion is no longer needed in v25.2+
 builder.Services.AddDevExpressBlazor(configure => 
 {
-    configure.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
     configure.SizeMode = DevExpress.Blazor.SizeMode.Medium;
 });
 

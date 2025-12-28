@@ -8,7 +8,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="DevExpress.AIIntegration.Blazor" Version="25.1.*" />
+    <PackageReference Include="DevExpress.AIIntegration.Blazor" Version="25.2.*" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
    
     <ProjectReference Include="..\Sivar.Os.Data\Sivar.Os.Data.csproj" />
@@ -17,11 +17,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
-	<PackageReference Include="DevExpress.ExpressApp.Blazor" Version="25.1.*-*" />
+	<PackageReference Include="DevExpress.ExpressApp.Blazor" Version="25.2.*-*" />
     <!-- DevExpress AI Chat Component for Server-side processing -->
-    <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.1.*" />
+    <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.2.*" />
     <!-- Explicit DevExpress.Blazor to resolve version conflict -->
-    <PackageReference Include="DevExpress.Blazor" Version="25.1.*-*" />
+    <PackageReference Include="DevExpress.Blazor" Version="25.2.*-*" />
   </ItemGroup>
 
 

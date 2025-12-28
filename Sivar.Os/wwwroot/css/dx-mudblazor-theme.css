@@ -272,6 +272,8 @@
 .sivar-ai-chat .dxbl-chatui-typing-indicator,
 .sivar-ai-chat .dxbl-chatui-message-typing,
 .sivar-ai-chat .dxbl-aichat-loading,
+.sivar-ai-chat .dxbl-wait-indicator,
+.sivar-ai-chat [class*="dxbl-wait-indicator"],
 .sivar-ai-chat [class*="loading-indicator"] {
     display: none !important;
 }

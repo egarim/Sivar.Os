@@ -54,9 +54,9 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddMudServices();
 
 // Configure DevExpress Blazor services (required for DxAIChat component)
+// Note: BootstrapVersion is no longer needed in v25.2+
 builder.Services.AddDevExpressBlazor(configure => 
 {
-    configure.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
     configure.SizeMode = DevExpress.Blazor.SizeMode.Medium;
 });
 

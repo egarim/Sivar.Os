@@ -268,6 +268,8 @@
     font-size: 1rem;
     margin: 0 0 16px 0;
     max-width: 280px;
+    white-space: pre-line;
+    text-align: left;
 }
 
 .location-indicator {
@@ -312,6 +314,8 @@
     
     .welcome-message {
         font-size: 0.9rem;
+        white-space: pre-line;
+        text-align: left;
     }
     
     .suggested-actions {
@@ -745,5 +749,7 @@
     
     .welcome-message {
         font-size: 0.85rem;
+        white-space: pre-line;
+        text-align: left;
     }
 }
