@@ -90,7 +90,7 @@
                             @if (activity.Post.PostType == PostType.Blog)
                             {
                                 <BlogCard Post="@activity.Post"
-                                          CurrentUserId="@_currentUserId"
+                                          CurrentUserId="@_currentProfileId"
                                           OnLike="@(() => ToggleLike(activity.Post))"
                                           OnShare="@(() => SharePost(activity.Post))"
                                           OnSave="@(() => SavePost(activity.Post))"
@@ -99,7 +99,7 @@
                             else
                             {
                                 <PostCard Post="@activity.Post"
-                                      CurrentUserId="@_currentUserId"
+                                      CurrentUserId="@_currentProfileId"
                                       OnLike="@(() => ToggleLike(activity.Post))"
                                       OnCommentClick="@(() => ToggleComments(activity.Post))"
                                       OnShare="@(() => SharePost(activity.Post))"
@@ -675,28 +675,54 @@
     {
         try
         {
+            Console.WriteLine($"[Home] HandleDeletePost called for post: {post.Id}");
+            
             // Show confirmation dialog
             var result = await _dialogService.ShowAsync<DeleteConfirmationDialog>("Delete Post", 
                 new DialogParameters { { "Title", "Delete Post?" }, 
                                       { "Message", "Are you sure you want to delete this post? This action cannot be undone." } });
 
             var dialogResult = await result.Result;
-            if (dialogResult?.Canceled == false)
+            
+            Console.WriteLine($"[Home] Dialog result - Canceled: {dialogResult?.Canceled}, Data: {dialogResult?.Data}");
+            
+            // Check if user confirmed (not cancelled)
+            if (dialogResult != null && !dialogResult.Canceled)
             {
-                Console.WriteLine($"[Home] Deleting post: {post.Id}");
+                Console.WriteLine($"[Home] User confirmed delete for post: {post.Id}");
                 
-                await SivarClient.Posts.DeletePostAsync(post.Id);
+                // OPTIMISTIC UI: Remove post immediately from the list for instant feedback
+                var activityToRemove = _activities.FirstOrDefault(a => a.Post?.Id == post.Id);
+                Console.WriteLine($"[Home] Found activity to remove: {activityToRemove != null}");
                 
-                // Reload activities feed to reflect the deletion
-                await LoadFeedActivitiesAsync();
+                if (activityToRemove != null)
+                {
+                    _activities.Remove(activityToRemove);
+                    Console.WriteLine($"[Home] Activity removed. Remaining count: {_activities.Count}");
+                    await InvokeAsync(StateHasChanged); // Update UI immediately on correct thread
+                }
                 
-                Console.WriteLine($"[Home] Post deleted successfully");
-                StateHasChanged();
+                // Delete in background
+                try
+                {
+                    await SivarClient.Posts.DeletePostAsync(post.Id);
+                    Console.WriteLine($"[Home] Post deleted successfully from server");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Home] Server delete failed: {ex.Message}");
+                }
+                
+                Console.WriteLine($"[Home] Post delete completed");
+            }
+            else
+            {
+                Console.WriteLine($"[Home] Delete cancelled by user");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error deleting post: {ex.Message}");
+            Console.WriteLine($"[Home] Error in HandleDeletePost: {ex.Message}");
         }
     }
 
@@ -711,18 +737,41 @@
                 new DialogParameters { { "Post", post } });
 
             var dialogResult = await result.Result;
-            if (dialogResult?.Canceled == false && dialogResult?.Data is UpdatePostDto updateDto)
+            if (dialogResult != null && !dialogResult.Canceled && dialogResult.Data is UpdatePostDto updateDto)
             {
                 Console.WriteLine($"[Home] Updating post: {post.Id}");
                 
-                // Call API to update post
-                await SivarClient.Posts.UpdatePostAsync(post.Id, updateDto);
+                // OPTIMISTIC UI: Create updated post and replace in list
+                var activity = _activities.FirstOrDefault(a => a.Post?.Id == post.Id);
+                if (activity?.Post != null)
+                {
+                    // Create a new PostDto with updated values (since properties are init-only)
+                    var updatedPost = post with
+                    {
+                        Content = updateDto.Content,
+                        Visibility = updateDto.Visibility ?? post.Visibility,
+                        Tags = updateDto.Tags ?? post.Tags,
+                        Location = updateDto.Location ?? post.Location,
+                        BusinessMetadata = updateDto.BusinessMetadata ?? post.BusinessMetadata
+                    };
+                    
+                    // Update the activity's Post property directly (ActivityDto is a class with settable props)
+                    activity.Post = updatedPost;
+                    await InvokeAsync(StateHasChanged); // Update UI immediately
+                }
                 
-                // Reload activities feed to reflect the update
-                await LoadFeedActivitiesAsync();
+                // Update in background
+                try
+                {
+                    await SivarClient.Posts.UpdatePostAsync(post.Id, updateDto);
+                    Console.WriteLine($"[Home] Post updated successfully on server");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Home] Server update failed: {ex.Message}");
+                }
                 
-                Console.WriteLine($"[Home] Post updated successfully");
-                StateHasChanged();
+                Console.WriteLine($"[Home] Post update completed");
             }
         }
         catch (Exception ex)

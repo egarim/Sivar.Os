@@ -22,7 +22,7 @@
 
 @code {
     [CascadingParameter]
-    private dynamic Dialog { get; set; } = null!;
+    private IMudDialogInstance Dialog { get; set; } = null!;
 
     [Parameter]
     public string Title { get; set; } = "Confirm";
@@ -38,12 +38,12 @@
     private void Cancel()
     {
         Logger.LogInformation("[DeleteConfirmationDialog] Delete cancelled");
-        Dialog?.Cancel();
+        Dialog.Cancel();
     }
 
     private void Confirm()
     {
         Logger.LogWarning("[DeleteConfirmationDialog] Delete confirmed - Title: {Title}", Title);
-        Dialog?.Close(DialogResult.Ok(true));
+        Dialog.Close(DialogResult.Ok(true));
     }
 }

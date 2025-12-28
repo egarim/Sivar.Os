@@ -143,7 +143,7 @@
 
 @code {
     [CascadingParameter] 
-    private dynamic MudDialog { get; set; } = null!;
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private PermissionStatus locationStatus = PermissionStatus.Prompt;
     private bool isLoading = false;
@@ -210,5 +210,5 @@
         };
     }
 
-    private void Close() => MudDialog?.Close(DialogResult.Ok(true));
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
 }

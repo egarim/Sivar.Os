@@ -127,7 +127,8 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] dynamic MudDialog { get; set; } = null!;
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter] public PostDto? Post { get; set; }
     [Parameter] public bool IsBusinessProfile { get; set; } = false;
@@ -172,7 +173,6 @@
 
     private void Cancel()
     {
-        //TODO fix this as the other dialogss
         Logger.LogInformation("[PostEditModal] Edit cancelled - PostId: {PostId}", Post?.Id ?? Guid.Empty);
         MudDialog.Cancel();
     }
@@ -208,7 +208,7 @@
                 updateDto.Content?.Length ?? 0, updateDto.Visibility, updateDto.Tags?.Count ?? 0);
 
             // Return the UpdatePostDto to the caller
-            await MudDialog.CloseAsync(DialogResult.Ok(updateDto));
+            MudDialog.Close(DialogResult.Ok(updateDto));
             
             Logger.LogInformation("[PostEditModal] Post changes saved successfully - PostId: {PostId}", Post?.Id ?? Guid.Empty);
         }

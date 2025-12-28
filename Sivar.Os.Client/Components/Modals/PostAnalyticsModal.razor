@@ -117,7 +117,7 @@
 
 @code {
     [CascadingParameter]
-    private dynamic Dialog { get; set; } = null!;
+    private IMudDialogInstance Dialog { get; set; } = null!;
     
     [Parameter] public PostDto? Post { get; set; }
 
@@ -141,7 +141,7 @@
         Logger.LogInformation("[PostAnalyticsModal] Opening analytics for Post: {PostId}", Post?.Id);
     }
 
-    private void Close() => Dialog?.Close(DialogResult.Ok(true));
+    private void Close() => Dialog.Close(DialogResult.Ok(true));
 
     private string GetReactionEmoji(ReactionType type) => type switch
     {
