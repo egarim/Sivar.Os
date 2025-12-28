@@ -492,6 +492,33 @@
         </EmptyMessageAreaTemplate>
         
     </DxAIChat>
+    
+    @* Token Usage Indicator *@
+    @if (TokenAllowanceLimit.HasValue && TokenAllowanceLimit.Value > 0)
+    {
+        <div class="token-usage-container">
+            <div class="token-usage-bar">
+                <MudProgressLinear Color="@GetTokenUsageColor()" 
+                                   Value="@GetTokenUsagePercentage()" 
+                                   Size="Size.Small"
+                                   Rounded="true"
+                                   Class="token-progress" />
+            </div>
+            <div class="token-usage-text">
+                <MudIcon Icon="@Icons.Material.Outlined.Token" Size="Size.Small" Class="token-icon" />
+                <span class="token-numbers">
+                    @FormatTokensK(TokensUsedThisPeriod ?? 0) / @FormatTokensK(TokenAllowanceLimit.Value)
+                </span>
+                <span class="token-percentage">(@GetTokenUsagePercentage().ToString("0")%)</span>
+                @if (AllowanceResetsAt.HasValue)
+                {
+                    <span class="token-reset">
+                        • Renueva en @GetResetTimeDisplay()
+                    </span>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -569,6 +596,30 @@
     [Parameter]
     public bool IsProcessing { get; set; }
     
+    /// <summary>
+    /// Tokens remaining in the current allowance period
+    /// </summary>
+    [Parameter]
+    public int? TokensRemaining { get; set; }
+    
+    /// <summary>
+    /// Maximum token allowance for the period
+    /// </summary>
+    [Parameter]
+    public int? TokenAllowanceLimit { get; set; }
+    
+    /// <summary>
+    /// Tokens used in the current period
+    /// </summary>
+    [Parameter]
+    public int? TokensUsedThisPeriod { get; set; }
+    
+    /// <summary>
+    /// When the token allowance resets
+    /// </summary>
+    [Parameter]
+    public DateTime? AllowanceResetsAt { get; set; }
+    
     #endregion
     
     #region Lifecycle
@@ -583,6 +634,41 @@
             .Build();
         
         Logger.LogInformation("[SivarAIChat] Component initialized");
+    }
+    
+    #endregion
+    
+    #region Token Usage Helpers
+    
+    private double GetTokenUsagePercentage()
+    {
+        if (!TokenAllowanceLimit.HasValue || TokenAllowanceLimit.Value <= 0)
+            return 0;
+        return TokensUsedThisPeriod.HasValue 
+            ? (double)TokensUsedThisPeriod.Value / TokenAllowanceLimit.Value * 100 
+            : 0;
+    }
+    
+    private Color GetTokenUsageColor()
+    {
+        var percentage = GetTokenUsagePercentage();
+        if (percentage < 60) return Color.Success;
+        if (percentage < 80) return Color.Warning;
+        if (percentage < 90) return Color.Secondary;
+        return Color.Error;
+    }
+    
+    private string FormatTokensK(int tokens)
+    {
+        return $"{tokens / 1000.0:0.#}K";
+    }
+    
+    private string GetResetTimeDisplay()
+    {
+        if (!AllowanceResetsAt.HasValue)
+            return "";
+        var daysRemaining = (AllowanceResetsAt.Value - DateTime.UtcNow).Days;
+        return daysRemaining <= 0 ? "hoy" : $"{daysRemaining}d";
     }
     
     #endregion

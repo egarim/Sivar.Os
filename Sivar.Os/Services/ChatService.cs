@@ -439,6 +439,8 @@ public class ChatService : IChatService
                 OutputTokens = outputTokens > 0 ? outputTokens : null,
                 TotalTokens = totalTokens > 0 ? totalTokens : null,
                 TokensRemaining = profile.TokensRemaining,
+                TokenAllowanceLimit = profile.TokenAllowanceLimit,
+                TokensUsedThisPeriod = profile.TokensUsedThisPeriod,
                 AllowanceResetsAt = profile.TokenAllowanceResetsAt
             };
         }

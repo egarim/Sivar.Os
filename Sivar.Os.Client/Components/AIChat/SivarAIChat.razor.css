@@ -753,3 +753,78 @@
         text-align: left;
     }
 }
+
+/* ===== TOKEN USAGE INDICATOR ===== */
+.token-usage-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 16px 12px;
+    background: var(--mud-palette-surface, #fff);
+    border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+}
+
+::deep .mud-theme-dark .token-usage-container {
+    background: var(--mud-palette-surface, #1e1e2d);
+    border-top-color: var(--mud-palette-lines-default, #3a3c4e);
+}
+
+.token-usage-bar {
+    width: 100%;
+}
+
+.token-usage-bar ::deep .token-progress {
+    height: 6px;
+}
+
+.token-usage-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary, #666);
+}
+
+::deep .mud-theme-dark .token-usage-text {
+    color: var(--mud-palette-text-secondary, #999);
+}
+
+.token-icon {
+    opacity: 0.7;
+    font-size: 14px !important;
+}
+
+.token-numbers {
+    font-weight: 500;
+    color: var(--mud-palette-text-primary, #424242);
+}
+
+::deep .mud-theme-dark .token-numbers {
+    color: var(--mud-palette-text-primary, #e0e0e0);
+}
+
+.token-percentage {
+    opacity: 0.8;
+}
+
+.token-reset {
+    opacity: 0.7;
+    font-size: 0.7rem;
+}
+
+/* Responsive adjustments for token usage */
+@media (max-width: 480px) {
+    .token-usage-container {
+        padding: 6px 12px 10px;
+    }
+    
+    .token-usage-text {
+        font-size: 0.7rem;
+        flex-wrap: wrap;
+    }
+    
+    .token-reset {
+        width: 100%;
+        margin-top: 2px;
+    }
+}

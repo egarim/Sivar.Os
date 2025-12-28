@@ -91,7 +91,11 @@
                                 OnDisplayModeChanged="@HandleDisplayModeChanged"
                                 OnUserMessageSent="@HandleDxChatMessageSent"
                                 OnBusinessSaved="@HandleDxBusinessSaved"
-                                OnBusinessShared="@HandleDxBusinessShared" />
+                                OnBusinessShared="@HandleDxBusinessShared"
+                                TokensRemaining="@_tokensRemaining"
+                                TokenAllowanceLimit="@_tokenAllowanceLimit"
+                                TokensUsedThisPeriod="@_tokensUsedThisPeriod"
+                                AllowanceResetsAt="@_allowanceResetsAt" />
                                 
                             <Sivar.Os.Client.Components.AIChat.SavedResultsPanel 
                                 IsOpen="@_savedPanelOpen"
@@ -663,6 +667,12 @@
     // DxAIChat Integration State
     private SivarAIChat? _sivarAIChat;
     private List<QuickActionDto>? _dxQuickActionItems;
+    
+    // Token Usage State
+    private int? _tokensRemaining;
+    private int? _tokenAllowanceLimit;
+    private int? _tokensUsedThisPeriod;
+    private DateTime? _allowanceResetsAt;
 
     // Phase 0: Location-Aware Chat
     private ChatLocationContext? _chatLocation;
@@ -1248,6 +1258,15 @@
             if (response?.AssistantMessage?.Content == null)
             {
                 throw new InvalidOperationException("Received null response from AI");
+            }
+
+            // Update token usage from response
+            if (response.TokenAllowanceLimit.HasValue)
+            {
+                _tokensRemaining = response.TokensRemaining;
+                _tokenAllowanceLimit = response.TokenAllowanceLimit;
+                _tokensUsedThisPeriod = response.TokensUsedThisPeriod;
+                _allowanceResetsAt = response.AllowanceResetsAt;
             }
 
             // Send the assistant response to DxAIChat

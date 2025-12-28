@@ -217,9 +217,26 @@ public record ChatResponseDto
     public int? TokensRemaining { get; init; }
 
     /// <summary>
+    /// Maximum token allowance for the current period
+    /// </summary>
+    public int? TokenAllowanceLimit { get; init; }
+
+    /// <summary>
+    /// Tokens used in the current period
+    /// </summary>
+    public int? TokensUsedThisPeriod { get; init; }
+
+    /// <summary>
     /// When the token allowance period will reset
     /// </summary>
     public DateTime? AllowanceResetsAt { get; init; }
+
+    /// <summary>
+    /// Percentage of tokens used (0-100)
+    /// </summary>
+    public double TokenUsagePercentage => TokenAllowanceLimit > 0 
+        ? Math.Round((double)(TokensUsedThisPeriod ?? 0) / TokenAllowanceLimit.Value * 100, 1) 
+        : 0;
 }
 
 /// <summary>
