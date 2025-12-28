@@ -116,10 +116,10 @@
     public PostDto Post { get; set; } = null!;
 
     /// <summary>
-    /// Current user ID for ownership check
+    /// Current profile ID for ownership check (compares with Post.Profile.Id)
     /// </summary>
     [Parameter]
-    public Guid CurrentUserId { get; set; }
+    public Guid CurrentProfileId { get; set; }
 
     /// <summary>
     /// Callback when card is clicked

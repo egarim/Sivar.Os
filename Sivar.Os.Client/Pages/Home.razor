@@ -90,7 +90,7 @@
                             @if (activity.Post.PostType == PostType.Blog)
                             {
                                 <BlogCard Post="@activity.Post"
-                                          CurrentUserId="@_currentProfileId"
+                                          CurrentProfileId="@_currentProfileId"
                                           OnLike="@(() => ToggleLike(activity.Post))"
                                           OnShare="@(() => SharePost(activity.Post))"
                                           OnSave="@(() => SavePost(activity.Post))"
@@ -99,7 +99,7 @@
                             else
                             {
                                 <PostCard Post="@activity.Post"
-                                      CurrentUserId="@_currentProfileId"
+                                      CurrentProfileId="@_currentProfileId"
                                       OnLike="@(() => ToggleLike(activity.Post))"
                                       OnCommentClick="@(() => ToggleComments(activity.Post))"
                                       OnShare="@(() => SharePost(activity.Post))"
@@ -258,7 +258,6 @@
                     if (activeProf != null)
                     {
                         _currentProfileId = activeProf.Id;
-                        _currentUserId = activeProf.Id; // Set current user ID for ownership checks
                         _activeProfile = activeProf;
                         Console.WriteLine($"[Home] ? Got active profile from list: {_currentProfileId}");
                     }
@@ -1351,7 +1350,6 @@
                         }
                         
                         _currentProfileId = activeProfile.Id;
-                        _currentUserId = activeProfile.Id; // Use profile ID for post ownership checks
                         
                         Console.WriteLine("[HOME-CLIENT] ? Active Profile DTO Received:");
                         Console.WriteLine($"[HOME-CLIENT]   - ID: {activeProfile.Id}");
