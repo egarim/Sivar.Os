@@ -1,0 +1,32 @@
+@page "/search"
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Search</MudText>
+    
+    <MudTextField @bind-Value="_searchQuery" 
+                  Label="Search" 
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="mb-4" />
+    
+    @if (!string.IsNullOrEmpty(_searchQuery))
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">Results for "@_searchQuery"</MudText>
+        <MudList T="string">
+            <MudListItem Text="Sample Result 1" Icon="@Icons.Material.Filled.Article" />
+            <MudListItem Text="Sample Result 2" Icon="@Icons.Material.Filled.Person" />
+            <MudListItem Text="Sample Result 3" Icon="@Icons.Material.Filled.Business" />
+        </MudList>
+    }
+    else
+    {
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Enter a search term to find content, people, and businesses.
+        </MudText>
+    }
+</MudContainer>
+
+@code {
+    private string _searchQuery = string.Empty;
+}

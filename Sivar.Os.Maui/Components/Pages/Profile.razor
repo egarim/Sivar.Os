@@ -1,0 +1,22 @@
+@page "/profile"
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudCard>
+        <MudCardContent>
+            <div class="d-flex flex-column align-center">
+                <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-4" Style="width: 100px; height: 100px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+                </MudAvatar>
+                <MudText Typo="Typo.h5">Guest User</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@("user@example.com")</MudText>
+            </div>
+        </MudCardContent>
+    </MudCard>
+    
+    <MudList T="string" Class="mt-4">
+        <MudListItem Icon="@Icons.Material.Filled.Settings" Text="Settings" />
+        <MudListItem Icon="@Icons.Material.Filled.Notifications" Text="Notifications" />
+        <MudListItem Icon="@Icons.Material.Filled.Help" Text="Help & Support" />
+        <MudListItem Icon="@Icons.Material.Filled.Info" Text="About" />
+    </MudList>
+</MudContainer>

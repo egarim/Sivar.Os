@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xaf.Sivar.Os.Win", "Xaf.Siv
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sivar.Os.Tests", "Sivar.Os.Tests\Sivar.Os.Tests.csproj", "{E4D8F5C1-A2B3-4E6D-8F9C-1B2D3E4F5A6B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sivar.Os.Maui", "Sivar.Os.Maui\Sivar.Os.Maui.csproj", "{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SetupScripts", "SetupScripts", "{3E7E42C9-1B6E-46AF-A1E3-2241FEDBCB5D}"
 	ProjectSection(SolutionItems) = preProject
 		ScriptsRepos.txt = ScriptsRepos.txt
@@ -131,6 +133,18 @@ Global
 		{E4D8F5C1-A2B3-4E6D-8F9C-1B2D3E4F5A6B}.Release|x64.Build.0 = Release|Any CPU
 		{E4D8F5C1-A2B3-4E6D-8F9C-1B2D3E4F5A6B}.Release|x86.ActiveCfg = Release|Any CPU
 		{E4D8F5C1-A2B3-4E6D-8F9C-1B2D3E4F5A6B}.Release|x86.Build.0 = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|x64.Build.0 = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Debug|x86.Build.0 = Debug|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|x64.ActiveCfg = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|x64.Build.0 = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|x86.ActiveCfg = Release|Any CPU
+		{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
