@@ -2,7 +2,6 @@
 using DevExpress.ExpressApp.EFCore.DesignTime;
 using DevExpress.ExpressApp.EFCore.Updating;
 using DevExpress.Persistent.BaseImpl.EF;
-using DevExpress.Persistent.BaseImpl.EF.Kpi;
 using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -30,13 +29,8 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
         public DbSet<Xaf.Sivar.Os.Module.BusinessObjects.ApplicationUserLoginInfo> UserLoginsInfo { get; set; }
      public DbSet<FileData> FileData { get; set; }
      public DbSet<ReportDataV2> ReportDataV2 { get; set; }
-  public DbSet<KpiDefinition> KpiDefinitions { get; set; }
-        public DbSet<KpiInstance> KpiInstances { get; set; }
-     public DbSet<KpiHistoryItem> KpiHistoryItems { get; set; }
-        public DbSet<KpiScorecard> KpiScorecards { get; set; }
         public DbSet<DashboardData> DashboardData { get; set; }
         public new DbSet<Event> Events { get; set; }
-        public DbSet<Analysis> Analysis { get; set; }
         public DbSet<SqlScript> SqlScripts { get; set; }
         public DbSet<SeederLog> SeederLogs { get; set; }
 
@@ -80,13 +74,6 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
             // Reporting and analytics classes
    modelBuilder.Entity<ReportDataV2>().ToTable("Xaf_ReportDataV2");
             modelBuilder.Entity<DashboardData>().ToTable("Xaf_DashboardData");
-        modelBuilder.Entity<Analysis>().ToTable("Xaf_Analysis");
-            
-   // KPI classes
-    modelBuilder.Entity<KpiDefinition>().ToTable("Xaf_KpiDefinition");
-            modelBuilder.Entity<KpiInstance>().ToTable("Xaf_KpiInstance");
-            modelBuilder.Entity<KpiHistoryItem>().ToTable("Xaf_KpiHistoryItem");
-   modelBuilder.Entity<KpiScorecard>().ToTable("Xaf_KpiScorecard");
             
             // SQL Script management
             modelBuilder.Entity<SqlScript>(b =>

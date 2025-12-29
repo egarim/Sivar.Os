@@ -285,6 +285,13 @@ public class Post : BaseEntity
     [StringLength(500)]
     public virtual string? CanonicalUrl { get; set; }
 
+    /// <summary>
+    /// SEO-friendly URL slug for blog posts (e.g., "my-first-blog-post")
+    /// Generated from title, must be unique globally for blog posts
+    /// </summary>
+    [StringLength(200)]
+    public virtual string? Slug { get; set; }
+
     // Helper methods for business metadata
 
     /// <summary>

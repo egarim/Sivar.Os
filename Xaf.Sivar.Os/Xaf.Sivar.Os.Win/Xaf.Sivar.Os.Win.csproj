@@ -39,7 +39,6 @@
     <PackageReference Include="DevExpress.ExpressApp.FileAttachment.Win" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Notifications.Win" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Office.Win" Version="25.2.*-*" />
-    <PackageReference Include="DevExpress.ExpressApp.PivotChart.Win" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.PivotGrid.Win" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.ReportsV2.Win" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Scheduler.Win" Version="25.2.*-*" />

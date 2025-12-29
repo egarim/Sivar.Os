@@ -3061,6 +3061,10 @@ IMPORTANT INSTRUCTIONS:
                 // Seed services
                 await SeedServicesAsync(demoDataPath);
                 System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Services: {_pendingEmbeddings.Count}");
+                
+                // Seed blog posts (WordPress migration)
+                await SeedBlogPostsAsync(demoDataPath);
+                System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Embeddings queued after Blog: {_pendingEmbeddings.Count}");
             }
             catch (Exception ex)
             {
@@ -4207,6 +4211,153 @@ IMPORTANT INSTRUCTIONS:
             ObjectSpace.CommitChanges();
             System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} service posts.");
         }
+        
+        /// <summary>
+        /// Seeds blog posts from DemoData/Blog/blog.json
+        /// Used for WordPress migration and demo blog content
+        /// </summary>
+        private async Task SeedBlogPostsAsync(string demoDataPath)
+        {
+            var blogJsonPath = Path.Combine(demoDataPath, "Blog", "blog.json");
+            if (!File.Exists(blogJsonPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Updater] Blog JSON not found at: {blogJsonPath}. Skipping blog seeding.");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Updater] Loading blog posts from: {blogJsonPath}");
+            
+            var jsonContent = await File.ReadAllTextAsync(blogJsonPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            
+            var demoData = JsonSerializer.Deserialize<DemoDataFile>(jsonContent, options);
+            if (demoData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Failed to parse blog JSON.");
+                return;
+            }
+            
+            var now = DateTime.UtcNow;
+            var personalProfileTypeId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            
+            // Get the personal profile type (blogs are typically personal)
+            var personalProfileType = ObjectSpace.FirstOrDefault<ProfileType>(pt => pt.Id == personalProfileTypeId);
+            if (personalProfileType == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Updater] Personal profile type not found. Skipping blog seeding.");
+                return;
+            }
+            
+            // Create or get the blog author profile
+            var profileCount = 0;
+            foreach (var profileData in demoData.Profiles ?? new List<DemoProfileData>())
+            {
+                try
+                {
+                    var profileId = Guid.Parse(profileData.Id);
+                    
+                    // Check if profile already exists
+                    var existingProfile = ObjectSpace.FirstOrDefault<Profile>(p => p.Id == profileId);
+                    if (existingProfile != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Blog profile {profileData.DisplayName} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    // Need a user for the profile - use existing joche user or create system user
+                    var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+                    var systemUser = ObjectSpace.FirstOrDefault<User>(u => u.Id == systemUserId);
+                    if (systemUser == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Updater] System user not found for blog profile. Skipping.");
+                        continue;
+                    }
+                    
+                    var profile = ObjectSpace.CreateObject<Profile>();
+                    profile.Id = profileId;
+                    profile.UserId = systemUserId;
+                    profile.ProfileTypeId = personalProfileTypeId;
+                    profile.DisplayName = profileData.DisplayName ?? "";
+                    profile.Handle = profileData.Handle ?? "";
+                    profile.Bio = profileData.Bio ?? "";
+                    profile.Avatar = profileData.Avatar ?? "";
+                    profile.CategoryKeys = profileData.CategoryKeys?.ToArray() ?? Array.Empty<string>();
+                    profile.IsActive = true;
+                    profile.VisibilityLevel = VisibilityLevel.Public;
+                    profile.CreatedAt = now;
+                    profile.UpdatedAt = now;
+                    
+                    profileCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created blog profile: {profileData.DisplayName} ({profileData.Handle})");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating blog profile {profileData.DisplayName}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] Created {profileCount} blog profiles.");
+            
+            // Seed blog posts
+            var postCount = 0;
+            foreach (var postData in demoData.Posts ?? new List<DemoPostData>())
+            {
+                try
+                {
+                    var postId = Guid.Parse(postData.Id);
+                    var profileId = Guid.Parse(postData.ProfileId);
+                    
+                    // Check if post already exists
+                    var existingPost = ObjectSpace.FirstOrDefault<Post>(p => p.Id == postId);
+                    if (existingPost != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Updater] Blog post {postData.Title} already exists. Skipping.");
+                        continue;
+                    }
+                    
+                    var post = ObjectSpace.CreateObject<Post>();
+                    post.Id = postId;
+                    post.ProfileId = profileId;
+                    post.PostType = PostType.Blog;
+                    post.Content = postData.Title ?? "";  // Title stored in Content for blogs
+                    post.Title = postData.Title ?? "";
+                    post.BlogContent = postData.BlogContent;
+                    post.Slug = postData.Slug;
+                    post.Subtitle = postData.Subtitle ?? postData.Content;  // Use content as subtitle/excerpt
+                    post.CoverImageUrl = postData.CoverImageUrl;
+                    post.Tags = postData.Tags?.ToArray() ?? Array.Empty<string>();
+                    post.ReadTimeMinutes = postData.ReadTimeMinutes;
+                    post.PublishedAt = postData.PublishedAt ?? now;
+                    post.Visibility = VisibilityLevel.Public;
+                    post.IsDraft = false;
+                    post.Language = "en";  // Default to English for migrated posts
+                    post.CreatedAt = postData.PublishedAt ?? now;
+                    post.UpdatedAt = now;
+                    
+                    // Queue pre-computed content embedding for raw SQL update
+                    if (!string.IsNullOrEmpty(postData.ContentEmbedding))
+                    {
+                        _pendingEmbeddings[post.Id] = postData.ContentEmbedding;
+                        System.Diagnostics.Debug.WriteLine($"[Updater] 📊 Queued embedding for blog: {postData.Title}");
+                    }
+                    
+                    postCount++;
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created blog post: {postData.Title}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Updater] ❌ Error creating blog post {postData.Title}: {ex.Message}");
+                }
+            }
+            
+            ObjectSpace.CommitChanges();
+            System.Diagnostics.Debug.WriteLine($"[Updater] ✅ Created {postCount} blog posts.");
+        }
     }
     
     #region Demo Data DTOs
@@ -4271,6 +4422,48 @@ IMPORTANT INSTRUCTIONS:
         /// Format: "[0.123,0.456,0.789,...]" - 384 dimensions for all-MiniLM-L6-v2
         /// </summary>
         public string? ContentEmbedding { get; set; }
+        
+        // === BLOG-SPECIFIC FIELDS ===
+        
+        /// <summary>
+        /// SEO-friendly URL slug for blog posts (e.g., "my-first-blog-post")
+        /// </summary>
+        public string? Slug { get; set; }
+        
+        /// <summary>
+        /// Full blog content (HTML) - used for PostType.Blog
+        /// </summary>
+        public string? BlogContent { get; set; }
+        
+        /// <summary>
+        /// Cover/featured image URL for blog posts
+        /// </summary>
+        public string? CoverImageUrl { get; set; }
+        
+        /// <summary>
+        /// Estimated read time in minutes
+        /// </summary>
+        public int? ReadTimeMinutes { get; set; }
+        
+        /// <summary>
+        /// When the blog post was published
+        /// </summary>
+        public DateTime? PublishedAt { get; set; }
+        
+        /// <summary>
+        /// Blog subtitle/excerpt
+        /// </summary>
+        public string? Subtitle { get; set; }
+        
+        /// <summary>
+        /// Original WordPress post ID (for migration tracking)
+        /// </summary>
+        public int? WordpressId { get; set; }
+        
+        /// <summary>
+        /// Original WordPress URL (for redirect mapping)
+        /// </summary>
+        public string? WordpressUrl { get; set; }
     }
     
     public class DemoBusinessLocationDetails

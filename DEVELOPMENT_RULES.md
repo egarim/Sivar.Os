@@ -60,7 +60,12 @@
     - Cookie Authentication Middleware
     - Redirect Loop Prevention
     - Common Issues & Solutions
-17. [Error Handling](#error-handling)
+17. [Explore Public Page](#explore-public-page) ⭐ **NEW**
+    - Architecture Overview
+    - Component Structure
+    - Data Flow
+    - Anonymous vs Authenticated Experience
+18. [Error Handling](#error-handling)
 18. [Testing & Debugging](#testing--debugging)
 19. [PostgreSQL pgvector & EF Core 9.0](#postgresql-pgvector--ef-core-90) ⚠️ **CRITICAL**
 20. [XAF Entity Rules - DevExpress ORM Compatibility](#xaf-entity-rules---devexpress-orm-compatibility) ⚠️ **CRITICAL**
@@ -6760,6 +6765,181 @@ When testing authentication changes, ALWAYS clear cookies:
    - `AuthorizeRouteView` doesn't automatically respect `[AllowAnonymous]`
    - Must use reflection to check attribute
    - Render with `DynamicComponent` if allowed
+
+---
+
+## Explore Public Page
+
+### 🌐 Public Content Discovery for Anonymous Users
+
+The Explore page (`/explore` or `/public`) allows **anonymous users** to discover public content without authentication. This is critical for SEO, user acquisition, and showcasing the platform's value.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Explore.razor Page                        │
+│              @page "/explore" | @page "/public"              │
+│              @attribute [AllowAnonymous]                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   ISivarClient.Public                        │
+│              GetPublicFeedAsync(pageSize, page, filter)      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   PostService                                │
+│              GetPublicFeedAsync() - Only Public posts        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   PostRepository                             │
+│     WHERE Visibility = Public AND IsDeleted = false          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Component Structure
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `Explore.razor` | `Sivar.Os.Client/Pages/` | Main page with filters and feed |
+| `PublicPostCard.razor` | `Sivar.Os.Client/Components/Feed/` | Simplified post card for anonymous users |
+| `BlogCard.razor` | `Sivar.Os.Client/Components/Feed/` | Blog post display |
+| `JoinCta.razor` | `Sivar.Os.Client/Components/Shared/` | Call-to-action banners for sign up |
+| `FeedSkeleton.razor` | `Sivar.Os.Client/Components/Feed/` | Loading skeleton |
+
+### Page Features
+
+```razor
+@page "/explore"
+@page "/public"
+@attribute [AllowAnonymous]  ⭐ CRITICAL - Allows anonymous access
+
+<!-- Features -->
+1. Hero Section (anonymous users only)
+2. Filter Chips (All, Business, Personal)
+3. Public Posts Feed
+4. JoinCta banners (anonymous users only)
+5. Load More pagination
+```
+
+### Data Flow
+
+**1. Page Load:**
+```csharp
+protected override async Task OnInitializedAsync()
+{
+    var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+    _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+    await LoadPosts();
+}
+```
+
+**2. Load Posts:**
+```csharp
+var feed = await SivarClient.Public.GetPublicFeedAsync(_pageSize, _currentPage, profileType);
+_posts = feed.Posts?.ToList() ?? new List<PostDto>();
+_hasMore = _posts.Count >= _pageSize && feed.TotalCount > _posts.Count;
+```
+
+**3. Repository Query (Only Public Posts):**
+```csharp
+var query = _context.Posts
+    .Include(p => p.Profile).ThenInclude(pr => pr.ProfileType)
+    .Include(p => p.Attachments)
+    .Where(p => !p.IsDeleted && p.Visibility == VisibilityLevel.Public)
+    .AsNoTracking();
+
+// Optional profile type filter
+if (!string.IsNullOrEmpty(profileType))
+{
+    query = query.Where(p => p.Profile.ProfileType.Name.ToLower() == profileType.ToLower());
+}
+```
+
+### Anonymous vs Authenticated Experience
+
+| Feature | Anonymous | Authenticated |
+|---------|-----------|---------------|
+| View posts | ✅ Public only | ✅ All visible posts |
+| Hero section | ✅ Shown | ❌ Hidden |
+| JoinCta banners | ✅ Shown | ❌ Hidden |
+| Like/Comment/Share | ❌ Redirect to signup | ✅ Full functionality |
+| Click on post | ❌ Snackbar + redirect | ✅ Navigate to post |
+| Filter by type | ✅ Available | ✅ Available |
+
+### Interaction Handling
+
+```csharp
+private void HandleInteraction(string action)
+{
+    if (_isAuthenticated)
+    {
+        // Navigate to actual content
+        if (action.StartsWith("view:"))
+        {
+            var postId = action.Replace("view:", "");
+            Navigation.NavigateTo($"/post/{postId}");
+        }
+    }
+    else
+    {
+        // Prompt anonymous users to sign up
+        Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info);
+        Navigation.NavigateTo("/welcome?action=signup");
+    }
+}
+```
+
+### PublicPostCard Component
+
+Simplified post card for anonymous users:
+- ✅ Shows post content, author, timestamp
+- ✅ Shows reaction/comment counts (read-only)
+- ✅ Displays attachments
+- ❌ No interactive reactions (redirect to signup)
+- ❌ No comment input
+- ✅ Click triggers signup prompt
+
+### JoinCta Component
+
+Two display variants:
+- **Banner**: Full-width gradient with icon, title, and buttons
+- **Inline**: Alert-style with text and links
+
+```razor
+<JoinCta DisplayVariant="banner" />  <!-- Top of feed -->
+<JoinCta DisplayVariant="inline" />  <!-- Bottom of feed -->
+```
+
+### Localization
+
+Both English and Spanish supported:
+
+| Key | English | Spanish |
+|-----|---------|---------|
+| `PageTitle` | Explore | Explorar |
+| `HeroTitle` | Discover What's Happening | Descubre Lo Que Está Pasando |
+| `FilterAll` | All | Todos |
+| `FilterBusiness` | Business | Negocios |
+| `SignUpPrompt` | Sign up to interact | Regístrate para interactuar |
+
+### Implementation Checklist
+
+When modifying the Explore page:
+
+- [ ] Keep `@attribute [AllowAnonymous]` - Page must be public
+- [ ] Check `_isAuthenticated` before showing authenticated features
+- [ ] Use `PublicPostCard` for anonymous users (simplified UI)
+- [ ] Show `JoinCta` banners only to anonymous users
+- [ ] Handle interactions with signup redirect for anonymous
+- [ ] Use `SivarClient.Public.GetPublicFeedAsync()` - only returns public posts
+- [ ] Localize all user-facing strings
+- [ ] Test both `/explore` and `/public` routes
 
 ---
 

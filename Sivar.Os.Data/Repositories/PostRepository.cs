@@ -46,7 +46,9 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         if (includeRelated)
             query = IncludeRelatedEntities(query);
 
-        query = query.OrderByDescending(p => p.CreatedAt);
+        // Sort by PublishedAt for blogs (original publication date), otherwise by CreatedAt
+        // Use COALESCE pattern: PublishedAt ?? CreatedAt for ordering
+        query = query.OrderByDescending(p => p.PublishedAt ?? p.CreatedAt);
 
         var totalCount = await query.CountAsync();
         var posts = await query
@@ -71,7 +73,8 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         if (includeRelated)
             query = IncludeRelatedEntities(query);
 
-        query = query.OrderByDescending(p => p.CreatedAt);
+        // Sort by PublishedAt (for blogs) if available, otherwise by CreatedAt
+        query = query.OrderByDescending(p => p.PublishedAt ?? p.CreatedAt);
 
         var totalCount = await query.CountAsync();
         var posts = await query

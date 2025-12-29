@@ -22,11 +22,8 @@
     <PackageReference Include="DevExpress.ExpressApp.ConditionalAppearance" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Dashboards" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.EFCore" Version="25.2.*-*" />
-    <PackageReference Include="DevExpress.ExpressApp.Kpi" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Notifications" Version="25.2.*-*" />
-    <PackageReference Include="DevExpress.ExpressApp.Objects" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Office" Version="25.2.*-*" />
-    <PackageReference Include="DevExpress.ExpressApp.PivotChart" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.PivotGrid" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.ReportsV2" Version="25.2.*-*" />
     <PackageReference Include="DevExpress.ExpressApp.Scheduler" Version="25.2.*-*" />

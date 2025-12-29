@@ -9,7 +9,6 @@ using DevExpress.ExpressApp.Model.NodeGenerators;
 using DevExpress.ExpressApp.ReportsV2;
 using DevExpress.ExpressApp.Updating;
 using DevExpress.Persistent.Base;
-using DevExpress.Persistent.BaseImpl.EF.Kpi;
 using Microsoft.Build.Tasks.Deployment.Bootstrapper;
 using Microsoft.CodeAnalysis;
 using Sivar.Os.Shared.Entities;
@@ -107,31 +106,21 @@ namespace Xaf.Sivar.Os.Module
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.ModelDifferenceAspect));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.SystemModule.SystemModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Security.SecurityModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Objects.BusinessClassLibraryCustomizationModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Chart.ChartModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.CloneObject.CloneObjectModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.ConditionalAppearance.ConditionalAppearanceModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Dashboards.DashboardsModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Kpi.KpiModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Notifications.NotificationsModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Office.OfficeModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.PivotChart.PivotChartModuleBase));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.PivotGrid.PivotGridModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.ReportsV2.ReportsModuleV2));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Scheduler.SchedulerModuleBase));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Validation.ValidationModule));
-            DevExpress.ExpressApp.Kpi.KpiModule.UsedExportedTypes = DevExpress.Persistent.Base.UsedExportedTypes.Custom;
             DevExpress.ExpressApp.Security.SecurityModule.UsedExportedTypes = DevExpress.Persistent.Base.UsedExportedTypes.Custom;
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.FileData));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.FileAttachment));
-            AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.Analysis));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.Event));
             AdditionalExportedTypes.Add(typeof(DevExpress.Persistent.BaseImpl.EF.Resource));
-            AdditionalExportedTypes.Add(typeof(BaseKpiObject));
-            AdditionalExportedTypes.Add(typeof(KpiDefinition));
-            AdditionalExportedTypes.Add(typeof(KpiHistoryItem));
-            AdditionalExportedTypes.Add(typeof(KpiInstance));
-            AdditionalExportedTypes.Add(typeof(KpiScorecard));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
         {
