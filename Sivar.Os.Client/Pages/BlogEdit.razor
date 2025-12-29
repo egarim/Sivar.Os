@@ -1,0 +1,258 @@
+@page "/blog/edit/{PostId:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using MudBlazor
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Client.Components.Feed
+@using Microsoft.Extensions.Logging
+@inject NavigationManager Navigation
+@inject IPostsClient PostsClient
+@inject ISnackbar Snackbar
+@inject ILogger<BlogEdit> Logger
+
+<PageTitle>Edit Article - Sivar.Os</PageTitle>
+
+<div class="blog-edit-page wireframe-landing">
+    <!-- Header with back and save buttons -->
+    <div class="blog-edit-header">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                      OnClick="GoBack" 
+                      Color="Color.Default"
+                      Size="Size.Medium" />
+        <MudText Typo="Typo.h6">Edit Article</MudText>
+        <div class="header-spacer"></div>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="SaveChanges"
+                   Disabled="_isSaving || !_hasChanges"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Save</span>
+            }
+        </MudButton>
+    </div>
+
+    <div class="blog-edit-content">
+        @if (_isLoading)
+        {
+            <div class="loading-container">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                <MudText Typo="Typo.body1" Class="mt-3">Loading article...</MudText>
+            </div>
+        }
+        else if (_error != null)
+        {
+            <div class="error-container">
+                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" />
+                <MudText Typo="Typo.h6" Class="mt-3">@_error</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="GoBack">
+                    Go Back
+                </MudButton>
+            </div>
+        }
+        else if (_post != null)
+        {
+            <BlogEditor @bind-Title="_editTitle"
+                        @bind-Subtitle="_editSubtitle"
+                        @bind-Content="_editContent"
+                        @bind-CoverImageUrl="_editCoverImageUrl"
+                        @bind-CoverImageFileId="_editCoverImageFileId"
+                        @bind-IsDraft="_editIsDraft" />
+        }
+    </div>
+</div>
+
+<style>
+    .blog-edit-page {
+        min-height: 100vh;
+        background: var(--mud-palette-background);
+    }
+
+    .blog-edit-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: var(--mud-palette-surface);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .header-spacer {
+        flex: 1;
+    }
+
+    .blog-edit-content {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    .loading-container,
+    .error-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+        padding: 2rem;
+    }
+
+    @@media (max-width: 600px) {
+        .blog-edit-content {
+            padding: 1rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid PostId { get; set; }
+
+    private PostDto? _post;
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private string? _error;
+    private bool _hasChanges = false;
+
+    // Edit form fields
+    private string _editTitle = "";
+    private string _editSubtitle = "";
+    private string _editContent = "";
+    private string _editCoverImageUrl = "";
+    private string? _editCoverImageFileId;
+    private bool _editIsDraft = false;
+
+    // Original values for change detection
+    private string _originalTitle = "";
+    private string _originalSubtitle = "";
+    private string _originalContent = "";
+    private string _originalCoverImageUrl = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPost();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Detect changes when parameters change
+        _hasChanges = HasUnsavedChanges();
+    }
+
+    private async Task LoadPost()
+    {
+        try
+        {
+            _isLoading = true;
+            _error = null;
+            
+            Logger.LogInformation("[BlogEdit] Loading post {PostId}", PostId);
+            _post = await PostsClient.GetPostAsync(PostId);
+
+            if (_post == null)
+            {
+                _error = "Article not found.";
+                return;
+            }
+
+            if (_post.PostType != PostType.Blog)
+            {
+                _error = "This is not a blog post.";
+                return;
+            }
+
+            // Initialize edit fields with current values
+            _editTitle = _post.Content ?? "";
+            _editSubtitle = _post.Subtitle ?? "";
+            _editContent = _post.BlogContent ?? "";
+            _editCoverImageUrl = _post.CoverImageUrl ?? "";
+            _editCoverImageFileId = _post.CoverImageFileId;
+            _editIsDraft = _post.IsDraft;
+
+            // Store original values for change detection
+            _originalTitle = _editTitle;
+            _originalSubtitle = _editSubtitle;
+            _originalContent = _editContent;
+            _originalCoverImageUrl = _editCoverImageUrl;
+
+            Logger.LogInformation("[BlogEdit] Loaded post: {Title}", _editTitle);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[BlogEdit] Error loading post {PostId}", PostId);
+            _error = "Failed to load article. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        return _editTitle != _originalTitle ||
+               _editSubtitle != _originalSubtitle ||
+               _editContent != _originalContent ||
+               _editCoverImageUrl != _originalCoverImageUrl;
+    }
+
+    private async Task SaveChanges()
+    {
+        if (_post == null) return;
+
+        try
+        {
+            _isSaving = true;
+            StateHasChanged();
+
+            Logger.LogInformation("[BlogEdit] Saving changes to post {PostId}", PostId);
+
+            var updateDto = new UpdatePostDto
+            {
+                Content = _editTitle,
+                Subtitle = _editSubtitle,
+                BlogContent = _editContent,
+                CoverImageUrl = _editCoverImageUrl,
+                CoverImageFileId = _editCoverImageFileId
+            };
+
+            await PostsClient.UpdatePostAsync(PostId, updateDto);
+
+            // Update original values after successful save
+            _originalTitle = _editTitle;
+            _originalSubtitle = _editSubtitle;
+            _originalContent = _editContent;
+            _originalCoverImageUrl = _editCoverImageUrl;
+            _hasChanges = false;
+
+            Snackbar.Add("Article saved successfully!", Severity.Success);
+            Logger.LogInformation("[BlogEdit] Post saved successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[BlogEdit] Error saving post {PostId}", PostId);
+            Snackbar.Add("Failed to save article. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/post/{PostId}");
+    }
+}

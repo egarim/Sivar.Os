@@ -8,6 +8,7 @@
 @using Microsoft.Extensions.Logging
 @inject NavigationManager Navigation
 @inject IPostsClient PostsClient
+@inject IProfilesClient ProfilesClient
 @inject ILogger<PostDetail> Logger
 
 <PageTitle>@(_post?.Profile?.DisplayName ?? "Post") - Sivar.Os</PageTitle>
@@ -54,23 +55,34 @@
                     }
                     
                     <div class="blog-detail-content">
-                        <!-- Author Info -->
-                        <div class="blog-author">
-                            <MudAvatar Size="Size.Medium" Color="Color.Primary">
-                                @GetInitials(_post.Profile?.DisplayName)
-                            </MudAvatar>
-                            <div class="blog-author-info">
-                                <MudText Typo="Typo.subtitle1" Class="blog-author-name">
-                                    @_post.Profile?.DisplayName
-                                </MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @FormatDate(_post.PublishedAt ?? _post.CreatedAt)
-                                    @if (_post.ReadTimeMinutes.HasValue && _post.ReadTimeMinutes.Value > 0)
-                                    {
-                                        <span> · @_post.ReadTimeMinutes min read</span>
-                                    }
-                                </MudText>
+                        <!-- Author Info + Edit Action -->
+                        <div class="blog-author-row">
+                            <div class="blog-author">
+                                <MudAvatar Size="Size.Medium" Color="Color.Primary">
+                                    @GetInitials(_post.Profile?.DisplayName)
+                                </MudAvatar>
+                                <div class="blog-author-info">
+                                    <MudText Typo="Typo.subtitle1" Class="blog-author-name">
+                                        @_post.Profile?.DisplayName
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @FormatDate(_post.PublishedAt ?? _post.CreatedAt)
+                                        @if (_post.ReadTimeMinutes.HasValue && _post.ReadTimeMinutes.Value > 0)
+                                        {
+                                            <span> · @_post.ReadTimeMinutes min read</span>
+                                        }
+                                    </MudText>
+                                </div>
                             </div>
+                            @if (_post.Profile?.Id == _currentProfileId)
+                            {
+                                <MudTooltip Text="Edit Article">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                   Color="Color.Default" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => HandleEditBlog(_post))" />
+                                </MudTooltip>
+                            }
                         </div>
                         
                         <!-- Title -->
@@ -199,7 +211,7 @@
 
     .blog-cover-image {
         width: 100%;
-        max-height: 400px;
+        max-height: 600px;
         overflow: hidden;
     }
 
@@ -213,11 +225,17 @@
         padding: 24px;
     }
 
+    .blog-author-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
     .blog-author {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 20px;
     }
 
     .blog-author-info {
@@ -335,6 +353,11 @@
 
         try
         {
+            // Load current user's profile for ownership check
+            var currentProfile = await ProfilesClient.GetMyActiveProfileAsync();
+            _currentProfileId = currentProfile?.Id ?? Guid.Empty;
+            Logger.LogInformation("[PostDetail] Current user profile ID: {ProfileId}", _currentProfileId);
+
             Logger.LogInformation("[PostDetail] Loading post {PostId}", PostId);
             _post = await PostsClient.GetPostAsync(PostId);
             
@@ -345,7 +368,7 @@
             }
             else
             {
-                Logger.LogInformation("[PostDetail] Post loaded successfully: {PostId}", PostId);
+                Logger.LogInformation("[PostDetail] Post loaded successfully: {PostId}, Post owner: {OwnerId}", PostId, _post.Profile?.Id);
             }
         }
         catch (Exception ex)
@@ -387,6 +410,12 @@
     {
         // Edit functionality - handled by PostCard's edit modal
         return Task.CompletedTask;
+    }
+
+    private void HandleEditBlog(PostDto post)
+    {
+        // Navigate to blog editor with the post ID
+        Navigation.NavigateTo($"/blog/edit/{post.Id}");
     }
 
     private async Task HandleDelete(PostDto post)
