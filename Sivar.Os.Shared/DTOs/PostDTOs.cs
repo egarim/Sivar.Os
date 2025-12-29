@@ -237,8 +237,9 @@ public record PostDto
 
     /// <summary>
     /// Number of comments
+    /// Note: Using set instead of init to allow updating stale values from PostSnapshotJson
     /// </summary>
-    public int CommentCount { get; init; }
+    public int CommentCount { get; set; }
 
     /// <summary>
     /// When the post was created

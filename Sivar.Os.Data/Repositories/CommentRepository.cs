@@ -172,6 +172,38 @@ public class CommentRepository : BaseRepository<Comment>, ICommentRepository
         return await query.CountAsync();
     }
 
+    public async Task<Dictionary<Guid, int>> GetCommentCountsByPostIdsAsync(IEnumerable<Guid> postIds, bool includeDeleted = false)
+    {
+        var postIdList = postIds.ToList();
+        if (!postIdList.Any())
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        var query = _context.Comments.Where(c => postIdList.Contains(c.PostId));
+        
+        if (!includeDeleted)
+        {
+            query = query.Where(c => !c.IsDeleted);
+        }
+
+        var counts = await query
+            .GroupBy(c => c.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count);
+
+        // Ensure all requested postIds have an entry (0 if no comments)
+        foreach (var postId in postIdList)
+        {
+            if (!counts.ContainsKey(postId))
+            {
+                counts[postId] = 0;
+            }
+        }
+
+        return counts;
+    }
+
     #endregion
 
     #region Reply Operations

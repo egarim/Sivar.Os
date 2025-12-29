@@ -1830,3 +1830,216 @@
         display: none;
     }
 }
+
+/* ===== Blog Editor Dialog ===== */
+.blog-editor-dialog {
+    max-width: 900px !important;
+    width: 95vw !important;
+}
+
+.blog-editor-dialog .mud-dialog-content {
+    padding: 0 !important;
+    max-height: calc(90vh - 140px) !important;
+    overflow-y: auto !important;
+    background: var(--wire-background, #000) !important;
+}
+
+.blog-editor-dialog .mud-dialog-title {
+    background: var(--wire-card, #16181c) !important;
+    border-bottom: 1px solid var(--wire-border, #2f3336) !important;
+    padding: 16px 24px !important;
+}
+
+.blog-editor-dialog .mud-dialog-actions {
+    background: var(--wire-card, #16181c) !important;
+    border-top: 1px solid var(--wire-border, #2f3336) !important;
+    padding: 12px 24px !important;
+}
+
+.blog-dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--wire-text-primary, #e7e9ea);
+}
+
+.blog-dialog-header .mud-icon-root {
+    color: var(--wire-primary, #1da1f2);
+}
+
+.blog-dialog-content {
+    padding: 24px;
+    min-height: 500px;
+    background: var(--wire-background, #000);
+}
+
+/* Override BlogEditor styles within dialog */
+.blog-dialog-content .blog-editor-container {
+    gap: 20px;
+}
+
+.blog-dialog-content .blog-content-section {
+    min-height: 350px;
+}
+
+.blog-dialog-content .blog-content-section .dxbl-html-editor {
+    min-height: 350px;
+}
+
+/* Hide the draft toggle inside BlogEditor since we have one in actions */
+.blog-dialog-content .blog-options-section {
+    display: none;
+}
+
+.blog-dialog-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 0;
+}
+
+.blog-dialog-actions .left-actions {
+    display: flex;
+    align-items: center;
+}
+
+.blog-dialog-actions .right-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Blog Editor Dialog Responsive */
+@media (max-width: 768px) {
+    .blog-editor-dialog {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        margin: 0 !important;
+    }
+
+    .blog-dialog-content {
+        padding: 16px;
+    }
+
+    .blog-dialog-actions {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .blog-dialog-actions .left-actions,
+    .blog-dialog-actions .right-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== DevExpress z-index fixes for MudDialog ===== */
+/* DevExpress popups/dropdowns need higher z-index when inside MudDialog */
+/* MudDialog uses z-index around 1300, DevExpress starts at 1050 */
+
+/* DevExpress dropdown/popup containers */
+.dxbl-dropdown-dialog,
+.dxbl-popup,
+.dxbl-modal,
+.dxbl-popup-root,
+dxbl-popup-root,
+.dxbl-dropdown,
+.dxbl-menu-dropdown {
+    z-index: 1400 !important;
+}
+
+/* DevExpress HTML Editor specific popups */
+.dxbl-html-editor-dialog,
+.dxbl-html-editor-popup,
+.dxbl-html-editor .dxbl-dropdown {
+    z-index: 1400 !important;
+}
+
+/* Toolbar dropdowns */
+.dxbl-toolbar .dxbl-dropdown,
+.dxbl-toolbar-item .dxbl-dropdown,
+.dxbl-btn-group .dxbl-dropdown {
+    z-index: 1400 !important;
+}
+
+/* Color picker popups */
+.dxbl-color-palette,
+.dxbl-color-picker-popup {
+    z-index: 1400 !important;
+}
+
+/* Font/size picker dropdowns */
+.dxbl-combobox-dropdown,
+.dxbl-listbox {
+    z-index: 1400 !important;
+}
+
+/* MudDialog overlay should not block DevExpress popups */
+/* Allow clicks through to DevExpress elements rendered at body level */
+.mud-overlay {
+    pointer-events: auto;
+}
+
+/* Make sure the MudDialog content area allows DevExpress popups to render above */
+.mud-dialog-container {
+    overflow: visible !important;
+}
+
+.blog-editor-dialog .mud-paper {
+    overflow: visible !important;
+}
+
+/* ===== Blog Editor Popup (DxPopup version) ===== */
+.blog-editor-popup {
+    max-width: 900px !important;
+}
+
+.blog-editor-popup .dxbl-popup-body {
+    padding: 0 !important;
+    overflow-y: auto !important;
+    background: var(--wire-background, #000) !important;
+}
+
+.blog-editor-popup .dxbl-popup-header {
+    background: var(--wire-card, #16181c) !important;
+    border-bottom: 1px solid var(--wire-border, #2f3336) !important;
+    color: var(--wire-text-primary, #e7e9ea) !important;
+}
+
+.blog-editor-popup .dxbl-popup-footer {
+    background: var(--wire-card, #16181c) !important;
+    border-top: 1px solid var(--wire-border, #2f3336) !important;
+    padding: 12px 24px !important;
+}
+
+.blog-popup-content {
+    padding: 24px;
+    min-height: 400px;
+    background: var(--wire-background, #000);
+}
+
+.blog-popup-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.blog-popup-footer .left-actions {
+    display: flex;
+    align-items: center;
+}
+
+.blog-popup-footer .right-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Hide the draft toggle inside BlogEditor since we have one in footer */
+.blog-popup-content .blog-options-section {
+    display: none;
+}
+
+

@@ -122,11 +122,24 @@ public class ActivitiesClient : IActivitiesClient
                 _logger.LogInformation("[ActivitiesClient] ⚡ All {Count} activities have PostSnapshotJson - zero DB lookups!", activities.Count);
             }
 
+            // ⚡ BATCH FETCH: Get fresh comment counts for ALL posts (snapshots may be stale)
+            var allPostIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            
+            sw.Restart();
+            var commentCounts = allPostIds.Any() 
+                ? await _commentService.GetCommentCountsByPostIdsAsync(allPostIds) 
+                : new Dictionary<Guid, int>();
+            _logger.LogInformation("[ActivitiesClient] ⏱️ BATCH fetched {Count} comment counts: {Elapsed}ms", commentCounts.Count, sw.ElapsedMilliseconds);
+
             // Map activities using pre-fetched data
             var activityDtos = new List<ActivityDto>();
             foreach (var activity in activities)
             {
-                var dto = MapActivityToDto(activity, posts);
+                var dto = MapActivityToDto(activity, posts, commentCounts);
                 activityDtos.Add(dto);
             }
 
@@ -179,8 +192,18 @@ public class ActivitiesClient : IActivitiesClient
             var posts = postActivityIds.Any() 
                 ? await _postService.GetPostsByIdsAsync(postActivityIds) 
                 : new Dictionary<Guid, PostDto?>();
+            
+            // 🔧 FIX: Batch fetch fresh comment counts for all post activities
+            var allPostIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            var commentCounts = allPostIds.Any() 
+                ? await _commentService.GetCommentCountsByPostIdsAsync(allPostIds) 
+                : new Dictionary<Guid, int>();
 
-            var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
+            var activityDtos = activities.Select(a => MapActivityToDto(a, posts, commentCounts)).ToList();
 
             var totalCount = activityDtos.Count;
             var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
@@ -229,8 +252,18 @@ public class ActivitiesClient : IActivitiesClient
             var posts = postActivityIds.Any() 
                 ? await _postService.GetPostsByIdsAsync(postActivityIds) 
                 : new Dictionary<Guid, PostDto?>();
+            
+            // 🔧 FIX: Batch fetch fresh comment counts for all post activities
+            var allPostIds = activities
+                .Where(a => a.ObjectType.Equals("Post", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.ObjectId)
+                .Distinct()
+                .ToList();
+            var commentCounts = allPostIds.Any() 
+                ? await _commentService.GetCommentCountsByPostIdsAsync(allPostIds) 
+                : new Dictionary<Guid, int>();
 
-            var activityDtos = activities.Select(a => MapActivityToDto(a, posts)).ToList();
+            var activityDtos = activities.Select(a => MapActivityToDto(a, posts, commentCounts)).ToList();
 
             var totalCount = activityDtos.Count;
             var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
@@ -319,7 +352,10 @@ public class ActivitiesClient : IActivitiesClient
     /// ⚡ PERFORMANCE: First checks PostSnapshotJson (JSONB) for instant deserialization,
     /// falls back to pre-fetched dictionary if snapshot not available.
     /// </summary>
-    private ActivityDto MapActivityToDto(Shared.Entities.Activity activity, Dictionary<Guid, PostDto?> posts)
+    /// <param name="activity">The activity entity to map</param>
+    /// <param name="posts">Pre-fetched posts dictionary</param>
+    /// <param name="commentCounts">Optional fresh comment counts to override stale snapshot values</param>
+    private ActivityDto MapActivityToDto(Shared.Entities.Activity activity, Dictionary<Guid, PostDto?> posts, Dictionary<Guid, int>? commentCounts = null)
     {
         var dto = new ActivityDto
         {
@@ -368,6 +404,13 @@ public class ActivitiesClient : IActivitiesClient
             else if (posts.TryGetValue(activity.ObjectId, out var post))
             {
                 dto.Post = post;
+            }
+            
+            // 🔧 FIX: Apply fresh comment count to override stale snapshot value
+            if (dto.Post != null && commentCounts != null && commentCounts.TryGetValue(activity.ObjectId, out var freshCount))
+            {
+                dto.Post.CommentCount = freshCount;
+                _logger.LogDebug("[ActivitiesClient] 🔧 Applied fresh CommentCount={Count} for PostId={PostId}", freshCount, activity.ObjectId);
             }
         }
 

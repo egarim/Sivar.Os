@@ -1,0 +1,181 @@
+@using MudBlazor
+@using DevExpress.Blazor
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Services
+
+<DxPopup @bind-Visible="@IsVisible"
+         HeaderText="Write Blog Post"
+         CloseOnOutsideClick="false"
+         ShowCloseButton="true"
+         ShowFooter="true"
+         Width="900px"
+         Height="85vh"
+         CssClass="blog-editor-popup">
+    <BodyContentTemplate>
+        <div class="blog-popup-content">
+            <BlogEditor Title="@Title"
+                        TitleChanged="@OnTitleChanged"
+                        Subtitle="@Subtitle"
+                        SubtitleChanged="@OnSubtitleChanged"
+                        Content="@Content"
+                        ContentChanged="@OnContentChanged"
+                        CoverImageUrl="@CoverImageUrl"
+                        CoverImageUrlChanged="@OnCoverImageUrlChanged"
+                        CoverImageFileId="@CoverImageFileId"
+                        CoverImageFileIdChanged="@OnCoverImageFileIdChanged"
+                        IsDraft="@IsDraft"
+                        IsDraftChanged="@OnIsDraftChanged"
+                        OnCoverImageUploaded="@OnCoverImageUploaded" />
+        </div>
+    </BodyContentTemplate>
+    <FooterContentTemplate>
+        <div class="blog-popup-footer">
+            <div class="left-actions">
+                <DxCheckBox @bind-Checked="@IsDraft"
+                            CheckType="CheckType.Switch">
+                    Save as draft
+                </DxCheckBox>
+            </div>
+            <div class="right-actions">
+                <DxButton Text="Cancel" 
+                          RenderStyle="ButtonRenderStyle.Secondary"
+                          Click="@Cancel" />
+                <DxButton Text="@(IsDraft ? "Save Draft" : "Publish")" 
+                          RenderStyle="ButtonRenderStyle.Primary"
+                          Enabled="@(!IsPublishDisabled)"
+                          Click="@Submit" />
+            </div>
+        </div>
+    </FooterContentTemplate>
+</DxPopup>
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> TitleChanged { get; set; }
+
+    [Parameter]
+    public string Subtitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SubtitleChanged { get; set; }
+
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    [Parameter]
+    public string CoverImageUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> CoverImageUrlChanged { get; set; }
+
+    [Parameter]
+    public string? CoverImageFileId { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> CoverImageFileIdChanged { get; set; }
+
+    [Parameter]
+    public bool IsDraft { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> IsDraftChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<BlogEditorDialogResult> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private bool IsPublishDisabled => string.IsNullOrWhiteSpace(Title) || string.IsNullOrWhiteSpace(Content);
+
+    private async Task OnTitleChanged(string value)
+    {
+        Title = value;
+        await TitleChanged.InvokeAsync(value);
+    }
+
+    private async Task OnSubtitleChanged(string value)
+    {
+        Subtitle = value;
+        await SubtitleChanged.InvokeAsync(value);
+    }
+
+    private async Task OnContentChanged(string value)
+    {
+        Content = value;
+        await ContentChanged.InvokeAsync(value);
+    }
+
+    private async Task OnCoverImageUrlChanged(string value)
+    {
+        CoverImageUrl = value;
+        await CoverImageUrlChanged.InvokeAsync(value);
+    }
+
+    private async Task OnCoverImageFileIdChanged(string? value)
+    {
+        CoverImageFileId = value;
+        await CoverImageFileIdChanged.InvokeAsync(value);
+    }
+
+    private async Task OnIsDraftChanged(bool value)
+    {
+        IsDraft = value;
+        await IsDraftChanged.InvokeAsync(value);
+    }
+
+    private void OnCoverImageUploaded(FileUploadResult result)
+    {
+        CoverImageUrl = result.Url;
+        CoverImageFileId = result.FileId;
+    }
+
+    private async Task Submit()
+    {
+        var result = new BlogEditorDialogResult
+        {
+            Title = Title,
+            Subtitle = Subtitle,
+            Content = Content,
+            CoverImageUrl = CoverImageUrl,
+            CoverImageFileId = CoverImageFileId,
+            IsDraft = IsDraft
+        };
+        
+        await OnSubmit.InvokeAsync(result);
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    /// <summary>
+    /// Result returned from the BlogEditorDialog
+    /// </summary>
+    public class BlogEditorDialogResult
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string CoverImageUrl { get; set; } = string.Empty;
+        public string? CoverImageFileId { get; set; }
+        public bool IsDraft { get; set; }
+    }
+}

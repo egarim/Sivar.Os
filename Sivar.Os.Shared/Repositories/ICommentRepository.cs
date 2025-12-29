@@ -89,6 +89,14 @@ public interface ICommentRepository
     /// <param name="includeDeleted">Whether to include soft-deleted comments</param>
     /// <returns>Total comment count</returns>
     Task<int> GetCommentCountByPostAsync(Guid postId, bool includeDeleted = false);
+
+    /// <summary>
+    /// Gets comment counts for multiple posts in a single query (batch operation)
+    /// </summary>
+    /// <param name="postIds">List of post IDs</param>
+    /// <param name="includeDeleted">Whether to include soft-deleted comments</param>
+    /// <returns>Dictionary mapping post ID to comment count</returns>
+    Task<Dictionary<Guid, int>> GetCommentCountsByPostIdsAsync(IEnumerable<Guid> postIds, bool includeDeleted = false);
     
     #endregion
     

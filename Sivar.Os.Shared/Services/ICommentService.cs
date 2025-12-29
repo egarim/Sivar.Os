@@ -106,4 +106,11 @@ public interface ICommentService
     /// <param name="hoursBack">Hours to look back for activity</param>
     /// <returns>List of recent comment activities</returns>
     Task<IEnumerable<CommentActivityDto>> GetRecentCommentActivityAsync(Guid profileId, int hoursBack = 24);
+
+    /// <summary>
+    /// Gets comment counts for multiple posts in a single batch operation
+    /// </summary>
+    /// <param name="postIds">List of post IDs to get counts for</param>
+    /// <returns>Dictionary mapping post ID to comment count</returns>
+    Task<Dictionary<Guid, int>> GetCommentCountsByPostIdsAsync(IEnumerable<Guid> postIds);
 }

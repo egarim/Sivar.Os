@@ -496,6 +496,14 @@ public class CommentService : ICommentService
         return activityDtos;
     }
 
+    /// <summary>
+    /// Gets comment counts for multiple posts in a single batch operation
+    /// </summary>
+    public async Task<Dictionary<Guid, int>> GetCommentCountsByPostIdsAsync(IEnumerable<Guid> postIds)
+    {
+        return await _commentRepository.GetCommentCountsByPostIdsAsync(postIds);
+    }
+
     #region Private Helper Methods
 
     /// <summary>
