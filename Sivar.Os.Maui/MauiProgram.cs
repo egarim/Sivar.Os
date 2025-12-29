@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
+using Sivar.Os.Shared.Framework.Navigation;
 
 namespace Sivar.Os.Maui;
 
@@ -19,6 +20,9 @@ public static class MauiProgram
         
         // Add MudBlazor services
         builder.Services.AddMudServices();
+        
+        // Add the navigation, menu, and action frameworks
+        builder.Services.AddNavigationFramework();
         
         // Add HTTP client for API communication
         builder.Services.AddScoped(sp => new HttpClient

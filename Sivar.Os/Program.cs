@@ -26,6 +26,7 @@ using Sivar.Os.Shared;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Shared.Repositories;
 using Sivar.Os.Shared.Services;
+using Sivar.Os.Shared.Framework.Navigation;
 using Sivar.Server.Library.Services;
 using System.IdentityModel.Tokens.Jwt;
 using Serilog;
@@ -87,6 +88,9 @@ else
 
 // Add localization services for server-side components
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// Register navigation framework (Phase 1: Framework Architecture)
+builder.Services.AddNavigationFramework();
 
 // Configure request localization
 var supportedCultures = new[] { "en-US", "es-ES" };

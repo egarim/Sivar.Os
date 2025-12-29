@@ -1,0 +1,167 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@inject IMenuRegistry MenuRegistry
+@inject IActionDispatcher ActionDispatcher
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+@* 
+    MobileContextMenu - Mobile-optimized context menu using bottom sheet pattern.
+    Uses the menu registry for menu items.
+*@
+
+<MudMenu Icon="@Icons.Material.Filled.MoreVert" 
+         Size="Size.Small"
+         Dense="true"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight">
+    @foreach (var group in _groupedItems)
+    {
+        @if (!string.IsNullOrEmpty(group.Key) && group.Key != _groupedItems.First().Key)
+        {
+            <MudDivider />
+        }
+        
+        @foreach (var item in group)
+        {
+            <MudMenuItem OnClick="@(() => HandleMenuClick(item))"
+                         Icon="@GetMudIcon(item.Icon)"
+                         IconColor="@GetMudColor(item.Color)">
+                @item.Title
+            </MudMenuItem>
+        }
+    }
+</MudMenu>
+
+@code {
+    [Parameter, EditorRequired]
+    public string EntityType { get; set; } = string.Empty;
+    
+    [Parameter, EditorRequired]
+    public Guid EntityId { get; set; }
+    
+    [Parameter]
+    public Guid? OwnerProfileId { get; set; }
+    
+    [Parameter]
+    public ActiveProfileDto? ActiveProfile { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnActionCompleted { get; set; }
+    
+    private IEnumerable<IGrouping<string?, IMenuItem>> _groupedItems = Enumerable.Empty<IGrouping<string?, IMenuItem>>();
+    private MenuContext _context = new();
+    
+    protected override void OnParametersSet()
+    {
+        UpdateMenuItems();
+    }
+    
+    private void UpdateMenuItems()
+    {
+        _context = new MenuContext
+        {
+            EntityType = EntityType,
+            EntityId = EntityId,
+            OwnerProfileId = OwnerProfileId,
+            ActiveProfile = ActiveProfile,
+            IsAuthenticated = ActiveProfile != null,
+            IsOwner = ActiveProfile?.Id == OwnerProfileId,
+            Platform = PlatformType.Mobile
+        };
+        
+        var items = MenuRegistry.GetMenuItems(_context);
+        _groupedItems = items.GroupBy(i => i.Group);
+    }
+    
+    private async Task HandleMenuClick(IMenuItem item)
+    {
+        // Check for confirmation
+        if (item.RequiresConfirmation)
+        {
+            var result = await DialogService.ShowMessageBox(
+                "Confirm",
+                $"Are you sure you want to {item.Title.ToLower()}?",
+                yesText: "Yes",
+                cancelText: "Cancel");
+                
+            if (result != true)
+                return;
+        }
+        
+        // Create action context
+        var actionContext = new ActionContext
+        {
+            ActionId = item.ActionId,
+            EntityType = EntityType,
+            EntityId = EntityId,
+            OwnerProfileId = OwnerProfileId,
+            ActiveProfile = ActiveProfile,
+            IsAuthenticated = ActiveProfile != null,
+            IsOwner = ActiveProfile?.Id == OwnerProfileId,
+            Platform = PlatformType.Mobile
+        };
+        
+        // Dispatch via ActionDispatcher
+        var actionResult = await ActionDispatcher.DispatchAsync(actionContext);
+        
+        // Handle the result
+        if (actionResult.Success)
+        {
+            if (!string.IsNullOrEmpty(actionResult.Message))
+            {
+                Snackbar.Add(actionResult.Message, Severity.Success);
+            }
+            
+            if (!string.IsNullOrEmpty(actionResult.NavigateTo))
+            {
+                NavigationManager.NavigateTo(actionResult.NavigateTo);
+            }
+            
+            if (actionResult.RequiresRefresh)
+            {
+                await OnActionCompleted.InvokeAsync(item.ActionId);
+            }
+        }
+        else
+        {
+            Snackbar.Add(actionResult.Message ?? "Action failed", Severity.Error);
+        }
+    }
+    
+    private static string GetMudIcon(string? iconName)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return Icons.Material.Filled.MoreHoriz;
+            
+        return iconName switch
+        {
+            "Edit" => Icons.Material.Filled.Edit,
+            "Delete" => Icons.Material.Filled.Delete,
+            "Share" => Icons.Material.Filled.Share,
+            "Link" => Icons.Material.Filled.Link,
+            "Bookmark" => Icons.Material.Filled.Bookmark,
+            "Flag" => Icons.Material.Filled.Flag,
+            "VisibilityOff" => Icons.Material.Filled.VisibilityOff,
+            "Reply" => Icons.Material.Filled.Reply,
+            "Settings" => Icons.Material.Filled.Settings,
+            "Block" => Icons.Material.Filled.Block,
+            _ => Icons.Material.Filled.MoreHoriz
+        };
+    }
+    
+    private static Color GetMudColor(string? colorName)
+    {
+        return colorName switch
+        {
+            "Primary" => Color.Primary,
+            "Secondary" => Color.Secondary,
+            "Error" => Color.Error,
+            "Warning" => Color.Warning,
+            "Info" => Color.Info,
+            "Success" => Color.Success,
+            _ => Color.Default
+        };
+    }
+}

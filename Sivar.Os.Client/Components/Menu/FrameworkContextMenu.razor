@@ -1,0 +1,232 @@
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.Framework
+@using Sivar.Os.Shared.Framework.Menu
+@using Sivar.Os.Shared.Framework.Actions
+@using Sivar.Os.Shared.DTOs
+@using MudBlazor
+@inject IMenuRegistry MenuRegistry
+@inject IActionDispatcher ActionDispatcher
+@inject IStringLocalizer<FrameworkContextMenu> Localizer
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+@* 
+    FrameworkContextMenu - Uses the menu registry for context menu items.
+    This component renders a MudMenu with items from the registry.
+    Toggle via FeatureFlags:UseFrameworkMenus in appsettings.json
+*@
+
+<MudMenu Icon="@Icons.Material.Filled.MoreVert" 
+         Size="Size.Small"
+         Dense="true"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight">
+    @foreach (var group in _groupedItems)
+    {
+        @if (!string.IsNullOrEmpty(group.Key) && group.Key != _groupedItems.First().Key)
+        {
+            <MudDivider />
+        }
+        
+        @foreach (var item in group)
+        {
+            <MudMenuItem OnClick="@(() => HandleMenuClick(item))"
+                         Icon="@GetMudIcon(item.Icon)"
+                         IconColor="@GetMudColor(item.Color)"
+                         Disabled="@(!IsEnabled(item))">
+                @GetLocalizedTitle(item)
+            </MudMenuItem>
+        }
+    }
+</MudMenu>
+
+@code {
+    /// <summary>
+    /// The type of entity this menu is for.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string EntityType { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// The ID of the entity.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Guid EntityId { get; set; }
+    
+    /// <summary>
+    /// The owner profile ID of the entity.
+    /// </summary>
+    [Parameter]
+    public Guid? OwnerProfileId { get; set; }
+    
+    /// <summary>
+    /// The currently active profile.
+    /// </summary>
+    [Parameter]
+    public ActiveProfileDto? ActiveProfile { get; set; }
+    
+    /// <summary>
+    /// The platform type.
+    /// </summary>
+    [Parameter]
+    public PlatformType Platform { get; set; } = PlatformType.Web;
+    
+    /// <summary>
+    /// Event callback when an action is triggered.
+    /// </summary>
+    [Parameter]
+    public EventCallback<MenuActionEventArgs> OnAction { get; set; }
+    
+    private IEnumerable<IGrouping<string?, IMenuItem>> _groupedItems = Enumerable.Empty<IGrouping<string?, IMenuItem>>();
+    private MenuContext _context = new();
+    
+    protected override void OnParametersSet()
+    {
+        UpdateMenuItems();
+    }
+    
+    private void UpdateMenuItems()
+    {
+        _context = new MenuContext
+        {
+            EntityType = EntityType,
+            EntityId = EntityId,
+            OwnerProfileId = OwnerProfileId,
+            ActiveProfile = ActiveProfile,
+            IsAuthenticated = ActiveProfile != null,
+            IsOwner = ActiveProfile?.Id == OwnerProfileId,
+            Platform = Platform
+        };
+        
+        var items = MenuRegistry.GetMenuItems(_context);
+        _groupedItems = items.GroupBy(i => i.Group);
+    }
+    
+    private bool IsEnabled(IMenuItem item)
+    {
+        if (item.IsEnabled == null)
+            return true;
+            
+        try
+        {
+            return item.IsEnabled(_context);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    private string GetLocalizedTitle(IMenuItem item)
+    {
+        if (!string.IsNullOrEmpty(item.TitleKey))
+        {
+            var localized = Localizer[item.TitleKey];
+            if (!localized.ResourceNotFound)
+                return localized.Value;
+        }
+        return item.Title;
+    }
+    
+    private async Task HandleMenuClick(IMenuItem item)
+    {
+        // Check for confirmation
+        if (item.RequiresConfirmation)
+        {
+            var confirmMessage = !string.IsNullOrEmpty(item.ConfirmationMessageKey) 
+                ? Localizer[item.ConfirmationMessageKey].Value 
+                : $"Are you sure you want to {item.Title.ToLower()}?";
+                
+            var dialogResult = await DialogService.ShowMessageBox(
+                Localizer["Confirm"].Value,
+                confirmMessage,
+                yesText: Localizer["Yes"].Value,
+                cancelText: Localizer["Cancel"].Value);
+                
+            if (dialogResult != true)
+                return;
+        }
+        
+        // Create action context
+        var actionContext = new ActionContext
+        {
+            ActionId = item.ActionId,
+            EntityType = EntityType,
+            EntityId = EntityId,
+            OwnerProfileId = OwnerProfileId,
+            ActiveProfile = ActiveProfile,
+            IsAuthenticated = ActiveProfile != null,
+            IsOwner = ActiveProfile?.Id == OwnerProfileId,
+            Platform = Platform
+        };
+        
+        // Dispatch via ActionDispatcher
+        var result = await ActionDispatcher.DispatchAsync(actionContext);
+        
+        // Handle the result
+        if (result.Success)
+        {
+            if (!string.IsNullOrEmpty(result.Message))
+            {
+                Snackbar.Add(result.Message, Severity.Success);
+            }
+            
+            if (!string.IsNullOrEmpty(result.NavigateTo))
+            {
+                NavigationManager.NavigateTo(result.NavigateTo);
+            }
+            
+            if (result.RequiresRefresh)
+            {
+                await OnAction.InvokeAsync(new MenuActionEventArgs
+                {
+                    ActionId = item.ActionId,
+                    EntityType = EntityType,
+                    EntityId = EntityId,
+                    MenuItem = item,
+                    Context = _context
+                });
+            }
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Action failed", Severity.Error);
+        }
+    }
+    
+    private static string GetMudIcon(string? iconName)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return Icons.Material.Filled.MoreHoriz;
+            
+        return iconName switch
+        {
+            "Edit" => Icons.Material.Filled.Edit,
+            "Delete" => Icons.Material.Filled.Delete,
+            "Share" => Icons.Material.Filled.Share,
+            "Link" => Icons.Material.Filled.Link,
+            "Bookmark" => Icons.Material.Filled.Bookmark,
+            "Flag" => Icons.Material.Filled.Flag,
+            "VisibilityOff" => Icons.Material.Filled.VisibilityOff,
+            "Reply" => Icons.Material.Filled.Reply,
+            "Settings" => Icons.Material.Filled.Settings,
+            "Block" => Icons.Material.Filled.Block,
+            _ => Icons.Material.Filled.MoreHoriz
+        };
+    }
+    
+    private static Color GetMudColor(string? colorName)
+    {
+        return colorName switch
+        {
+            "Primary" => Color.Primary,
+            "Secondary" => Color.Secondary,
+            "Error" => Color.Error,
+            "Warning" => Color.Warning,
+            "Info" => Color.Info,
+            "Success" => Color.Success,
+            _ => Color.Default
+        };
+    }
+}

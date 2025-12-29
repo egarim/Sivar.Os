@@ -1,6 +1,86 @@
+@inject INavigationRegistry NavigationRegistry
+@inject NavigationManager NavigationManager
+
+@* 
+    Mobile NavMenu - Uses the framework navigation registry.
+    This is used in drawer mode for tablets or as an alternative navigation.
+*@
+
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="/explore" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Explore">Explore</MudNavLink>
-    <MudNavLink Href="/search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">Search</MudNavLink>
-    <MudNavLink Href="/profile" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+    @foreach (var item in _navItems)
+    {
+        @if (item.IsAction)
+        {
+            <MudNavLink OnClick="@(() => HandleAction(item))"
+                        Icon="@GetMudIcon(item.Icon)">
+                @item.Title
+            </MudNavLink>
+        }
+        else
+        {
+            <MudNavLink Href="@item.Route" 
+                        Match="NavLinkMatch.Prefix"
+                        Icon="@GetMudIcon(item.Icon)">
+                @item.Title
+            </MudNavLink>
+        }
+    }
 </MudNavMenu>
+
+@code {
+    [Parameter]
+    public ActiveProfileDto? ActiveProfile { get; set; }
+    
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnAction { get; set; }
+    
+    private IEnumerable<INavigationItem> _navItems = Enumerable.Empty<INavigationItem>();
+    
+    protected override void OnParametersSet()
+    {
+        UpdateNavItems();
+    }
+    
+    private void UpdateNavItems()
+    {
+        var context = new NavContext
+        {
+            IsAuthenticated = IsAuthenticated,
+            ActiveProfile = ActiveProfile,
+            Platform = PlatformType.Mobile,
+            CurrentRoute = NavigationManager.Uri
+        };
+        
+        _navItems = NavigationRegistry.GetVisibleItems(context);
+    }
+    
+    private async Task HandleAction(INavigationItem item)
+    {
+        if (!string.IsNullOrEmpty(item.ActionId))
+        {
+            await OnAction.InvokeAsync(item.ActionId);
+        }
+    }
+    
+    private static string GetMudIcon(string? iconName)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return Icons.Material.Filled.Circle;
+            
+        return iconName switch
+        {
+            "Home" => Icons.Material.Filled.Home,
+            "Search" => Icons.Material.Filled.Search,
+            "Explore" => Icons.Material.Filled.Explore,
+            "Person" => Icons.Material.Filled.Person,
+            "Chat" => Icons.Material.Filled.Chat,
+            "EventNote" => Icons.Material.Filled.EventNote,
+            "EventAvailable" => Icons.Material.Filled.EventAvailable,
+            "SmartToy" => Icons.Material.Filled.SmartToy,
+            _ => Icons.Material.Filled.Circle
+        };
+    }
+}

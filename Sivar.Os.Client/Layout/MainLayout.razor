@@ -1,12 +1,15 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Configuration
 @using Sivar.Os.Client.Services
 @using Sivar.Os.Client.Components.AIChat
+@using Sivar.Os.Client.Components.Navigation
 @using Microsoft.JSInterop
 @using Sivar.Os.Shared
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Framework
 @using DevExpress.AIIntegration.Blazor.Chat
 @using Conversation = Sivar.Os.Client.Pages.Conversation
 @using ChatMessage = Sivar.Os.Client.Pages.ChatMessage
@@ -17,6 +20,7 @@
 @inject ILogger<MainLayout> Logger
 @inject ChatSettingsService ChatSettings
 @inject IProfileContextService ProfileContextService
+@inject IConfiguration Configuration
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -43,7 +47,17 @@
                    Elevation="2"
                    Variant="@(_aiChatVisible ? DrawerVariant.Temporary : _drawerVariant)"
                    Breakpoint="Breakpoint.Md">
-            <NavMenu />
+            @if (_useFrameworkNavigation)
+            {
+                <FrameworkNavMenu ActiveProfile="@_currentProfile" 
+                                  IsAuthenticated="@_isAuthenticated"
+                                  Platform="PlatformType.Web"
+                                  OnAction="@HandleFrameworkNavAction" />
+            }
+            else
+            {
+                <NavMenu />
+            }
         </MudDrawer>
 
         <!-- Main Content -->
@@ -654,6 +668,10 @@
     private MudTheme? _theme = null;
     private DotNetObjectReference<MainLayout>? _dotNetRef;
     private int _currentWindowWidth;
+    
+    // Framework Feature Flags
+    private bool _useFrameworkNavigation;
+    private bool _isAuthenticated;
 
     // AI Chat State
     private bool _historyOpen;
@@ -687,6 +705,9 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        
+        // Read framework feature flags from configuration
+        _useFrameworkNavigation = Configuration.GetValue<bool>("FrameworkFeatures:UseFrameworkNavigation", false);
 
         _theme = new()
         {
@@ -763,6 +784,7 @@
             // Get current user's profile
             Logger.LogInformation("[MainLayout.InitializeAIChatAsync] Fetching active profile - InitId={InitId}", initId);
             _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+            _isAuthenticated = _currentProfile != null;
             
             if (_currentProfile == null)
             {
@@ -885,6 +907,25 @@
     {
         // Fire and forget - use the async version
         _ = ToggleAIChatAsync();
+    }
+    
+    /// <summary>
+    /// Handles actions from the FrameworkNavMenu component.
+    /// Maps action IDs to corresponding methods.
+    /// </summary>
+    private void HandleFrameworkNavAction(string actionId)
+    {
+        Logger.LogInformation("[MainLayout.HandleFrameworkNavAction] ActionId={ActionId}", actionId);
+        
+        switch (actionId.ToLowerInvariant())
+        {
+            case "chat":
+                ToggleAIChat();
+                break;
+            default:
+                Logger.LogWarning("[MainLayout.HandleFrameworkNavAction] Unknown action: {ActionId}", actionId);
+                break;
+        }
     }
 
     private void DarkModeToggle()

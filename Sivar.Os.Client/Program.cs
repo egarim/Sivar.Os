@@ -11,6 +11,7 @@ using Sivar.Os.Client.Auth;
 using Sivar.Os.Shared;
 using Sivar.Os.Shared.Clients;
 using Sivar.Os.Client.Clients;
+using Sivar.Os.Shared.Framework.Navigation;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 using System.Globalization;
@@ -91,6 +92,9 @@ builder.Services.AddLocalization();
 
 // Register culture service for multi-language support
 builder.Services.AddScoped<ICultureService, CultureService>();
+
+// Register navigation framework (Phase 1: Framework Architecture)
+builder.Services.AddNavigationFramework();
 
 // Configure SivarClient options
 builder.Services.Configure<SivarClientOptions>(options =>

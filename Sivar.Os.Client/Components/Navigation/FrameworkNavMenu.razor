@@ -1,0 +1,151 @@
+@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@using Sivar.Os.Shared.Framework
+@using Sivar.Os.Shared.Framework.Navigation
+@using Sivar.Os.Shared.DTOs
+@using MudBlazor
+@inject INavigationRegistry NavigationRegistry
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<FrameworkNavMenu> Localizer
+
+@* 
+    FrameworkNavMenu - Uses the navigation registry for menu items.
+    This is the new pattern that replaces hardcoded navigation.
+    Toggle via FeatureFlags:UseFrameworkNavigation in appsettings.json
+*@
+
+<MudNavMenu Class="framework-nav-menu">
+    @foreach (var item in _visibleItems)
+    {
+        @if (item.IsAction)
+        {
+            <MudNavLink @onclick="@(() => HandleAction(item))"
+                        Icon="@GetMudIcon(item.Icon)"
+                        Disabled="@(!IsEnabled(item))">
+                @GetLocalizedTitle(item)
+            </MudNavLink>
+        }
+        else
+        {
+            <MudNavLink Href="@item.Route" 
+                        Match="NavLinkMatch.Prefix"
+                        Icon="@GetMudIcon(item.Icon)"
+                        Disabled="@(!IsEnabled(item))">
+                @GetLocalizedTitle(item)
+            </MudNavLink>
+        }
+    }
+</MudNavMenu>
+
+@code {
+    /// <summary>
+    /// The currently active profile (for visibility filtering).
+    /// </summary>
+    [Parameter]
+    public ActiveProfileDto? ActiveProfile { get; set; }
+    
+    /// <summary>
+    /// Whether the user is authenticated.
+    /// </summary>
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
+    
+    /// <summary>
+    /// User's roles for role-based navigation.
+    /// </summary>
+    [Parameter]
+    public string[] Roles { get; set; } = Array.Empty<string>();
+    
+    /// <summary>
+    /// The platform type (Web, Mobile, Desktop).
+    /// </summary>
+    [Parameter]
+    public PlatformType Platform { get; set; } = PlatformType.Web;
+    
+    /// <summary>
+    /// Event callback when an action item is clicked.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnAction { get; set; }
+    
+    private IEnumerable<INavigationItem> _visibleItems = Enumerable.Empty<INavigationItem>();
+    private NavContext _context = new();
+    
+    protected override void OnParametersSet()
+    {
+        UpdateVisibleItems();
+    }
+    
+    private void UpdateVisibleItems()
+    {
+        _context = new NavContext
+        {
+            IsAuthenticated = IsAuthenticated,
+            ActiveProfile = ActiveProfile,
+            CurrentRoute = NavigationManager.Uri,
+            Platform = Platform,
+            Roles = Roles
+        };
+        
+        _visibleItems = NavigationRegistry.GetVisibleItems(_context);
+    }
+    
+    private bool IsEnabled(INavigationItem item)
+    {
+        if (item.IsEnabled == null)
+            return true;
+            
+        try
+        {
+            return item.IsEnabled(_context);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+    
+    private string GetLocalizedTitle(INavigationItem item)
+    {
+        // Try to get localized string, fall back to Title
+        var localized = Localizer[item.TitleKey];
+        return localized.ResourceNotFound ? item.Title : localized.Value;
+    }
+    
+    private async Task HandleAction(INavigationItem item)
+    {
+        if (!string.IsNullOrEmpty(item.ActionId))
+        {
+            await OnAction.InvokeAsync(item.ActionId);
+        }
+    }
+    
+    /// <summary>
+    /// Maps icon names to MudBlazor Icons.
+    /// </summary>
+    private string GetMudIcon(string iconName)
+    {
+        return iconName switch
+        {
+            "Home" => Icons.Material.Filled.Home,
+            "Search" => Icons.Material.Filled.Search,
+            "EventNote" => Icons.Material.Filled.EventNote,
+            "EventAvailable" => Icons.Material.Filled.EventAvailable,
+            "SmartToy" => Icons.Material.Filled.SmartToy,
+            "Explore" => Icons.Material.Filled.Explore,
+            "Person" => Icons.Material.Filled.Person,
+            "Settings" => Icons.Material.Filled.Settings,
+            "Notifications" => Icons.Material.Filled.Notifications,
+            "Chat" => Icons.Material.Filled.Chat,
+            "Bookmark" => Icons.Material.Filled.Bookmark,
+            "Star" => Icons.Material.Filled.Star,
+            "Add" => Icons.Material.Filled.Add,
+            "Edit" => Icons.Material.Filled.Edit,
+            "Delete" => Icons.Material.Filled.Delete,
+            "MoreVert" => Icons.Material.Filled.MoreVert,
+            _ => Icons.Material.Filled.Circle
+        };
+    }
+}

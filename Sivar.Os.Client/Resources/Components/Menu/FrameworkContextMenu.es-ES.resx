@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  
+  <!-- Menu Item Labels -->
+  <data name="MenuItem_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="MenuItem_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="MenuItem_Share" xml:space="preserve">
+    <value>Compartir</value>
+  </data>
+  <data name="MenuItem_CopyLink" xml:space="preserve">
+    <value>Copiar enlace</value>
+  </data>
+  <data name="MenuItem_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="MenuItem_Report" xml:space="preserve">
+    <value>Reportar</value>
+  </data>
+  <data name="MenuItem_Hide" xml:space="preserve">
+    <value>Ocultar</value>
+  </data>
+  <data name="MenuItem_Reply" xml:space="preserve">
+    <value>Responder</value>
+  </data>
+  <data name="MenuItem_EditProfile" xml:space="preserve">
+    <value>Editar perfil</value>
+  </data>
+  <data name="MenuItem_Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="MenuItem_ShareProfile" xml:space="preserve">
+    <value>Compartir perfil</value>
+  </data>
+  <data name="MenuItem_Block" xml:space="preserve">
+    <value>Bloquear</value>
+  </data>
+  
+  <!-- Confirmation Messages -->
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="Confirm_DeletePost" xml:space="preserve">
+    <value>¿Estás seguro de que deseas eliminar esta publicación? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="Confirm_DeleteComment" xml:space="preserve">
+    <value>¿Estás seguro de que deseas eliminar este comentario?</value>
+  </data>
+  <data name="Confirm_DeleteBlog" xml:space="preserve">
+    <value>¿Estás seguro de que deseas eliminar este blog? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="Confirm_BlockProfile" xml:space="preserve">
+    <value>¿Estás seguro de que deseas bloquear este perfil? No podrán ver tu contenido ni contactarte.</value>
+  </data>
+  
+  <!-- Dialog Buttons -->
+  <data name="Yes" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+</root>

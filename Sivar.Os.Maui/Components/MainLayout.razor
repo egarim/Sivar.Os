@@ -1,31 +1,135 @@
 @inherits LayoutComponentBase
+@inject INavigationRegistry NavigationRegistry
+@inject NavigationManager NavigationManager
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">Sivar.Os</MudText>
+    <!-- Top AppBar -->
+    <MudAppBar Elevation="1" Dense="true">
+        <MudText Typo="Typo.h6">Sivar.Os</MudText>
         <MudSpacer />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                       Color="Color.Inherit" 
+                       OnClick="@ToggleDarkMode" />
     </MudAppBar>
-    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+    
+    <!-- Main Content -->
+    <MudMainContent Class="pb-16">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
             @Body
         </MudContainer>
     </MudMainContent>
+    
+    <!-- Bottom Navigation (Mobile Pattern) -->
+    <MudAppBar Bottom="true" Fixed="true" Elevation="2" Dense="true" Class="bottom-nav">
+        <div class="d-flex justify-space-around align-center" style="width: 100%;">
+            @foreach (var item in _mobileNavItems)
+            {
+                <MudIconButton Icon="@GetMudIcon(item.Icon)"
+                               Color="@(IsActive(item) ? Color.Primary : Color.Default)"
+                               Size="Size.Medium"
+                               OnClick="@(() => NavigateTo(item))" />
+            }
+        </div>
+    </MudAppBar>
 </MudLayout>
 
-@code {
-    private bool _drawerOpen = true;
+<style>
+    .bottom-nav {
+        background-color: var(--mud-palette-surface) !important;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+    
+    .pb-16 {
+        padding-bottom: 64px !important;
+    }
+</style>
 
-    private void ToggleDrawer()
+@code {
+    private bool _isDarkMode = true;
+    private MudTheme? _theme;
+    private IEnumerable<INavigationItem> _mobileNavItems = Enumerable.Empty<INavigationItem>();
+    
+    protected override void OnInitialized()
     {
-        _drawerOpen = !_drawerOpen;
+        _theme = new MudTheme
+        {
+            PaletteLight = new PaletteLight
+            {
+                Primary = "#1976D2",
+                Secondary = "#FF4081",
+                AppbarBackground = "#1976D2"
+            },
+            PaletteDark = new PaletteDark
+            {
+                Primary = "#90CAF9",
+                Secondary = "#FF80AB",
+                Surface = "#1E1E1E",
+                Background = "#121212",
+                AppbarBackground = "#1E1E1E"
+            }
+        };
+        
+        UpdateMobileNavItems();
+    }
+    
+    private void UpdateMobileNavItems()
+    {
+        var context = new NavContext
+        {
+            IsAuthenticated = false, // TODO: Get from auth state
+            Platform = PlatformType.Mobile
+        };
+        
+        _mobileNavItems = NavigationRegistry.GetVisibleItems(context)
+            .Where(i => !i.IsAction)
+            .Take(5); // Mobile bottom nav typically has 3-5 items
+    }
+    
+    private void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+    
+    private bool IsActive(INavigationItem item)
+    {
+        var currentUri = NavigationManager.Uri;
+        var itemPath = item.Route?.TrimStart('/') ?? "";
+        
+        if (string.IsNullOrEmpty(itemPath))
+            return currentUri.EndsWith("/") || currentUri.EndsWith("/home");
+            
+        return currentUri.Contains(itemPath, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    private void NavigateTo(INavigationItem item)
+    {
+        if (!string.IsNullOrEmpty(item.Route))
+        {
+            NavigationManager.NavigateTo(item.Route);
+        }
+    }
+    
+    private static string GetMudIcon(string? iconName)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return Icons.Material.Filled.Circle;
+            
+        return iconName switch
+        {
+            "Home" => Icons.Material.Filled.Home,
+            "Search" => Icons.Material.Filled.Search,
+            "Explore" => Icons.Material.Filled.Explore,
+            "Person" => Icons.Material.Filled.Person,
+            "Chat" => Icons.Material.Filled.Chat,
+            "EventNote" => Icons.Material.Filled.EventNote,
+            "EventAvailable" => Icons.Material.Filled.EventAvailable,
+            "SmartToy" => Icons.Material.Filled.SmartToy,
+            _ => Icons.Material.Filled.Circle
+        };
     }
 }
