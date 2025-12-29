@@ -317,4 +317,129 @@ public class FileUploadController : ControllerBase
             return StatusCode(500);
         }
     }
+
+    /// <summary>
+    /// Upload a base64 encoded image (used by DxHtmlEditor for inline images).
+    /// Accepts JSON body with base64Data and contentType.
+    /// </summary>
+    /// <param name="request">The base64 image upload request</param>
+    /// <returns>JSON object with url containing the uploaded image URL</returns>
+    [HttpPost("base64-image")]
+    public async Task<IActionResult> UploadBase64Image([FromBody] Base64ImageUploadRequest request)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        
+        _logger.LogInformation("[FileUploadController.UploadBase64Image] START - RequestId={RequestId}, ContentType={ContentType}, DataLength={Length}", 
+            requestId, request?.ContentType, request?.Base64Data?.Length ?? 0);
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Base64Data))
+        {
+            _logger.LogWarning("[FileUploadController.UploadBase64Image] BAD_REQUEST - No data provided, RequestId={RequestId}", requestId);
+            return BadRequest(new { error = "No image data provided" });
+        }
+
+        // Validate content type
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (string.IsNullOrWhiteSpace(request.ContentType) || !allowedTypes.Contains(request.ContentType))
+        {
+            _logger.LogWarning("[FileUploadController.UploadBase64Image] INVALID_TYPE - ContentType={ContentType}, RequestId={RequestId}", 
+                request.ContentType, requestId);
+            return BadRequest(new { error = $"Invalid content type. Allowed: {string.Join(", ", allowedTypes)}" });
+        }
+
+        try
+        {
+            // Remove data URI prefix if present (e.g., "data:image/png;base64,")
+            var base64Data = request.Base64Data;
+            if (base64Data.Contains(","))
+            {
+                base64Data = base64Data.Substring(base64Data.IndexOf(",") + 1);
+            }
+
+            // Decode base64 to bytes
+            byte[] imageBytes;
+            try
+            {
+                imageBytes = Convert.FromBase64String(base64Data);
+            }
+            catch (FormatException)
+            {
+                _logger.LogWarning("[FileUploadController.UploadBase64Image] INVALID_BASE64 - RequestId={RequestId}", requestId);
+                return BadRequest(new { error = "Invalid base64 data" });
+            }
+
+            // Validate file size (10MB limit)
+            const long maxFileSize = 10 * 1024 * 1024;
+            if (imageBytes.Length > maxFileSize)
+            {
+                _logger.LogWarning("[FileUploadController.UploadBase64Image] FILE_TOO_LARGE - Size={Size} bytes, RequestId={RequestId}", 
+                    imageBytes.Length, requestId);
+                return BadRequest(new { error = "Image size exceeds 10MB limit" });
+            }
+
+            // Generate filename with proper extension
+            var extension = request.ContentType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                _ => ".png"
+            };
+            var fileName = $"blog-inline-{Guid.NewGuid():N}{extension}";
+
+            using var memoryStream = new MemoryStream(imageBytes);
+
+            var uploadRequest = new FileUploadRequest
+            {
+                FileName = fileName,
+                FileStream = memoryStream,
+                Container = "blog-images",
+                ContentType = request.ContentType,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["uploaded_by"] = "html_editor_base64",
+                    ["uploaded_at"] = DateTime.UtcNow.ToString("O"),
+                    ["original_size"] = imageBytes.Length.ToString()
+                }
+            };
+
+            var result = await _fileStorageService.UploadFileAsync(uploadRequest);
+            
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[FileUploadController.UploadBase64Image] SUCCESS - FileId={FileId}, Url={Url}, RequestId={RequestId}, Duration={Duration}ms", 
+                result.FileId, result.Url, requestId, elapsed);
+
+            return Ok(new
+            {
+                url = result.Url,
+                fileId = result.FileId,
+                fileSizeBytes = result.FileSizeBytes
+            });
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[FileUploadController.UploadBase64Image] ERROR - RequestId={RequestId}, Duration={Duration}ms", 
+                requestId, elapsed);
+            return StatusCode(500, new { error = "Internal server error during image upload" });
+        }
+    }
+}
+
+/// <summary>
+/// Request model for uploading base64 encoded images
+/// </summary>
+public class Base64ImageUploadRequest
+{
+    /// <summary>
+    /// The base64 encoded image data (may include data URI prefix)
+    /// </summary>
+    public string Base64Data { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The content type of the image (e.g., "image/png", "image/jpeg")
+    /// </summary>
+    public string ContentType { get; set; } = string.Empty;
 }
