@@ -1,7 +1,6 @@
 @using MudBlazor
-@using PSC.Blazor.Components.MarkdownEditor
-@using PSC.Blazor.Components.MarkdownEditor.EventsArgs
-@using PSC.Blazor.Components.MarkdownEditor.Models
+@using DevExpress.Blazor
+@using DevExpress.Blazor.Office
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.Extensions.Logging
 @using Sivar.Os.Shared.DTOs
@@ -12,7 +11,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient HttpClient
 
-@* BlogEditor component - Markdown Editor for blog post content *@
+@* BlogEditor component - DxHtmlEditor for HTML content editing *@
 
 <div class="blog-editor-container">
     @* Cover Image Preview at Top *@
@@ -74,20 +73,15 @@
                @oninput="OnSubtitleInput" />
     </div>
 
-    @* Markdown Editor *@
+    @* HTML Editor (DxHtmlEditor) *@
     <div class="blog-content-section">
-        <MarkdownEditor @bind-Value="@_markdownContent"
-                        ValueHTMLChanged="@OnMarkdownHtmlChanged"
-                        MinHeight="300px"
-                        MaxHeight="600px"
-                        UploadImage="true"
-                        ImageMaxSize="@(10 * 1024 * 1024)"
-                        ImageAccept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
-                        CustomImageUpload="@OnCustomImageUpload"
-                        ImageUploadStarted="@OnImageUploadStarted"
-                        ImageUploadEnded="@OnImageUploadEnded"
-                        ErrorCallback="@OnEditorError"
-                        Placeholder="Write your blog content here... (Markdown supported)" />
+        <DxHtmlEditor Markup="@Content"
+                      MarkupChanged="@OnContentChanged"
+                      Height="500px"
+                      Width="100%"
+                      NullText="Write your blog content here..."
+                      TableResizeEnabled="true"
+                      MediaResizeEnabled="true" />
     </div>
 
     @* Draft Toggle *@
@@ -276,26 +270,13 @@
 
     .blog-content-section {
         width: 100%;
+        min-height: 400px;
     }
 
-    /* Markdown Editor customizations */
-    .blog-content-section .EasyMDEContainer {
-        border: 1px solid var(--wire-border) !important;
-        border-radius: 8px !important;
-    }
-
-    .blog-content-section .EasyMDEContainer .editor-toolbar {
-        background: var(--wire-background) !important;
-        border-bottom: 1px solid var(--wire-border) !important;
-        border-top-left-radius: 8px !important;
-        border-top-right-radius: 8px !important;
-    }
-
-    .blog-content-section .EasyMDEContainer .CodeMirror {
-        background: var(--wire-background) !important;
-        color: var(--wire-text-primary) !important;
-        border-bottom-left-radius: 8px !important;
-        border-bottom-right-radius: 8px !important;
+    /* DxHtmlEditor customizations */
+    .blog-content-section .dxbl-html-editor {
+        border: 1px solid var(--wire-border);
+        border-radius: 8px;
     }
 
     .blog-options-section {
@@ -333,7 +314,7 @@
     public EventCallback<string> SubtitleChanged { get; set; }
 
     /// <summary>
-    /// Blog content (HTML rendered from markdown)
+    /// Blog content (HTML)
     /// </summary>
     [Parameter]
     public string Content { get; set; } = string.Empty;
@@ -378,7 +359,6 @@
 
     #region State
 
-    private string _markdownContent = string.Empty;
     private bool IsUploadingCover { get; set; }
 
     #endregion
@@ -397,84 +377,8 @@
         await SubtitleChanged.InvokeAsync(Subtitle);
     }
 
-    private Task OnImageUploadStarted(FileStartedEventArgs args)
+    private async Task OnContentChanged(string htmlContent)
     {
-        Logger.LogInformation("[BlogEditor] Image upload started: {FileName}", args.File?.Name);
-        return Task.CompletedTask;
-    }
-
-    private Task OnImageUploadEnded(FileEndedEventArgs args)
-    {
-        if (args.Success)
-        {
-            Logger.LogInformation("[BlogEditor] Image upload succeeded: {FileName}", args.File?.Name);
-        }
-        else
-        {
-            Logger.LogWarning("[BlogEditor] Image upload failed: {FileName}", args.File?.Name);
-        }
-        return Task.CompletedTask;
-    }
-
-    private Task OnEditorError(string errorMessage)
-    {
-        Logger.LogError("[BlogEditor] Editor error: {Error}", errorMessage);
-        return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Custom image upload handler that uses the injected HttpClient
-    /// This bypasses the internal HttpClient created by MarkdownEditor
-    /// which doesn't work well with Blazor Server (loopback issues)
-    /// </summary>
-    private async Task<FileEntry> OnCustomImageUpload(MarkdownEditor editor, FileEntry fileInfo)
-    {
-        Logger.LogInformation("[BlogEditor] Custom image upload started: {FileName}, Size: {Size} bytes", 
-            fileInfo.Name, fileInfo.Size);
-        
-        try
-        {
-            // Convert base64 content to bytes
-            byte[] fileBytes = Convert.FromBase64String(fileInfo.ContentBase64);
-            
-            // Create multipart form content
-            using var form = new MultipartFormDataContent();
-            using var fileContent = new ByteArrayContent(fileBytes);
-            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(fileInfo.Type ?? "image/png");
-            form.Add(fileContent, "file", fileInfo.Name);
-            
-            // Use the injected HttpClient which has proper base URL and cookies
-            var response = await HttpClient.PostAsync("/api/fileupload/image", form);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                // The endpoint returns plain text URL
-                var imageUrl = await response.Content.ReadAsStringAsync();
-                fileInfo.UploadUrl = imageUrl;
-                Logger.LogInformation("[BlogEditor] Image uploaded successfully: {Url}", imageUrl);
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                fileInfo.ErrorMessage = $"Upload failed: {response.StatusCode} - {errorContent}";
-                Logger.LogError("[BlogEditor] Image upload failed: {Status} - {Error}", 
-                    response.StatusCode, errorContent);
-                throw new Exception(fileInfo.ErrorMessage);
-            }
-        }
-        catch (Exception ex)
-        {
-            fileInfo.ErrorMessage = ex.Message;
-            Logger.LogError(ex, "[BlogEditor] Exception during image upload");
-            throw;
-        }
-        
-        return fileInfo;
-    }
-
-    private async Task OnMarkdownHtmlChanged(string htmlContent)
-    {
-        // The MarkdownEditor gives us the rendered HTML
         Content = htmlContent;
         await ContentChanged.InvokeAsync(htmlContent);
         Logger.LogDebug("[BlogEditor] Content updated, HTML length: {Length}", htmlContent?.Length ?? 0);

@@ -59,12 +59,18 @@
         }
         else if (_post != null)
         {
-            <BlogEditor @bind-Title="_editTitle"
-                        @bind-Subtitle="_editSubtitle"
-                        @bind-Content="_editContent"
-                        @bind-CoverImageUrl="_editCoverImageUrl"
-                        @bind-CoverImageFileId="_editCoverImageFileId"
-                        @bind-IsDraft="_editIsDraft" />
+            <BlogEditor Title="@_editTitle"
+                        TitleChanged="@OnTitleChanged"
+                        Subtitle="@_editSubtitle"
+                        SubtitleChanged="@OnSubtitleChanged"
+                        Content="@_editContent"
+                        ContentChanged="@OnContentChanged"
+                        CoverImageUrl="@_editCoverImageUrl"
+                        CoverImageUrlChanged="@OnCoverImageUrlChanged"
+                        CoverImageFileId="@_editCoverImageFileId"
+                        CoverImageFileIdChanged="@OnCoverImageFileIdChanged"
+                        IsDraft="@_editIsDraft"
+                        IsDraftChanged="@OnIsDraftChanged" />
         }
     </div>
 </div>
@@ -141,12 +147,6 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadPost();
-    }
-
-    protected override void OnParametersSet()
-    {
-        // Detect changes when parameters change
-        _hasChanges = HasUnsavedChanges();
     }
 
     private async Task LoadPost()
@@ -254,5 +254,46 @@
     private void GoBack()
     {
         Navigation.NavigateTo($"/post/{PostId}");
+    }
+
+    // Change handlers for BlogEditor
+    private void OnTitleChanged(string value)
+    {
+        _editTitle = value;
+        _hasChanges = HasUnsavedChanges();
+        StateHasChanged();
+    }
+
+    private void OnSubtitleChanged(string value)
+    {
+        _editSubtitle = value;
+        _hasChanges = HasUnsavedChanges();
+        StateHasChanged();
+    }
+
+    private void OnContentChanged(string value)
+    {
+        _editContent = value;
+        _hasChanges = HasUnsavedChanges();
+        StateHasChanged();
+    }
+
+    private void OnCoverImageUrlChanged(string value)
+    {
+        _editCoverImageUrl = value;
+        _hasChanges = HasUnsavedChanges();
+        StateHasChanged();
+    }
+
+    private void OnCoverImageFileIdChanged(string? value)
+    {
+        _editCoverImageFileId = value;
+        StateHasChanged();
+    }
+
+    private void OnIsDraftChanged(bool value)
+    {
+        _editIsDraft = value;
+        StateHasChanged();
     }
 }
