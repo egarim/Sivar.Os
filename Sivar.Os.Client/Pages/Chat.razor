@@ -24,33 +24,33 @@
 <PageTitle>Chat - Sivar AI</PageTitle>
 
 <div class="chat-page-container">
-    <div class="chat-main-container">
-        <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                           Color="Color.Inherit" 
-                           OnClick="@GoBack" />
-            <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
-                <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
-            </MudAvatar>
-            <div class="ml-2">
-                <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
-                <MudText Typo="Typo.caption" Style="opacity: 0.7;">Siempre aquí para ayudarte</MudText>
-            </div>
-            <MudSpacer />
-            <MudButton Variant="Variant.Text" 
-                       Size="Size.Small"
-                       StartIcon="@Icons.Material.Filled.LocationOn"
-                       Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
-                       OnClick="@ShowLocationPromptAsync"
-                       Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
-                @(_chatLocation?.City ?? "Ubicación")
-            </MudButton>
-            <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
-                           Color="Color.Inherit" 
-                           OnClick="@(() => _savedPanelOpen = true)"
-                           Title="Mis guardados" />
-        </MudAppBar>
+    <div class="chat-header">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                       Color="Color.Inherit" 
+                       OnClick="@GoBack" />
+        <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+            <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+        </MudAvatar>
+        <div class="ml-2">
+            <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+            <MudText Typo="Typo.caption" Style="opacity: 0.7;">Siempre aquí para ayudarte</MudText>
+        </div>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" 
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.LocationOn"
+                   Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                   OnClick="@ShowLocationPromptAsync"
+                   Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+            @(_chatLocation?.City ?? "Ubicación")
+        </MudButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                       Color="Color.Inherit" 
+                       OnClick="@(() => _savedPanelOpen = true)"
+                       Title="Mis guardados" />
+    </div>
 
+    <div class="chat-content-area">
         <SivarAIChat @ref="_sivarAIChat"
             CssClass="dx-chat-fullscreen"
             PromptSuggestionItems="@_dxQuickActionItems"
@@ -76,27 +76,27 @@
 
 <style>
     .chat-page-container {
-        position: fixed;
-        top: 48px;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 48px);
         background: var(--mud-palette-surface, #1e1e2d);
-        display: flex;
-        flex-direction: column;
     }
 
-    .chat-main-container {
+    .chat-header {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: var(--mud-palette-surface, #1e1e2d);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
+
+    .chat-content-area {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        height: 100%;
+        min-height: 0;
         overflow: hidden;
-    }
-
-    @@media (min-width: 960px) {
-        .chat-page-container {
-            left: 256px;
-        }
     }
 </style>
 
