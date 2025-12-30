@@ -1,5 +1,4 @@
 @page "/"
-@page "/welcome"
 @layout LandingLayout
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
@@ -204,6 +203,28 @@
         flex: 1;
         height: 1px;
         background: #e8e8e8;
+    }
+
+    .explore-link {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e8e8e8;
+        font-size: 15px;
+        color: #666;
+    }
+
+    .explore-link a {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+        margin-left: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .explore-link a:hover {
+        color: #764ba2;
+        text-decoration: underline;
     }
 
     .social-auth {
@@ -433,6 +454,11 @@
                     <span>@Localizer["ContinueWithMicrosoft"]</span>
                 </button>
             </div>
+
+            <div class="explore-link">
+                <span>@Localizer["OrJust"]</span>
+                <a href="/app/explore">@Localizer["ExplorePublicContent"]</a>
+            </div>
         </div>
     </div>
 </div>
@@ -446,24 +472,24 @@
     private bool _agreeToTerms = false;
 
     // Note: Authentication redirect is handled at the router level (Routes.razor)
-    // Authenticated users are redirected to /home before this component renders
+    // Authenticated users are redirected to /app/home before this component renders
 
     private void HandleSignIn()
     {
-        // Redirect to Keycloak login and return to /home after authentication
-        Navigation.NavigateTo("/authentication/login?returnUrl=/home", forceLoad: true);
+        // Redirect to Keycloak login and return to /app/home after authentication
+        Navigation.NavigateTo("/authentication/login?returnUrl=/app/home", forceLoad: true);
     }
 
     private void HandleSignUp()
     {
-        // Redirect to Keycloak registration and return to /home after authentication
-        Navigation.NavigateTo("/authentication/register?returnUrl=/home", forceLoad: true);
+        // Redirect to Keycloak registration and return to /app/home after authentication
+        Navigation.NavigateTo("/authentication/register?returnUrl=/app/home", forceLoad: true);
     }
 
     private void HandleSocialAuth(string provider)
     {
         // Keycloak handles social auth providers, so redirect to login
         // Configure social providers in Keycloak admin console
-        Navigation.NavigateTo("/authentication/login?returnUrl=/home", forceLoad: true);
+        Navigation.NavigateTo("/authentication/login?returnUrl=/app/home", forceLoad: true);
     }
 }

@@ -929,51 +929,75 @@
     /// <summary>
     /// Loads the navigation profile by checking authentication state first.
     /// This ensures we don't try to load profiles for unauthenticated users.
+    /// Includes retry logic to handle cases where auth state isn't immediately available.
     /// </summary>
     private async Task LoadNavigationProfileAsync()
     {
-        try
+        const int maxRetries = 3;
+        const int retryDelayMs = 250;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            // First check if the user is actually authenticated via AuthenticationStateProvider
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var isUserAuthenticated = user?.Identity?.IsAuthenticated ?? false;
-            
-            Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] AuthState: IsAuthenticated={IsAuth}, User={User}",
-                isUserAuthenticated, user?.Identity?.Name ?? "anonymous");
-            
-            if (!isUserAuthenticated)
+            try
             {
-                _isAuthenticated = false;
-                _currentProfile = null;
-                _userProfiles = new List<ProfileDto>();
+                // First check if the user is actually authenticated via AuthenticationStateProvider
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var isUserAuthenticated = user?.Identity?.IsAuthenticated ?? false;
+                
+                Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] Attempt {Attempt}/{Max}: IsAuthenticated={IsAuth}, User={User}",
+                    attempt, maxRetries, isUserAuthenticated, user?.Identity?.Name ?? "anonymous");
+                
+                if (!isUserAuthenticated)
+                {
+                    // On first attempt, auth might not be ready yet - wait and retry
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(retryDelayMs);
+                        continue;
+                    }
+                    
+                    _isAuthenticated = false;
+                    _currentProfile = null;
+                    _userProfiles = new List<ProfileDto>();
+                    StateHasChanged();
+                    return;
+                }
+                
+                // User is authenticated, load their profile
+                _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+                _isAuthenticated = _currentProfile != null;
+                
+                // Also load all user profiles for ProfileSwitcher
+                if (_isAuthenticated)
+                {
+                    var profiles = await SivarClient.Profiles.GetAllMyProfilesAsync();
+                    _userProfiles = profiles?.ToList() ?? new List<ProfileDto>();
+                }
+                
+                Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] Profile loaded: IsAuth={IsAuth}, Profile={Profile}, TotalProfiles={Count}", 
+                    _isAuthenticated, _currentProfile?.DisplayName, _userProfiles.Count);
+                
                 StateHasChanged();
-                return;
+                return; // Success, exit retry loop
             }
-            
-            // User is authenticated, load their profile
-            _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
-            _isAuthenticated = _currentProfile != null;
-            
-            // Also load all user profiles for ProfileSwitcher
-            if (_isAuthenticated)
+            catch (Exception ex)
             {
-                var profiles = await SivarClient.Profiles.GetAllMyProfilesAsync();
-                _userProfiles = profiles?.ToList() ?? new List<ProfileDto>();
+                Logger.LogWarning(ex, "[MainLayout.LoadNavigationProfileAsync] Attempt {Attempt}/{Max} failed: {Message}", 
+                    attempt, maxRetries, ex.Message);
+                
+                if (attempt == maxRetries)
+                {
+                    _isAuthenticated = false;
+                    _currentProfile = null;
+                    _userProfiles = new List<ProfileDto>();
+                    StateHasChanged();
+                }
+                else
+                {
+                    await Task.Delay(retryDelayMs);
+                }
             }
-            
-            Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] Profile loaded: IsAuth={IsAuth}, Profile={Profile}, TotalProfiles={Count}", 
-                _isAuthenticated, _currentProfile?.DisplayName, _userProfiles.Count);
-            
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "[MainLayout.LoadNavigationProfileAsync] Failed to load profile for navigation");
-            _isAuthenticated = false;
-            _currentProfile = null;
-            _userProfiles = new List<ProfileDto>();
-            StateHasChanged();
         }
     }
     
@@ -1029,7 +1053,7 @@
             };
             
             // Force reload to refresh everything
-            NavigationManager.NavigateTo("/home", forceLoad: true);
+            NavigationManager.NavigateTo("/app/home", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -1043,7 +1067,7 @@
     private void HandleFrameworkCreateProfile()
     {
         // Navigate to profile creation or open a dialog
-        NavigationManager.NavigateTo("/profile/create");
+        NavigationManager.NavigateTo("/app/profile/create");
     }
 
     private void DarkModeToggle()

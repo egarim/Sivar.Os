@@ -1,15 +1,18 @@
 @page "/post/{PostId:guid}"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @using MudBlazor
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
 @using Sivar.Os.Shared.Enums
 @using Sivar.Os.Client.Components.Feed
 @using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject IPostsClient PostsClient
 @inject IProfilesClient ProfilesClient
 @inject ILogger<PostDetail> Logger
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@(_post?.Profile?.DisplayName ?? "Post") - Sivar.Os</PageTitle>
 
@@ -334,9 +337,14 @@
     private string? _error;
     private Guid _currentProfileId;
     private Guid _lastLoadedPostId;
+    private bool _isAuthenticated;
 
     protected override async Task OnParametersSetAsync()
     {
+        // Check authentication state
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        
         // Only load if PostId changed (prevents double-loading)
         if (PostId != _lastLoadedPostId)
         {
@@ -353,9 +361,16 @@
 
         try
         {
-            // Load current user's profile for ownership check
-            var currentProfile = await ProfilesClient.GetMyActiveProfileAsync();
-            _currentProfileId = currentProfile?.Id ?? Guid.Empty;
+            // Load current user's profile for ownership check (only if authenticated)
+            if (_isAuthenticated)
+            {
+                var currentProfile = await ProfilesClient.GetMyActiveProfileAsync();
+                _currentProfileId = currentProfile?.Id ?? Guid.Empty;
+            }
+            else
+            {
+                _currentProfileId = Guid.Empty;
+            }
             Logger.LogInformation("[PostDetail] Current user profile ID: {ProfileId}", _currentProfileId);
 
             Logger.LogInformation("[PostDetail] Loading post {PostId}", PostId);
@@ -383,26 +398,42 @@
         }
     }
 
-    private void GoBack()
+    private async Task GoBack()
     {
-        Navigation.NavigateTo("/home");
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    private void RedirectToLoginWithReturn()
+    {
+        var returnUrl = Uri.EscapeDataString($"/post/{PostId}");
+        Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
     }
 
     private async Task HandleLike(PostDto post)
     {
+        if (!_isAuthenticated)
+        {
+            RedirectToLoginWithReturn();
+            return;
+        }
         // PostCard handles reactions internally, reload to get updated state
         await LoadPost();
     }
 
     private Task HandleCommentClick(PostDto post)
     {
+        if (!_isAuthenticated)
+        {
+            RedirectToLoginWithReturn();
+            return Task.CompletedTask;
+        }
         // Comments are handled inline by PostCard
         return Task.CompletedTask;
     }
 
     private Task HandleShare(PostDto post)
     {
-        // Share functionality - could copy link to clipboard
+        // Share functionality - could copy link to clipboard (works for anonymous too)
         return Task.CompletedTask;
     }
 
@@ -415,7 +446,7 @@
     private void HandleEditBlog(PostDto post)
     {
         // Navigate to blog editor with the post ID
-        Navigation.NavigateTo($"/blog/edit/{post.Id}");
+        Navigation.NavigateTo($"/app/edit/blog/{post.Id}");
     }
 
     private async Task HandleDelete(PostDto post)
@@ -423,7 +454,7 @@
         try
         {
             await PostsClient.DeletePostAsync(post.Id);
-            Navigation.NavigateTo("/home");
+            Navigation.NavigateTo("/app/home");
         }
         catch (Exception ex)
         {

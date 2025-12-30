@@ -101,7 +101,7 @@
         var itemPath = item.Route?.TrimStart('/') ?? "";
         
         if (string.IsNullOrEmpty(itemPath))
-            return currentUri.EndsWith("/") || currentUri.EndsWith("/home");
+            return currentUri.EndsWith("/") || currentUri.EndsWith("/app/home");
             
         return currentUri.Contains(itemPath, StringComparison.OrdinalIgnoreCase);
     }

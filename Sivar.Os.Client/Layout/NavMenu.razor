@@ -95,15 +95,15 @@
         </div>
 
         <MudNavMenu Class="nav-menu-items">
-            <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
-            <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
+            <MudNavLink Href="/app/home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@Localizer["Home"]</MudNavLink>
+            <MudNavLink Href="/app/search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">@Localizer["Search"]</MudNavLink>
             @if (_activeProfile?.ProfileType?.Name == "Business")
             {
-                <MudNavLink Href="my-schedule" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EventNote">@Localizer["MySchedule"]</MudNavLink>
+                <MudNavLink Href="/app/schedule" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EventNote">@Localizer["MySchedule"]</MudNavLink>
             }
             else
             {
-                <MudNavLink Href="bookings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.EventAvailable">@Localizer["Bookings"]</MudNavLink>
+                <MudNavLink Href="/app/bookings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.EventAvailable">@Localizer["Bookings"]</MudNavLink>
             }
             <MudNavLink @onclick="@ToggleAIChat" Icon="@Icons.Material.Filled.SmartToy">@Localizer["Chat"]</MudNavLink>
         </MudNavMenu>
@@ -143,7 +143,7 @@
                 <MudButton Variant="Variant.Filled" 
                            StartIcon="@Icons.Material.Filled.PersonAdd" 
                            FullWidth="true" 
-                           Href="/welcome?action=signup"
+                           OnClick="SignUp"
                            Class="mb-2"
                            Color="Color.Primary">
                     @Localizer["SignUp"]
@@ -151,7 +151,7 @@
                 <MudButton Variant="Variant.Outlined" 
                            StartIcon="@Icons.Material.Filled.Login" 
                            FullWidth="true" 
-                           Href="/welcome"
+                           OnClick="Login"
                            Color="Color.Primary">
                     @Localizer["Login"]
                 </MudButton>
@@ -528,6 +528,27 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         }
     }
 
+    private bool _firstRenderComplete = false;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _firstRenderComplete = true;
+            
+            // Re-check auth state after first render (when JS interop is available)
+            // This handles cases where prerendering didn't have full auth context
+            await RefreshAuthState();
+            
+            if (_isAuthenticated && _activeProfile == null && !_isLoadingProfiles)
+            {
+                Console.WriteLine("[NavMenu.OnAfterRenderAsync] Auth OK but no profile loaded, retrying...");
+                await LoadActiveProfileAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
     private async Task RefreshAuthState()
     {
         _isLoading = true;
@@ -574,7 +595,9 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Login() => Nav.NavigateTo("/authentication/login", forceLoad: true);
+    private void Login() => Nav.NavigateTo("/", forceLoad: true);
+    
+    private void SignUp() => Nav.NavigateTo("/?action=signup", forceLoad: true);
     
     private void Logout() => Nav.NavigateTo("/authentication/logout", forceLoad: true);
 
@@ -695,7 +718,7 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
                 _activeProfile = selectedProfile;
                 
                 // Navigate to home to refresh the feed
-                Nav.NavigateTo("/home", forceLoad: true);
+                Nav.NavigateTo("/app/home", forceLoad: true);
             }
             else
             {
@@ -741,7 +764,7 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
                 await LoadUserProfilesAsync();
                 
                 // Navigate to home to refresh
-                Nav.NavigateTo("/home", forceLoad: true);
+                Nav.NavigateTo("/app/home", forceLoad: true);
             }
             else
             {

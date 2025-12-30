@@ -1,5 +1,4 @@
-@page "/explore"
-@page "/public"
+@page "/app/explore"
 @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @using MudBlazor
 @using Microsoft.Extensions.Localization
@@ -276,30 +275,41 @@
 
     private void HandleInteraction(string action)
     {
-        if (_isAuthenticated)
+        // For view actions, navigate to the post (works for both authenticated and anonymous)
+        if (action.StartsWith("view:"))
         {
-            // For authenticated users, navigate to the actual post
-            // The action contains the post ID for view actions
-            if (action.StartsWith("view:"))
+            var postId = action.Replace("view:", "");
+            Navigation.NavigateTo($"/post/{postId}");
+        }
+        else if (action == "profile")
+        {
+            // Profile clicks require authentication
+            if (!_isAuthenticated)
             {
-                var postId = action.Replace("view:", "");
-                Navigation.NavigateTo($"/post/{postId}");
-            }
-            else
-            {
-                // For other interactions like/comment/share, go to feed
-                Navigation.NavigateTo("/feed");
+                Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info, config =>
+                {
+                    config.Action = Localizer["SignUpButton"];
+                    config.ActionColor = Color.Primary;
+                });
+                Navigation.NavigateTo("/?action=signup");
             }
         }
         else
         {
-            // For anonymous users, prompt to sign up
-            Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info, config =>
+            // For other interactions (like/comment/share), prompt to sign up if not authenticated
+            if (_isAuthenticated)
             {
-                config.Action = Localizer["SignUpButton"];
-                config.ActionColor = Color.Primary;
-            });
-            Navigation.NavigateTo("/welcome?action=signup");
+                Navigation.NavigateTo("/app/home");
+            }
+            else
+            {
+                Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info, config =>
+                {
+                    config.Action = Localizer["SignUpButton"];
+                    config.ActionColor = Color.Primary;
+                });
+                Navigation.NavigateTo("/?action=signup");
+            }
         }
     }
 }

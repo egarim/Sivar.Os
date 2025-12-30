@@ -540,7 +540,7 @@ public static class CoreNavigationItems
         Id = "home",
         TitleKey = "Home",
         Icon = "Home",
-        Route = "/home",
+        Route = "/app/home",
         Order = 10,
         RequiresAuth = true
     };
@@ -550,7 +550,7 @@ public static class CoreNavigationItems
         Id = "search",
         TitleKey = "Search",
         Icon = "Search",
-        Route = "/search",
+        Route = "/app/search",
         Order = 20,
         RequiresAuth = true
     };
@@ -560,7 +560,7 @@ public static class CoreNavigationItems
         Id = "my-schedule",
         TitleKey = "MySchedule",
         Icon = "EventNote",
-        Route = "/my-schedule",
+        Route = "/app/schedule",
         Order = 30,
         RequiresAuth = true,
         RequiredProfileTypes = new[] { "Business" }
@@ -571,7 +571,7 @@ public static class CoreNavigationItems
         Id = "bookings",
         TitleKey = "Bookings",
         Icon = "EventAvailable",
-        Route = "/bookings",
+        Route = "/app/bookings",
         Order = 30,
         RequiresAuth = true,
         IsVisible = ctx => ctx.ActiveProfile?.ProfileType?.Name != "Business"

@@ -15,7 +15,7 @@ public static class CoreNavigationItems
         Title = "Home",
         TitleKey = "Home",
         Icon = "Home",
-        Route = "/home",
+        Route = "/app/home",
         Order = 10,
         RequiresAuth = true,
         Platform = PlatformType.All
@@ -30,7 +30,7 @@ public static class CoreNavigationItems
         Title = "Search",
         TitleKey = "Search",
         Icon = "Search",
-        Route = "/search",
+        Route = "/app/search",
         Order = 20,
         RequiresAuth = true,
         Platform = PlatformType.All
@@ -42,11 +42,11 @@ public static class CoreNavigationItems
     /// </summary>
     public static readonly NavigationItem MySchedule = new()
     {
-        Id = "my-schedule",
-        Title = "My Schedule",
-        TitleKey = "MySchedule",
+        Id = "schedule",
+        Title = "Schedule",
+        TitleKey = "Schedule",
         Icon = "EventNote",
-        Route = "/my-schedule",
+        Route = "/app/schedule",
         Order = 30,
         RequiresAuth = true,
         RequiredProfileTypes = new[] { "Business" },
@@ -63,7 +63,7 @@ public static class CoreNavigationItems
         Title = "Bookings",
         TitleKey = "Bookings",
         Icon = "EventAvailable",
-        Route = "/bookings",
+        Route = "/app/bookings",
         Order = 30,
         RequiresAuth = true,
         Platform = PlatformType.All,
@@ -97,7 +97,7 @@ public static class CoreNavigationItems
         Title = "Explore",
         TitleKey = "Explore",
         Icon = "Explore",
-        Route = "/explore",
+        Route = "/app/explore",
         Order = 15,
         RequiresAuth = false,
         Platform = PlatformType.Mobile
@@ -112,7 +112,7 @@ public static class CoreNavigationItems
         Title = "Profile",
         TitleKey = "Profile",
         Icon = "Person",
-        Route = "/profile",
+        Route = "/app/profile",
         Order = 50,
         RequiresAuth = true,
         Platform = PlatformType.Mobile // Only in mobile nav, web uses ProfileSwitcher

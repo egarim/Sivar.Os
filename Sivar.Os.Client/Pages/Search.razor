@@ -1,4 +1,4 @@
-@page "/search"
+@page "/app/search"
 @using Microsoft.Extensions.Localization
 @using Sivar.Os.Shared.Clients
 @using Sivar.Os.Shared.DTOs
@@ -311,7 +311,7 @@
         try
         {
             // Update URL with search query
-            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(_searchQuery)}", false);
+            Navigation.NavigateTo($"/app/search?q={Uri.EscapeDataString(_searchQuery)}", false);
             
             // Search profiles using the search term
             _searchResults = await ProfilesClient.SearchProfilesAsync(_searchQuery, pageSize: 20, pageNumber: 1);
@@ -380,7 +380,7 @@
         _searchQuery = string.Empty;
         _searchResults = null;
         _hasSearched = false;
-        Navigation.NavigateTo("/search", false);
+        Navigation.NavigateTo("/app/search", false);
         StateHasChanged();
     }
 

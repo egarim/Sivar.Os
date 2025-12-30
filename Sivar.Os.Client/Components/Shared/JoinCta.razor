@@ -149,13 +149,30 @@
     [Parameter]
     public string? Message { get; set; }
 
+    /// <summary>
+    /// Return URL after authentication (defaults to current page)
+    /// </summary>
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    private string GetReturnUrl()
+    {
+        if (!string.IsNullOrEmpty(ReturnUrl))
+            return ReturnUrl;
+        
+        var uri = new Uri(Navigation.Uri);
+        return uri.PathAndQuery;
+    }
+
     private void NavigateToSignUp()
     {
-        Navigation.NavigateTo("/welcome?action=signup");
+        var returnUrl = Uri.EscapeDataString(GetReturnUrl());
+        Navigation.NavigateTo($"/authentication/register?returnUrl={returnUrl}", forceLoad: true);
     }
 
     private void NavigateToLogin()
     {
-        Navigation.NavigateTo("/welcome?action=login");
+        var returnUrl = Uri.EscapeDataString(GetReturnUrl());
+        Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
     }
 }

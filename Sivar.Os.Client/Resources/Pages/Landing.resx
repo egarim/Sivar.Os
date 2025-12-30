@@ -179,4 +179,15 @@
     <value>Continue with Microsoft</value>
     <comment>Microsoft social auth button text</comment>
   </data>
+  
+  <!-- Explore Link -->
+  <data name="OrJust" xml:space="preserve">
+    <value>Or just</value>
+    <comment>Text before explore link</comment>
+  </data>
+  
+  <data name="ExplorePublicContent" xml:space="preserve">
+    <value>explore public content →</value>
+    <comment>Explore public content link text</comment>
+  </data>
 </root>
