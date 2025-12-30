@@ -1,8 +1,47 @@
 # Sivar.Os Framework Architecture
 
 > **Version**: 1.0.0  
-> **Last Updated**: December 29, 2025  
-> **Platforms**: Web (Blazor WASM) + Mobile (MAUI Blazor Hybrid)
+> **Last Updated**: December 30, 2025  
+> **Status**: ✅ **ACTIVE** - Framework navigation enabled in production  
+> **Platforms**: Web (Blazor Server) + Mobile (MAUI Blazor Hybrid)
+
+---
+
+## Quick Start
+
+The framework navigation is **enabled by default**. To toggle:
+
+```json
+// appsettings.json
+{
+  "FrameworkFeatures": {
+    "UseFrameworkNavigation": true  // Set to false to use legacy NavMenu
+  }
+}
+```
+
+---
+
+## Recent Updates (December 30, 2025)
+
+### Authentication State Fix
+- **Issue**: Menu items not showing after login/logout
+- **Solution**: `MainLayout` now uses `AuthenticationStateProvider.GetAuthenticationStateAsync()` to verify auth state before loading profiles
+- **Method**: New `LoadNavigationProfileAsync()` method ensures proper state synchronization
+
+### FrameworkNavMenu Enhancements
+- ✅ ProfileSwitcher integrated at top of menu
+- ✅ Theme toggle (dark/light mode) with MudSwitch
+- ✅ Logout button at bottom for authenticated users
+- ✅ Guest branding and Login/SignUp buttons for anonymous users
+- ✅ Localization keys added (en-US, es-ES)
+
+### Property Mapping Notes
+| Source | Property | Notes |
+|--------|----------|-------|
+| `ProfileDto` | `Avatar` | Base avatar path |
+| `ActiveProfileDto` | `AvatarUrl` | Full URL with SAS token |
+| `IProfilesClient` | `GetAllMyProfilesAsync()` | Not `GetMyProfilesAsync()` |
 
 ---
 
@@ -865,9 +904,46 @@ await _dispatcher.DispatchAsync("like-post", new PostActionContext { PostId = po
 - [x] Menu framework created (behind feature flag)
 - [x] Action dispatcher implemented
 - [x] Mobile app uses framework navigation
-- [ ] Feature flag flipped to enable new navigation
-- [ ] Old components can be deprecated
-- [ ] Documentation updated
+- [x] Feature flag enabled for testing (`UseFrameworkNavigation: true`)
+- [x] Auth state integration fixed (LoadNavigationProfileAsync)
+- [ ] Old NavMenu component deprecated (after stability period)
+- [x] Documentation updated
+
+---
+
+## Troubleshooting
+
+### Menu Items Not Showing After Login
+**Cause**: Auth state not properly synchronized with profile loading.  
+**Solution**: Ensure `MainLayout` checks `AuthenticationStateProvider` before loading profiles.
+
+```csharp
+// MainLayout.razor - LoadNavigationProfileAsync pattern
+var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+var isUserAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
+
+if (!isUserAuthenticated)
+{
+    _isAuthenticated = false;
+    _currentProfile = null;
+    return;
+}
+
+_currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+_isAuthenticated = _currentProfile != null;
+```
+
+### ProfileSwitcher Type Mismatch
+**Issue**: `ProfileSwitcher` expects `ProfileDto`, but `MainLayout` has `ActiveProfileDto`.  
+**Solution**: Create a computed property to convert or find matching profile:
+
+```csharp
+private ProfileDto? _activeProfileForSwitcher => 
+    ActiveProfile != null 
+        ? UserProfiles.FirstOrDefault(p => p.Id == ActiveProfile.Id) 
+          ?? new ProfileDto { Id = ActiveProfile.Id, DisplayName = ActiveProfile.DisplayName }
+        : null;
+```
 
 ---
 
