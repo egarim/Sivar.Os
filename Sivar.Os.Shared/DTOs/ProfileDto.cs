@@ -379,6 +379,11 @@ public class ActiveProfileDto
     public string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique URL-friendly handle (e.g., "jose-ojeda")
+    /// </summary>
+    public string Handle { get; set; } = string.Empty;
+
+    /// <summary>
     /// Profile type information
     /// </summary>
     public ProfileTypeDto? ProfileType { get; set; }
@@ -387,6 +392,11 @@ public class ActiveProfileDto
     /// Avatar image URL or path
     /// </summary>
     public string Avatar { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Full avatar URL for display (with SAS token if applicable)
+    /// </summary>
+    public string? AvatarUrl { get; set; }
 
     /// <summary>
     /// File ID for the avatar image stored in file storage service

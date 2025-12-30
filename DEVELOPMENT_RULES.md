@@ -948,29 +948,31 @@ Sivar.Os.Data/                    (Data Layer Implementation)
 
 ## Blazor Configuration
 
-### ⚠️ CURRENT: Blazor Server ONLY - WebAssembly Ready
+### ⭐ CURRENT: Blazor Server as PRIMARY Development Target
 
-This project **currently uses** Interactive Server render mode exclusively. However, **all code must be written to support both Blazor Server AND WebAssembly** for future scalability.
+This project uses **Blazor Server (Interactive Server)** as the **primary development target**. WebAssembly components exist in `Sivar.Os.Client` and are developed in parallel, but **Server mode is the main focus**.
+
+**Development Strategy:**
+- 🎯 **Server Mode = Primary**: All new features developed and tested in Server mode first
+- 📦 **Client Project = Shared Components**: `Sivar.Os.Client` contains reusable Blazor components
+- 🔄 **Parallel Development**: Both Server and Client evolve together, but Server takes priority
+- ✅ **Code Compatibility**: Write code that works on both Server and WebAssembly when possible
 
 ### Render Mode Configuration
 
 **Current Configuration in `Program.cs`:**
 ```csharp
-// ✅ CURRENT - Server Only
+// ✅ PRIMARY - Interactive Server (main development target)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// ⚠️ FUTURE - May add WebAssembly support
-// .AddInteractiveWebAssemblyComponents();
+// Client project components are used in Server mode via project reference
 ```
 
 **In Components (Current):**
 ```razor
-<!-- ✅ CURRENT - Use InteractiveServer -->
+<!-- ✅ PRIMARY - Use InteractiveServer -->
 @rendermode InteractiveServer
-
-<!-- ⚠️ FUTURE - May use InteractiveAuto -->
-@* @rendermode InteractiveAuto *@
 ```
 
 ### When to Use Render Modes
@@ -980,9 +982,9 @@ builder.Services.AddRazorComponents()
 | `@rendermode InteractiveServer` | Interactive components (forms, real-time updates) | `CreatePost.razor`, `ProfileSwitcher.razor` |
 | Static (no attribute) | Static content, layouts, error pages | `Error.razor`, static sections |
 
-### ⚠️ CRITICAL: Write Code Compatible with Both Server and WebAssembly
+### ⚠️ Write Code Compatible with Both Server and WebAssembly When Possible
 
-Even though we're currently using Server-only mode, **all code MUST be compatible with both**.
+While Server is the primary target, **write code that can work on both** when practical. This ensures the codebase remains flexible for future WebAssembly deployment.
 
 ---
 

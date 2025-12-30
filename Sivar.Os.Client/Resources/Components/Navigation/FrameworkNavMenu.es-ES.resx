@@ -60,4 +60,22 @@
   <data name="Profile" xml:space="preserve">
     <value>Perfil</value>
   </data>
+  <data name="PleaseLogin" xml:space="preserve">
+    <value>Inicia sesión para ver el menú</value>
+  </data>
+  <data name="NoMenuItems" xml:space="preserve">
+    <value>No hay elementos de menú disponibles</value>
+  </data>
+  <data name="ExploreElSalvador" xml:space="preserve">
+    <value>Explora El Salvador</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Cerrar Sesión</value>
+  </data>
+  <data name="SignUp" xml:space="preserve">
+    <value>Registrarse</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Iniciar Sesión</value>
+  </data>
 </root>

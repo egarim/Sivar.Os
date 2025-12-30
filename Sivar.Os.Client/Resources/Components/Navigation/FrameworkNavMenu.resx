@@ -60,4 +60,22 @@
   <data name="Profile" xml:space="preserve">
     <value>Profile</value>
   </data>
+  <data name="PleaseLogin" xml:space="preserve">
+    <value>Please log in to see menu</value>
+  </data>
+  <data name="NoMenuItems" xml:space="preserve">
+    <value>No menu items available</value>
+  </data>
+  <data name="ExploreElSalvador" xml:space="preserve">
+    <value>Explore El Salvador</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Logout</value>
+  </data>
+  <data name="SignUp" xml:space="preserve">
+    <value>Sign Up</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
 </root>

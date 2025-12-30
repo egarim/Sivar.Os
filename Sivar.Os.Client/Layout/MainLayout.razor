@@ -14,6 +14,7 @@
 @using Conversation = Sivar.Os.Client.Pages.Conversation
 @using ChatMessage = Sivar.Os.Client.Pages.ChatMessage
 @using Sivar.Os.Shared.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IStringLocalizer<MainLayout> Localizer
 @inject IJSRuntime JS
 @inject ISivarClient SivarClient
@@ -21,6 +22,8 @@
 @inject ChatSettingsService ChatSettings
 @inject IProfileContextService ProfileContextService
 @inject IConfiguration Configuration
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -50,9 +53,14 @@
             @if (_useFrameworkNavigation)
             {
                 <FrameworkNavMenu ActiveProfile="@_currentProfile" 
+                                  UserProfiles="@_userProfiles"
                                   IsAuthenticated="@_isAuthenticated"
                                   Platform="PlatformType.Web"
-                                  OnAction="@HandleFrameworkNavAction" />
+                                  IsDarkMode="@_isDarkMode"
+                                  OnAction="@HandleFrameworkNavAction"
+                                  OnThemeChanged="@HandleFrameworkThemeChange"
+                                  OnProfileChanged="@HandleFrameworkProfileChange"
+                                  OnCreateProfile="@HandleFrameworkCreateProfile" />
             }
             else
             {
@@ -678,6 +686,7 @@
     private bool _savedPanelOpen;
     private Guid _currentConversationId = Guid.Empty;
     private ActiveProfileDto? _currentProfile;
+    private List<ProfileDto> _userProfiles = new();
     private List<Conversation> _conversations = new();
     private bool _isTyping;
     private bool _isLoadingConversations;
@@ -708,6 +717,8 @@
         
         // Read framework feature flags from configuration
         _useFrameworkNavigation = Configuration.GetValue<bool>("FrameworkFeatures:UseFrameworkNavigation", false);
+        
+        Logger.LogDebug("[MainLayout] UseFrameworkNavigation={UseFramework}", _useFrameworkNavigation);
 
         _theme = new()
         {
@@ -735,6 +746,12 @@
                     };
                     window.addEventListener('resize', window.sivarOsResizeHandler);
                 ");
+                
+                // Load active profile for navigation (Server mode)
+                if (_useFrameworkNavigation)
+                {
+                    await LoadNavigationProfileAsync();
+                }
             }
             catch
             {
@@ -910,6 +927,57 @@
     }
     
     /// <summary>
+    /// Loads the navigation profile by checking authentication state first.
+    /// This ensures we don't try to load profiles for unauthenticated users.
+    /// </summary>
+    private async Task LoadNavigationProfileAsync()
+    {
+        try
+        {
+            // First check if the user is actually authenticated via AuthenticationStateProvider
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var isUserAuthenticated = user?.Identity?.IsAuthenticated ?? false;
+            
+            Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] AuthState: IsAuthenticated={IsAuth}, User={User}",
+                isUserAuthenticated, user?.Identity?.Name ?? "anonymous");
+            
+            if (!isUserAuthenticated)
+            {
+                _isAuthenticated = false;
+                _currentProfile = null;
+                _userProfiles = new List<ProfileDto>();
+                StateHasChanged();
+                return;
+            }
+            
+            // User is authenticated, load their profile
+            _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+            _isAuthenticated = _currentProfile != null;
+            
+            // Also load all user profiles for ProfileSwitcher
+            if (_isAuthenticated)
+            {
+                var profiles = await SivarClient.Profiles.GetAllMyProfilesAsync();
+                _userProfiles = profiles?.ToList() ?? new List<ProfileDto>();
+            }
+            
+            Logger.LogDebug("[MainLayout.LoadNavigationProfileAsync] Profile loaded: IsAuth={IsAuth}, Profile={Profile}, TotalProfiles={Count}", 
+                _isAuthenticated, _currentProfile?.DisplayName, _userProfiles.Count);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[MainLayout.LoadNavigationProfileAsync] Failed to load profile for navigation");
+            _isAuthenticated = false;
+            _currentProfile = null;
+            _userProfiles = new List<ProfileDto>();
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
     /// Handles actions from the FrameworkNavMenu component.
     /// Maps action IDs to corresponding methods.
     /// </summary>
@@ -919,6 +987,7 @@
         
         switch (actionId.ToLowerInvariant())
         {
+            case "toggle-ai-chat":
             case "chat":
                 ToggleAIChat();
                 break;
@@ -926,6 +995,55 @@
                 Logger.LogWarning("[MainLayout.HandleFrameworkNavAction] Unknown action: {ActionId}", actionId);
                 break;
         }
+    }
+    
+    /// <summary>
+    /// Handles theme change from FrameworkNavMenu.
+    /// </summary>
+    private void HandleFrameworkThemeChange(bool isDark)
+    {
+        _isDarkMode = isDark;
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Handles profile change from FrameworkNavMenu.
+    /// </summary>
+    private async Task HandleFrameworkProfileChange(ProfileDto selectedProfile)
+    {
+        Logger.LogInformation("[MainLayout] Profile changed to: {DisplayName}", selectedProfile.DisplayName);
+        
+        try
+        {
+            // Switch profile on server
+            await SivarClient.Profiles.SetMyActiveProfileAsync(selectedProfile.Id);
+            
+            // Update local state
+            _currentProfile = new ActiveProfileDto
+            {
+                Id = selectedProfile.Id,
+                DisplayName = selectedProfile.DisplayName,
+                Handle = selectedProfile.Handle,
+                AvatarUrl = selectedProfile.Avatar,
+                ProfileType = selectedProfile.ProfileType
+            };
+            
+            // Force reload to refresh everything
+            NavigationManager.NavigateTo("/home", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[MainLayout] Error switching profile");
+        }
+    }
+    
+    /// <summary>
+    /// Handles create profile request from FrameworkNavMenu.
+    /// </summary>
+    private void HandleFrameworkCreateProfile()
+    {
+        // Navigate to profile creation or open a dialog
+        NavigationManager.NavigateTo("/profile/create");
     }
 
     private void DarkModeToggle()
