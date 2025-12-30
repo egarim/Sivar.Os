@@ -169,7 +169,11 @@ With the `/app` prefix strategy, only these are reserved as profile handles:
 │  ├── /app/edit/post/{id}        Edit post                                   │
 │  └── /app/edit/blog/{id}        Edit blog                                   │
 │                                                                              │
-│  👤 PROFILE HANDLES (CATCH-ALL - MUST BE LAST)                              │
+│  � AI CHAT (/app/chat/*)                                                    │
+│  ├── /app/chat                  Chat home (latest or new conversation)      │
+│  └── /app/chat/{id}             Specific conversation by ID                 │
+│                                                                              │
+│  �👤 PROFILE HANDLES (CATCH-ALL - MUST BE LAST)                              │
 │  └── /{handle}                  Public profile view                         │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘

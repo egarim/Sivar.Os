@@ -98,11 +98,41 @@ public class ChatClient : BaseRepositoryClient, ISivarChatClient
 
     public async Task<ConversationDto> UpdateConversationAsync(Guid conversationId, UpdateConversationDto request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[ChatClient.UpdateConversationAsync] START - ConversationId={ConversationId}", conversationId);
-        // TODO: Implement UpdateConversationAsync in IChatService when needed
-        _logger.LogWarning("[ChatClient.UpdateConversationAsync] NOT_IMPLEMENTED - Returning current conversation");
-        var (conversation, _) = await _chatService.GetConversationWithMessagesAsync(conversationId);
-        return conversation;
+        _logger.LogInformation("[ChatClient.UpdateConversationAsync] START - ConversationId={ConversationId}, NewTitle={Title}", conversationId, request.Title);
+        try
+        {
+            var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+            if (conversation == null)
+            {
+                _logger.LogWarning("[ChatClient.UpdateConversationAsync] CONVERSATION_NOT_FOUND - ConversationId={ConversationId}", conversationId);
+                throw new InvalidOperationException($"Conversation {conversationId} not found");
+            }
+            
+            conversation.Title = request.Title;
+            await _conversationRepository.UpdateAsync(conversation);
+            await _conversationRepository.SaveChangesAsync();
+            
+            var messageCount = await _chatMessageRepository.GetMessageCountAsync(conversation.Id);
+            
+            var dto = new ConversationDto
+            {
+                Id = conversation.Id,
+                ProfileId = conversation.ProfileId,
+                Title = conversation.Title,
+                LastMessageAt = conversation.LastMessageAt,
+                IsActive = conversation.IsActive,
+                CreatedAt = conversation.CreatedAt,
+                MessageCount = messageCount
+            };
+            
+            _logger.LogInformation("[ChatClient.UpdateConversationAsync] SUCCESS - ConversationId={ConversationId}, NewTitle={Title}", conversationId, conversation.Title);
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ChatClient.UpdateConversationAsync] ERROR - ConversationId={ConversationId}", conversationId);
+            throw;
+        }
     }
 
     public async Task DeleteConversationAsync(Guid conversationId, CancellationToken cancellationToken = default)

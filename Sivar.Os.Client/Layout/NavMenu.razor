@@ -12,62 +12,63 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IProfileSwitcherService ProfileSwitcherService
 @inject ISivarClient SivarClient
+@inject ILogger<NavMenu> Logger
 @implements IAsyncDisposable
+@implements IDisposable
 
 <div class="nav-menu-container">
-    @if (_layout?.IsAIChatVisible == true)
+    @if (_isOnChatPage)
     {
-        @* Chat Mode - Show Home button, New Chat, and conversation list *@
-        <div class="nav-menu-chat-mode">
-            <div class="chat-mode-header">
-                <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Medium" Color="Color.Primary" />
-                <MudText Typo="Typo.h6">Sivar AI</MudText>
-            </div>
-            
-            <MudButton Variant="Variant.Outlined" 
-                       StartIcon="@Icons.Material.Filled.Home" 
-                       FullWidth="true" 
-                       OnClick="@ExitChatMode"
-                       Class="nav-chat-home-btn"
-                       Color="Color.Default">
-                Volver al Inicio
-            </MudButton>
-            
-            <MudButton Variant="Variant.Filled" 
-                       StartIcon="@Icons.Material.Filled.Add" 
-                       FullWidth="true" 
-                       OnClick="@HandleNewConversation"
-                       Class="nav-new-chat-btn"
-                       Color="Color.Primary">
-                Nueva Conversación
-            </MudButton>
-            
-            <div class="conversations-section">
-                <MudText Typo="Typo.overline" Class="conversations-header">Conversaciones</MudText>
-                
-                <div class="nav-conversations-list">
-                @if (_layout?.ChatConversations?.Any() != true)
-                {
-                    <div class="nav-empty-conversations">
-                        <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Style="opacity: 0.5;" />
-                        <MudText Typo="Typo.body2" Style="opacity: 0.7; text-align: center;">No conversations yet</MudText>
-                        <MudText Typo="Typo.caption" Style="opacity: 0.5; text-align: center;">Start chatting!</MudText>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var conversation in _layout.ChatConversations)
-                    {
-                        <MudNavLink OnClick="@(() => HandleConversationSelect(conversation.Id))"
-                                    Icon="@Icons.Material.Filled.ChatBubbleOutline"
-                                    Class="@(conversation.Id == _layout.CurrentConversationId ? "nav-conversation-active" : "")">
-                            @(string.IsNullOrEmpty(conversation.Title) ? "New Chat" : TruncateTitle(conversation.Title, 25))
-                        </MudNavLink>
-                    }
-                }
-            </div>
-            </div>
+        @* Chat Mode - Show conversations *@
+        <div class="nav-menu-header">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           Color="Color.Inherit" 
+                           OnClick="@ExitChatMode"
+                           Size="Size.Small" />
+            <MudText Typo="Typo.h6" Class="ml-2">@Localizer["Conversations"]</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                           Color="Color.Primary" 
+                           OnClick="@HandleNewConversation"
+                           Size="Size.Small" />
         </div>
+        
+        <MudDivider Class="mb-2" />
+        
+        @if (_isLoadingConversations)
+        {
+            <div class="pa-4 d-flex justify-center">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            </div>
+        }
+        else if (_conversations?.Any() == true)
+        {
+            <MudNavMenu Class="nav-menu-items conversation-list">
+                @foreach (var conversation in _conversations)
+                {
+                    var isActive = _currentConversationId == conversation.Id;
+                    <MudNavLink Match="NavLinkMatch.All"
+                                Href="@($"/app/chat/{conversation.Id}")"
+                                Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                                Class="@(isActive ? "active-conversation" : "")">
+                        @TruncateTitle(conversation.Title ?? "Conversation", 25)
+                    </MudNavLink>
+                }
+            </MudNavMenu>
+        }
+        else
+        {
+            <div class="pa-4 text-center">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No conversations yet</MudText>
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Color="Color.Primary"
+                           OnClick="@HandleNewConversation"
+                           Class="mt-2">
+                    Start a conversation
+                </MudButton>
+            </div>
+        }
     }
     else
     {
@@ -105,7 +106,7 @@
             {
                 <MudNavLink Href="/app/bookings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.EventAvailable">@Localizer["Bookings"]</MudNavLink>
             }
-            <MudNavLink @onclick="@ToggleAIChat" Icon="@Icons.Material.Filled.SmartToy">@Localizer["Chat"]</MudNavLink>
+            <MudNavLink Href="/app/chat" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.SmartToy">@Localizer["Chat"]</MudNavLink>
         </MudNavMenu>
 
         <div class="nav-theme-toggle">
@@ -166,6 +167,28 @@
         flex-direction: column;
         height: 100%;
         padding: 0;
+    }
+
+    .nav-menu-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .conversation-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .conversation-list .mud-nav-link {
+        border-radius: 8px;
+        margin-bottom: 4px;
+    }
+
+    .conversation-list .active-conversation {
+        background: var(--mud-palette-primary-hover);
     }
 
     .nav-menu-profile {
@@ -503,9 +526,22 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
     private List<ProfileDto> _userProfiles = new();
     private bool _isLoadingProfiles;
 
+    // Chat navigation state
+    private bool _isOnChatPage;
+    private bool _isLoadingConversations;
+    private List<ConversationDto>? _conversations;
+    private Guid _currentConversationId;
+
     protected override async Task OnInitializedAsync()
     {
         _cts = new CancellationTokenSource();
+        
+        // Subscribe to navigation changes
+        Nav.LocationChanged += OnLocationChanged;
+        
+        // Check current URL for chat page
+        UpdateChatPageState();
+        Logger.LogInformation("[NavMenu.OnInitializedAsync] Initial URL check - isOnChatPage={IsOnChat}", _isOnChatPage);
         
         // Initial auth state check
         await RefreshAuthState();
@@ -513,12 +549,19 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         // Only load profiles if user is authenticated
         if (_isAuthenticated)
         {
-            Console.WriteLine("[NavMenu] User is authenticated, loading profiles...");
+            Logger.LogInformation("[NavMenu] User is authenticated, loading profiles...");
             await LoadActiveProfileAsync();
+            
+            // If on chat page, load conversations
+            if (_isOnChatPage && _activeProfile != null)
+            {
+                Logger.LogInformation("[NavMenu.OnInitializedAsync] On chat page with profile, loading conversations");
+                await LoadConversationsAsync();
+            }
         }
         else
         {
-            Console.WriteLine("[NavMenu] User is not authenticated, skipping profile load");
+            Logger.LogInformation("[NavMenu] User is not authenticated, skipping profile load");
         }
         
         // Subscribe to auth state changes
@@ -536,16 +579,30 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         {
             _firstRenderComplete = true;
             
+            Logger.LogInformation("[NavMenu.OnAfterRenderAsync] First render - checking auth and chat state");
+            
             // Re-check auth state after first render (when JS interop is available)
             // This handles cases where prerendering didn't have full auth context
             await RefreshAuthState();
             
             if (_isAuthenticated && _activeProfile == null && !_isLoadingProfiles)
             {
-                Console.WriteLine("[NavMenu.OnAfterRenderAsync] Auth OK but no profile loaded, retrying...");
+                Logger.LogInformation("[NavMenu.OnAfterRenderAsync] Auth OK but no profile loaded, retrying...");
                 await LoadActiveProfileAsync();
-                await InvokeAsync(StateHasChanged);
             }
+            
+            // Check if we're on chat page and need to load conversations
+            UpdateChatPageState();
+            Logger.LogInformation("[NavMenu.OnAfterRenderAsync] isOnChatPage={IsOnChat}, isAuth={IsAuth}, hasProfile={HasProfile}, hasConversations={ConvCount}", 
+                _isOnChatPage, _isAuthenticated, _activeProfile != null, _conversations?.Count ?? 0);
+            
+            if (_isOnChatPage && _isAuthenticated && _activeProfile != null && _conversations == null)
+            {
+                Logger.LogInformation("[NavMenu.OnAfterRenderAsync] On chat page, loading conversations...");
+                await LoadConversationsAsync();
+            }
+            
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -796,36 +853,129 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         }
     }
 
-    private void ToggleAIChat()
+    // Chat navigation methods
+    
+    private void UpdateChatPageState()
     {
-        _layout?.ToggleAIChat();
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var wasOnChatPage = _isOnChatPage;
+        _isOnChatPage = uri.AbsolutePath.StartsWith("/app/chat", StringComparison.OrdinalIgnoreCase);
+        
+        // Extract conversation ID from URL if present
+        if (_isOnChatPage && uri.AbsolutePath.Length > "/app/chat/".Length)
+        {
+            var idPart = uri.AbsolutePath.Substring("/app/chat/".Length);
+            if (Guid.TryParse(idPart, out var convId))
+            {
+                _currentConversationId = convId;
+            }
+        }
+        
+        Logger.LogInformation("[NavMenu] UpdateChatPageState: Uri={Uri}, isOnChatPage={IsOnChatPage}, ConversationId={ConversationId}", 
+            uri.AbsolutePath, _isOnChatPage, _currentConversationId);
     }
 
-    // Chat Mode Methods
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var wasOnChatPage = _isOnChatPage;
+        UpdateChatPageState();
+        
+        Logger.LogInformation("[NavMenu.OnLocationChanged] wasOnChat={WasOnChat}, isOnChat={IsOnChat}, isAuth={IsAuth}, hasProfile={HasProfile}", 
+            wasOnChatPage, _isOnChatPage, _isAuthenticated, _activeProfile != null);
+        
+        // If we just navigated to chat page, load conversations
+        if (_isOnChatPage && _isAuthenticated)
+        {
+            if (_activeProfile == null)
+            {
+                // Try to load profile first
+                Logger.LogInformation("[NavMenu.OnLocationChanged] Loading profile...");
+                await LoadActiveProfileAsync();
+            }
+            
+            if (_activeProfile != null && (_conversations == null || !wasOnChatPage))
+            {
+                Logger.LogInformation("[NavMenu.OnLocationChanged] Loading conversations...");
+                await LoadConversationsAsync();
+            }
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadConversationsAsync()
+    {
+        if (_activeProfile == null) return;
+        
+        _isLoadingConversations = true;
+        StateHasChanged();
+        
+        try
+        {
+            Logger.LogInformation("[NavMenu.LoadConversationsAsync] Loading for profile {ProfileId}", _activeProfile.Id);
+            var conversations = await SivarClient.Chat.GetConversationsAsync(_activeProfile.Id);
+            _conversations = conversations?.ToList() ?? new List<ConversationDto>();
+            Logger.LogInformation("[NavMenu.LoadConversationsAsync] Loaded {Count} conversations", _conversations.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[NavMenu.LoadConversationsAsync] Error loading conversations");
+            _conversations = new List<ConversationDto>();
+        }
+        finally
+        {
+            _isLoadingConversations = false;
+            StateHasChanged();
+        }
+    }
+
     private void ExitChatMode()
     {
-        // Close chat and return to social media mode
-        _layout?.ToggleAIChat();
+        Nav.NavigateTo("/app/home");
     }
 
-    private void HandleNewConversation()
+    private async Task HandleNewConversation()
     {
-        _layout?.NewConversation();
+        if (_activeProfile == null) return;
+        
+        try
+        {
+            var dto = new CreateConversationDto
+            {
+                ProfileId = _activeProfile.Id,
+                Title = "New Conversation"
+            };
+            
+            var created = await SivarClient.Chat.CreateConversationAsync(dto);
+            if (created != null)
+            {
+                _conversations ??= new List<ConversationDto>();
+                _conversations.Insert(0, created);
+                _currentConversationId = created.Id;
+                Nav.NavigateTo($"/app/chat/{created.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NavMenu] Error creating conversation: {ex.Message}");
+        }
     }
 
-    private void HandleConversationSelect(string conversationId)
+    private string TruncateTitle(string title, int maxLength)
     {
-        _layout?.SelectConversationById(conversationId);
+        if (string.IsNullOrEmpty(title)) return "Conversation";
+        return title.Length <= maxLength ? title : title.Substring(0, maxLength - 3) + "...";
     }
 
-    private static string TruncateTitle(string title, int maxLength)
+    public void Dispose()
     {
-        if (string.IsNullOrEmpty(title)) return "New Chat";
-        return title.Length <= maxLength ? title : title[..(maxLength - 3)] + "...";
+        Nav.LocationChanged -= OnLocationChanged;
     }
 
     public async ValueTask DisposeAsync()
     {
+        Nav.LocationChanged -= OnLocationChanged;
+        
         if (AuthStateProvider is not null)
         {
             AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;

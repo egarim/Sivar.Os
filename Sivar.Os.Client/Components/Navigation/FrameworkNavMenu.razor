@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Authorization
+@using Sivar.Os.Shared
 @using Sivar.Os.Shared.Framework
 @using Sivar.Os.Shared.Framework.Navigation
 @using Sivar.Os.Shared.DTOs
@@ -12,6 +13,8 @@
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<FrameworkNavMenu> Localizer
 @inject ILogger<FrameworkNavMenu> Logger
+@inject ISivarClient SivarClient
+@implements IDisposable
 
 @* 
     FrameworkNavMenu - Uses the navigation registry for menu items.
@@ -20,80 +23,153 @@
 *@
 
 <div class="framework-nav-container">
-    @* Profile Switcher Section *@
-    <div class="nav-profile-section">
-        <AuthorizeView>
-            <Authorized>
-                <ProfileSwitcher ActiveProfile="@_activeProfileForSwitcher"
-                                 UserProfiles="@UserProfiles"
-                                 OnProfileChanged="@OnProfileChanged"
-                                 OnCreateProfile="@OnCreateProfile" />
-            </Authorized>
-            <NotAuthorized>
-                <div class="guest-branding">
-                    <div class="brand-logo">
-                        <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Large" Color="Color.Primary" />
-                    </div>
-                    <div class="brand-text">
-                        <MudText Typo="Typo.h6" Class="brand-name">Sivar.Os</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["ExploreElSalvador"]</MudText>
-                    </div>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </div>
-
-    @* Navigation Items *@
-    <MudNavMenu Class="framework-nav-menu">
-        @if (!_visibleItems.Any())
+    @if (_isOnChatPage)
+    {
+        @* Chat Mode - Show conversations *@
+        <div class="chat-mode-header">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           Color="Color.Inherit" 
+                           OnClick="@ExitChatMode"
+                           Size="Size.Small" />
+            <MudText Typo="Typo.h6" Class="ml-2">@Localizer["Conversations"]</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                           Color="Color.Primary" 
+                           OnClick="@HandleNewConversation"
+                           Size="Size.Small" />
+        </div>
+        
+        <MudDivider Class="mb-2" />
+        
+        @if (_isLoadingConversations)
         {
-            <MudText Typo="Typo.caption" Class="pa-4 mud-text-secondary">
-                @if (!IsAuthenticated)
+            <div class="pa-4 d-flex justify-center">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            </div>
+        }
+        else if (_conversations?.Any() == true)
+        {
+            <div class="conversation-list">
+                @foreach (var conversation in _conversations)
                 {
-                    @Localizer["PleaseLogin"]
+                    var isActive = _currentConversationId == conversation.Id;
+                    var convId = conversation.Id;
+                    <div class="conversation-item @(isActive ? "active" : "")">
+                        <a href="@($"/app/chat/{conversation.Id}")" class="conversation-link">
+                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Small" />
+                            <span class="conversation-title">@TruncateTitle(conversation.Title ?? "Conversation", 20)</span>
+                        </a>
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" 
+                                 Size="Size.Small" 
+                                 Dense="true"
+                                 AnchorOrigin="Origin.BottomRight"
+                                 TransformOrigin="Origin.TopRight"
+                                 Class="conversation-menu">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" 
+                                        OnClick="@(() => OpenRenameDialog(convId, conversation.Title))">
+                                @Localizer["Rename"]
+                            </MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" 
+                                        OnClick="@(() => OpenDeleteDialog(convId, conversation.Title))"
+                                        IconColor="Color.Error">
+                                @Localizer["Delete"]
+                            </MudMenuItem>
+                        </MudMenu>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="pa-4 text-center">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Localizer["NoConversations"]</MudText>
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Color="Color.Primary"
+                           OnClick="@HandleNewConversation"
+                           Class="mt-2">
+                    @Localizer["StartConversation"]
+                </MudButton>
+            </div>
+        }
+    }
+    else
+    {
+        @* Normal Mode - Profile Switcher Section *@
+        <div class="nav-profile-section">
+            <AuthorizeView>
+                <Authorized>
+                    <ProfileSwitcher ActiveProfile="@_activeProfileForSwitcher"
+                                     UserProfiles="@UserProfiles"
+                                     OnProfileChanged="@OnProfileChanged"
+                                     OnCreateProfile="@OnCreateProfile" />
+                </Authorized>
+                <NotAuthorized>
+                    <div class="guest-branding">
+                        <div class="brand-logo">
+                            <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Large" Color="Color.Primary" />
+                        </div>
+                        <div class="brand-text">
+                            <MudText Typo="Typo.h6" Class="brand-name">Sivar.Os</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["ExploreElSalvador"]</MudText>
+                        </div>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        @* Navigation Items *@
+        <MudNavMenu Class="framework-nav-menu">
+            @if (!_visibleItems.Any())
+            {
+                <MudText Typo="Typo.caption" Class="pa-4 mud-text-secondary">
+                    @if (!IsAuthenticated)
+                    {
+                        @Localizer["PleaseLogin"]
+                    }
+                    else
+                    {
+                        @Localizer["NoMenuItems"]
+                    }
+                </MudText>
+            }
+            @foreach (var item in _visibleItems)
+            {
+                @if (item.IsAction)
+                {
+                    <MudNavLink @onclick="@(() => HandleAction(item))"
+                                Icon="@GetMudIcon(item.Icon)"
+                                Disabled="@(!IsEnabled(item))">
+                        @GetLocalizedTitle(item)
+                    </MudNavLink>
                 }
                 else
                 {
-                    @Localizer["NoMenuItems"]
+                    <MudNavLink Href="@item.Route" 
+                                Match="NavLinkMatch.Prefix"
+                                Icon="@GetMudIcon(item.Icon)"
+                                Disabled="@(!IsEnabled(item))">
+                        @GetLocalizedTitle(item)
+                    </MudNavLink>
                 }
-            </MudText>
-        }
-        @foreach (var item in _visibleItems)
-        {
-            @if (item.IsAction)
-            {
-                <MudNavLink @onclick="@(() => HandleAction(item))"
-                            Icon="@GetMudIcon(item.Icon)"
-                            Disabled="@(!IsEnabled(item))">
-                    @GetLocalizedTitle(item)
-                </MudNavLink>
             }
-            else
-            {
-                <MudNavLink Href="@item.Route" 
-                            Match="NavLinkMatch.Prefix"
-                            Icon="@GetMudIcon(item.Icon)"
-                            Disabled="@(!IsEnabled(item))">
-                    @GetLocalizedTitle(item)
-                </MudNavLink>
-            }
-        }
-    </MudNavMenu>
+        </MudNavMenu>
 
-    @* Theme Toggle *@
-    <div class="nav-theme-toggle">
-        <MudIcon Icon="@Icons.Material.Filled.LightMode" Size="Size.Small" 
-                 Class="@($"theme-icon {(!IsDarkMode ? "active light" : "")}")" />
-        <MudSwitch T="bool" 
-                   Value="@IsDarkMode" 
-                   ValueChanged="@HandleThemeToggle"
-                   Color="Color.Primary"
-                   Class="theme-switch"
-                   ThumbIcon="@(IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
-                   ThumbIconColor="@(IsDarkMode ? Color.Primary : Color.Warning)" />
-        <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small" 
-                 Class="@($"theme-icon {(IsDarkMode ? "active dark" : "")}")" />
-    </div>
+        @* Theme Toggle *@
+        <div class="nav-theme-toggle">
+            <MudIcon Icon="@Icons.Material.Filled.LightMode" Size="Size.Small" 
+                     Class="@($"theme-icon {(!IsDarkMode ? "active light" : "")}")" />
+            <MudSwitch T="bool" 
+                       Value="@IsDarkMode" 
+                       ValueChanged="@HandleThemeToggle"
+                       Color="Color.Primary"
+                       Class="theme-switch"
+                       ThumbIcon="@(IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
+                       ThumbIconColor="@(IsDarkMode ? Color.Primary : Color.Warning)" />
+            <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small" 
+                     Class="@($"theme-icon {(IsDarkMode ? "active dark" : "")}")" />
+        </div>
+    }
 
     @* Spacer to push logout to bottom *@
     <div class="nav-spacer"></div>
@@ -136,12 +212,112 @@
     </AuthorizeView>
 </div>
 
+@* Rename Dialog *@
+<MudDialog @bind-Visible="_renameDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Localizer["RenameConversation"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_renameNewTitle" 
+                      Label="@Localizer["ConversationName"]" 
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      AutoFocus="true"
+                      OnKeyDown="@OnRenameKeyDown" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@CloseRenameDialog">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="@ConfirmRename"
+                   Disabled="@(string.IsNullOrWhiteSpace(_renameNewTitle))">
+            @Localizer["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Delete Confirmation Dialog *@
+<MudDialog @bind-Visible="_deleteDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Localizer["DeleteConversation"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>@Localizer["DeleteConversationConfirm", _deleteConversationTitle ?? "this conversation"]</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@CloseDeleteDialog">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Error" 
+                   Variant="Variant.Filled" 
+                   OnClick="@ConfirmDelete">
+            @Localizer["Delete"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 <style>
     .framework-nav-container {
         display: flex;
         flex-direction: column;
         height: 100%;
         padding: 0;
+    }
+    
+    .chat-mode-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+    
+    .conversation-list {
+        padding: 8px;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .conversation-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 4px 12px;
+        margin-bottom: 4px;
+        border-radius: 8px;
+        transition: background-color 0.15s;
+    }
+    
+    .conversation-item:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+    
+    .conversation-item.active {
+        background-color: var(--mud-palette-primary-darken) !important;
+    }
+    
+    .conversation-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        text-decoration: none;
+        color: inherit;
+        padding: 8px 0;
+        min-width: 0;
+    }
+    
+    .conversation-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .conversation-menu {
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+    
+    .conversation-item:hover .conversation-menu,
+    .conversation-menu.mud-menu--open {
+        opacity: 1;
     }
     
     .nav-profile-section {
@@ -291,6 +467,22 @@
     private IEnumerable<INavigationItem> _visibleItems = Enumerable.Empty<INavigationItem>();
     private NavContext _context = new();
     
+    // Chat mode state
+    private bool _isOnChatPage;
+    private bool _isLoadingConversations;
+    private List<ConversationDto>? _conversations;
+    private Guid _currentConversationId;
+    private string _lastKnownUri = string.Empty;
+    private Guid _loadedForProfileId = Guid.Empty; // Track which profile conversations were loaded for
+    
+    // Dialog state
+    private bool _renameDialogVisible;
+    private bool _deleteDialogVisible;
+    private Guid _dialogConversationId;
+    private string? _renameNewTitle;
+    private string? _deleteConversationTitle;
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
     /// <summary>
     /// Gets the active profile as ProfileDto for ProfileSwitcher compatibility.
     /// Finds the matching profile from UserProfiles by ID.
@@ -308,9 +500,29 @@
               }
             : null;
     
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        UpdateChatPageState();
+        Logger.LogInformation("[FrameworkNavMenu] OnInitialized - isOnChatPage={IsOnChat}", _isOnChatPage);
+    }
+    
     protected override void OnParametersSet()
     {
         UpdateVisibleItems();
+        UpdateChatPageState();
+        
+        // Load conversations if we're on chat page and have a profile
+        // Also reload if the profile changed since we last loaded
+        var profileChanged = ActiveProfile != null && _loadedForProfileId != ActiveProfile.Id;
+        Logger.LogInformation("[FrameworkNavMenu.OnParametersSet] isOnChat={IsOnChat}, IsAuth={IsAuth}, Profile={Profile}, PrevLoadedProfile={PrevProfile}, NeedLoad={NeedLoad}",
+            _isOnChatPage, IsAuthenticated, ActiveProfile?.Id, _loadedForProfileId, 
+            _isOnChatPage && IsAuthenticated && ActiveProfile != null && (_conversations == null || profileChanged));
+        
+        if (_isOnChatPage && IsAuthenticated && ActiveProfile != null && (_conversations == null || profileChanged))
+        {
+            _ = LoadConversationsAsync();
+        }
     }
     
     private void UpdateVisibleItems()
@@ -395,5 +607,294 @@
             "MoreVert" => Icons.Material.Filled.MoreVert,
             _ => Icons.Material.Filled.Circle
         };
+    }
+    
+    // Chat mode methods
+    
+    private void UpdateChatPageState()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var wasOnChatPage = _isOnChatPage;
+        _isOnChatPage = uri.AbsolutePath.StartsWith("/app/chat", StringComparison.OrdinalIgnoreCase);
+        
+        // Extract conversation ID from URL if present, or reset to Empty if not
+        if (_isOnChatPage && uri.AbsolutePath.Length > "/app/chat/".Length)
+        {
+            var idPart = uri.AbsolutePath.Substring("/app/chat/".Length);
+            if (Guid.TryParse(idPart, out var convId))
+            {
+                _currentConversationId = convId;
+            }
+            else
+            {
+                // Reset to Empty if the ID is invalid
+                _currentConversationId = Guid.Empty;
+            }
+        }
+        else if (_isOnChatPage)
+        {
+            // We're on /app/chat without an ID - reset conversation ID
+            _currentConversationId = Guid.Empty;
+        }
+        else
+        {
+            // Not on chat page - don't reset so we remember last conversation
+        }
+        
+        Logger.LogInformation("[FrameworkNavMenu] UpdateChatPageState: Uri={Uri}, isOnChatPage={IsOnChatPage}, ConversationId={ConversationId}", 
+            uri.AbsolutePath, _isOnChatPage, _currentConversationId);
+    }
+    
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var previousUri = _lastKnownUri;
+        var currentUri = e.Location;
+        _lastKnownUri = currentUri;
+        
+        var wasOnChatPage = _isOnChatPage;
+        var previousConversationId = _currentConversationId;
+        
+        // Parse the new URL to get the conversation ID before updating state
+        var newConversationId = ExtractConversationIdFromUri(currentUri);
+        
+        // Update state (this will also extract conversation ID)
+        UpdateChatPageState();
+        
+        // Check if we navigated to a different conversation
+        var conversationChanged = _isOnChatPage && 
+                                  newConversationId != Guid.Empty && 
+                                  previousConversationId != Guid.Empty &&
+                                  newConversationId != previousConversationId;
+        
+        // Check if current conversation ID is not in our current list (new conversation created by Chat.razor)
+        var isNewConversation = _isOnChatPage && 
+                                newConversationId != Guid.Empty &&
+                                _conversations != null &&
+                                !_conversations.Any(c => c.Id == newConversationId);
+        
+        // Check if we're transitioning FROM no conversation (Empty) TO a conversation
+        var isFirstConversationNavigation = _isOnChatPage && 
+                                            newConversationId != Guid.Empty && 
+                                            previousConversationId == Guid.Empty;
+        
+        Logger.LogInformation("[FrameworkNavMenu.OnLocationChanged] wasOnChat={WasOnChat}, isOnChat={IsOnChat}, prevConv={PrevConv}, newConv={NewConv}, convChanged={ConvChanged}, isNew={IsNew}, isFirst={IsFirst}", 
+            wasOnChatPage, _isOnChatPage, previousConversationId, newConversationId, conversationChanged, isNewConversation, isFirstConversationNavigation);
+        
+        // Load conversations if:
+        // 1. We just navigated to chat page from non-chat page, OR
+        // 2. Conversation list is empty, OR
+        // 3. We navigated to a different conversation, OR
+        // 4. Current conversation ID is not in our list (created by Chat.razor), OR
+        // 5. We're going from no conversation to a conversation (first nav)
+        if (_isOnChatPage && IsAuthenticated && ActiveProfile != null && 
+            (_conversations == null || !wasOnChatPage || conversationChanged || isNewConversation || isFirstConversationNavigation))
+        {
+            Logger.LogInformation("[FrameworkNavMenu.OnLocationChanged] Triggering LoadConversationsAsync");
+            await LoadConversationsAsync();
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private Guid ExtractConversationIdFromUri(string uri)
+    {
+        try
+        {
+            var absoluteUri = NavigationManager.ToAbsoluteUri(uri);
+            var path = absoluteUri.AbsolutePath;
+            
+            if (path.StartsWith("/app/chat/", StringComparison.OrdinalIgnoreCase) && path.Length > "/app/chat/".Length)
+            {
+                var idPart = path.Substring("/app/chat/".Length);
+                if (Guid.TryParse(idPart, out var convId))
+                {
+                    return convId;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[FrameworkNavMenu] Error extracting conversation ID from URI: {Uri}", uri);
+        }
+        
+        return Guid.Empty;
+    }
+    
+    private async Task LoadConversationsAsync()
+    {
+        if (ActiveProfile == null) return;
+        
+        _isLoadingConversations = true;
+        StateHasChanged();
+        
+        try
+        {
+            Logger.LogInformation("[FrameworkNavMenu.LoadConversationsAsync] Loading for profile {ProfileId}", ActiveProfile.Id);
+            var conversations = await SivarClient.Chat.GetConversationsAsync(ActiveProfile.Id);
+            _conversations = conversations?.ToList() ?? new List<ConversationDto>();
+            _loadedForProfileId = ActiveProfile.Id; // Track which profile we loaded for
+            Logger.LogInformation("[FrameworkNavMenu.LoadConversationsAsync] Loaded {Count} conversations", _conversations.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FrameworkNavMenu] Error loading conversations");
+            _conversations = new List<ConversationDto>();
+            // Don't set _loadedForProfileId so we can retry on next opportunity
+        }
+        finally
+        {
+            _isLoadingConversations = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void ExitChatMode()
+    {
+        NavigationManager.NavigateTo("/app/home");
+    }
+    
+    private async Task HandleNewConversation()
+    {
+        if (ActiveProfile == null) return;
+        
+        try
+        {
+            var dto = new CreateConversationDto
+            {
+                ProfileId = ActiveProfile.Id,
+                Title = "New Conversation"
+            };
+            
+            var conversation = await SivarClient.Chat.CreateConversationAsync(dto);
+            if (conversation != null)
+            {
+                // Insert the new conversation at the top of the list
+                _conversations ??= new List<ConversationDto>();
+                _conversations.Insert(0, conversation);
+                
+                // Don't set _currentConversationId here - let UpdateChatPageState() handle it
+                // when OnLocationChanged fires after navigation
+                
+                // Navigate to the new conversation
+                NavigationManager.NavigateTo($"/app/chat/{conversation.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FrameworkNavMenu] Error creating conversation");
+        }
+    }
+    
+    private string TruncateTitle(string title, int maxLength)
+    {
+        if (string.IsNullOrEmpty(title)) return "Conversation";
+        return title.Length <= maxLength ? title : title.Substring(0, maxLength - 3) + "...";
+    }
+    
+    // Rename dialog methods
+    private void OpenRenameDialog(Guid conversationId, string? currentTitle)
+    {
+        _dialogConversationId = conversationId;
+        _renameNewTitle = currentTitle ?? "Conversation";
+        _renameDialogVisible = true;
+    }
+    
+    private void CloseRenameDialog()
+    {
+        _renameDialogVisible = false;
+        _renameNewTitle = null;
+    }
+    
+    private async Task OnRenameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_renameNewTitle))
+        {
+            await ConfirmRename();
+        }
+        else if (e.Key == "Escape")
+        {
+            CloseRenameDialog();
+        }
+    }
+    
+    private async Task ConfirmRename()
+    {
+        if (string.IsNullOrWhiteSpace(_renameNewTitle)) return;
+        
+        try
+        {
+            Logger.LogInformation("[FrameworkNavMenu] Renaming conversation {Id} to '{Title}'", _dialogConversationId, _renameNewTitle);
+            
+            var updateDto = new UpdateConversationDto { Title = _renameNewTitle.Trim() };
+            await SivarClient.Chat.UpdateConversationAsync(_dialogConversationId, updateDto);
+            
+            // Update local list
+            var conversation = _conversations?.FirstOrDefault(c => c.Id == _dialogConversationId);
+            if (conversation != null)
+            {
+                var index = _conversations!.IndexOf(conversation);
+                _conversations[index] = conversation with { Title = _renameNewTitle.Trim() };
+            }
+            
+            CloseRenameDialog();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FrameworkNavMenu] Error renaming conversation {Id}", _dialogConversationId);
+        }
+    }
+    
+    // Delete dialog methods
+    private void OpenDeleteDialog(Guid conversationId, string? title)
+    {
+        _dialogConversationId = conversationId;
+        _deleteConversationTitle = title ?? "this conversation";
+        _deleteDialogVisible = true;
+    }
+    
+    private void CloseDeleteDialog()
+    {
+        _deleteDialogVisible = false;
+        _deleteConversationTitle = null;
+    }
+    
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            Logger.LogInformation("[FrameworkNavMenu] Deleting conversation {Id}", _dialogConversationId);
+            
+            await SivarClient.Chat.DeleteConversationAsync(_dialogConversationId);
+            
+            // Remove from local list
+            _conversations?.RemoveAll(c => c.Id == _dialogConversationId);
+            
+            // If we deleted the current conversation, navigate to a different one or to chat home
+            if (_currentConversationId == _dialogConversationId)
+            {
+                var nextConversation = _conversations?.FirstOrDefault();
+                if (nextConversation != null)
+                {
+                    NavigationManager.NavigateTo($"/app/chat/{nextConversation.Id}");
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("/app/chat");
+                }
+            }
+            
+            CloseDeleteDialog();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[FrameworkNavMenu] Error deleting conversation {Id}", _dialogConversationId);
+        }
+    }
+    
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

@@ -1,0 +1,438 @@
+@page "/app/chat"
+@page "/app/chat/{ConversationId:guid}"
+
+@using Microsoft.Extensions.Localization
+@using MudBlazor
+@using Sivar.Os.Client.Services
+@using Sivar.Os.Client.Components.AIChat
+@using Sivar.Os.Shared
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Enums
+@using Sivar.Os.Shared.Services
+@using DevExpress.AIIntegration.Blazor.Chat
+
+@inject IStringLocalizer<Chat> Localizer
+@inject IJSRuntime JS
+@inject ISivarClient SivarClient
+@inject ILogger<Chat> Logger
+@inject ChatSettingsService ChatSettings
+@inject IProfileContextService ProfileContextService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+<PageTitle>Chat - Sivar AI</PageTitle>
+
+<div class="chat-page-container">
+    <div class="chat-main-container">
+        <MudAppBar Dense="true" Elevation="1" Style="position: relative;">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           Color="Color.Inherit" 
+                           OnClick="@GoBack" />
+            <MudAvatar Size="Size.Small" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);">
+                <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+            </MudAvatar>
+            <div class="ml-2">
+                <MudText Typo="Typo.subtitle1" Style="line-height: 1.2;">Sivar AI Assistant</MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.7;">Siempre aquí para ayudarte</MudText>
+            </div>
+            <MudSpacer />
+            <MudButton Variant="Variant.Text" 
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.LocationOn"
+                       Color="@(_chatLocation != null ? Color.Primary : Color.Default)"
+                       OnClick="@ShowLocationPromptAsync"
+                       Style="text-transform: none; font-size: 0.75rem; padding: 4px 8px;">
+                @(_chatLocation?.City ?? "Ubicación")
+            </MudButton>
+            <MudIconButton Icon="@Icons.Material.Filled.Bookmark" 
+                           Color="Color.Inherit" 
+                           OnClick="@(() => _savedPanelOpen = true)"
+                           Title="Mis guardados" />
+        </MudAppBar>
+
+        <SivarAIChat @ref="_sivarAIChat"
+            CssClass="dx-chat-fullscreen"
+            PromptSuggestionItems="@_dxQuickActionItems"
+            WelcomeTitle="Sivar AI Assistant"
+            WelcomeMessage="@ChatSettings.GetWelcomeMessage()"
+            CurrentLocation="@_chatLocation"
+            IsProcessing="@_isTyping"
+            DisplayMode="@(_currentProfile?.ChatDisplayMode ?? ChatDisplayMode.Cards)"
+            OnDisplayModeChanged="@HandleDisplayModeChanged"
+            OnUserMessageSent="@HandleChatMessageSent"
+            OnBusinessSaved="@HandleBusinessSaved"
+            OnBusinessShared="@HandleBusinessShared"
+            TokensRemaining="@_tokensRemaining"
+            TokenAllowanceLimit="@_tokenAllowanceLimit"
+            TokensUsedThisPeriod="@_tokensUsedThisPeriod"
+            AllowanceResetsAt="@_allowanceResetsAt" />
+            
+        <SavedResultsPanel 
+            IsOpen="@_savedPanelOpen"
+            IsOpenChanged="@((val) => _savedPanelOpen = val)" />
+    </div>
+</div>
+
+<style>
+    .chat-page-container {
+        position: fixed;
+        top: 48px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--mud-palette-surface, #1e1e2d);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-main-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    @@media (min-width: 960px) {
+        .chat-page-container {
+            left: 256px;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public Guid? ConversationId { get; set; }
+
+    private SivarAIChat? _sivarAIChat;
+    private bool _savedPanelOpen;
+    private bool _isTyping;
+    private bool _isLoading = true;
+    
+    private Guid _currentConversationId = Guid.Empty;
+    private ActiveProfileDto? _currentProfile;
+    private List<QuickActionDto>? _dxQuickActionItems;
+    
+    private int? _tokensRemaining;
+    private int? _tokenAllowanceLimit;
+    private int? _tokensUsedThisPeriod;
+    private DateTime? _allowanceResetsAt;
+    
+    private ChatLocationContext? _chatLocation;
+    [Inject] private ChatLocationService ChatLocationService { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChatSettings.LoadSettingsAsync();
+        InitializeQuickActions();
+        
+        _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+        
+        if (_currentProfile != null)
+        {
+            try
+            {
+                await ProfileContextService.InitializeAsync(_currentProfile.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[Chat] Failed to initialize ProfileContextService");
+            }
+        }
+        
+        await InitializeChatLocationAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ConversationId.HasValue && ConversationId.Value != _currentConversationId)
+        {
+            await LoadConversationAsync(ConversationId.Value);
+        }
+        else if (!ConversationId.HasValue && _currentConversationId == Guid.Empty)
+        {
+            await LoadOrCreateConversationAsync();
+        }
+    }
+
+    private async Task LoadOrCreateConversationAsync()
+    {
+        if (_currentProfile == null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var conversations = await SivarClient.Chat.GetConversationsAsync(_currentProfile.Id);
+            var list = conversations?.ToList();
+            
+            if (list?.Any() == true)
+            {
+                var mostRecent = list.First();
+                NavigationManager.NavigateTo($"/app/chat/{mostRecent.Id}", replace: true);
+            }
+            else
+            {
+                await CreateNewConversationAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Error loading conversations");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadConversationAsync(Guid conversationId)
+    {
+        _currentConversationId = conversationId;
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            if (_sivarAIChat != null)
+            {
+                var conversation = await SivarClient.Chat.GetConversationAsync(conversationId);
+                if (conversation?.Messages?.Any() == true)
+                {
+                    await _sivarAIChat.LoadConversationAsync(conversation.Messages);
+                }
+                else
+                {
+                    _sivarAIChat.ClearMessages();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Error loading conversation {Id}", conversationId);
+            _sivarAIChat?.ClearMessages();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateNewConversationAsync()
+    {
+        if (_currentProfile == null) return;
+
+        try
+        {
+            var dto = new CreateConversationDto
+            {
+                ProfileId = _currentProfile.Id,
+                Title = "New Conversation"
+            };
+            
+            var created = await SivarClient.Chat.CreateConversationAsync(dto);
+            if (created != null)
+            {
+                NavigationManager.NavigateTo($"/app/chat/{created.Id}", replace: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Error creating conversation");
+        }
+    }
+
+    private void InitializeQuickActions()
+    {
+        _dxQuickActionItems = ChatSettings.GetQuickActionItems()
+            .Where(qa => qa.IsActive)
+            .OrderBy(qa => qa.SortOrder)
+            .ToList();
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/app/home");
+    }
+
+    private async Task InitializeChatLocationAsync()
+    {
+        try
+        {
+            await ChatLocationService.LoadFromStorageAsync();
+            
+            if (ChatLocationService.CurrentLocation != null)
+            {
+                _chatLocation = ChatLocationService.CurrentLocation;
+            }
+            else
+            {
+                _chatLocation = new ChatLocationContext
+                {
+                    Latitude = 13.6929,
+                    Longitude = -89.2182,
+                    City = "San Salvador",
+                    Country = "El Salvador",
+                    DisplayName = "San Salvador, El Salvador",
+                    Source = "default"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Error initializing location");
+            _chatLocation = new ChatLocationContext
+            {
+                Latitude = 13.6929,
+                Longitude = -89.2182,
+                City = "San Salvador",
+                Country = "El Salvador",
+                DisplayName = "San Salvador, El Salvador",
+                Source = "default"
+            };
+        }
+    }
+
+    private async Task ShowLocationPromptAsync()
+    {
+        var parameters = new DialogParameters<LocationPrompt>();
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        
+        var dialog = await DialogService.ShowAsync<LocationPrompt>("📍 Set Your Location", parameters, options);
+        var result = await dialog.Result;
+        
+        if (result != null && !result.Canceled && result.Data is ChatLocationContext location)
+        {
+            _chatLocation = location;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleChatMessageSent(MessageSentEventArgs args)
+    {
+        if (string.IsNullOrWhiteSpace(args.Content)) return;
+
+        _isTyping = true;
+        StateHasChanged();
+
+        try
+        {
+            if (_currentProfile == null)
+            {
+                _currentProfile = await SivarClient.Profiles.GetMyActiveProfileAsync();
+                if (_currentProfile == null)
+                {
+                    await _sivarAIChat?.SendErrorMessageAsync("Para usar el chat, primero necesitas crear un perfil.")!;
+                    return;
+                }
+            }
+
+            if (_currentConversationId == Guid.Empty)
+            {
+                await CreateNewConversationAsync();
+            }
+
+            var deviceTimeZone = ProfileContextService.GetDeviceTimeZone();
+            var deviceLocalTime = ProfileContextService.CurrentContext?.Device.LocalDateTime ?? DateTimeOffset.UtcNow;
+            
+            var locationWithTime = _chatLocation != null 
+                ? _chatLocation with 
+                { 
+                    UserLocalTime = deviceLocalTime.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = deviceTimeZone
+                }
+                : new ChatLocationContext 
+                { 
+                    UserLocalTime = deviceLocalTime.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    TimeZone = deviceTimeZone,
+                    Source = "profile-context"
+                };
+            
+            var sendMessageDto = new SendMessageDto
+            {
+                ConversationId = _currentConversationId,
+                Content = args.Content,
+                Location = locationWithTime
+            };
+
+            var response = await SivarClient.Chat.SendMessageAsync(_currentConversationId, sendMessageDto);
+
+            if (response?.AssistantMessage?.Content == null)
+            {
+                throw new InvalidOperationException("Received null response from AI");
+            }
+
+            if (response.TokenAllowanceLimit.HasValue)
+            {
+                _tokensRemaining = response.TokensRemaining;
+                _tokenAllowanceLimit = response.TokenAllowanceLimit;
+                _tokensUsedThisPeriod = response.TokensUsedThisPeriod;
+                _allowanceResetsAt = response.AllowanceResetsAt;
+            }
+
+            if (_sivarAIChat != null)
+            {
+                await _sivarAIChat.SendAssistantMessageAsync(
+                    response.AssistantMessage.Content,
+                    response.HasStructuredResults ? response.SearchResults : null);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Error sending message");
+            await _sivarAIChat?.SendErrorMessageAsync($"Error: {ex.Message}")!;
+        }
+        finally
+        {
+            _isTyping = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleBusinessSaved(BusinessSearchResultDto business)
+    {
+        Logger.LogInformation("[Chat] Saving business: {Title}", business.Title);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleBusinessShared(BusinessSearchResultDto business)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.share", new
+            {
+                title = business.Title,
+                text = business.Description,
+                url = business.NavigationUrl
+            });
+        }
+        catch
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", business.NavigationUrl);
+        }
+    }
+
+    private async Task HandleDisplayModeChanged(ChatDisplayMode newMode)
+    {
+        if (_currentProfile == null) return;
+        
+        try
+        {
+            _currentProfile.ChatDisplayMode = newMode;
+            var updateDto = new UpdateProfileDto { ChatDisplayMode = newMode };
+            await SivarClient.Profiles.UpdateProfileAsync(_currentProfile.Id, updateDto);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[Chat] Failed to save display mode");
+        }
+    }
+}

@@ -78,4 +78,37 @@
   <data name="Login" xml:space="preserve">
     <value>Login</value>
   </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>Conversations</value>
+  </data>
+  <data name="NoConversations" xml:space="preserve">
+    <value>No conversations yet</value>
+  </data>
+  <data name="StartConversation" xml:space="preserve">
+    <value>Start a conversation</value>
+  </data>
+  <data name="Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="RenameConversation" xml:space="preserve">
+    <value>Rename Conversation</value>
+  </data>
+  <data name="ConversationName" xml:space="preserve">
+    <value>Conversation name</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="DeleteConversation" xml:space="preserve">
+    <value>Delete Conversation</value>
+  </data>
+  <data name="DeleteConversationConfirm" xml:space="preserve">
+    <value>Are you sure you want to delete "{0}"? This action cannot be undone.</value>
+  </data>
 </root>
