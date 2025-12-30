@@ -48,9 +48,6 @@
 
         <!-- Center: Main Feed -->
         <div class="feed">
-            <FeedHeader Title="@Localizer["FeedTitle"]"
-                        Subtitle="@Localizer["FeedSubtitle"]" />
-
             <PostComposer ProfileTypeTitle="@Localizer["CreatePostTitle"]"
                           CurrentProfileTypeName="@(_activeProfile?.ProfileType?.Name ?? "PersonalProfile")"
                           IsSubmitting="@_isPosting"

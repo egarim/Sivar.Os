@@ -23,23 +23,49 @@
 *@
 
 <div class="framework-nav-container">
+    @* Profile Switcher Section - Always visible *@
+    <div class="nav-profile-section">
+        <AuthorizeView>
+            <Authorized>
+                <ProfileSwitcher ActiveProfile="@_activeProfileForSwitcher"
+                                 UserProfiles="@UserProfiles"
+                                 OnProfileChanged="@OnProfileChanged"
+                                 OnCreateProfile="@OnCreateProfile" />
+            </Authorized>
+            <NotAuthorized>
+                <div class="guest-branding">
+                    <div class="brand-logo">
+                        <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Large" Color="Color.Primary" />
+                    </div>
+                    <div class="brand-text">
+                        <MudText Typo="Typo.h6" Class="brand-name">Sivar.Os</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["ExploreElSalvador"]</MudText>
+                    </div>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+
+    @* Home link - Always visible *@
+    <MudNavMenu Class="framework-nav-menu" Dense="true">
+        <MudNavLink Href="/app/home" 
+                    Match="NavLinkMatch.All"
+                    Icon="@Icons.Material.Filled.Home">
+            @Localizer["Home"]
+        </MudNavLink>
+    </MudNavMenu>
+
     @if (_isOnChatPage)
     {
-        @* Chat Mode - Show conversations *@
+        @* Chat Mode - Show conversations header and list *@
         <div class="chat-mode-header">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                           Color="Color.Inherit" 
-                           OnClick="@ExitChatMode"
-                           Size="Size.Small" />
-            <MudText Typo="Typo.h6" Class="ml-2">@Localizer["Conversations"]</MudText>
+            <MudText Typo="Typo.subtitle2" Class="ml-2">@Localizer["Conversations"]</MudText>
             <MudSpacer />
             <MudIconButton Icon="@Icons.Material.Filled.Add" 
                            Color="Color.Primary" 
                            OnClick="@HandleNewConversation"
                            Size="Size.Small" />
         </div>
-        
-        <MudDivider Class="mb-2" />
         
         @if (_isLoadingConversations)
         {
@@ -95,45 +121,9 @@
     }
     else
     {
-        @* Normal Mode - Profile Switcher Section *@
-        <div class="nav-profile-section">
-            <AuthorizeView>
-                <Authorized>
-                    <ProfileSwitcher ActiveProfile="@_activeProfileForSwitcher"
-                                     UserProfiles="@UserProfiles"
-                                     OnProfileChanged="@OnProfileChanged"
-                                     OnCreateProfile="@OnCreateProfile" />
-                </Authorized>
-                <NotAuthorized>
-                    <div class="guest-branding">
-                        <div class="brand-logo">
-                            <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Large" Color="Color.Primary" />
-                        </div>
-                        <div class="brand-text">
-                            <MudText Typo="Typo.h6" Class="brand-name">Sivar.Os</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["ExploreElSalvador"]</MudText>
-                        </div>
-                    </div>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-
-        @* Navigation Items *@
+        @* Normal Mode - Full Navigation Items (excluding Home which is already shown) *@
         <MudNavMenu Class="framework-nav-menu">
-            @if (!_visibleItems.Any())
-            {
-                <MudText Typo="Typo.caption" Class="pa-4 mud-text-secondary">
-                    @if (!IsAuthenticated)
-                    {
-                        @Localizer["PleaseLogin"]
-                    }
-                    else
-                    {
-                        @Localizer["NoMenuItems"]
-                    }
-                </MudText>
-            }
-            @foreach (var item in _visibleItems)
+            @foreach (var item in _visibleItems.Where(i => i.Route != "/app/home"))
             {
                 @if (item.IsAction)
                 {
@@ -154,22 +144,22 @@
                 }
             }
         </MudNavMenu>
-
-        @* Theme Toggle *@
-        <div class="nav-theme-toggle">
-            <MudIcon Icon="@Icons.Material.Filled.LightMode" Size="Size.Small" 
-                     Class="@($"theme-icon {(!IsDarkMode ? "active light" : "")}")" />
-            <MudSwitch T="bool" 
-                       Value="@IsDarkMode" 
-                       ValueChanged="@HandleThemeToggle"
-                       Color="Color.Primary"
-                       Class="theme-switch"
-                       ThumbIcon="@(IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
-                       ThumbIconColor="@(IsDarkMode ? Color.Primary : Color.Warning)" />
-            <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small" 
-                     Class="@($"theme-icon {(IsDarkMode ? "active dark" : "")}")" />
-        </div>
     }
+
+    @* Theme Toggle - Always visible *@
+    <div class="nav-theme-toggle">
+        <MudIcon Icon="@Icons.Material.Filled.LightMode" Size="Size.Small" 
+                 Class="@($"theme-icon {(!IsDarkMode ? "active light" : "")}")" />
+        <MudSwitch T="bool" 
+                   Value="@IsDarkMode" 
+                   ValueChanged="@HandleThemeToggle"
+                   Color="Color.Primary"
+                   Class="theme-switch"
+                   ThumbIcon="@(IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
+                   ThumbIconColor="@(IsDarkMode ? Color.Primary : Color.Warning)" />
+        <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Small" 
+                 Class="@($"theme-icon {(IsDarkMode ? "active dark" : "")}")" />
+    </div>
 
     @* Spacer to push logout to bottom *@
     <div class="nav-spacer"></div>
