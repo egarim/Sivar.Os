@@ -10,7 +10,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components
 @inject IProfilesClient ProfilesClient
-@inject ILogger<ProfileSettingsDemo> Logger
+@inject ILogger<ProfileSettings> Logger
 @inject NavigationManager Navigation
 
 <PageTitle>Profile Settings - Sivar.Os</PageTitle>
@@ -22,7 +22,14 @@
 
         <!-- Center: Profile Settings Content -->
         <div class="feed">
-            <MudText Typo="Typo.h4" Class="mb-4">Profile Settings</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                               OnClick="@GoBack" 
+                               Variant="Variant.Text"
+                               Size="Size.Large"
+                               Color="Color.Default" />
+                <MudText Typo="Typo.h4">Profile Settings</MudText>
+            </MudStack>
 
             @if (isLoading && currentProfile == null)
             {
@@ -93,6 +100,9 @@
                             @statusMessage
                         </MudAlert>
                     }
+
+                    <!-- Language Settings -->
+                    <ProfileLanguageSettings />
                 </MudStack>
             }
             else
@@ -134,7 +144,7 @@
         isLoading = true;
         try
         {
-            Logger.LogInformation("[ProfileSettingsDemo] Loading current profile");
+            Logger.LogInformation("[ProfileSettings] Loading current profile");
             
             // Get the current user's active profile
             currentProfile = await ProfilesClient.GetMyProfileAsync();
@@ -148,11 +158,11 @@
             locationLatitude = currentProfile.Location?.Latitude;
             locationLongitude = currentProfile.Location?.Longitude;
 
-            Logger.LogInformation("[ProfileSettingsDemo] Profile loaded successfully - {DisplayName}", currentProfile.DisplayName);
+            Logger.LogInformation("[ProfileSettings] Profile loaded successfully - {DisplayName}", currentProfile.DisplayName);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[ProfileSettingsDemo] Failed to load profile");
+            Logger.LogError(ex, "[ProfileSettings] Failed to load profile");
             statusMessage = "Failed to load profile: " + ex.Message;
             statusSeverity = Severity.Error;
         }
@@ -169,7 +179,7 @@
 
         try
         {
-            Logger.LogInformation("[ProfileSettingsDemo] Saving profile changes");
+            Logger.LogInformation("[ProfileSettings] Saving profile changes");
 
             var updateDto = new UpdateProfileDto
             {
@@ -188,7 +198,7 @@
             // Save profile via API - this will trigger geocoding on the backend
             var updatedProfile = await ProfilesClient.UpdateMyProfileAsync(updateDto);
 
-            Logger.LogInformation("[ProfileSettingsDemo] Profile saved successfully - Location: {City}, {State}, {Country}, Coords: ({Lat}, {Lng})",
+            Logger.LogInformation("[ProfileSettings] Profile saved successfully - Location: {City}, {State}, {Country}, Coords: ({Lat}, {Lng})",
                 locationCity, locationState, locationCountry, locationLatitude, locationLongitude);
 
             statusMessage = "Profile saved successfully! Location has been updated.";
@@ -199,7 +209,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[ProfileSettingsDemo] Failed to save profile");
+            Logger.LogError(ex, "[ProfileSettings] Failed to save profile");
             statusMessage = "Failed to save profile: " + ex.Message;
             statusSeverity = Severity.Error;
         }
@@ -211,15 +221,27 @@
 
     private void Cancel()
     {
-        Logger.LogInformation("[ProfileSettingsDemo] Profile edit cancelled");
-        // Navigation.NavigateTo("/profile");
+        Logger.LogInformation("[ProfileSettings] Profile edit cancelled");
         statusMessage = "Changes cancelled";
         statusSeverity = Severity.Info;
     }
 
+    private void GoBack()
+    {
+        // Navigate back to the user's profile
+        if (currentProfile != null && !string.IsNullOrEmpty(currentProfile.Handle))
+        {
+            Navigation.NavigateTo($"/{currentProfile.Handle}");
+        }
+        else
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
     private void HandleGpsLocationReceived(GeolocationPosition position)
     {
-        Logger.LogInformation("[ProfileSettingsDemo] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
+        Logger.LogInformation("[ProfileSettings] GPS location received - Lat: {Lat}, Lng: {Lng}, Accuracy: {Accuracy}m",
             position.Latitude, position.Longitude, position.Accuracy);
 
         statusMessage = $"GPS location acquired with {position.Accuracy:F0}m accuracy.";

@@ -282,16 +282,17 @@
             <ProfileAbout Bio="@profileData.Bio" />
         </ProfileCard>
 
-        @if (IsOwnProfile)
+        @* Profile Status - Dynamic alerts/warnings *@
+        @if (!string.IsNullOrEmpty(_profileStatusMessage))
         {
-            <div class="mt-4">
-                <ProfileLanguageSettings />
-            </div>
+            <MudAlert Severity="@_profileStatusSeverity" 
+                      Variant="Variant.Filled" 
+                      Class="mt-3 profile-status-alert"
+                      Dense="true"
+                      Icon="@_profileStatusIcon">
+                @_profileStatusMessage
+            </MudAlert>
         }
-
-        <ComingSoonAlert 
-            Title="@Localizer["ComingSoonTitle"]"
-            Message="@Localizer["ComingSoonMessage"]" />
 
         @* Content Tabs for filtering by type *@
         <ProfileContentTabs 
@@ -442,6 +443,11 @@
     // Contacts state (for business profiles)
     private List<ContactDisplayDto> profileContacts = new();
     private bool isLoadingContacts = false;
+    
+    // Profile status (dynamic alerts/warnings)
+    private string? _profileStatusMessage = null;
+    private Severity _profileStatusSeverity = Severity.Info;
+    private string _profileStatusIcon = Icons.Material.Filled.Info;
     
     // Helper to check if viewing own profile
     private bool IsOwnProfile => viewedProfileId.HasValue && 
@@ -679,6 +685,30 @@
     private void GoBack()
     {
         Navigation.NavigateTo("/");
+    }
+
+    /// <summary>
+    /// Sets the profile status message to display a dynamic alert
+    /// </summary>
+    private void SetProfileStatus(string? message, Severity severity = Severity.Info, string? icon = null)
+    {
+        _profileStatusMessage = message;
+        _profileStatusSeverity = severity;
+        _profileStatusIcon = icon ?? severity switch
+        {
+            Severity.Error => Icons.Material.Filled.Error,
+            Severity.Warning => Icons.Material.Filled.Warning,
+            Severity.Success => Icons.Material.Filled.CheckCircle,
+            _ => Icons.Material.Filled.Info
+        };
+    }
+
+    /// <summary>
+    /// Clears the profile status message
+    /// </summary>
+    private void ClearProfileStatus()
+    {
+        _profileStatusMessage = null;
     }
 
     private string GetFollowButtonText()

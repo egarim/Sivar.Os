@@ -189,14 +189,16 @@ public class CultureService : ICultureService
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-            // Notify subscribers
-            CultureChanged?.Invoke(this, culture);
-
-            // For Blazor WASM, we need to reload to fully apply the culture change
             // Store the culture in localStorage for persistence across reloads
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "selectedCulture", culture.Name);
 
+            // Notify subscribers
+            CultureChanged?.Invoke(this, culture);
+
             _logger.LogInformation("[CultureService] Culture applied: {Culture}", culture.Name);
+            
+            // Reload the page to fully apply the localization changes
+            await _jsRuntime.InvokeVoidAsync("location.reload");
         }
         catch (Exception ex)
         {
