@@ -64,4 +64,16 @@
     <value>Save</value>
     <comment>Save post button</comment>
   </data>
+  <data name="LikeButton" xml:space="preserve">
+    <value>Like</value>
+  </data>
+  <data name="CommentButton" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="ShareButton" xml:space="preserve">
+    <value>Share</value>
+  </data>
+  <data name="CommentsLabel" xml:space="preserve">
+    <value>comments</value>
+  </data>
 </root>

@@ -1,61 +1,95 @@
 .post-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 10px;
-    border-top: 1px solid var(--mud-palette-lines-default, #e1e8ed);
+    flex-direction: column;
+    padding-top: 8px;
 }
 
-.post-actions-buttons {
-    display: flex;
-    gap: 12px;
-}
-
-.action-btn {
+/* Stats row - shows reaction count and comments */
+.post-stats-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 0 4px 8px 4px;
+    font-size: 14px;
+    color: var(--mud-palette-text-secondary, #65676b);
+}
+
+.reaction-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reaction-icon {
+    background: var(--mud-palette-primary, #1877f2);
+    border-radius: 50%;
+    padding: 2px;
+    font-size: 12px !important;
+}
+
+.reaction-icon .mud-icon-root {
+    color: white !important;
     font-size: 12px;
-    color: var(--mud-palette-text-secondary, #657786);
+}
+
+.comment-count {
+    cursor: pointer;
+}
+
+.comment-count:hover {
+    text-decoration: underline;
+}
+
+/* Action buttons row - Facebook style */
+.post-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 4px 0;
+}
+
+.action-btn-fb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary, #65676b);
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.15s;
 }
 
-.action-btn:hover {
-    background: var(--mud-palette-action-default-hover, #f0f4f8);
-    color: var(--mud-palette-primary, #1da1f2);
+.action-btn-fb:hover {
+    background: var(--mud-palette-action-default-hover, #f0f2f5);
 }
 
-.action-btn span {
+.action-btn-fb.active {
+    color: var(--mud-palette-primary, #1877f2);
+}
+
+.action-btn-fb span {
     font-weight: 600;
 }
 
 /* Mobile styles */
 @media (max-width: 768px) {
-    .post-footer {
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-start;
-        padding-top: 8px;
+    .post-stats-row {
+        font-size: 13px;
+        padding: 0 4px 6px 4px;
     }
     
-    .post-actions-buttons {
-        width: 100%;
-        justify-content: space-between;
+    .action-btn-fb {
+        padding: 8px 8px;
+        font-size: 13px;
         gap: 4px;
     }
     
-    .action-btn {
-        padding: 4px 6px;
-        font-size: 11px;
-        gap: 3px;
-    }
-    
-    .action-btn span {
+    .action-btn-fb span {
         display: none; /* Hide text labels on mobile, keep only icons */
     }
 }

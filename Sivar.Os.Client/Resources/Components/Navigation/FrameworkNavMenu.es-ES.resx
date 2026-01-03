@@ -111,4 +111,7 @@
   <data name="DeleteConversationConfirm" xml:space="preserve">
     <value>¿Estás seguro de que deseas eliminar "{0}"? Esta acción no se puede deshacer.</value>
   </data>
+  <data name="SivarAI" xml:space="preserve">
+    <value>Sivar AI</value>
+  </data>
 </root>

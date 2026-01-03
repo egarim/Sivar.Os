@@ -720,12 +720,83 @@
 
 .wireframe-landing .post-footer {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    padding-top: 8px;
+}
+
+/* Stats row - shows reaction count and comments */
+.wireframe-landing .post-stats-row {
+    display: flex;
     align-items: center;
-    padding-top: 12px;
+    padding: 0 4px 8px 4px;
+    font-size: 14px;
+    color: var(--wire-text-secondary, #65676b);
+}
+
+.wireframe-landing .reaction-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wireframe-landing .reaction-icon {
+    background: var(--wire-primary, #1877f2);
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.wireframe-landing .reaction-icon .mud-icon-root {
+    color: white !important;
+    font-size: 12px;
+}
+
+.wireframe-landing .comment-count {
+    cursor: pointer;
+}
+
+.wireframe-landing .comment-count:hover {
+    text-decoration: underline;
+}
+
+/* Action buttons row - Facebook style */
+.wireframe-landing .post-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 4px 0;
     border-top: 1px solid var(--wire-border);
 }
 
+.wireframe-landing .action-btn-fb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wire-text-secondary, #65676b);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.wireframe-landing .action-btn-fb:hover {
+    background: var(--wire-hover, #f0f2f5);
+}
+
+.wireframe-landing .action-btn-fb.active {
+    color: var(--wire-primary, #1877f2);
+}
+
+.wireframe-landing .action-btn-fb span {
+    font-weight: 600;
+}
+
+/* Legacy support */
 .wireframe-landing .post-actions-buttons {
     display: flex;
     gap: 16px;

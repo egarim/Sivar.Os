@@ -6,24 +6,37 @@
 @* PostFooter component *@
 
 <footer class="post-footer">
-    <div class="post-actions-buttons">
-        <button class="action-btn @(Liked ? "active" : "")" @onclick="OnLike">
-            <MudIcon Icon="@(Liked ? Icons.Material.Filled.Favorite : Icons.Material.Outlined.FavoriteBorder)" Size="Size.Small" />
-            <span>@Likes</span>
-        </button>
-        <button class="action-btn" @onclick="OnComment">
-            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
-            <span>@Comments</span>
-        </button>
-        <button class="action-btn" @onclick="OnShare">
-            <MudIcon Icon="@Icons.Material.Outlined.Share" Size="Size.Small" />
-            <span>@Shares</span>
-        </button>
+    @* Stats row - reactions and comments count *@
+    <div class="post-stats-row">
+        @if (Likes > 0)
+        {
+            <span class="reaction-count">
+                <MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Color="Color.Primary" Class="reaction-icon" />
+                @Likes
+            </span>
+        }
+        <MudSpacer />
+        @if (Comments > 0)
+        {
+            <span class="comment-count">@Comments @Localizer["CommentsLabel"]</span>
+        }
     </div>
-    <div class="post-actions-buttons">
-        <button class="action-btn" @onclick="OnSave">
-            <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
-            @Localizer["SaveButton"]
+    
+    <MudDivider Class="my-1" />
+    
+    @* Action buttons row - Facebook style *@
+    <div class="post-actions-row">
+        <button class="action-btn-fb @(Liked ? "active" : "")" @onclick="OnLike">
+            <MudIcon Icon="@(Liked ? Icons.Material.Filled.ThumbUp : Icons.Material.Outlined.ThumbUp)" Size="Size.Small" />
+            <span>@Localizer["LikeButton"]</span>
+        </button>
+        <button class="action-btn-fb" @onclick="OnComment">
+            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" />
+            <span>@Localizer["CommentButton"]</span>
+        </button>
+        <button class="action-btn-fb" @onclick="OnShare">
+            <MudIcon Icon="@Icons.Material.Outlined.Share" Size="Size.Small" />
+            <span>@Localizer["ShareButton"]</span>
         </button>
         
         @* More Options Menu *@

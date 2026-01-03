@@ -46,12 +46,17 @@
         </AuthorizeView>
     </div>
 
-    @* Home link - Always visible *@
+    @* Main Navigation - Always visible *@
     <MudNavMenu Class="framework-nav-menu" Dense="true">
         <MudNavLink Href="/app/home" 
                     Match="NavLinkMatch.All"
                     Icon="@Icons.Material.Filled.Home">
             @Localizer["Home"]
+        </MudNavLink>
+        <MudNavLink Href="/app/chat" 
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.SmartToy">
+            @Localizer["SivarAI"]
         </MudNavLink>
     </MudNavMenu>
 
