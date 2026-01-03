@@ -652,9 +652,23 @@ ORIGINAL AUTHENTICATION CODE - RESTORE IF NEEDED:
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Login() => Nav.NavigateTo("/", forceLoad: true);
+    private void Login()
+    {
+        var returnUrl = Uri.EscapeDataString(GetCurrentPath());
+        Nav.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+    }
     
-    private void SignUp() => Nav.NavigateTo("/?action=signup", forceLoad: true);
+    private void SignUp()
+    {
+        var returnUrl = Uri.EscapeDataString(GetCurrentPath());
+        Nav.NavigateTo($"/authentication/register?returnUrl={returnUrl}", forceLoad: true);
+    }
+    
+    private string GetCurrentPath()
+    {
+        var uri = new Uri(Nav.Uri);
+        return uri.PathAndQuery;
+    }
     
     private void Logout() => Nav.NavigateTo("/authentication/logout", forceLoad: true);
 

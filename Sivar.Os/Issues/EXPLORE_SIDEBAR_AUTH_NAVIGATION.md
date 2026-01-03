@@ -1,5 +1,7 @@
 # Issue: Explore Page Sidebar Auth Navigation Mismatch
 
+## Status: ✅ COMPLETED
+
 ## Summary
 
 On the Explore page (`/app/explore`), the **Sign In/Sign Up buttons in the sidebar** navigate to different destinations than the **buttons in the "Join Sivar.Os Today" banner**. They should both navigate to the same authentication endpoints.
