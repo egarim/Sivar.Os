@@ -9,8 +9,8 @@
 
 <MudPaper Class="public-post-card" Elevation="1" @onclick="@(() => OnInteraction.InvokeAsync($"view:{Post.Id}"))">
     <!-- Header -->
-    <div class="post-header">
-        <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="post-avatar">
+    <div class="post-header" @onclick:stopPropagation="true">
+        <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="post-avatar" @onclick="@(() => OnInteraction.InvokeAsync($"profile:{Post.Profile?.Handle}"))">
             @GetInitials(Post.Profile?.DisplayName)
         </MudAvatar>
         <div class="post-header-info">
