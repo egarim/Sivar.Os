@@ -190,7 +190,7 @@
                 <MudButton Variant="Variant.Filled" 
                            StartIcon="@Icons.Material.Filled.PersonAdd" 
                            FullWidth="true" 
-                           Href="/welcome?action=signup"
+                           OnClick="SignUp"
                            Class="mb-2"
                            Color="Color.Primary">
                     @Localizer["SignUp"]
@@ -198,7 +198,7 @@
                 <MudButton Variant="Variant.Outlined" 
                            StartIcon="@Icons.Material.Filled.Login" 
                            FullWidth="true" 
-                           Href="/welcome"
+                           OnClick="Login"
                            Color="Color.Primary">
                     @Localizer["Login"]
                 </MudButton>
@@ -886,6 +886,24 @@
         {
             Logger.LogError(ex, "[FrameworkNavMenu] Error deleting conversation {Id}", _dialogConversationId);
         }
+    }
+    
+    private void Login()
+    {
+        var returnUrl = Uri.EscapeDataString(GetCurrentPath());
+        NavigationManager.NavigateTo($"/authentication/login?returnUrl={returnUrl}", forceLoad: true);
+    }
+    
+    private void SignUp()
+    {
+        var returnUrl = Uri.EscapeDataString(GetCurrentPath());
+        NavigationManager.NavigateTo($"/authentication/register?returnUrl={returnUrl}", forceLoad: true);
+    }
+    
+    private string GetCurrentPath()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        return uri.PathAndQuery;
     }
     
     public void Dispose()

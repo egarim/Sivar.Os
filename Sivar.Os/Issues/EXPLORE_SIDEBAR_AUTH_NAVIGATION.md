@@ -51,6 +51,7 @@ This ensures:
 ## Files to Modify
 
 1. **[NavMenu.razor](../Sivar.Os.Client/Layout/NavMenu.razor)** - Update `Login()` and `SignUp()` methods to use the same navigation pattern as `JoinCta.razor`
+2. **[FrameworkNavMenu.razor](../Sivar.Os.Client/Components/Navigation/FrameworkNavMenu.razor)** - Update `Href` attributes to use `OnClick` handlers with proper authentication endpoints
 
 ## Proposed Solution
 
