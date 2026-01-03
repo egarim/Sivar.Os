@@ -50,22 +50,15 @@
                    Elevation="2"
                    Variant="@_drawerVariant"
                    Breakpoint="Breakpoint.Md">
-            @if (_useFrameworkNavigation)
-            {
-                <FrameworkNavMenu ActiveProfile="@_currentProfile" 
-                                  UserProfiles="@_userProfiles"
-                                  IsAuthenticated="@_isAuthenticated"
-                                  Platform="PlatformType.Web"
-                                  IsDarkMode="@_isDarkMode"
-                                  OnAction="@HandleFrameworkNavAction"
-                                  OnThemeChanged="@HandleFrameworkThemeChange"
-                                  OnProfileChanged="@HandleFrameworkProfileChange"
-                                  OnCreateProfile="@HandleFrameworkCreateProfile" />
-            }
-            else
-            {
-                <NavMenu />
-            }
+            <FrameworkNavMenu ActiveProfile="@_currentProfile" 
+                              UserProfiles="@_userProfiles"
+                              IsAuthenticated="@_isAuthenticated"
+                              Platform="PlatformType.Web"
+                              IsDarkMode="@_isDarkMode"
+                              OnAction="@HandleFrameworkNavAction"
+                              OnThemeChanged="@HandleFrameworkThemeChange"
+                              OnProfileChanged="@HandleFrameworkProfileChange"
+                              OnCreateProfile="@HandleFrameworkCreateProfile" />
         </MudDrawer>
 
         <!-- Main Content -->
@@ -615,9 +608,6 @@
     private MudTheme? _theme = null;
     private DotNetObjectReference<MainLayout>? _dotNetRef;
     private int _currentWindowWidth;
-    
-    // Framework Feature Flags
-    private bool _useFrameworkNavigation;
     private bool _isAuthenticated;
 
     // Profile State (kept for NavMenu/FrameworkNavMenu)
@@ -629,11 +619,6 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        
-        // Read framework feature flags from configuration
-        _useFrameworkNavigation = Configuration.GetValue<bool>("FrameworkFeatures:UseFrameworkNavigation", false);
-        
-        Logger.LogDebug("[MainLayout] UseFrameworkNavigation={UseFramework}", _useFrameworkNavigation);
 
         _theme = new()
         {
@@ -662,11 +647,8 @@
                     window.addEventListener('resize', window.sivarOsResizeHandler);
                 ");
                 
-                // Load active profile for navigation (Server mode)
-                if (_useFrameworkNavigation)
-                {
-                    await LoadNavigationProfileAsync();
-                }
+                // Load active profile for navigation
+                await LoadNavigationProfileAsync();
             }
             catch
             {

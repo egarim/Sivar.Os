@@ -12,12 +12,6 @@ public class FrameworkFeatureFlags
     public const string SectionName = "FrameworkFeatures";
     
     /// <summary>
-    /// Use the new framework-based navigation instead of hardcoded NavMenu.
-    /// Default: false (use existing NavMenu)
-    /// </summary>
-    public bool UseFrameworkNavigation { get; set; } = false;
-    
-    /// <summary>
     /// Use the new framework-based context menus for posts.
     /// Default: false (use existing inline menus)
     /// </summary>
