@@ -1,0 +1,19 @@
+{
+  "Title": "Verifica tu Teléfono",
+  "EnterPhoneDescription": "Ingresa tu número de teléfono para recibir un código de verificación. Esto nos ayuda a mantener la comunidad segura.",
+  "Country": "País",
+  "PhoneNumber": "Número de Teléfono",
+  "ReferralCodeOptional": "Código de Referido (opcional)",
+  "ReferralCodeHelper": "¿Tienes un código de referido? ¡Ingrésalo para avanzar en la cola!",
+  "SendCode": "Enviar Código de Verificación",
+  "EnterCodeDescription": "Ingresa el código de 6 dígitos que enviamos a tu teléfono.",
+  "SentVia": "Enviado por {0}",
+  "VerificationCode": "Código de Verificación",
+  "Verify": "Verificar",
+  "ChangeNumber": "Cambiar número de teléfono",
+  "SuccessTitle": "¡Estás en la lista!",
+  "SuccessMessage": "Tu posición en la cola es #{0}. Te notificaremos cuando seas aprobado.",
+  "YourReferralCode": "Tu código de referido",
+  "ReferralBenefit": "¡Comparte este código con amigos para avanzar en la cola!",
+  "Continue": "Continuar"
+}

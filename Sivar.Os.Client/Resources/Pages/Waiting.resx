@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  
+  <data name="PageTitle" xml:space="preserve">
+    <value>Waiting List</value>
+  </data>
+  
+  <data name="Title" xml:space="preserve">
+    <value>You're on the List!</value>
+  </data>
+  
+  <data name="Subtitle" xml:space="preserve">
+    <value>Thank you for joining SivarOS. We're gradually onboarding users to ensure the best experience.</value>
+  </data>
+
+  <data name="YourPosition" xml:space="preserve">
+    <value>Your Position</value>
+  </data>
+
+  <data name="TotalInQueue" xml:space="preserve">
+    <value>Total in Queue</value>
+  </data>
+
+  <data name="ProgressMessage" xml:space="preserve">
+    <value>You're {0}% of the way there!</value>
+  </data>
+  
+  <data name="WhileYouWait" xml:space="preserve">
+    <value>While you wait</value>
+  </data>
+  
+  <data name="ExploreContent" xml:space="preserve">
+    <value>Explore public content</value>
+  </data>
+  
+  <data name="ShareReferral" xml:space="preserve">
+    <value>Share your referral code to move up</value>
+  </data>
+  
+  <data name="WatchEmail" xml:space="preserve">
+    <value>Watch for approval notification</value>
+  </data>
+  
+  <data name="ExploreButton" xml:space="preserve">
+    <value>Explore Public Content</value>
+  </data>
+</root>

@@ -1,0 +1,108 @@
+@page "/app/waiting"
+@layout OnboardingLayout
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Waiting> Localizer
+
+<PageTitle>@Localizer["PageTitle"] - SivarOS</PageTitle>
+
+<div class="text-center">
+    <div class="waiting-icon mb-4">⏳</div>
+    <MudText Typo="Typo.h4" Class="mb-2">@Localizer["Title"]</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+        @Localizer["Subtitle"]
+    </MudText>
+
+    <MudPaper Class="queue-status pa-4 mb-4" Elevation="0" Outlined="true">
+        <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="4">
+            <div class="text-center">
+                <MudText Typo="Typo.h3" Color="Color.Primary">@_queuePosition</MudText>
+                <MudText Typo="Typo.caption">@Localizer["YourPosition"]</MudText>
+            </div>
+            <MudDivider Vertical="true" FlexItem="true" Style="height: 50px;" />
+            <div class="text-center">
+                <MudText Typo="Typo.h4">@_totalInQueue</MudText>
+                <MudText Typo="Typo.caption">@Localizer["TotalInQueue"]</MudText>
+            </div>
+        </MudStack>
+        <MudProgressLinear Value="@_progressPercent" Color="Color.Primary" Class="mt-4" Size="Size.Large" Rounded="true" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+            @string.Format(Localizer["ProgressMessage"].Value, _progressPercent)
+        </MudText>
+    </MudPaper>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.h6" Class="mb-3">@Localizer["WhileYouWait"]</MudText>
+    
+    <MudStack Spacing="2" Class="while-you-wait-list">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Explore" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Dark">@Localizer["ExploreContent"]</MudText>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Share" Color="Color.Secondary" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Dark">@Localizer["ShareReferral"]</MudText>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Notifications" Color="Color.Warning" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Dark">@Localizer["WatchEmail"]</MudText>
+        </MudStack>
+    </MudStack>
+
+    <MudButton 
+        Variant="Variant.Filled" 
+        Color="Color.Primary" 
+        Class="mt-4"
+        FullWidth="true"
+        Size="Size.Large"
+        EndIcon="@Icons.Material.Filled.ArrowForward"
+        OnClick="@(() => Navigation.NavigateTo("/app/explore"))">
+        @Localizer["ExploreButton"]
+    </MudButton>
+</div>
+
+<style>
+    .waiting-icon {
+        font-size: 64px;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .queue-status {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        border-color: rgba(102, 126, 234, 0.2) !important;
+    }
+
+    .while-you-wait-list {
+        text-align: left;
+        max-width: 320px;
+        margin: 0 auto;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 8px;
+    }
+
+    .while-you-wait-list .mud-stack {
+        padding: 8px 0;
+    }
+</style>
+
+@code {
+    private int _queuePosition = 42;
+    private int _totalInQueue = 156;
+    private int _progressPercent => (int)(((double)(_totalInQueue - _queuePosition + 1) / _totalInQueue) * 100);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // In production, fetch actual queue status from API
+        // var status = await WaitingListClient.GetStatusAsync();
+    }
+}

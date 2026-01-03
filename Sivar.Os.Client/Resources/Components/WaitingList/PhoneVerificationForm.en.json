@@ -1,0 +1,19 @@
+{
+  "Title": "Verify Your Phone",
+  "EnterPhoneDescription": "Enter your phone number to receive a verification code. This helps us keep the community secure.",
+  "Country": "Country",
+  "PhoneNumber": "Phone Number",
+  "ReferralCodeOptional": "Referral Code (optional)",
+  "ReferralCodeHelper": "Have a referral code? Enter it to move up in the queue!",
+  "SendCode": "Send Verification Code",
+  "EnterCodeDescription": "Enter the 6-digit code we sent to your phone.",
+  "SentVia": "Sent via {0}",
+  "VerificationCode": "Verification Code",
+  "Verify": "Verify",
+  "ChangeNumber": "Change phone number",
+  "SuccessTitle": "You're on the list!",
+  "SuccessMessage": "Your position in the queue is #{0}. We'll notify you when you're approved.",
+  "YourReferralCode": "Your referral code",
+  "ReferralBenefit": "Share this code with friends to move up in the queue!",
+  "Continue": "Continue"
+}

@@ -188,6 +188,42 @@
         transform: translateY(0);
     }
 
+    .auth-cta {
+        text-align: center;
+        padding: 24px 0;
+    }
+
+    .cta-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .cta-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a27;
+        margin-bottom: 16px;
+    }
+
+    .cta-description {
+        color: #666;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+
+    .benefits-list {
+        text-align: left;
+        list-style: none;
+        padding: 0;
+        margin: 0 0 24px 0;
+    }
+
+    .benefits-list li {
+        padding: 8px 0;
+        color: #333;
+        font-size: 15px;
+    }
+
     .divider {
         display: flex;
         align-items: center;
@@ -400,44 +436,24 @@
 
             @if (_activeTab == "signin")
             {
-                <div class="auth-form">
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["EmailLabel"]</label>
-                        <input type="email" class="form-input" placeholder="@Localizer["EmailPlaceholder"]" @bind="_email" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["PasswordLabel"]</label>
-                        <input type="password" class="form-input" placeholder="@Localizer["PasswordPlaceholder"]" @bind="_password" />
-                    </div>
-                    <div class="forgot-password">
-                        <a href="#">@Localizer["ForgotPassword"]</a>
-                    </div>
+                <div class="auth-cta">
+                    <div class="cta-icon">👋</div>
+                    <h3 class="cta-title">@Localizer["SignInCtaTitle"]</h3>
+                    <p class="cta-description">@Localizer["SignInCtaDescription"]</p>
                     <button class="submit-btn" @onclick="HandleSignIn">@Localizer["SignInButton"]</button>
                 </div>
             }
             else
             {
-                <div class="auth-form">
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["FullNameLabel"]</label>
-                        <input type="text" class="form-input" placeholder="@Localizer["FullNamePlaceholder"]" @bind="_fullName" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["EmailLabel"]</label>
-                        <input type="email" class="form-input" placeholder="@Localizer["EmailPlaceholder"]" @bind="_email" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["PasswordLabel"]</label>
-                        <input type="password" class="form-input" placeholder="@Localizer["CreatePasswordPlaceholder"]" @bind="_password" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">@Localizer["ConfirmPasswordLabel"]</label>
-                        <input type="password" class="form-input" placeholder="@Localizer["ConfirmPasswordPlaceholder"]" @bind="_confirmPassword" />
-                    </div>
-                    <label class="form-checkbox">
-                        <input type="checkbox" @bind="_agreeToTerms" />
-                        <span>@Localizer["AgreeToTerms"]</span>
-                    </label>
+                <div class="auth-cta">
+                    <div class="cta-icon">🚀</div>
+                    <h3 class="cta-title">@Localizer["SignUpCtaTitle"]</h3>
+                    <ul class="benefits-list">
+                        <li>✓ @Localizer["Benefit1"]</li>
+                        <li>✓ @Localizer["Benefit2"]</li>
+                        <li>✓ @Localizer["Benefit3"]</li>
+                        <li>✓ @Localizer["Benefit4"]</li>
+                    </ul>
                     <button class="submit-btn" @onclick="HandleSignUp">@Localizer["CreateAccountButton"]</button>
                 </div>
             }
@@ -465,11 +481,6 @@
 
 @code {
     private string _activeTab = "signin";
-    private string _email = string.Empty;
-    private string _password = string.Empty;
-    private string _confirmPassword = string.Empty;
-    private string _fullName = string.Empty;
-    private bool _agreeToTerms = false;
 
     // Note: Authentication redirect is handled at the router level (Routes.razor)
     // Authenticated users are redirected to /app/home before this component renders

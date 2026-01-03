@@ -1,0 +1,17 @@
+{
+  "Loading": "Cargando...",
+  "NotInQueue": "Aún no estás en la lista de espera.",
+  "StatusPendingVerification": "Verificación de Teléfono Pendiente",
+  "StatusWaiting": "Esperando Aprobación",
+  "StatusApproved": "¡Estás Aprobado!",
+  "StatusRejected": "Acceso Denegado",
+  "QueuePosition": "Tu posición",
+  "TotalWaiting": "Total en cola",
+  "ProgressMessage": "{0}% de la cola",
+  "ApprovedOn": "Aprobado el {0}",
+  "ContinueToApp": "Continuar a la App",
+  "ShareReferral": "Comparte tu código de referido",
+  "ReferralCount": "{0} amigos referidos",
+  "ReferralBenefit": "¡Cada referido te mueve hacia arriba en la cola!",
+  "JoinedOn": "Unido el {0}"
+}

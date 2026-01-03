@@ -128,6 +128,43 @@
     <comment>Texto del botón Iniciar sesión</comment>
   </data>
   
+  <!-- Sign In CTA -->
+  <data name="SignInCtaTitle" xml:space="preserve">
+    <value>¡Bienvenido de nuevo!</value>
+    <comment>Título del CTA de inicio de sesión</comment>
+  </data>
+  
+  <data name="SignInCtaDescription" xml:space="preserve">
+    <value>Inicia sesión para acceder a tu panel personalizado, conectar con tu comunidad y continuar donde lo dejaste.</value>
+    <comment>Descripción del CTA de inicio de sesión</comment>
+  </data>
+  
+  <!-- Sign Up CTA -->
+  <data name="SignUpCtaTitle" xml:space="preserve">
+    <value>Únete a SivarOS Hoy</value>
+    <comment>Título del CTA de registro</comment>
+  </data>
+  
+  <data name="Benefit1" xml:space="preserve">
+    <value>Conecta con negocios y servicios locales</value>
+    <comment>Beneficio de registro 1</comment>
+  </data>
+  
+  <data name="Benefit2" xml:space="preserve">
+    <value>Descubre eventos y actividades en tu área</value>
+    <comment>Beneficio de registro 2</comment>
+  </data>
+  
+  <data name="Benefit3" xml:space="preserve">
+    <value>Accede a servicios gubernamentales digitalmente</value>
+    <comment>Beneficio de registro 3</comment>
+  </data>
+  
+  <data name="Benefit4" xml:space="preserve">
+    <value>Sé parte de la transformación digital</value>
+    <comment>Beneficio de registro 4</comment>
+  </data>
+  
   <!-- Sign Up Form -->
   <data name="FullNameLabel" xml:space="preserve">
     <value>Nombre completo</value>

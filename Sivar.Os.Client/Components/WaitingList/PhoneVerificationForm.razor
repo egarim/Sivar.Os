@@ -1,0 +1,290 @@
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.Enums
+@inject IStringLocalizer<PhoneVerificationForm> Localizer
+
+<div class="phone-verification-form">
+    @if (CurrentStep == VerificationStep.EnterPhone)
+    {
+        <MudText Typo="Typo.body1" Class="mb-4">@Localizer["EnterPhoneDescription"]</MudText>
+        
+        <MudForm @ref="_phoneForm" @bind-IsValid="_phoneFormValid">
+            <MudSelect T="string" 
+                       Label="@Localizer["Country"]" 
+                       @bind-Value="_selectedCountry"
+                       Required="true"
+                       Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomCenter"
+                       TransformOrigin="Origin.TopCenter"
+                       Class="mb-3">
+                @foreach (var country in Countries)
+                {
+                    <MudSelectItem Value="@country.Code">@country.Name (@country.DialCode)</MudSelectItem>
+                }
+            </MudSelect>
+            
+            <MudTextField T="string"
+                          Label="@Localizer["PhoneNumber"]"
+                          @bind-Value="_phoneNumber"
+                          Required="true"
+                          Placeholder="78901234"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentText="@GetDialCode()"
+                          InputType="InputType.Telephone"
+                          Class="mb-3" />
+            
+            <MudTextField T="string"
+                          Label="@Localizer["ReferralCodeOptional"]"
+                          @bind-Value="_referralCode"
+                          Placeholder="ABC123"
+                          Variant="Variant.Outlined"
+                          HelperText="@Localizer["ReferralCodeHelper"]"
+                          Class="mb-4" />
+        </MudForm>
+        
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@ErrorMessage</MudAlert>
+        }
+        
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="@(!_phoneFormValid || IsLoading)"
+                   OnClick="RequestVerification">
+            @if (IsLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @Localizer["SendCode"]
+        </MudButton>
+    }
+    else if (CurrentStep == VerificationStep.EnterCode)
+    {
+        <MudText Typo="Typo.body1" Class="mb-2">@Localizer["EnterCodeDescription"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @string.Format(Localizer["SentVia"].Value, VerificationChannel)
+        </MudText>
+        
+        <MudTextField T="string"
+                      Label="@Localizer["VerificationCode"]"
+                      @bind-Value="_verificationCode"
+                      Required="true"
+                      Placeholder="123456"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Number"
+                      MaxLength="6"
+                      Class="mb-4 verification-code-input" />
+        
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@ErrorMessage</MudAlert>
+        }
+        
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="@(string.IsNullOrEmpty(_verificationCode) || _verificationCode.Length < 6 || IsLoading)"
+                   OnClick="ConfirmVerification">
+            @if (IsLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @Localizer["Verify"]
+        </MudButton>
+        
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   FullWidth="true"
+                   Class="mt-2"
+                   Disabled="@IsLoading"
+                   OnClick="GoBack">
+            @Localizer["ChangeNumber"]
+        </MudButton>
+    }
+    else if (CurrentStep == VerificationStep.Success)
+    {
+        <div class="text-center">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                     Color="Color.Success" 
+                     Size="Size.Large"
+                     Class="mb-3" />
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["SuccessTitle"]</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">
+                @string.Format(Localizer["SuccessMessage"].Value, QueuePosition)
+            </MudText>
+            
+            @if (!string.IsNullOrEmpty(ReferralCode))
+            {
+                <MudPaper Class="referral-code-box pa-3 mb-4" Outlined="true">
+                    <MudText Typo="Typo.caption">@Localizer["YourReferralCode"]</MudText>
+                    <MudText Typo="Typo.h5" Class="referral-code">@ReferralCode</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @Localizer["ReferralBenefit"]
+                    </MudText>
+                </MudPaper>
+            }
+            
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="@(() => OnComplete.InvokeAsync())">
+                @Localizer["Continue"]
+            </MudButton>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<VerificationResult> OnVerified { get; set; }
+    [Parameter] public EventCallback OnComplete { get; set; }
+    [Parameter] public string? InitialReferralCode { get; set; }
+
+    private MudForm? _phoneForm;
+    private bool _phoneFormValid;
+    private string _selectedCountry = "SV";
+    private string _phoneNumber = "";
+    private string _referralCode = "";
+    private string _verificationCode = "";
+    
+    private VerificationStep CurrentStep = VerificationStep.EnterPhone;
+    private string? VerificationChannel;
+    private int QueuePosition;
+    private string? ReferralCode;
+    private string? ErrorMessage;
+    private bool IsLoading;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(InitialReferralCode))
+        {
+            _referralCode = InitialReferralCode;
+        }
+    }
+
+    private string GetDialCode()
+    {
+        return Countries.FirstOrDefault(c => c.Code == _selectedCountry)?.DialCode ?? "+503";
+    }
+
+    private string GetFullPhoneNumber()
+    {
+        var dialCode = GetDialCode();
+        return $"{dialCode}{_phoneNumber.TrimStart('0')}";
+    }
+
+    private async Task RequestVerification()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // This would call the API
+            // var result = await WaitingListClient.RequestVerificationAsync(GetFullPhoneNumber(), _selectedCountry);
+            
+            // For now, simulate success
+            await Task.Delay(1000);
+            VerificationChannel = _selectedCountry == "US" ? "SMS" : "WhatsApp";
+            CurrentStep = VerificationStep.EnterCode;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmVerification()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // This would call the API
+            // var result = await WaitingListClient.ConfirmVerificationAsync(GetFullPhoneNumber(), _verificationCode, _referralCode);
+            
+            // For now, simulate success
+            await Task.Delay(1000);
+            QueuePosition = 42;
+            ReferralCode = "XYZ789";
+            CurrentStep = VerificationStep.Success;
+            
+            await OnVerified.InvokeAsync(new VerificationResult(true, QueuePosition, ReferralCode));
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+        CurrentStep = VerificationStep.EnterPhone;
+        _verificationCode = "";
+        ErrorMessage = null;
+    }
+
+    private enum VerificationStep { EnterPhone, EnterCode, Success }
+
+    public record VerificationResult(bool Success, int Position, string? ReferralCode);
+
+    private static readonly List<CountryInfo> Countries = new()
+    {
+        new("SV", "El Salvador", "+503"),
+        new("GT", "Guatemala", "+502"),
+        new("HN", "Honduras", "+504"),
+        new("NI", "Nicaragua", "+505"),
+        new("CR", "Costa Rica", "+506"),
+        new("PA", "Panama", "+507"),
+        new("MX", "Mexico", "+52"),
+        new("US", "United States", "+1"),
+        new("ES", "Spain", "+34")
+    };
+
+    private record CountryInfo(string Code, string Name, string DialCode);
+}
+
+<style>
+    .phone-verification-form {
+        width: 100%;
+    }
+
+    .phone-verification-form .mud-input-control {
+        margin-bottom: 16px;
+    }
+
+    .verification-code-input input {
+        font-size: 1.5rem;
+        letter-spacing: 0.5rem;
+        text-align: center;
+    }
+
+    .referral-code-box {
+        background: var(--mud-palette-background-grey);
+        text-align: center;
+        border-radius: 8px;
+    }
+
+    .referral-code {
+        font-family: monospace;
+        letter-spacing: 0.2rem;
+        color: var(--mud-palette-primary);
+    }
+
+    .success-content {
+        text-align: center;
+    }
+</style>

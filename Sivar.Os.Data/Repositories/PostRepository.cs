@@ -1260,8 +1260,10 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
         var totalCount = await query.CountAsync();
 
+        // Order by PublishedAt for blog posts (when available), otherwise CreatedAt
+        // This ensures proper chronological display for imported/seeded content
         var posts = await query
-            .OrderByDescending(p => p.CreatedAt)
+            .OrderByDescending(p => p.PublishedAt ?? p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -1290,8 +1292,9 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
         var totalCount = await query.CountAsync();
 
+        // Order by PublishedAt for blog posts (when available), otherwise CreatedAt
         var posts = await query
-            .OrderByDescending(p => p.CreatedAt)
+            .OrderByDescending(p => p.PublishedAt ?? p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

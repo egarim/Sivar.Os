@@ -1,0 +1,202 @@
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<WaitingListStatus> Localizer
+
+<MudPaper Class="waiting-list-status" Elevation="2">
+    @if (IsLoading)
+    {
+        <div class="loading-state">
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body1" Class="mt-2">@Localizer["Loading"]</MudText>
+        </div>
+    }
+    else if (Status == null)
+    {
+        <MudAlert Severity="Severity.Warning">@Localizer["NotInQueue"]</MudAlert>
+    }
+    else
+    {
+        <div class="status-header">
+            @switch (Status.Status)
+            {
+                case "PendingVerification":
+                    <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid" Size="Size.Large" Color="Color.Warning" />
+                    <MudText Typo="Typo.h6">@Localizer["StatusPendingVerification"]</MudText>
+                    break;
+                case "Waiting":
+                    <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Size="Size.Large" Color="Color.Info" />
+                    <MudText Typo="Typo.h6">@Localizer["StatusWaiting"]</MudText>
+                    break;
+                case "Approved":
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
+                    <MudText Typo="Typo.h6">@Localizer["StatusApproved"]</MudText>
+                    break;
+                case "Rejected":
+                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Large" Color="Color.Error" />
+                    <MudText Typo="Typo.h6">@Localizer["StatusRejected"]</MudText>
+                    break;
+            }
+        </div>
+
+        @if (Status.Status == "Waiting")
+        {
+            <div class="queue-info">
+                <div class="position-display">
+                    <MudText Typo="Typo.h2" Color="Color.Primary">@Status.Position</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["QueuePosition"]</MudText>
+                </div>
+                <MudDivider Vertical="true" FlexItem="true" Class="mx-4" />
+                <div class="total-display">
+                    <MudText Typo="Typo.h4">@Status.TotalWaiting</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["TotalWaiting"]</MudText>
+                </div>
+            </div>
+
+            <MudProgressLinear Value="@GetProgressValue()" 
+                               Color="Color.Primary" 
+                               Class="mt-4"
+                               Size="Size.Large" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1 text-center">
+                @string.Format(Localizer["ProgressMessage"].Value, GetProgressValue())
+            </MudText>
+        }
+
+        @if (Status.Status == "Approved" && Status.ApprovedAt.HasValue)
+        {
+            <MudText Typo="Typo.body1" Class="mt-3">
+                @string.Format(Localizer["ApprovedOn"].Value, Status.ApprovedAt.Value.ToLocalTime().ToString("MMM dd, yyyy"))
+            </MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       Class="mt-3"
+                       OnClick="@(() => OnContinueToApp.InvokeAsync())">
+                @Localizer["ContinueToApp"]
+            </MudButton>
+        }
+
+        @if (!string.IsNullOrEmpty(Status.ReferralCode))
+        {
+            <MudDivider Class="my-4" />
+            
+            <div class="referral-section">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@Localizer["ShareReferral"]</MudText>
+                
+                <MudPaper Class="referral-code-box pa-3" Outlined="true">
+                    <MudText Typo="Typo.h5" Class="referral-code">@Status.ReferralCode</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" 
+                                   Size="Size.Small"
+                                   OnClick="CopyReferralCode" />
+                </MudPaper>
+
+                <div class="referral-stats mt-3">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
+                    <MudText Typo="Typo.body2">
+                        @string.Format(Localizer["ReferralCount"].Value, Status.ReferralCount)
+                    </MudText>
+                </div>
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    @Localizer["ReferralBenefit"]
+                </MudText>
+            </div>
+        }
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="joined-date mt-4">
+            @string.Format(Localizer["JoinedOn"].Value, Status.JoinedAt.ToLocalTime().ToString("MMM dd, yyyy"))
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public WaitingListStatusDto? Status { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback OnContinueToApp { get; set; }
+
+    private int GetProgressValue()
+    {
+        if (Status == null || Status.TotalWaiting == 0) return 0;
+        var progress = ((Status.TotalWaiting - Status.Position + 1) / (double)Status.TotalWaiting) * 100;
+        return (int)Math.Min(100, Math.Max(0, progress));
+    }
+
+    private async Task CopyReferralCode()
+    {
+        // Would use JS interop to copy to clipboard
+        // await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Status?.ReferralCode);
+    }
+
+    public record WaitingListStatusDto(
+        string Status,
+        int Position,
+        int TotalWaiting,
+        string ReferralCode,
+        int ReferralCount,
+        DateTime JoinedAt,
+        DateTime? ApprovedAt
+    );
+}
+
+<style>
+    .waiting-list-status {
+        padding: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px;
+    }
+
+    .status-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .queue-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: var(--mud-palette-background-grey);
+        border-radius: 8px;
+    }
+
+    .position-display, .total-display {
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .referral-section {
+        text-align: center;
+    }
+
+    .referral-code-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--mud-palette-background-grey);
+    }
+
+    .referral-code {
+        font-family: monospace;
+        letter-spacing: 0.2rem;
+        color: var(--mud-palette-primary);
+    }
+
+    .referral-stats {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .joined-date {
+        text-align: center;
+        display: block;
+    }
+</style>

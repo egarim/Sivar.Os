@@ -231,6 +231,18 @@ public class SivarDbContext : DbContext
     /// </summary>
     public DbSet<ResourceBooking> ResourceBookings { get; set; } = null!;
 
+    /// <summary>
+    /// Waiting list entries - users waiting for app access
+    /// Waiting List System
+    /// </summary>
+    public DbSet<WaitingListEntry> WaitingListEntries { get; set; } = null!;
+
+    /// <summary>
+    /// Phone verification attempts - OTP tracking via Twilio
+    /// Waiting List System
+    /// </summary>
+    public DbSet<PhoneVerification> PhoneVerifications { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -278,6 +290,10 @@ public class SivarDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ResourceAvailabilityConfiguration());
         modelBuilder.ApplyConfiguration(new ResourceExceptionConfiguration());
         modelBuilder.ApplyConfiguration(new ResourceBookingConfiguration());
+
+        // Waiting List System
+        modelBuilder.ApplyConfiguration(new WaitingListEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new PhoneVerificationConfiguration());
 
         // Configure value objects
         ConfigureValueObjects(modelBuilder);

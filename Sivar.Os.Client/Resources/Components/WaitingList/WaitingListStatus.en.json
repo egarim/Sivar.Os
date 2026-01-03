@@ -1,0 +1,17 @@
+{
+  "Loading": "Loading...",
+  "NotInQueue": "You're not in the waiting list yet.",
+  "StatusPendingVerification": "Phone Verification Pending",
+  "StatusWaiting": "Waiting for Approval",
+  "StatusApproved": "You're Approved!",
+  "StatusRejected": "Access Denied",
+  "QueuePosition": "Your position",
+  "TotalWaiting": "Total in queue",
+  "ProgressMessage": "{0}% through the queue",
+  "ApprovedOn": "Approved on {0}",
+  "ContinueToApp": "Continue to App",
+  "ShareReferral": "Share your referral code",
+  "ReferralCount": "{0} friends referred",
+  "ReferralBenefit": "Each referral moves you up in the queue!",
+  "JoinedOn": "Joined on {0}"
+}

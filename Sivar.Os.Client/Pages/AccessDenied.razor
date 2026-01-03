@@ -1,0 +1,50 @@
+@page "/app/access-denied"
+@layout OnboardingLayout
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IStringLocalizer<AccessDenied> Localizer
+
+<PageTitle>@Localizer["PageTitle"] - SivarOS</PageTitle>
+
+<div class="text-center">
+    <div class="denied-icon mb-4">🚫</div>
+    <MudText Typo="Typo.h4" Class="mb-2">@Localizer["Title"]</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+        @Localizer["Message"]
+    </MudText>
+
+    <MudAlert Severity="Severity.Info" Class="mb-6 text-left">
+        <MudText Typo="Typo.body2">
+            @Localizer["ContactInfo"]
+        </MudText>
+    </MudAlert>
+
+    <MudStack Justify="Justify.Center" Spacing="2">
+        <MudButton 
+            Variant="Variant.Filled" 
+            Color="Color.Primary"
+            FullWidth="true"
+            Href="/app/explore">
+            @Localizer["ExploreButton"]
+        </MudButton>
+        <MudButton 
+            Variant="Variant.Text" 
+            Color="Color.Default"
+            FullWidth="true"
+            Href="/authentication/logout">
+            @Localizer["LogoutButton"]
+        </MudButton>
+    </MudStack>
+</div>
+
+<style>
+    .denied-icon {
+        font-size: 64px;
+    }
+</style>
+
+@code {
+}

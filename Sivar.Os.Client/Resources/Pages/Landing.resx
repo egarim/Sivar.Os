@@ -128,6 +128,43 @@
     <comment>Sign In button text</comment>
   </data>
   
+  <!-- Sign In CTA -->
+  <data name="SignInCtaTitle" xml:space="preserve">
+    <value>Welcome back!</value>
+    <comment>Sign in CTA title</comment>
+  </data>
+  
+  <data name="SignInCtaDescription" xml:space="preserve">
+    <value>Sign in to access your personalized dashboard, connect with your community, and continue where you left off.</value>
+    <comment>Sign in CTA description</comment>
+  </data>
+  
+  <!-- Sign Up CTA -->
+  <data name="SignUpCtaTitle" xml:space="preserve">
+    <value>Join SivarOS Today</value>
+    <comment>Sign up CTA title</comment>
+  </data>
+  
+  <data name="Benefit1" xml:space="preserve">
+    <value>Connect with local businesses and services</value>
+    <comment>Sign up benefit 1</comment>
+  </data>
+  
+  <data name="Benefit2" xml:space="preserve">
+    <value>Discover events and activities in your area</value>
+    <comment>Sign up benefit 2</comment>
+  </data>
+  
+  <data name="Benefit3" xml:space="preserve">
+    <value>Access government services digitally</value>
+    <comment>Sign up benefit 3</comment>
+  </data>
+  
+  <data name="Benefit4" xml:space="preserve">
+    <value>Be part of the digital transformation</value>
+    <comment>Sign up benefit 4</comment>
+  </data>
+  
   <!-- Sign Up Form -->
   <data name="FullNameLabel" xml:space="preserve">
     <value>Full Name</value>

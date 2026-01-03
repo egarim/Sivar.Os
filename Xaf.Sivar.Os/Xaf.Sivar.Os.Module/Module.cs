@@ -31,6 +31,7 @@ namespace Xaf.Sivar.Os.Module
         private const string NavGroupBusiness = "Business";
         private const string NavGroupBookings = "Bookings";
         private const string NavGroupScheduling = "Scheduling";
+        private const string NavGroupWaitingList = "Waiting List";
         private const string NavGroupSearch = "Search & Ranking";
         private const string NavGroupSystem = "System";
 
@@ -88,6 +89,10 @@ namespace Xaf.Sivar.Os.Module
             AdditionalExportedTypes.Add(typeof(EventAttendee));
             AdditionalExportedTypes.Add(typeof(EventReminder));
             AdditionalExportedTypes.Add(typeof(RecurrenceRule));
+
+            // === Waiting List ===
+            AdditionalExportedTypes.Add(typeof(WaitingListEntry));
+            AdditionalExportedTypes.Add(typeof(PhoneVerification));
 
             // === Search & Ranking ===
             AdditionalExportedTypes.Add(typeof(SearchResult));
@@ -247,6 +252,12 @@ namespace Xaf.Sivar.Os.Module
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(EventAttendee), NavGroupScheduling);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(EventReminder), NavGroupScheduling);
             ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(RecurrenceRule), NavGroupScheduling);
+
+            // ============================================
+            // Navigation Group: Waiting List
+            // ============================================
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(WaitingListEntry), NavGroupWaitingList);
+            ConfigureTypeWithDefaultClassOptions(typesInfo, typeof(PhoneVerification), NavGroupWaitingList);
 
             // ============================================
             // Navigation Group: Search & Ranking

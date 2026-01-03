@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Verifica tu Teléfono</value>
+  </data>
+  <data name="EnterPhoneDescription" xml:space="preserve">
+    <value>Ingresa tu número de teléfono para recibir un código de verificación. Esto nos ayuda a mantener la comunidad segura.</value>
+  </data>
+  <data name="Country" xml:space="preserve">
+    <value>País</value>
+  </data>
+  <data name="PhoneNumber" xml:space="preserve">
+    <value>Número de Teléfono</value>
+  </data>
+  <data name="ReferralCodeOptional" xml:space="preserve">
+    <value>Código de Referido (opcional)</value>
+  </data>
+  <data name="ReferralCodeHelper" xml:space="preserve">
+    <value>¿Tienes un código de referido? ¡Ingrésalo para avanzar en la cola!</value>
+  </data>
+  <data name="SendCode" xml:space="preserve">
+    <value>Enviar Código de Verificación</value>
+  </data>
+  <data name="EnterCodeDescription" xml:space="preserve">
+    <value>Ingresa el código de 6 dígitos que enviamos a tu teléfono.</value>
+  </data>
+  <data name="SentVia" xml:space="preserve">
+    <value>Enviado vía {0}</value>
+  </data>
+  <data name="VerificationCode" xml:space="preserve">
+    <value>Código de Verificación</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Verificar</value>
+  </data>
+  <data name="ChangeNumber" xml:space="preserve">
+    <value>Cambiar número de teléfono</value>
+  </data>
+  <data name="SuccessTitle" xml:space="preserve">
+    <value>¡Estás en la lista!</value>
+  </data>
+  <data name="SuccessMessage" xml:space="preserve">
+    <value>Tu posición en la cola es #{0}. Te notificaremos cuando seas aprobado.</value>
+  </data>
+  <data name="YourReferralCode" xml:space="preserve">
+    <value>Tu código de referido</value>
+  </data>
+  <data name="ReferralBenefit" xml:space="preserve">
+    <value>¡Comparte este código con amigos para avanzar en la cola!</value>
+  </data>
+  <data name="Continue" xml:space="preserve">
+    <value>Continuar</value>
+  </data>
+</root>

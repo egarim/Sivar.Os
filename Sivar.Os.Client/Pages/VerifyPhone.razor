@@ -1,0 +1,49 @@
+@page "/app/verify-phone"
+@layout OnboardingLayout
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Client.Components.WaitingList
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IStringLocalizer<VerifyPhone> Localizer
+
+<PageTitle>@Localizer["PageTitle"] - SivarOS</PageTitle>
+
+<div>
+    <MudText Typo="Typo.h4" Class="mb-2" Align="Align.Center">@Localizer["Title"]</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6" Align="Align.Center">
+        @Localizer["Subtitle"]
+    </MudText>
+
+    <PhoneVerificationForm 
+        OnVerified="HandleVerified"
+        OnComplete="HandleComplete"
+        InitialReferralCode="@_referralCode" />
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReferralCode { get; set; }
+
+    private string? _referralCode;
+
+    protected override void OnInitialized()
+    {
+        _referralCode = ReferralCode;
+    }
+
+    private void HandleVerified(PhoneVerificationForm.VerificationResult result)
+    {
+        if (result.Success)
+        {
+            // User is now in the waiting queue
+            Navigation.NavigateTo("/app/waiting", forceLoad: true);
+        }
+    }
+
+    private void HandleComplete()
+    {
+        Navigation.NavigateTo("/app/waiting", forceLoad: true);
+    }
+}

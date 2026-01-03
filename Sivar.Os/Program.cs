@@ -20,6 +20,7 @@ using Sivar.Os.Client.Components.ProfileSwitcher;
 using Sivar.Os.Components;
 using Sivar.Os.Data.Context;
 using Sivar.Os.Data.Repositories;
+using Sivar.Os.Middleware;
 using Sivar.Os.Services;
 using Sivar.Os.Services.Clients;
 using Sivar.Os.Shared;
@@ -188,6 +189,10 @@ builder.Services.AddScoped<IAdTransactionRepository, AdTransactionRepository>();
 builder.Services.AddScoped<IScheduleEventRepository, ScheduleEventRepository>();
 // Resource Booking System - Repository registration
 builder.Services.AddScoped<IResourceBookingRepository, ResourceBookingRepository>();
+// Waiting List System - Repository and Service registration
+builder.Services.AddScoped<IWaitingListRepository, WaitingListRepository>();
+builder.Services.AddScoped<IPhoneVerificationRepository, PhoneVerificationRepository>();
+builder.Services.AddScoped<IWaitingListService, WaitingListService>();
 
 // --- AI Client Registration (Configurable Provider) ---
 // Register IChatClient for ChatService based on configuration
@@ -330,6 +335,16 @@ builder.Services.AddScoped<IImageCompressionService, ImageCompressionService>();
 // Configure Azure Blob Storage options
 builder.Services.Configure<Sivar.Os.Shared.Configuration.AzureBlobStorageConfiguration>(
     builder.Configuration.GetSection("AzureBlobStorage"));
+
+// --- Twilio Verify Configuration (Phone Verification for Waiting List) ---
+builder.Services.Configure<Sivar.Os.Configuration.TwilioOptions>(
+    builder.Configuration.GetSection(Sivar.Os.Configuration.TwilioOptions.SectionName));
+builder.Services.AddSingleton<ITwilioVerifyService, TwilioVerifyService>();
+
+// --- Keycloak Admin API Configuration (User Attribute Management) ---
+builder.Services.Configure<Sivar.Os.Configuration.KeycloakAdminOptions>(
+    builder.Configuration.GetSection(Sivar.Os.Configuration.KeycloakAdminOptions.SectionName));
+builder.Services.AddHttpClient<IKeycloakAdminService, KeycloakAdminService>();
 
 // --- Client Registration (Sivar.Os.Services.Clients) ---
 builder.Services.AddScoped<IAuthClient, AuthClient>();
@@ -479,8 +494,13 @@ builder.Services.AddAuthentication(options =>
             // Check if this is a registration request
             if (context.Properties.Items.TryGetValue("prompt", out var prompt) && prompt == "create")
             {
-                // Add kc_action parameter to show Keycloak registration page
-                context.ProtocolMessage.SetParameter("kc_action", "REGISTER");
+                // For Keycloak, we need to redirect to the registration page directly
+                // kc_action doesn't work with PAR (Pushed Authorization Requests)
+                // Instead, modify the authorization endpoint to point to registration
+                var registrationUrl = context.ProtocolMessage.IssuerAddress.Replace(
+                    "/protocol/openid-connect/auth", 
+                    "/protocol/openid-connect/registrations");
+                context.ProtocolMessage.IssuerAddress = registrationUrl;
             }
             
             // Handle logout redirect - use root URL which is already registered in Keycloak
@@ -676,6 +696,9 @@ app.UseHttpsRedirection();
 app.UseRequestLocalization();
 
 app.UseAuthentication();
+// Waiting List Access Control - block unapproved users
+// Comment out the next line to disable waiting list enforcement
+app.UseWaitingListAccess();
 app.UseAuthorization();
 
 app.UseAntiforgery();
