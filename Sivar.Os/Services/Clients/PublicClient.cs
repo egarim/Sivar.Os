@@ -116,4 +116,41 @@ public class PublicClient : IPublicClient
             return new PostFeedDto { Posts = new List<PostDto>(), Page = 0, PageSize = pageSize, TotalCount = 0 };
         }
     }
+
+    /// <inheritdoc />
+    public async Task<List<ProfileSummaryDto>> GetSimilarProfilesAsync(Guid profileId, int limit = 4, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("[PublicClient.GetSimilarProfilesAsync] ProfileId={ProfileId}, Limit={Limit}", profileId, limit);
+            return await _profileService.GetSimilarProfilesAsync(profileId, limit);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PublicClient.GetSimilarProfilesAsync] Error fetching similar profiles for {ProfileId}", profileId);
+            return new List<ProfileSummaryDto>();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<PostFeedDto> GetTrendingPostsAsync(int limit = 5, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("[PublicClient.GetTrendingPostsAsync] Limit={Limit}", limit);
+            var (posts, totalCount) = await _postService.GetTrendingPublicPostsAsync(limit);
+            return new PostFeedDto
+            {
+                Posts = posts.ToList(),
+                Page = 0,
+                PageSize = limit,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PublicClient.GetTrendingPostsAsync] Error fetching trending posts");
+            return new PostFeedDto { Posts = new List<PostDto>(), TotalCount = 0 };
+        }
+    }
 }

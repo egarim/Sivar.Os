@@ -78,26 +78,62 @@
                     </div>
                 </div>
 
-                <!-- CTA Buttons (prompt login) -->
-                <div class="profile-actions">
+                <!-- CTA Buttons - prompting to join -->
+                <div class="inline-cta">
                     <MudButton Variant="Variant.Filled" 
                                Color="Color.Primary" 
                                StartIcon="@Icons.Material.Filled.PersonAdd"
-                               OnClick="PromptLogin">
-                        Follow
+                               OnClick="NavigateToSignUp"
+                               Size="Size.Small">
+                        Sign up to follow
                     </MudButton>
                     <MudButton Variant="Variant.Outlined" 
                                Color="Color.Primary" 
                                StartIcon="@Icons.Material.Filled.Message"
-                               OnClick="PromptLogin">
+                               OnClick="NavigateToSignUp"
+                               Size="Size.Small">
                         Message
                     </MudButton>
                 </div>
             </MudPaper>
         </div>
 
-        <!-- Join CTA Banner -->
-        <JoinCta DisplayVariant="banner" />
+        <!-- Similar Profiles Section -->
+        @if (_similarProfiles.Any())
+        {
+            <div class="similar-profiles-section" style="max-width: 680px; margin: 0 auto;">
+                <div class="section-header">
+                    <h3 class="section-title">Similar Profiles</h3>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo("/app/explore"))">
+                        See All
+                    </MudButton>
+                </div>
+                <div class="similar-profiles-scroll">
+                    @foreach (var profile in _similarProfiles)
+                    {
+                        <div class="similar-profile-card" @onclick="@(() => NavigateToProfile(profile.Handle))">
+                            <MudAvatar Size="Size.Medium" Color="Color.Primary">
+                                @if (!string.IsNullOrEmpty(profile.Avatar))
+                                {
+                                    <MudImage Src="@profile.Avatar" Alt="@profile.DisplayName" />
+                                }
+                                else
+                                {
+                                    @GetInitials(profile.DisplayName)
+                                }
+                            </MudAvatar>
+                            <div class="similar-profile-name">@profile.DisplayName</div>
+                            <div class="similar-profile-handle">@@@profile.Handle</div>
+                            @if (!string.IsNullOrEmpty(profile.ProfileType))
+                            {
+                                <div class="similar-profile-type">@profile.ProfileType</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         <!-- Posts Section -->
         <div class="posts-section">
@@ -150,8 +186,55 @@
                 }
             }
         </div>
+
+        <!-- Trending Posts Section -->
+        @if (_trendingPosts.Any())
+        {
+            <div class="trending-section" style="max-width: 680px; margin: 2rem auto 0;">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" Class="mr-1" />
+                        Trending in El Salvador
+                    </h3>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo("/app/explore"))">
+                        See All
+                    </MudButton>
+                </div>
+                @{int rank = 1;}
+                @foreach (var post in _trendingPosts)
+                {
+                    <div class="trending-post-item" @onclick="@(() => NavigateToPost(post.Id))">
+                        <span class="trending-rank">@rank</span>
+                        <div class="trending-content">
+                            <div class="trending-title">@GetPostTitle(post)</div>
+                            <div class="trending-author">by @post.Profile?.DisplayName</div>
+                            <div class="trending-stats">
+                                <span><MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" /> @(post.ReactionSummary?.TotalReactions ?? 0)</span>
+                                <span><MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" /> @post.CommentCount</span>
+                            </div>
+                        </div>
+                    </div>
+                    rank++;
+                }
+            </div>
+        }
     }
 </div>
+
+<!-- Sticky Bottom CTA -->
+@if (_profile != null)
+{
+    <div class="sticky-cta">
+        <span class="sticky-cta-text">Join Sivar.Os to interact with @_profile.DisplayName</span>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="NavigateToSignUp">
+            Sign Up Free
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="NavigateToLogin">
+            Log In
+        </MudButton>
+    </div>
+}
 
 <style>
     .public-profile-page {
@@ -263,6 +346,161 @@
         text-align: center;
         padding: 20px 0;
     }
+    
+    /* Similar Profiles Section */
+    .similar-profiles-section {
+        margin: 1.5rem 0;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+        margin: 0;
+    }
+    
+    .similar-profiles-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: thin;
+    }
+    
+    .similar-profile-card {
+        flex: 0 0 auto;
+        width: 160px;
+        padding: 1rem;
+        border-radius: 12px;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .similar-profile-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: var(--mud-palette-primary);
+    }
+    
+    .similar-profile-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .similar-profile-handle {
+        font-size: 0.8rem;
+        color: var(--mud-palette-text-secondary);
+    }
+    
+    .similar-profile-type {
+        font-size: 0.75rem;
+        color: var(--mud-palette-primary);
+        margin-top: 0.25rem;
+    }
+    
+    /* Trending Posts Section */
+    .trending-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, var(--mud-palette-primary-lighten) 0%, var(--mud-palette-surface) 100%);
+        border-radius: 16px;
+    }
+    
+    .trending-post-item {
+        display: flex;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: var(--mud-palette-background);
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .trending-post-item:hover {
+        background: var(--mud-palette-background-grey);
+    }
+    
+    .trending-rank {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--mud-palette-primary);
+        min-width: 30px;
+    }
+    
+    .trending-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .trending-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .trending-author {
+        font-size: 0.8rem;
+        color: var(--mud-palette-text-secondary);
+    }
+    
+    .trending-stats {
+        font-size: 0.75rem;
+        color: var(--mud-palette-text-secondary);
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    
+    /* Sticky Bottom CTA */
+    .sticky-cta {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-lines-default);
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        z-index: 1000;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .sticky-cta-text {
+        font-size: 0.9rem;
+        color: var(--mud-palette-text-secondary);
+    }
+    
+    /* Add bottom padding to content to account for sticky CTA */
+    .public-profile-page {
+        padding-bottom: 80px;
+    }
+    
+    /* Inline CTA for profile header */
+    .inline-cta {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
 </style>
 
 @code {
@@ -271,6 +509,8 @@
 
     private ProfileDto? _profile;
     private List<PostDto> _posts = new();
+    private List<ProfileSummaryDto> _similarProfiles = new();
+    private List<PostDto> _trendingPosts = new();
     private bool _isLoading = true;
     private bool _isLoadingPosts = false;
     private bool _isLoadingMore = false;
@@ -310,7 +550,12 @@
             }
             else
             {
-                await LoadPosts();
+                // Load all data in parallel
+                var postsTask = LoadPosts();
+                var similarTask = LoadSimilarProfiles();
+                var trendingTask = LoadTrendingPosts();
+                
+                await Task.WhenAll(postsTask, similarTask, trendingTask);
             }
         }
         catch (Exception ex)
@@ -347,7 +592,35 @@
         finally
         {
             _isLoadingPosts = false;
-            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSimilarProfiles()
+    {
+        if (_profile == null) return;
+
+        try
+        {
+            _similarProfiles = (await SivarClient.Public.GetSimilarProfilesAsync(_profile.Id, 6))?.ToList() ?? new List<ProfileSummaryDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PublicProfile] Error loading similar profiles: {ex.Message}");
+            _similarProfiles = new List<ProfileSummaryDto>();
+        }
+    }
+
+    private async Task LoadTrendingPosts()
+    {
+        try
+        {
+            var feed = await SivarClient.Public.GetTrendingPostsAsync(5);
+            _trendingPosts = feed?.Posts?.ToList() ?? new List<PostDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PublicProfile] Error loading trending posts: {ex.Message}");
+            _trendingPosts = new List<PostDto>();
         }
     }
 
@@ -377,6 +650,11 @@
         }
     }
 
+    private void NavigateToProfile(string handle)
+    {
+        Navigation.NavigateTo($"/app/explore/{handle}");
+    }
+
     private void NavigateToPost(Guid postId)
     {
         Navigation.NavigateTo($"/post/{postId}");
@@ -403,6 +681,18 @@
         Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}");
     }
 
+    private void NavigateToSignUp()
+    {
+        var returnUrl = System.Net.WebUtility.UrlEncode($"/app/explore/{Handle}");
+        Navigation.NavigateTo($"/authentication/register?returnUrl={returnUrl}");
+    }
+
+    private void NavigateToLogin()
+    {
+        var returnUrl = System.Net.WebUtility.UrlEncode($"/app/explore/{Handle}");
+        Navigation.NavigateTo($"/authentication/login?returnUrl={returnUrl}");
+    }
+
     private string GetInitials(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "?";
@@ -410,5 +700,18 @@
         return parts.Length >= 2 
             ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
             : name[0].ToString().ToUpper();
+    }
+
+    private string GetPostTitle(PostDto post)
+    {
+        // For blog posts, use the subtitle or first line of content
+        if (post.PostType == PostType.Blog && !string.IsNullOrEmpty(post.Subtitle))
+        {
+            return post.Subtitle.Length > 60 ? post.Subtitle[..57] + "..." : post.Subtitle;
+        }
+        // For other posts, use content preview
+        var content = post.Content ?? "";
+        var firstLine = content.Split('\n').FirstOrDefault() ?? content;
+        return firstLine.Length > 60 ? firstLine[..57] + "..." : firstLine;
     }
 }

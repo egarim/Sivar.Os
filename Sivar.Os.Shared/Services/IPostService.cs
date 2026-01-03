@@ -161,4 +161,11 @@ public interface IPostService
     /// <param name="pageSize">Number of posts per page</param>
     /// <returns>Paginated list of public posts by the profile</returns>
     Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetPublicPostsByProfileAsync(Guid profileId, int page = 1, int pageSize = 20);
+
+    /// <summary>
+    /// Gets trending public posts based on engagement (reactions, comments)
+    /// </summary>
+    /// <param name="limit">Maximum number of posts to return</param>
+    /// <returns>List of trending public posts</returns>
+    Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetTrendingPublicPostsAsync(int limit = 5);
 }

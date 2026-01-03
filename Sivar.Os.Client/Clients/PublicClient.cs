@@ -76,4 +76,34 @@ public class PublicClient : BaseClient, IPublicClient
     {
         return await GetAsync<PostFeedDto>($"api/public/profiles/{profileId}/posts?page={pageNumber - 1}&pageSize={pageSize}", cancellationToken);
     }
+
+    /// <summary>
+    /// Gets similar profiles based on tags, type, and location
+    /// </summary>
+    public async Task<List<ProfileSummaryDto>> GetSimilarProfilesAsync(Guid profileId, int limit = 4, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetAsync<List<ProfileSummaryDto>>($"api/public/profiles/{profileId}/similar?limit={limit}", cancellationToken);
+        }
+        catch
+        {
+            return new List<ProfileSummaryDto>();
+        }
+    }
+
+    /// <summary>
+    /// Gets trending public posts
+    /// </summary>
+    public async Task<PostFeedDto> GetTrendingPostsAsync(int limit = 5, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetAsync<PostFeedDto>($"api/public/posts/trending?limit={limit}", cancellationToken);
+        }
+        catch
+        {
+            return new PostFeedDto { Posts = new List<PostDto>(), TotalCount = 0 };
+        }
+    }
 }

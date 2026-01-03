@@ -51,4 +51,21 @@ public interface IPublicClient
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of public posts by the profile</returns>
     Task<PostFeedDto> GetPublicPostsByProfileAsync(Guid profileId, int pageSize = 20, int pageNumber = 1, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets similar profiles based on tags, type, and location
+    /// </summary>
+    /// <param name="profileId">Profile ID to find similar profiles for</param>
+    /// <param name="limit">Maximum number of similar profiles</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of similar profile summaries</returns>
+    Task<List<ProfileSummaryDto>> GetSimilarProfilesAsync(Guid profileId, int limit = 4, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets trending public posts
+    /// </summary>
+    /// <param name="limit">Maximum number of trending posts</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Trending posts feed</returns>
+    Task<PostFeedDto> GetTrendingPostsAsync(int limit = 5, CancellationToken cancellationToken = default);
 }

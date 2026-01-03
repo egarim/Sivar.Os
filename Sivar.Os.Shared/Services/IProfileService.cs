@@ -119,6 +119,14 @@ public interface IProfileService
     Task<PagedResult<ProfileSummaryDto>> SearchProfilesAsync(string searchTerm, int page = 1, int pageSize = 20);
 
     /// <summary>
+    /// Gets similar profiles based on tags, profile type, and location
+    /// </summary>
+    /// <param name="profileId">Profile ID to find similar profiles for</param>
+    /// <param name="limit">Maximum number of similar profiles to return</param>
+    /// <returns>List of similar profile summaries</returns>
+    Task<List<ProfileSummaryDto>> GetSimilarProfilesAsync(Guid profileId, int limit = 4);
+
+    /// <summary>
     /// Gets profiles by location
     /// </summary>
     /// <param name="locationQuery">Location search term</param>

@@ -2140,5 +2140,61 @@ public class PostService : IPostService
         }
     }
 
+    /// <summary>
+    /// Gets trending public posts based on engagement
+    /// </summary>
+    public async Task<(IEnumerable<PostDto> Posts, int TotalCount)> GetTrendingPublicPostsAsync(int limit = 5)
+    {
+        var requestId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("[PostService.GetTrendingPublicPostsAsync] START - RequestId={RequestId}, Limit={Limit}",
+            requestId, limit);
+
+        try
+        {
+            // Get recent public posts (last 7 days)
+            var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+            var (recentPosts, _) = await _postRepository.GetPublicPostsAsync(1, 100);
+            
+            // Convert to DTOs and calculate engagement score
+            var postDtos = new List<PostDto>();
+            foreach (var post in recentPosts.Where(p => p.CreatedAt >= sevenDaysAgo))
+            {
+                var dto = await MapToPostDtoAsync(post);
+                if (dto != null)
+                {
+                    postDtos.Add(dto);
+                }
+            }
+            
+            // Sort by engagement and take top posts
+            var trendingPosts = postDtos
+                .Select(p => new
+                {
+                    Post = p,
+                    EngagementScore = (p.ReactionSummary?.TotalReactions ?? 0) * 2 + p.CommentCount
+                })
+                .OrderByDescending(x => x.EngagementScore)
+                .ThenByDescending(x => x.Post.CreatedAt)
+                .Take(limit)
+                .Select(x => x.Post)
+                .ToList();
+
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogInformation("[PostService.GetTrendingPublicPostsAsync] SUCCESS - RequestId={RequestId}, ReturnedCount={ReturnedCount}, Duration={Duration}ms",
+                requestId, trendingPosts.Count, elapsed);
+
+            return (trendingPosts, trendingPosts.Count);
+        }
+        catch (Exception ex)
+        {
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            _logger.LogError(ex, "[PostService.GetTrendingPublicPostsAsync] ERROR - RequestId={RequestId}, Duration={Duration}ms",
+                requestId, elapsed);
+            return (new List<PostDto>(), 0);
+        }
+    }
+
     #endregion
 }

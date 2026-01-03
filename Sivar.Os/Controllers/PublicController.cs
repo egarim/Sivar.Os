@@ -238,4 +238,78 @@ public class PublicController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+    /// <summary>
+    /// Gets similar profiles based on tags, location, or profile type
+    /// </summary>
+    /// <param name="profileId">Profile ID to find similar profiles for</param>
+    /// <param name="limit">Maximum number of similar profiles to return</param>
+    /// <returns>List of similar profiles</returns>
+    [HttpGet("profiles/{profileId:guid}/similar")]
+    [SwaggerOperation(
+        Summary = "Get similar profiles",
+        Description = "Returns profiles similar to the given profile based on tags, type, and location",
+        Tags = new[] { "Public" }
+    )]
+    [SwaggerResponse(200, "Similar profiles retrieved", typeof(List<ProfileSummaryDto>))]
+    public async Task<ActionResult<List<ProfileSummaryDto>>> GetSimilarProfiles(
+        Guid profileId,
+        [FromQuery] int limit = 4)
+    {
+        try
+        {
+            _logger.LogInformation("[PublicController.GetSimilarProfiles] Finding similar profiles for ProfileId={ProfileId}", profileId);
+
+            if (limit > 10)
+                limit = 10;
+
+            var similarProfiles = await _profileService.GetSimilarProfilesAsync(profileId, limit);
+            return Ok(similarProfiles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PublicController.GetSimilarProfiles] Error finding similar profiles for {ProfileId}", profileId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Gets trending posts for public display
+    /// </summary>
+    /// <param name="limit">Maximum number of trending posts to return</param>
+    /// <returns>List of trending posts</returns>
+    [HttpGet("posts/trending")]
+    [SwaggerOperation(
+        Summary = "Get trending posts",
+        Description = "Returns trending public posts based on engagement",
+        Tags = new[] { "Public" }
+    )]
+    [SwaggerResponse(200, "Trending posts retrieved", typeof(PostFeedDto))]
+    public async Task<ActionResult<PostFeedDto>> GetTrendingPosts([FromQuery] int limit = 5)
+    {
+        try
+        {
+            _logger.LogInformation("[PublicController.GetTrendingPosts] Fetching trending posts - limit={Limit}", limit);
+
+            if (limit > 20)
+                limit = 20;
+
+            var (posts, totalCount) = await _postService.GetTrendingPublicPostsAsync(limit);
+
+            var feed = new PostFeedDto
+            {
+                Posts = posts.ToList(),
+                Page = 0,
+                PageSize = limit,
+                TotalCount = totalCount
+            };
+
+            return Ok(feed);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PublicController.GetTrendingPosts] Error fetching trending posts");
+            return StatusCode(500, "Internal server error");
+        }
+    }
 }

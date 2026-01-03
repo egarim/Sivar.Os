@@ -1913,4 +1913,81 @@ public class ProfileService : IProfileService
 
         return await MapToProfileDtoAsync(profile);
     }
+
+    /// <summary>
+    /// Gets similar profiles based on tags, profile type, and location
+    /// </summary>
+    public async Task<List<ProfileSummaryDto>> GetSimilarProfilesAsync(Guid profileId, int limit = 4)
+    {
+        _logger.LogInformation("[ProfileService.GetSimilarProfilesAsync] Finding similar profiles for ProfileId: {ProfileId}", profileId);
+
+        try
+        {
+            // Get the source profile
+            var sourceProfile = await _profileRepository.GetWithRelatedDataAsync(profileId);
+            if (sourceProfile == null)
+            {
+                _logger.LogWarning("[ProfileService.GetSimilarProfilesAsync] Source profile not found: {ProfileId}", profileId);
+                return new List<ProfileSummaryDto>();
+            }
+
+            // Get public profiles that match criteria
+            var (allProfiles, _) = await _profileRepository.GetPublicProfilesAsync(1, 50);
+            
+            var similarProfiles = allProfiles
+                .Where(p => p.Id != profileId) // Exclude the source profile
+                .Where(p => p.VisibilityLevel == VisibilityLevel.Public || p.ProfileType?.Name?.ToLower() == "business")
+                .Select(p => new
+                {
+                    Profile = p,
+                    Score = CalculateSimilarityScore(sourceProfile, p)
+                })
+                .OrderByDescending(x => x.Score)
+                .Take(limit)
+                .Select(x => MapToProfileSummaryDto(x.Profile))
+                .ToList();
+
+            _logger.LogInformation("[ProfileService.GetSimilarProfilesAsync] Found {Count} similar profiles", similarProfiles.Count);
+            return similarProfiles;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProfileService.GetSimilarProfilesAsync] Error finding similar profiles for {ProfileId}", profileId);
+            return new List<ProfileSummaryDto>();
+        }
+    }
+
+    private int CalculateSimilarityScore(Profile source, Profile target)
+    {
+        int score = 0;
+
+        // Same profile type = +3 points
+        if (source.ProfileTypeId == target.ProfileTypeId)
+            score += 3;
+
+        // Matching tags = +2 points each
+        if (source.Tags != null && target.Tags != null)
+        {
+            var matchingTags = source.Tags.Intersect(target.Tags, StringComparer.OrdinalIgnoreCase).Count();
+            score += matchingTags * 2;
+        }
+
+        // Same location (if both have location) = +2 points
+        if (source.Location != null && target.Location != null)
+        {
+            if (!string.IsNullOrEmpty(source.Location.City) && 
+                source.Location.City.Equals(target.Location.City, StringComparison.OrdinalIgnoreCase))
+                score += 2;
+            
+            if (!string.IsNullOrEmpty(source.Location.Country) && 
+                source.Location.Country.Equals(target.Location.Country, StringComparison.OrdinalIgnoreCase))
+                score += 1;
+        }
+
+        // Higher view count = slight boost
+        if (target.ViewCount > 100)
+            score += 1;
+
+        return score;
+    }
 }
