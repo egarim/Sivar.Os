@@ -16,7 +16,7 @@
         <div class="post-header-info">
             <MudLink Typo="Typo.subtitle2" 
                      Class="post-author-name"
-                     OnClick="@(() => OnInteraction.InvokeAsync("profile"))">
+                     OnClick="@(() => OnInteraction.InvokeAsync($"profile:{Post.Profile?.Handle}"))">
                 @Post.Profile?.DisplayName
             </MudLink>
             <MudText Typo="Typo.caption" Color="Color.Secondary">

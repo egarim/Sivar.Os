@@ -82,7 +82,7 @@
                     {
                         <BlogCard Post="@post" 
                                   OnClick="@(p => HandleInteraction($"view:{p.Id}"))"
-                                  OnAuthorClick="@(author => HandleInteraction("profile"))" />
+                                  OnAuthorClick="@(handle => HandleInteraction($"profile:{handle}"))" />
                     }
                     else
                     {
@@ -281,17 +281,13 @@
             var postId = action.Replace("view:", "");
             Navigation.NavigateTo($"/post/{postId}");
         }
-        else if (action == "profile")
+        else if (action.StartsWith("profile:"))
         {
-            // Profile clicks require authentication
-            if (!_isAuthenticated)
+            // Navigate to public profile page
+            var handle = action.Replace("profile:", "");
+            if (!string.IsNullOrEmpty(handle))
             {
-                Snackbar.Add(Localizer["SignUpPrompt"], Severity.Info, config =>
-                {
-                    config.Action = Localizer["SignUpButton"];
-                    config.ActionColor = Color.Primary;
-                });
-                Navigation.NavigateTo("/?action=signup");
+                Navigation.NavigateTo($"/app/explore/{handle}");
             }
         }
         else
