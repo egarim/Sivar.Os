@@ -109,9 +109,11 @@ public class WaitingListAccessMiddleware
         
         if (entry == null)
         {
-            // User has no waiting list entry - redirect to verification
-            _logger.LogInformation("User {UserId} has no waiting list entry, redirecting to verification", user.Id);
-            RedirectToVerification(context);
+            // User exists in DB but has no waiting list entry
+            // This means they're a "legacy" user from before the waiting list was implemented
+            // Allow them through (they're already approved by existing in the system)
+            _logger.LogInformation("[WaitingListMiddleware] Legacy user {UserId} has no waiting list entry - allowing access", user.Id);
+            await _next(context);
             return;
         }
 

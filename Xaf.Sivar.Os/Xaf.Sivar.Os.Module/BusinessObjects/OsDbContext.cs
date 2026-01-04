@@ -33,6 +33,7 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
         public new DbSet<Event> Events { get; set; }
         public DbSet<SqlScript> SqlScripts { get; set; }
         public DbSet<SeederLog> SeederLogs { get; set; }
+        public DbSet<KeycloakSetupLog> KeycloakSetupLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,6 +90,13 @@ namespace Xaf.Sivar.Os.Module.BusinessObjects
             modelBuilder.Entity<SeederLog>(b =>
             {
                 b.ToTable("Xaf_SeederLogs");
+                b.Property(s => s.LogText).HasColumnType("text");
+            });
+            
+            // KeycloakSetupLog singleton
+            modelBuilder.Entity<KeycloakSetupLog>(b =>
+            {
+                b.ToTable("Xaf_KeycloakSetupLogs");
                 b.Property(s => s.LogText).HasColumnType("text");
             });
  
