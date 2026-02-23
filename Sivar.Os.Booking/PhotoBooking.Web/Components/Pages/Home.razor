@@ -1,0 +1,67 @@
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@inject PhotoBooking.Data.PhotoBookingDbContext DbContext
+
+<PageTitle>Dashboard</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">📊 Dashboard</MudText>
+<MudText Class="mb-8">Bienvenido al panel de administración / Welcome to the admin panel</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 150px;">
+            <MudText Typo="Typo.h6">Reservas Hoy</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Primary">@_todayBookings</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 150px;">
+            <MudText Typo="Typo.h6">Próximas 7 días</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Secondary">@_weekBookings</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 150px;">
+            <MudText Typo="Typo.h6">Servicios Activos</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Success">@_activeServices</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Elevation="2" Class="pa-4" Style="height: 150px;">
+            <MudText Typo="Typo.h6">Total Reservas</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Info">@_totalBookings</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mt-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Próximas Reservas</MudText>
+    <MudText Color="Color.Secondary">Las próximas reservas aparecerán aquí</MudText>
+</MudPaper>
+
+@code {
+    private int _todayBookings;
+    private int _weekBookings;
+    private int _activeServices;
+    private int _totalBookings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateTime.Today;
+        var weekFromNow = today.AddDays(7);
+
+        _todayBookings = await DbContext.Bookings
+            .Where(b => b.BookingDate.Date == today)
+            .CountAsync();
+
+        _weekBookings = await DbContext.Bookings
+            .Where(b => b.BookingDate.Date >= today && b.BookingDate.Date <= weekFromNow)
+            .CountAsync();
+
+        _activeServices = await DbContext.Services
+            .Where(s => s.IsActive)
+            .CountAsync();
+
+        _totalBookings = await DbContext.Bookings.CountAsync();
+    }
+}

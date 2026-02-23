@@ -209,6 +209,78 @@ public class KeycloakAdminService : IKeycloakAdminService
         return await UpdateUserAttributesAsync(keycloakId, attributes);
     }
 
+    /// <inheritdoc />
+    public async Task<KeycloakCreateUserResult> CreateUserAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        bool emailVerified = true)
+    {
+        if (!IsEnabled)
+        {
+            _logger.LogWarning("Keycloak Admin API is disabled");
+            return new KeycloakCreateUserResult(false, null, "Keycloak Admin API is disabled");
+        }
+
+        try
+        {
+            await EnsureAccessTokenAsync();
+
+            var userPayload = new
+            {
+                username = email,
+                email = email,
+                firstName = firstName,
+                lastName = lastName,
+                enabled = true,
+                emailVerified = emailVerified,
+                credentials = new[]
+                {
+                    new
+                    {
+                        type = "password",
+                        value = password,
+                        temporary = false
+                    }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(userPayload, JsonOptions);
+            var request = new HttpRequestMessage(HttpMethod.Post, _options.UsersEndpoint)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to create user {Email}: {StatusCode} - {Error}",
+                    email, response.StatusCode, errorContent);
+                return new KeycloakCreateUserResult(false, null, $"HTTP {response.StatusCode}: {errorContent}");
+            }
+
+            // Get the created user's ID from the Location header
+            string? userId = null;
+            if (response.Headers.Location != null)
+            {
+                var locationPath = response.Headers.Location.ToString();
+                userId = locationPath.Split('/').LastOrDefault();
+            }
+
+            _logger.LogInformation("Created user {Email} with ID {UserId}", email, userId);
+            return new KeycloakCreateUserResult(true, userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user {Email}", email);
+            return new KeycloakCreateUserResult(false, null, ex.Message);
+        }
+    }
+
     /// <summary>
     /// Ensure we have a valid access token for the Admin API
     /// </summary>

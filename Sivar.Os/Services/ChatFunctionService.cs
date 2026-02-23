@@ -146,14 +146,25 @@ public class ChatFunctionService
             // Limit max results
             maxResults = Math.Min(maxResults, 10);
 
+            // Normalize query to category keys for multilingual search
+            var categoryKeys = await _categoryNormalizer.NormalizeQueryAsync(query);
+            _logger.LogInformation("[ChatFunctionService.SearchProfiles] Normalized '{Query}' to CategoryKeys: [{Keys}]",
+                query, string.Join(", ", categoryKeys));
+
             // Get all profiles and filter (in real app, this would be a DB query)
             var allProfiles = await _profileRepository.GetAllAsync();
 
             var matchingProfileEntities = allProfiles
                 .Where(p => !p.IsDeleted &&
-                    (p.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                     p.Bio.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                     p.ProfileType?.Name.Contains(query, StringComparison.OrdinalIgnoreCase) == true))
+                    (
+                        // Category-based match (primary)
+                        (categoryKeys.Any() && p.CategoryKeys != null && p.CategoryKeys.Length > 0 &&
+                         categoryKeys.Any(key => p.CategoryKeys.Contains(key, StringComparer.OrdinalIgnoreCase))) ||
+                        // Text-based match (fallback)
+                        p.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                        p.Bio.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                        p.ProfileType?.Name.Contains(query, StringComparison.OrdinalIgnoreCase) == true
+                    ))
                 .Take(maxResults)
                 .ToList();
 

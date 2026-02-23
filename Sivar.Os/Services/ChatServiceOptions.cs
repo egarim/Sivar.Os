@@ -8,7 +8,7 @@ public class ChatServiceOptions
     public const string SectionName = "ChatService";
 
     /// <summary>
-    /// AI provider: "ollama" or "openai"
+    /// AI provider: "ollama", "openai", or "openrouter"
     /// </summary>
     public string Provider { get; set; } = "ollama";
 
@@ -47,6 +47,11 @@ public class ChatServiceOptions
     /// </summary>
     public OpenAISettings OpenAI { get; set; } = new();
 
+    /// <summary>
+    /// OpenRouter-specific settings
+    /// </summary>
+    public OpenRouterSettings OpenRouter { get; set; } = new();
+
     public class OllamaSettings
     {
         public string Endpoint { get; set; } = "http://127.0.0.1:11434";
@@ -58,5 +63,14 @@ public class ChatServiceOptions
         public string ApiKey { get; set; } = string.Empty;
         public string ModelId { get; set; } = "gpt-4o";
         public string? OrganizationId { get; set; }
+    }
+
+    public class OpenRouterSettings
+    {
+        public string ApiKey { get; set; } = string.Empty;
+        public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1";
+        public string ModelId { get; set; } = "meta-llama/llama-3.3-70b-instruct";
+        public string? SiteName { get; set; } = "Sivar.Os";
+        public string? SiteUrl { get; set; } = "https://sivar.lat";
     }
 }

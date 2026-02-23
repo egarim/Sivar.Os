@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h5" Class="ml-3">PhotoBooking</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Language" Color="Color.Inherit" OnClick="@ToggleLanguage" Title="Cambiar idioma / Change language" />
+        <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Href="/servicios" Icon="@Icons.Material.Filled.Category">Servicios</MudNavLink>
+            <MudNavLink Href="/disponibilidad" Icon="@Icons.Material.Filled.CalendarMonth">Disponibilidad</MudNavLink>
+            <MudNavLink Href="/reservas" Icon="@Icons.Material.Filled.BookOnline">Reservas</MudNavLink>
+            <MudNavLink Href="/configuracion" Icon="@Icons.Material.Filled.Settings">Configuración</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    <MudMainContent Class="mt-16 pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private string _currentLanguage = "es";
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void ToggleLanguage()
+    {
+        _currentLanguage = _currentLanguage == "es" ? "en" : "es";
+        // TODO: Implement actual language switching logic
+    }
+}

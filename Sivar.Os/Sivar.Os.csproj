@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -15,9 +15,9 @@
     <ProjectReference Include="..\Sivar.Os.Data\Sivar.Os.Data.csproj" />
     <ProjectReference Include="..\Sivar.Os.Shared\Sivar.Os.Shared.csproj" />
     <ProjectReference Include="..\Sivar.Os.Client\Sivar.Os.Client.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
 	<PackageReference Include="DevExpress.ExpressApp.Blazor" Version="25.2.*-*" />
     <!-- DevExpress AI Chat Component for Server-side processing -->
     <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.2.*" />
@@ -28,9 +28,10 @@
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
 		<!-- Resolve version conflict between EF Core Design analyzer dependencies -->
 		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
 	
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.9.0" />

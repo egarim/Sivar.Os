@@ -1,0 +1,279 @@
+@page "/app/photo-studio"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using Sivar.Os.Shared.DTOs
+@using Sivar.Os.Shared.Clients
+@using Sivar.Os.Client.Components.Booking
+@inject IStringLocalizer<PhotoStudio> Localizer
+@inject IResourceBookingsClient BookingsClient
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Studio Fotográfico El Salvador</PageTitle>
+
+<div class="photo-studio-page">
+    @if (IsLoading)
+    {
+        <div class="loading-container">
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.body1" Class="mt-4">Cargando servicios...</MudText>
+        </div>
+    }
+    else if (Studio == null)
+    {
+        <MudAlert Severity="Severity.Warning">
+            No se encontró el estudio fotográfico.
+        </MudAlert>
+    }
+    else
+    {
+        @* Header *@
+        <div class="studio-header">
+            <MudText Typo="Typo.h4" Class="mb-2">@Studio.Name</MudText>
+            @if (!string.IsNullOrEmpty(Studio.Description))
+            {
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                    @Studio.Description
+                </MudText>
+            }
+            
+            @* Studio Info *@
+            <div class="studio-info">
+                <MudChip T="string" Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" Variant="Variant.Outlined">
+                    @Studio.SlotDurationMinutes minutos por sesión
+                </MudChip>
+                @if (Studio.AverageRating.HasValue && Studio.AverageRating > 0)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Star" Color="Color.Warning">
+                        @Studio.AverageRating.Value.ToString("0.0")
+                    </MudChip>
+                }
+            </div>
+        </div>
+
+        <MudDivider Class="my-4" />
+
+        @* Services *@
+        <div class="services-section">
+            <MudText Typo="Typo.h5" Class="mb-4">Nuestros Servicios</MudText>
+            
+            @if (Services == null || !Services.Any())
+            {
+                <MudAlert Severity="Severity.Info">
+                    No hay servicios disponibles en este momento.
+                </MudAlert>
+            }
+            else
+            {
+                <div class="services-grid">
+                    @foreach (var service in Services)
+                    {
+                        <MudCard Class="service-card" Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Class="mb-2">@service.Name</MudText>
+                                
+                                @if (!string.IsNullOrEmpty(service.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                                        @service.Description
+                                    </MudText>
+                                }
+                                
+                                <div class="service-details">
+                                    <MudChip T="string" Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Variant="Variant.Outlined">
+                                        @FormatDuration(service.DurationMinutes)
+                                    </MudChip>
+                                    
+                                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="mt-3">
+                                        @FormatPrice(service.Price, service.Currency)
+                                    </MudText>
+                                </div>
+                            </MudCardContent>
+                            
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.CalendarMonth"
+                                           OnClick="@(() => StartBooking(service))">
+                                    Reservar Ahora
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Booking Dialog *@
+<MudDialog @bind-IsVisible="ShowBookingDialog" Options="DialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Class="mr-2" />
+            Reservar - @SelectedService?.Name
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <BookingWidget ProfileId="@StudioProfileId"
+                       OnBookingComplete="OnBookingComplete" />
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .photo-studio-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+    }
+    
+    .studio-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+    
+    .studio-info {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .services-section {
+        margin-top: 32px;
+    }
+    
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+        margin-top: 16px;
+    }
+    
+    .service-card {
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--mud-elevation-8);
+    }
+    
+    .service-details {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    @@media (max-width: 600px) {
+        .photo-studio-page {
+            padding: 16px;
+        }
+        
+        .services-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    // The studio profile ID (hardcoded for now, will be dynamic later)
+    private Guid StudioProfileId = Guid.Parse("f25044ff-7fa5-48d0-bed3-f29bd614190b");
+    
+    private BookableResourceSummaryDto? Studio;
+    private List<ResourceServiceDto>? Services;
+    private ResourceServiceDto? SelectedService;
+    
+    private bool IsLoading = true;
+    private bool ShowBookingDialog = false;
+    
+    private DialogOptions DialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true,
+        CloseOnEscapeKey = true
+    };
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStudioData();
+    }
+    
+    private async Task LoadStudioData()
+    {
+        try
+        {
+            IsLoading = true;
+            
+            // Load studio resources
+            var resources = await BookingsClient.GetResourcesByProfileAsync(StudioProfileId);
+            
+            if (resources != null && resources.Any())
+            {
+                Studio = resources.First(); // Get the first (only) photo studio
+                
+                // Load services for this studio
+                Services = await BookingsClient.GetServicesAsync(Studio.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error cargando datos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    private void StartBooking(ResourceServiceDto service)
+    {
+        SelectedService = service;
+        ShowBookingDialog = true;
+    }
+    
+    private void OnBookingComplete(ResourceBookingDto booking)
+    {
+        ShowBookingDialog = false;
+        Snackbar.Add($"¡Reserva #{booking.ConfirmationCode} creada exitosamente!", Severity.Success);
+        Nav.NavigateTo("/app/bookings");
+    }
+    
+    private string FormatPrice(decimal price, string? currency)
+    {
+        var curr = currency ?? "USD";
+        return curr switch
+        {
+            "USD" => $"${price:N2}",
+            "EUR" => $"€{price:N2}",
+            _ => $"{price:N2} {curr}"
+        };
+    }
+    
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes} minutos";
+        
+        var hours = minutes / 60;
+        var mins = minutes % 60;
+        
+        if (mins == 0)
+            return $"{hours} {(hours == 1 ? "hora" : "horas")}";
+        
+        return $"{hours}h {mins}min";
+    }
+}

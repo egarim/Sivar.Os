@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -33,6 +34,23 @@ using System.IdentityModel.Tokens.Jwt;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ⚠️ CRITICAL: Configure forwarded headers for proxy (HAProxy) support
+// Must be done BEFORE any other configuration that depends on request scheme/host
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    
+    // Trust the load balancer (HAProxy on 86.48.30.122)
+    options.KnownProxies.Clear();
+    options.KnownNetworks.Clear();
+    
+    // Allow all proxies (since we're behind HAProxy)
+    options.ForwardLimit = null;
+});
+
+// Force bind to all interfaces for external access
+builder.WebHost.UseUrls("http://0.0.0.0:5001");
 
 // Configure Serilog
 builder.Host.UseSerilog((context, configuration) =>
@@ -141,6 +159,13 @@ if (!string.IsNullOrEmpty(envApiKey))
     chatServiceOptions.OpenAI.ApiKey = envApiKey;
 }
 
+// Override OpenRouter API key from OPENROUTER_API_KEY environment variable
+var envOpenRouterKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+if (!string.IsNullOrEmpty(envOpenRouterKey))
+{
+    chatServiceOptions.OpenRouter.ApiKey = envOpenRouterKey;
+}
+
 // Register the resolved options for IOptions<ChatServiceOptions> consumers
 builder.Services.Configure<ChatServiceOptions>(options =>
 {
@@ -152,6 +177,7 @@ builder.Services.Configure<ChatServiceOptions>(options =>
     options.RateLimitPerMinute = chatServiceOptions.RateLimitPerMinute;
     options.Ollama = chatServiceOptions.Ollama;
     options.OpenAI = chatServiceOptions.OpenAI;
+    options.OpenRouter = chatServiceOptions.OpenRouter;
 });
 
 // --- Repository Registration ---
@@ -206,10 +232,14 @@ builder.Services.AddScoped<IChatClient>(sp =>
         "openai" => GetChatClientOpenAiImp(
             chatServiceOptions.OpenAI.ApiKey, 
             chatServiceOptions.OpenAI.ModelId),
+        "openrouter" => GetChatClientOpenRouterImp(
+            chatServiceOptions.OpenRouter.ApiKey,
+            chatServiceOptions.OpenRouter.BaseUrl,
+            chatServiceOptions.OpenRouter.ModelId),
         "ollama" => GetChatClientOllamaImp(
             chatServiceOptions.Ollama.Endpoint, 
             chatServiceOptions.Ollama.ModelId),
-        _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported providers: 'openai', 'ollama'")
+        _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported providers: 'openai', 'openrouter', 'ollama'")
     };
 });
 
@@ -223,7 +253,21 @@ builder.Services.AddScoped<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
     var apiKey = chatServiceOptions.OpenAI.ApiKey;
     if (string.IsNullOrEmpty(apiKey))
     {
-        throw new InvalidOperationException("OpenAI API key not configured. Set the OPENAI_API_KEY environment variable.");
+        // Fallback: Use OpenRouter key for embeddings if OpenAI key not set
+        var openRouterKey = chatServiceOptions.OpenRouter.ApiKey;
+        if (!string.IsNullOrEmpty(openRouterKey))
+        {
+            // OpenRouter supports OpenAI-compatible embeddings endpoint
+            var options = new OpenAI.OpenAIClientOptions
+            {
+                Endpoint = new Uri("https://openrouter.ai/api/v1")
+            };
+            var credential = new System.ClientModel.ApiKeyCredential(openRouterKey);
+            var client = new OpenAIClient(credential, options);
+            return client.GetEmbeddingClient("text-embedding-3-small").AsIEmbeddingGenerator();
+        }
+        
+        throw new InvalidOperationException("OpenAI or OpenRouter API key not configured. Set the OPENAI_API_KEY or OPENROUTER_API_KEY environment variable.");
     }
     var openAiClient = new OpenAIClient(apiKey);
     return openAiClient.GetEmbeddingClient("text-embedding-3-small").AsIEmbeddingGenerator();
@@ -401,6 +445,12 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
+    // ⚠️ Cookie settings for HTTP-only (behind HTTPS HAProxy)
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow HTTP cookies (HAProxy handles HTTPS)
+    options.Cookie.SameSite = SameSiteMode.Lax; // Required for OAuth redirects
+    options.Cookie.HttpOnly = true; // Security: Prevent JavaScript access
+    options.Cookie.IsEssential = true; // Required for GDPR compliance
+    
     options.Events = new CookieAuthenticationEvents
     {
         OnRedirectToLogin = context =>
@@ -659,6 +709,9 @@ builder.Services.AddSignalR(options =>
 
 var app = builder.Build();
 
+// ⚠️ CRITICAL: UseForwardedHeaders MUST be first for proxy support
+app.UseForwardedHeaders();
+
 // Configure CORS for Azure Blob Storage (Azurite) in development
 if (app.Environment.IsDevelopment())
 {
@@ -692,13 +745,16 @@ else
 
 app.UseHttpsRedirection();
 
+// Serve static files (CSS, JS, images)
+app.UseStaticFiles();
+
 // Use request localization
 app.UseRequestLocalization();
 
+// Re-enable authentication for dev-auth to work
 app.UseAuthentication();
-// Waiting List Access Control - block unapproved users
-// Comment out the next line to disable waiting list enforcement
-app.UseWaitingListAccess();
+// Waiting List Access Control - DISABLED for testing
+// app.UseWaitingListAccess();
 app.UseAuthorization();
 
 app.UseAntiforgery();
@@ -741,7 +797,7 @@ app.MapGet("/api/blob-proxy/{container}/{*blobPath}", async (
 }).AllowAnonymous();
 
 app.MapControllers();
-app.MapStaticAssets();
+// MapStaticAssets is .NET 9 - using UseStaticFiles instead (already configured above)
 
 // ✅ Blazor Server ONLY - render mode configuration
 app.MapRazorComponents<App>()
@@ -768,6 +824,25 @@ static IChatClient GetChatClientOllamaImp(string endpoint, string modelId)
 {
     return new OllamaChatClient(endpoint, modelId: modelId)
      .AsBuilder()
+        .UseOpenTelemetry(sourceName: "SivarChat", configure: c => c.EnableSensitiveData = true)
+        .Build();
+}
+
+static IChatClient GetChatClientOpenRouterImp(string apiKey, string baseUrl, string modelId)
+{
+    // OpenRouter is OpenAI-compatible, so we use OpenAI client with custom endpoint
+    var options = new OpenAI.OpenAIClientOptions
+    {
+        Endpoint = new Uri(baseUrl)
+    };
+    
+    var credential = new System.ClientModel.ApiKeyCredential(apiKey);
+    var client = new OpenAIClient(credential, options);
+    
+    return client
+        .GetChatClient(modelId)
+        .AsIChatClient()
+        .AsBuilder()
         .UseOpenTelemetry(sourceName: "SivarChat", configure: c => c.EnableSensitiveData = true)
         .Build();
 }

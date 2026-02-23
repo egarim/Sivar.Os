@@ -12,9 +12,8 @@ public class SivarDbContextFactory : IDesignTimeDbContextFactory<SivarDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<SivarDbContext>();
         
-        // Use a dummy connection string for design-time operations
-        // The actual connection string comes from appsettings.json at runtime
-        optionsBuilder.UseNpgsql("Host=localhost;Database=sivar_design;Username=postgres;Password=postgres");
+        // Use production connection string for design-time migrations
+        optionsBuilder.UseNpgsql("Host=86.48.30.121;Port=5432;Database=sivaros;Username=postgres;Password=Xa1Hf4M3EnAKG8g");
         
         return new SivarDbContext(optionsBuilder.Options);
     }

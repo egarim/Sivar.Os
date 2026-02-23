@@ -78,7 +78,32 @@ public interface IKeycloakAdminService
         WaitingListStatus status);
 
     /// <summary>
+    /// Create a new user in Keycloak
+    /// </summary>
+    /// <param name="email">User email (also used as username)</param>
+    /// <param name="password">Initial password</param>
+    /// <param name="firstName">First name</param>
+    /// <param name="lastName">Last name</param>
+    /// <param name="emailVerified">Set email as verified</param>
+    /// <returns>Operation result with user ID if successful</returns>
+    Task<KeycloakCreateUserResult> CreateUserAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        bool emailVerified = true);
+
+    /// <summary>
     /// Check if the Keycloak Admin service is enabled and configured
     /// </summary>
     bool IsEnabled { get; }
 }
+
+/// <summary>
+/// Result of user creation operation
+/// </summary>
+public record KeycloakCreateUserResult(
+    bool Success,
+    string? UserId = null,
+    string? ErrorMessage = null
+);
