@@ -166,6 +166,11 @@ if (!string.IsNullOrEmpty(envOpenRouterKey))
     chatServiceOptions.OpenRouter.ApiKey = envOpenRouterKey;
 }
 
+// Override Copilot GitHub token from GITHUB_COPILOT_TOKEN environment variable
+var envCopilotToken = Environment.GetEnvironmentVariable("GITHUB_COPILOT_TOKEN");
+if (!string.IsNullOrEmpty(envCopilotToken))
+    chatServiceOptions.Copilot.GitHubToken = envCopilotToken;
+
 // Register the resolved options for IOptions<ChatServiceOptions> consumers
 builder.Services.Configure<ChatServiceOptions>(options =>
 {
@@ -178,6 +183,7 @@ builder.Services.Configure<ChatServiceOptions>(options =>
     options.Ollama = chatServiceOptions.Ollama;
     options.OpenAI = chatServiceOptions.OpenAI;
     options.OpenRouter = chatServiceOptions.OpenRouter;
+    options.Copilot = chatServiceOptions.Copilot;
 });
 
 // --- Repository Registration ---
@@ -239,7 +245,15 @@ builder.Services.AddScoped<IChatClient>(sp =>
         "ollama" => GetChatClientOllamaImp(
             chatServiceOptions.Ollama.Endpoint, 
             chatServiceOptions.Ollama.ModelId),
-        _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported providers: 'openai', 'openrouter', 'ollama'")
+        "copilot" => new Sivar.Os.Services.Copilot.CopilotChatClient(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            new Sivar.Os.Services.Copilot.CopilotTokenService(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                chatServiceOptions.Copilot.GitHubToken,
+                sp.GetRequiredService<ILogger<Sivar.Os.Services.Copilot.CopilotTokenService>>()),
+            chatServiceOptions.Copilot.ModelId,
+            sp.GetRequiredService<ILogger<Sivar.Os.Services.Copilot.CopilotChatClient>>()),
+        _ => throw new InvalidOperationException($"Unknown AI provider: {provider}. Supported: 'openai', 'openrouter', 'ollama', 'copilot'")
     };
 });
 
@@ -384,6 +398,10 @@ builder.Services.Configure<Sivar.Os.Shared.Configuration.AzureBlobStorageConfigu
 builder.Services.Configure<Sivar.Os.Configuration.TwilioOptions>(
     builder.Configuration.GetSection(Sivar.Os.Configuration.TwilioOptions.SectionName));
 builder.Services.AddSingleton<ITwilioVerifyService, TwilioVerifyService>();
+
+// --- Telegram Webhook Configuration ---
+builder.Services.Configure<Sivar.Os.Configuration.TelegramOptions>(
+    builder.Configuration.GetSection(Sivar.Os.Configuration.TelegramOptions.SectionName));
 
 // --- Keycloak Admin API Configuration (User Attribute Management) ---
 builder.Services.Configure<Sivar.Os.Configuration.KeycloakAdminOptions>(

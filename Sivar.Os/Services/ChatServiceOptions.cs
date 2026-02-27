@@ -8,7 +8,7 @@ public class ChatServiceOptions
     public const string SectionName = "ChatService";
 
     /// <summary>
-    /// AI provider: "ollama", "openai", or "openrouter"
+    /// AI provider: "ollama", "openai", "openrouter", or "copilot"
     /// </summary>
     public string Provider { get; set; } = "ollama";
 
@@ -51,6 +51,18 @@ public class ChatServiceOptions
     /// OpenRouter-specific settings
     /// </summary>
     public OpenRouterSettings OpenRouter { get; set; } = new();
+
+    /// <summary>
+    /// GitHub Copilot-specific settings
+    /// </summary>
+    public CopilotSettings Copilot { get; set; } = new();
+
+    public class CopilotSettings
+    {
+        /// <summary>GitHub OAuth token (ghu_ or ghp_) — long-lived. Auto-exchanges for Copilot API token.</summary>
+        public string GitHubToken { get; set; } = string.Empty;
+        public string ModelId { get; set; } = "gpt-4o";
+    }
 
     public class OllamaSettings
     {
